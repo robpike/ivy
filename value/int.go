@@ -40,6 +40,10 @@ func (i Int) String() string {
 	return fmt.Sprint(i.x)
 }
 
+func (i Int) Eval() Value {
+	return i
+}
+
 func (i Int) set(res int64) Value {
 	if minInt <= res && res <= maxInt {
 		i.x = res
@@ -103,4 +107,25 @@ func (i Int) Div(x Value) Value {
 		return z
 	}
 	panic(Errorf("unimplemented Div(Int, %T)", x))
+}
+
+func (i Int) Neg() Value {
+	if i.x == minInt {
+		var z BigInt
+		z.x.SetInt64(-i.x)
+		return z
+	}
+	return Int{x: -i.x}
+
+}
+
+func (i Int) Iota() Value {
+	if i.x <= 0 {
+		panic(Errorf("bad iota %d)", i.x))
+	}
+	v := make([]Value, i.x)
+	for j := range v {
+		v[j] = Int{x: int64(j) + 1} // TODO: assumes small
+	}
+	return SetVector(v)
 }

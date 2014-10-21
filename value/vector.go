@@ -31,6 +31,10 @@ func (v Vector) String() string {
 	return b.String()
 }
 
+func (v Vector) Eval() Value {
+	return v
+}
+
 func (v Vector) Len() int {
 	return len(v.x)
 }
@@ -103,4 +107,35 @@ func (v Vector) Mul(x Value) Value {
 		return SetVector(n)
 	}
 	panic(Errorf("unimplemented Mul(Vector, %T)", x))
+}
+
+// TODO: here and elsewhere, division needs to become rational.
+func (v Vector) Div(x Value) Value {
+	switch x := x.(type) {
+	case Vector:
+		if v.Len() != x.Len() {
+			panic(Errorf("length mismatch: %d %d", v.Len(), x.Len()))
+		}
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Div(x.x[i])
+		}
+		return SetVector(n)
+	case BigInt, Int:
+		xx := x.(Value)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Div(xx)
+		}
+		return SetVector(n)
+	}
+	panic(Errorf("unimplemented Div(Vector, %T)", x))
+}
+
+func (v Vector) Neg() Value {
+	values := make([]Value, v.Len())
+	for i := range values {
+		values[i] = v.x[i].Neg()
+	}
+	return SetVector(values)
 }

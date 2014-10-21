@@ -6,14 +6,25 @@ package value
 
 import "fmt"
 
-type Value interface {
+type Expr interface {
 	String() string
 
-	// Operators, all of the form Value += operand
+	Eval() Value
+}
+
+type Value interface {
+	String() string
+	Eval() Value
+
+	// Binary operators
 	Add(Value) Value
 	Sub(Value) Value
 	Mul(Value) Value
 	Div(Value) Value
+
+	// Unary operators
+	Neg() Value
+	Iota() Value
 }
 
 type Error string
@@ -53,6 +64,14 @@ func (unimplemented) Mul(Value) Value {
 
 func (unimplemented) Div(Value) Value {
 	panic("Div unimplemented")
+}
+
+func (unimplemented) Neg() Value {
+	panic("Neg unimplemented")
+}
+
+func (unimplemented) Iota() Value {
+	panic("Iota unimplemented")
 }
 
 type ParseState int

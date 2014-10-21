@@ -24,6 +24,10 @@ func (i BigInt) String() string {
 	return i.x.String()
 }
 
+func (i BigInt) Eval() Value {
+	return i
+}
+
 // reduce pulls, if possible, a BigInt down to an Int.
 func (i BigInt) reduce() Value {
 	if i.x.BitLen() < intBits {
@@ -66,4 +70,10 @@ func (i BigInt) Mul(x Value) Value {
 		return x.Mul(i)
 	}
 	panic(Errorf("unimplemented Mul(BigInt, %T)", x))
+}
+
+func (i BigInt) Neg() Value {
+	var z BigInt
+	z.x.Neg(&i.x)
+	return z.reduce()
 }
