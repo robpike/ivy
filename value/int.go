@@ -19,9 +19,9 @@ type Int struct {
 }
 
 const (
-	intBits = 8
-	minInt  = -256
-	maxInt  = 255
+	intBits = 32
+	minInt  = -(1 << (intBits - 1))
+	maxInt  = 1<<(intBits-1) - 1
 )
 
 func SetInt(s string) (Int, ParseState) {

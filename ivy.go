@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"text/scanner"
 
 	"code.google.com/p/rspace/ivy/lex"
+	"code.google.com/p/rspace/ivy/parse"
 	"code.google.com/p/rspace/ivy/value"
 )
 
@@ -36,12 +36,13 @@ func main() {
 	//	}
 
 	lexer := lex.NewLexer( /*flag.Arg(0)*/ "/dev/stdin", []string(iFlag))
+	parser := parse.NewParser(lexer)
 	for {
-		run(lexer)
+		run(parser)
 	}
 }
 
-func run(r lex.TokenReader) {
+func run(p *parse.Parser) {
 	defer func() {
 		err := recover()
 		if err == nil {
@@ -54,19 +55,13 @@ func run(r lex.TokenReader) {
 		panic(err)
 	}()
 	for {
-		tok := r.Next()
-		text := r.Text()
-		fmt.Printf("%v %q\n", tok, r.Text())
-		switch tok {
-		case scanner.EOF:
-			return
-		case scanner.Int:
-			v, ok := value.Set(text)
-			for j := 0; ok && j < 8; j++ {
-				fmt.Println(v)
-				v = v.Div(v)
-				fmt.Printf("%T: %s\n", v, v)
-			}
+		fmt.Print("_\t")
+		expr, ok := p.Line()
+		if expr != nil {
+			fmt.Println(expr.Eval())
+		}
+		if !ok {
+			break
 		}
 	}
 }

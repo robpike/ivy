@@ -35,8 +35,9 @@ func (i BigInt) reduce() Value {
 func (i BigInt) Add(x Value) Value {
 	switch x := x.(type) {
 	case BigInt:
-		i.x.Add(&i.x, &x.x)
-		return i
+		var z BigInt
+		z.x.Add(&i.x, &x.x)
+		return z
 	case Int:
 		return x.Add(i)
 	}
@@ -46,8 +47,9 @@ func (i BigInt) Add(x Value) Value {
 func (i BigInt) Sub(x Value) Value {
 	switch x := x.(type) {
 	case BigInt:
-		i.x.Sub(&i.x, &x.x)
-		return i
+		var z BigInt
+		z.x.Sub(&i.x, &x.x)
+		return z
 	case Int:
 		return x.Sub(i)
 	}
@@ -57,8 +59,9 @@ func (i BigInt) Sub(x Value) Value {
 func (i BigInt) Mul(x Value) Value {
 	switch x := x.(type) {
 	case BigInt:
-		i.x.Mul(&i.x, &x.x)
-		return i
+		var z BigInt
+		z.x.Mul(&i.x, &x.x)
+		return z
 	case Int:
 		return x.Mul(i)
 	}
