@@ -59,6 +59,25 @@ func (b *Binary) Eval() value.Value {
 	panic(value.Errorf("no implementation of binary %s", b.op))
 }
 
+func Tree(e value.Expr) string {
+	switch e := e.(type) {
+	case nil:
+		return ""
+	case value.BigInt:
+		return fmt.Sprintf("<big %s>", e)
+	case value.Int:
+		return fmt.Sprintf("<%s>", e)
+	case value.Vector:
+		return fmt.Sprintf("<vec %s>", e)
+	case *Unary:
+		return fmt.Sprintf("(%s %s)", e.op, Tree(e.right))
+	case *Binary:
+		return fmt.Sprintf("(%s %s %s)", Tree(e.left), e.op, Tree(e.right))
+	default:
+		return fmt.Sprintf("%T", e)
+	}
+}
+
 type Parser struct {
 	lexer      lex.TokenReader
 	lineNum    int
@@ -112,6 +131,128 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 	}
 }
 
+// Line:
+//	EOF
+//	'\n'
+//	Expr '\n'
+func (p *Parser) Line() (value.Expr, bool) {
+	tok := p.Next()
+	switch tok.Type {
+	case scan.EOF:
+		return nil, false
+	case scan.Newline:
+		return nil, true
+	default:
+		x := p.Expr(tok)
+		tok = p.Next()
+		if tok.Type != scan.Newline {
+			p.errorf("unexpected %q", tok)
+		}
+		return x, true
+	}
+}
+
+// Expr
+//	Operand
+//	Operand binop Expr
+// Left associative, so "1+2+3" is "(1+2)+3".
+func (p *Parser) Expr(tok scan.Token) value.Expr {
+	expr := p.Operand(tok)
+Loop:
+	for {
+		switch p.Peek().Type {
+		case scan.Newline, scan.RightParen:
+			break Loop
+		case scan.Char:
+			// Binary.
+			tok = p.Next()
+			op := tok.Text
+			switch op {
+			case "+", "-", "*", "/":
+			default:
+				p.errorf("unexpected %q", tok)
+			}
+			expr = &Binary{
+				left:  expr,
+				op:    op,
+				right: p.Operand(p.Next()),
+			}
+		default:
+			panic(value.Errorf("unexpected %s after expression", p.Peek()))
+		}
+	}
+	return expr
+}
+
+// Operand
+//	( Expr )
+//	Number
+//	Vector
+//	unop Operand
+func (p *Parser) Operand(tok scan.Token) value.Expr {
+	var expr value.Expr
+	switch tok.Type {
+	case scan.Char:
+		// Unary.
+		op := tok.Text
+		switch op {
+		case "+", "-", "*", "/":
+		default:
+			p.errorf("unexpected %q", tok)
+		}
+		expr = &Unary{
+			op:    op,
+			right: p.Operand(p.Next()),
+		}
+	case scan.Identifier:
+		// Magic words.
+		op := tok.Text
+		switch tok.Text {
+		case "iota":
+		default:
+			p.errorf("unexpected %q", tok)
+		}
+		expr = &Unary{
+			op:    op,
+			right: p.Operand(p.Next()),
+		}
+	case scan.LeftParen:
+		expr = p.Expr(p.Next())
+		tok := p.Next()
+		if tok.Type != scan.RightParen {
+			p.errorf("expected right paren, found", tok)
+		}
+	case scan.Number:
+		expr = p.NumberOrVector(tok)
+	default:
+		panic(value.Errorf("unexpected %s", tok))
+	}
+	return expr
+}
+
+// Number turns the token into a singleton numeric Value.
+func (p *Parser) Number(tok scan.Token) value.Value {
+	x, ok := value.Set(tok.Text)
+	if !ok {
+		panic(value.Errorf("syntax error in number: %s", tok.Text))
+	}
+	return x
+}
+
+// NumberOrVector turns the token and what follows into a numeric Value, possibly a vector.
+func (p *Parser) NumberOrVector(tok scan.Token) value.Value {
+	x := p.Number(tok)
+	if p.Peek().Type != scan.Number {
+		return x
+	}
+	v := []value.Value{x}
+	for p.Peek().Type == scan.Number {
+		v = append(v, p.Number(p.Next()))
+	}
+	return value.SetVector(v)
+}
+
+/*
 func (p *Parser) Line() (value.Expr, bool) {
 	var expr value.Expr
 Loop:
@@ -124,8 +265,6 @@ Loop:
 		switch tok.Type {
 		case scan.Newline:
 			break Loop
-		case scan.Space:
-			continue
 		case scan.EOF:
 			return expr, false
 		case scan.Identifier:
@@ -186,9 +325,6 @@ Loop:
 func (p *Parser) operand(tok scan.Token) value.Value {
 	var v []value.Value
 	for {
-		for tok.Type == scan.Space {
-			tok = p.Next()
-		}
 		if tok.Type != scan.Number {
 			p.Back(tok)
 			break
@@ -205,3 +341,4 @@ func (p *Parser) operand(tok scan.Token) value.Value {
 	}
 	return value.SetVector(v)
 }
+*/

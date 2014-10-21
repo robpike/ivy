@@ -183,7 +183,7 @@ func (l *Scanner) emit(t Type) {
 		// TODO Ugly. Is there a better way?
 		s = "-" + s[1:]
 	}
-	fmt.Printf("EMIT %q %d %d type %s\n", s, l.start, l.pos, t)
+	//fmt.Printf("EMIT %q %d %d type %s\n", s, l.start, l.pos, t)
 	l.Tokens <- Token{t, l.start, s}
 	l.start = l.pos
 }
@@ -278,6 +278,9 @@ func lexComment(l *Scanner) stateFn {
 
 // lexAny scans non-space items.
 func lexAny(l *Scanner) stateFn {
+	if l.pos >= Pos(len(l.input)) {
+		return nil
+	}
 	if strings.HasPrefix(l.input[l.pos:], startComment) {
 		return lexComment
 	}
@@ -338,9 +341,7 @@ func lexSpace(l *Scanner) stateFn {
 	for isSpace(l.peek()) {
 		l.next()
 	}
-	if l.pos > l.start {
-		l.emit(Space)
-	}
+	l.ignore()
 	return lexAny
 }
 
