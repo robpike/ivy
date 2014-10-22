@@ -240,14 +240,6 @@ func (v Vector) Rsh(x Value) Value {
 	panic(Errorf("unimplemented Rsh(Vector, %T)", x))
 }
 
-func (v Vector) Rsh(x Value) Value {
-	n := make([]Value, v.Len())
-	for i := range v.x {
-		n[i] = v.x[i].Rsh(x)
-	}
-	return ValueSlice(n)
-}
-
 func (v Vector) Neg() Value {
 	values := make([]Value, v.Len())
 	for i := range values {
