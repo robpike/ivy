@@ -133,15 +133,35 @@ func (i BigInt) Xor(x Value) Value {
 }
 
 func (i BigInt) Lsh(x Value) Value {
-	var z BigInt
-	z.x.Lsh(&i.x, shiftCount(x))
-	return z.reduce()
+	switch x := x.(type) {
+	case Int:
+		var z BigInt
+		z.x.Lsh(&i.x, shiftCount(x))
+		return z.reduce()
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Lsh(x.x[j])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Lsh(BigInt, %T)", x))
 }
 
 func (i BigInt) Rsh(x Value) Value {
-	var z BigInt
-	z.x.Rsh(&i.x, shiftCount(x))
-	return z.reduce()
+	switch x := x.(type) {
+	case Int:
+		var z BigInt
+		z.x.Rsh(&i.x, shiftCount(x))
+		return z.reduce()
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Rsh(x.x[j])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Rsh(BigInt, %T)", x))
 }
 
 func (i BigInt) Neg() Value {

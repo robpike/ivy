@@ -183,19 +183,43 @@ func (i Int) Xor(x Value) Value {
 }
 
 func shiftCount(x Value) uint {
-	count, ok := x.(Int)
-	if !ok || count.x < 0 || count.x >= intBits {
-		panic(Errorf("illegal shift count %d", count.x))
+	if count, ok := x.(Int); ok {
+		if count.x < 0 || count.x >= intBits {
+			panic(Errorf("illegal shift count %d", count.x))
+		}
+		return uint(count.x)
 	}
-	return uint(count.x)
+	panic(Errorf("illegal shift count type %T", x))
 }
 
 func (i Int) Lsh(x Value) Value {
-	return ValueInt64(i.x << shiftCount(x))
+	switch x := x.(type) {
+	case Int:
+		return ValueInt64(i.x << shiftCount(x))
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Lsh(x.x[j])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Lsh(Int, %T)", x))
 }
 
 func (i Int) Rsh(x Value) Value {
-	return ValueInt64(i.x >> shiftCount(x))
+	switch x := x.(type) {
+	case Int:
+		return ValueInt64(i.x >> shiftCount(x))
+	case BigInt:
+		panic(Errorf("illegal shift count type %T", x))
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Rsh(x.x[j])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Rsh(Int, %T)", x))
 }
 
 func (i Int) Neg() Value {

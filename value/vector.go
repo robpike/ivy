@@ -191,11 +191,53 @@ func (v Vector) Xor(x Value) Value {
 }
 
 func (v Vector) Lsh(x Value) Value {
-	n := make([]Value, v.Len())
-	for i := range v.x {
-		n[i] = v.x[i].Lsh(x)
+	switch x := x.(type) {
+	case BigInt:
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Lsh(x)
+		}
+		return ValueSlice(n)
+	case Int:
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Lsh(x)
+		}
+		return ValueSlice(n)
+	case Vector:
+		v.sameLength(x)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Lsh(x.x[i])
+		}
+		return ValueSlice(n)
 	}
-	return ValueSlice(n)
+	panic(Errorf("unimplemented Lsh(Vector, %T)", x))
+}
+
+func (v Vector) Rsh(x Value) Value {
+	switch x := x.(type) {
+	case BigInt:
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Rsh(x)
+		}
+		return ValueSlice(n)
+	case Int:
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Rsh(x)
+		}
+		return ValueSlice(n)
+	case Vector:
+		v.sameLength(x)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Rsh(x.x[i])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Rsh(Vector, %T)", x))
 }
 
 func (v Vector) Rsh(x Value) Value {
