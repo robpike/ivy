@@ -24,15 +24,17 @@ func (u *Unary) String() string {
 }
 
 func (u *Unary) Eval() value.Value {
-	switch u.op {
-	case "+":
-		return u.right.Eval()
-	case "-":
-		return u.right.Eval().Neg()
-	case "iota":
-		return u.right.Eval().Iota()
-	}
-	panic(value.Errorf("no implementation of unary %s", u.op))
+	return value.Unary(u.op, u.right.Eval())
+	/*	switch u.op {
+		case "+":
+			return u.right.Eval()
+		case "-":
+			return u.right.Eval().Neg()
+		case "iota":
+			return u.right.Eval().Iota()
+		}
+		panic(value.Errorf("no implementation of unary %s", u.op))
+	*/
 }
 
 type Binary struct {
@@ -46,29 +48,32 @@ func (b *Binary) String() string {
 }
 
 func (b *Binary) Eval() value.Value {
-	switch b.op {
-	case "+":
-		return b.left.Eval().Add(b.right.Eval())
-	case "-":
-		return b.left.Eval().Sub(b.right.Eval())
-	case "*":
-		return b.left.Eval().Mul(b.right.Eval())
-	case "/":
-		return b.left.Eval().Div(b.right.Eval())
-	case "**":
-		return b.left.Eval().Pow(b.right.Eval())
-	case "<<":
-		return b.left.Eval().Lsh(b.right.Eval())
-	case ">>":
-		return b.left.Eval().Rsh(b.right.Eval())
-	case "&":
-		return b.left.Eval().And(b.right.Eval())
-	case "|":
-		return b.left.Eval().Or(b.right.Eval())
-	case "^":
-		return b.left.Eval().Xor(b.right.Eval())
-	}
-	panic(value.Errorf("binary %s unimplemented", b.op))
+	return value.Binary(b.left.Eval(), b.op, b.right.Eval())
+	/*
+		switch b.op {
+		case "+":
+			return b.left.Eval().Add(b.right.Eval())
+		case "-":
+			return b.left.Eval().Sub(b.right.Eval())
+		case "*":
+			return b.left.Eval().Mul(b.right.Eval())
+		case "/":
+			return b.left.Eval().Div(b.right.Eval())
+		case "**":
+			return b.left.Eval().Pow(b.right.Eval())
+		case "<<":
+			return b.left.Eval().Lsh(b.right.Eval())
+		case ">>":
+			return b.left.Eval().Rsh(b.right.Eval())
+		case "&":
+			return b.left.Eval().And(b.right.Eval())
+		case "|":
+			return b.left.Eval().Or(b.right.Eval())
+		case "^":
+			return b.left.Eval().Xor(b.right.Eval())
+		}
+		panic(value.Errorf("binary %s unimplemented", b.op))
+	*/
 }
 
 func Tree(e value.Expr) string {
