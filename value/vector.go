@@ -50,10 +50,6 @@ func (v Vector) Len() int {
 	return len(v.x)
 }
 
-func (v Vector) Append(x Value) Value {
-	return ValueSlice(append(v.x, x))
-}
-
 func (v Vector) sameLength(x Vector) {
 	if v.Len() != x.Len() {
 		panic(Errorf("length mismatch: %d %d", v.Len(), x.Len()))

@@ -4,6 +4,8 @@
 
 package value
 
+import "math/big"
+
 type valueType int
 
 const (
@@ -116,6 +118,8 @@ func init() {
 
 // Binary operators.
 
+// binaryArithType returns the maximum of the two types,
+// so the smaller value is appropriately up-converted.
 func binaryArithType(t1, t2 valueType) valueType {
 	if t1 > t2 {
 		return t1
@@ -123,6 +127,8 @@ func binaryArithType(t1, t2 valueType) valueType {
 	return t2
 }
 
+// powType is like binaryArithType but never returns smaller than BigInt,
+// because the only implementation of exponentiation we have is in big.Int.
 func powType(t1, t2 valueType) valueType {
 	if t1 == intType {
 		t1 = bigIntType
@@ -130,6 +136,7 @@ func powType(t1, t2 valueType) valueType {
 	return binaryArithType(t1, t2)
 }
 
+// shiftCount converts x to an unsigned integer.
 func shiftCount(x Value) uint {
 	switch count := x.(type) {
 	case Int:
@@ -148,7 +155,9 @@ func shiftCount(x Value) uint {
 	panic(Error("illegal shift count type"))
 }
 
-func binaryVectorOp(u Vector, op string, v Vector) Value {
+// binaryVectorOp applies op elementwise to i and j.
+func binaryVectorOp(i Value, op string, j Value) Value {
+	u, v := i.(Vector), j.(Vector)
 	if len(u.x) == 1 {
 		n := make([]Value, v.Len())
 		for k := range v.x {
@@ -171,6 +180,27 @@ func binaryVectorOp(u Vector, op string, v Vector) Value {
 	return ValueSlice(n)
 }
 
+func binaryBigIntOp(u Value, op func(*big.Int, *big.Int, *big.Int) *big.Int, v Value) Value {
+	i, j := u.(BigInt), v.(BigInt)
+	var z BigInt
+	op(&z.x, &i.x, &j.x)
+	return z.reduce()
+}
+
+// bigIntPow is the "op" for pow on *big.Int. Different signature for Exp means we can't use *big.Exp directly.
+func bigIntPow(i, j, k *big.Int) *big.Int {
+	i.Exp(j, k, nil)
+	return i
+}
+
+// toInt turns the boolean into 0 or 1.
+func toInt(t bool) Value {
+	if t {
+		return one
+	}
+	return zero
+}
+
 var (
 	add, sub, mul, div, pow *binaryOp
 	and, or, xor, lsh, rsh  *binaryOp
@@ -188,17 +218,13 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				return valueInt64(i.x + j.x)
+				return valueInt64(u.(Int).x + v.(Int).x)
 			},
 			func(u, v Value) Value {
-				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Add(&i.x, &j.x)
-				return z.reduce()
+				return binaryBigIntOp(u, (*big.Int).Add, v)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "+", v.(Vector))
+				return binaryVectorOp(u, "+", v)
 			},
 		},
 	}
@@ -207,17 +233,13 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				return valueInt64(i.x - j.x)
+				return valueInt64(u.(Int).x - v.(Int).x)
 			},
 			func(u, v Value) Value {
-				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Sub(&i.x, &j.x)
-				return z.reduce()
+				return binaryBigIntOp(u, (*big.Int).Sub, v)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "-", v.(Vector))
+				return binaryVectorOp(u, "-", v)
 			},
 		},
 	}
@@ -226,36 +248,36 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				return valueInt64(i.x * j.x)
+				return valueInt64(u.(Int).x * v.(Int).x)
 			},
 			func(u, v Value) Value {
-				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Mul(&i.x, &j.x)
-				return z.reduce()
+				return binaryBigIntOp(u, (*big.Int).Mul, v)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "*", v.(Vector))
+				return binaryVectorOp(u, "*", v)
 			},
 		},
 	}
 
 	div = &binaryOp{
+		// TODO: zero division!
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				return valueInt64(i.x / j.x)
+				if v.(Int).x == 0 {
+					panic(Error("division by zero"))
+				}
+				return valueInt64(u.(Int).x / v.(Int).x)
 			},
 			func(u, v Value) Value {
-				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Div(&i.x, &j.x)
-				return z.reduce()
+				x := v.(BigInt)
+				if x.x.Sign() == 0 {
+					panic(Error("division by zero"))
+				}
+				return binaryBigIntOp(u, (*big.Int).Div, v)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "/", v.(Vector))
+				return binaryVectorOp(u, "/", v)
 			},
 		},
 	}
@@ -265,13 +287,10 @@ func init() {
 		fn: [numType]binaryFn{
 			nil, // Use BigInt for this.
 			func(u, v Value) Value {
-				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Exp(&i.x, &j.x, nil)
-				return z.reduce()
+				return binaryBigIntOp(u, bigIntPow, v)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "**", v.(Vector))
+				return binaryVectorOp(u, "**", v)
 			},
 		},
 	}
@@ -280,17 +299,13 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				return valueInt64(i.x & j.x)
+				return valueInt64(u.(Int).x & v.(Int).x)
 			},
 			func(u, v Value) Value {
-				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.And(&i.x, &j.x)
-				return z.reduce()
+				return binaryBigIntOp(u, (*big.Int).And, v)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "&", v.(Vector))
+				return binaryVectorOp(u, "&", v)
 			},
 		},
 	}
@@ -299,17 +314,13 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				return valueInt64(i.x | j.x)
+				return valueInt64(u.(Int).x | v.(Int).x)
 			},
 			func(u, v Value) Value {
-				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Or(&i.x, &j.x)
-				return z.reduce()
+				return binaryBigIntOp(u, (*big.Int).Or, v)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "|", v.(Vector))
+				return binaryVectorOp(u, "|", v)
 			},
 		},
 	}
@@ -318,17 +329,13 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				return valueInt64(i.x ^ j.x)
+				return valueInt64(u.(Int).x ^ v.(Int).x)
 			},
 			func(u, v Value) Value {
-				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Xor(&i.x, &j.x)
-				return z.reduce()
+				return binaryBigIntOp(u, (*big.Int).Xor, v)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "^", v.(Vector))
+				return binaryVectorOp(u, "^", v)
 			},
 		},
 	}
@@ -344,7 +351,7 @@ func init() {
 				return z.reduce()
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "<<", v.(Vector))
+				return binaryVectorOp(u, "<<", v)
 			},
 		},
 	}
@@ -360,7 +367,7 @@ func init() {
 				return z.reduce()
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), ">>", v.(Vector))
+				return binaryVectorOp(u, ">>", v)
 			},
 		},
 	}
@@ -369,21 +376,14 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				if i.x == j.x {
-					return one
-				}
-				return zero
+				return toInt(u.(Int).x == v.(Int).x)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				if i.x.Cmp(&j.x) == 0 {
-					return one
-				}
-				return zero
+				return toInt(i.x.Cmp(&j.x) == 0)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "==", v.(Vector))
+				return binaryVectorOp(u, "==", v)
 			},
 		},
 	}
@@ -392,21 +392,14 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				if i.x != j.x {
-					return one
-				}
-				return zero
+				return toInt(u.(Int).x != v.(Int).x)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				if i.x.Cmp(&j.x) != 0 {
-					return one
-				}
-				return zero
+				return toInt(i.x.Cmp(&j.x) != 0)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "!=", v.(Vector))
+				return binaryVectorOp(u, "!=", v)
 			},
 		},
 	}
@@ -415,21 +408,14 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				if i.x < j.x {
-					return one
-				}
-				return zero
+				return toInt(u.(Int).x < v.(Int).x)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				if i.x.Cmp(&j.x) < 0 {
-					return one
-				}
-				return zero
+				return toInt(i.x.Cmp(&j.x) < 0)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "<", v.(Vector))
+				return binaryVectorOp(u, "<", v)
 			},
 		},
 	}
@@ -438,21 +424,14 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				if i.x <= j.x {
-					return one
-				}
-				return zero
+				return toInt(u.(Int).x <= v.(Int).x)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				if i.x.Cmp(&j.x) <= 0 {
-					return one
-				}
-				return zero
+				return toInt(i.x.Cmp(&j.x) <= 0)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), "<=", v.(Vector))
+				return binaryVectorOp(u, "<=", v)
 			},
 		},
 	}
@@ -461,21 +440,14 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				if i.x > j.x {
-					return one
-				}
-				return zero
+				return toInt(u.(Int).x > v.(Int).x)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				if i.x.Cmp(&j.x) > 0 {
-					return one
-				}
-				return zero
+				return toInt(i.x.Cmp(&j.x) > 0)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), ">", v.(Vector))
+				return binaryVectorOp(u, ">", v)
 			},
 		},
 	}
@@ -484,21 +456,14 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
-				i, j := u.(Int), v.(Int)
-				if i.x >= j.x {
-					return one
-				}
-				return zero
+				return toInt(u.(Int).x >= v.(Int).x)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				if i.x.Cmp(&j.x) >= 0 {
-					return one
-				}
-				return zero
+				return toInt(i.x.Cmp(&j.x) >= 0)
 			},
 			func(u, v Value) Value {
-				return binaryVectorOp(u.(Vector), ">=", v.(Vector))
+				return binaryVectorOp(u, ">=", v)
 			},
 		},
 	}
