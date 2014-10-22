@@ -178,7 +178,11 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		// Unary.
 		op := tok.Text
 		switch op {
-		case "+", "-":
+		case "+", "-", "*", "/", "**", "<<", ">>", "&", "|", "^", "==", "!=", ">", "<", ">=", "<=":
+			if p.Peek().Text == `\` {
+				// Reduce operation.
+				op += p.Next().Text
+			}
 		default:
 			p.errorf("unexpected %q", tok)
 		}

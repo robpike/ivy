@@ -4,7 +4,10 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+	"strings"
+)
 
 type valueType int
 
@@ -22,6 +25,9 @@ type unaryOp struct {
 }
 
 func Unary(opName string, v Value) Value {
+	if strings.HasSuffix(opName, `\`) {
+		return Reduce(opName[:len(opName)-1], v)
+	}
 	op := unaryOps[opName]
 	return op.fn[whichType(v)](v)
 }
@@ -31,6 +37,11 @@ type binaryFn func(Value, Value) Value
 type binaryOp struct {
 	whichType func(a, b valueType) valueType
 	fn        [numType]binaryFn
+}
+
+type reduceOp struct {
+	zero Value
+	fn   unaryFn
 }
 
 func whichType(v Value) valueType {
@@ -49,6 +60,18 @@ func Binary(v1 Value, opName string, v2 Value) Value {
 	op := binaryOps[opName]
 	which := op.whichType(whichType(v1), whichType(v2))
 	return op.fn[which](v1.ToType(which), v2.ToType(which))
+}
+
+func Reduce(opName string, v Value) Value {
+	vec, ok := v.(Vector)
+	if !ok {
+		panic(Error("reduction operand is not a vector"))
+	}
+	acc := vec.x[0]
+	for i := 1; i < vec.Len(); i++ {
+		acc = Binary(acc, opName, vec.x[i]) // TODO!
+	}
+	return acc
 }
 
 // Unary operators.
