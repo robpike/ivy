@@ -15,12 +15,6 @@ import (
 	"code.google.com/p/rspace/ivy/value"
 )
 
-var (
-	outputFile = flag.String("o", "", "output file; default foo.6 for /a/b/c/foo.s on arm64 (unused TODO)")
-	printOut   = flag.Bool("S", true, "print assembly and machine code") // TODO: set to false
-	trimPath   = flag.String("trimpath", "", "remove prefix from recorded source file paths (unused TODO)")
-)
-
 func init() {
 	flag.Var(&iFlag, "I", "include directory; can be set multiple times")
 }

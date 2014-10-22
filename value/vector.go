@@ -14,12 +14,6 @@ type Vector struct {
 	x []Value
 }
 
-func SetVector(x []Value) Vector { //TODO NOT CALLED SET if parsers are set
-	return Vector{
-		x: x,
-	}
-}
-
 func (v Vector) String() string {
 	var b bytes.Buffer
 	for i := range v.x {
@@ -29,6 +23,12 @@ func (v Vector) String() string {
 		fmt.Fprint(&b, v.x[i].String())
 	}
 	return b.String()
+}
+
+func ValueSlice(x []Value) Vector {
+	return Vector{
+		x: x,
+	}
 }
 
 func (v Vector) Eval() Value {
@@ -42,47 +42,49 @@ func (v Vector) Len() int {
 func (v Vector) Add(x Value) Value {
 	switch x := x.(type) {
 	case Vector:
-		if v.Len() != x.Len() {
-			panic(Errorf("length mismatch: %d %d", v.Len(), x.Len()))
-		}
+		v.sameLength(x)
 		n := make([]Value, v.Len())
 		for i := range v.x {
 			n[i] = v.x[i].Add(x.x[i])
 		}
-		return SetVector(n)
+		return ValueSlice(n)
 	case BigInt, Int:
 		xx := x.(Value)
 		n := make([]Value, v.Len())
 		for i := range v.x {
 			n[i] = v.x[i].Add(xx)
 		}
-		return SetVector(n)
+		return ValueSlice(n)
 	}
 	panic(Errorf("unimplemented Add(Vector, %T)", x))
 }
 
 func (v Vector) Append(x Value) Value {
-	return SetVector(append(v.x, x))
+	return ValueSlice(append(v.x, x))
+}
+
+func (v Vector) sameLength(x Vector) {
+	if v.Len() != x.Len() {
+		panic(Errorf("length mismatch: %d %d", v.Len(), x.Len()))
+	}
 }
 
 func (v Vector) Sub(x Value) Value {
 	switch x := x.(type) {
 	case Vector:
-		if v.Len() != x.Len() {
-			panic(Errorf("length mismatch: %d %d", v.Len(), x.Len()))
-		}
+		v.sameLength(x)
 		n := make([]Value, v.Len())
 		for i := range v.x {
 			n[i] = v.x[i].Sub(x.x[i])
 		}
-		return SetVector(n)
+		return ValueSlice(n)
 	case BigInt, Int:
 		xx := x.(Value)
 		n := make([]Value, v.Len())
 		for i := range v.x {
 			n[i] = v.x[i].Sub(xx)
 		}
-		return SetVector(n)
+		return ValueSlice(n)
 	}
 	panic(Errorf("unimplemented Sub(Vector, %T)", x))
 }
@@ -90,21 +92,19 @@ func (v Vector) Sub(x Value) Value {
 func (v Vector) Mul(x Value) Value {
 	switch x := x.(type) {
 	case Vector:
-		if v.Len() != x.Len() {
-			panic(Errorf("length mismatch: %d %d", v.Len(), x.Len()))
-		}
+		v.sameLength(x)
 		n := make([]Value, v.Len())
 		for i := range v.x {
 			n[i] = v.x[i].Mul(x.x[i])
 		}
-		return SetVector(n)
+		return ValueSlice(n)
 	case BigInt, Int:
 		xx := x.(Value)
 		n := make([]Value, v.Len())
 		for i := range v.x {
 			n[i] = v.x[i].Mul(xx)
 		}
-		return SetVector(n)
+		return ValueSlice(n)
 	}
 	panic(Errorf("unimplemented Mul(Vector, %T)", x))
 }
@@ -113,23 +113,97 @@ func (v Vector) Mul(x Value) Value {
 func (v Vector) Div(x Value) Value {
 	switch x := x.(type) {
 	case Vector:
-		if v.Len() != x.Len() {
-			panic(Errorf("length mismatch: %d %d", v.Len(), x.Len()))
-		}
+		v.sameLength(x)
 		n := make([]Value, v.Len())
 		for i := range v.x {
 			n[i] = v.x[i].Div(x.x[i])
 		}
-		return SetVector(n)
+		return ValueSlice(n)
 	case BigInt, Int:
 		xx := x.(Value)
 		n := make([]Value, v.Len())
 		for i := range v.x {
 			n[i] = v.x[i].Div(xx)
 		}
-		return SetVector(n)
+		return ValueSlice(n)
 	}
 	panic(Errorf("unimplemented Div(Vector, %T)", x))
+}
+
+func (v Vector) And(x Value) Value {
+	switch x := x.(type) {
+	case Vector:
+		v.sameLength(x)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].And(x.x[i])
+		}
+		return ValueSlice(n)
+	case BigInt, Int:
+		xx := x.(Value)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].And(xx)
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented And(Vector, %T)", x))
+}
+
+func (v Vector) Or(x Value) Value {
+	switch x := x.(type) {
+	case Vector:
+		v.sameLength(x)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Or(x.x[i])
+		}
+		return ValueSlice(n)
+	case BigInt, Int:
+		xx := x.(Value)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Or(xx)
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Or(Vector, %T)", x))
+}
+
+func (v Vector) Xor(x Value) Value {
+	switch x := x.(type) {
+	case Vector:
+		v.sameLength(x)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Xor(x.x[i])
+		}
+		return ValueSlice(n)
+	case BigInt, Int:
+		xx := x.(Value)
+		n := make([]Value, v.Len())
+		for i := range v.x {
+			n[i] = v.x[i].Xor(xx)
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Xor(Vector, %T)", x))
+}
+
+func (v Vector) Lsh(x Value) Value {
+	n := make([]Value, v.Len())
+	for i := range v.x {
+		n[i] = v.x[i].Lsh(x)
+	}
+	return ValueSlice(n)
+}
+
+func (v Vector) Rsh(x Value) Value {
+	n := make([]Value, v.Len())
+	for i := range v.x {
+		n[i] = v.x[i].Rsh(x)
+	}
+	return ValueSlice(n)
 }
 
 func (v Vector) Neg() Value {
@@ -137,5 +211,5 @@ func (v Vector) Neg() Value {
 	for i := range values {
 		values[i] = v.x[i].Neg()
 	}
-	return SetVector(values)
+	return ValueSlice(values)
 }

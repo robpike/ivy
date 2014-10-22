@@ -29,17 +29,21 @@ const (
 	Nothing Type = iota
 	Error        // error occurred; value is text of error
 	Newline
+	// Interesting things
 	Bool         // boolean constant
 	Char         // printable ASCII character; grab bag for comma etc.
 	CharConstant // character constant
 	ColonEquals  // colon-equals (':=') introducing a declaration
+	Dot          // dot
 	EOF
+	Exponent   // '**' exponentiation
 	Identifier // alphanumeric identifier
-	Dot        // dot
 	LeftParen  // '('
+	LeftShift  // '<<'
 	Number     // simple number, including imaginary
 	RawString  // raw quoted string (includes quotes)
 	RightParen // ')'
+	RightShift // '>>'
 	Space      // run of spaces separating
 	String     // quoted string (includes quotes)
 	// Keywords appear after all the rest.
@@ -62,27 +66,32 @@ func (t Type) String() string {
 	case CharConstant:
 		return "CharConstant"
 	case ColonEquals:
-		return "ColonEquals"
+		return ":="
+	case Dot:
+		return "."
 	case EOF:
 		return "EOF"
+	case Exponent:
+		return "**"
 	case Identifier:
 		return "Identifier"
-	case Dot:
-		return "Dot"
 	case LeftParen:
 		return "LeftParen"
+	case LeftShift:
+		return "<<"
 	case Number:
 		return "Number"
 	case RawString:
 		return "RawString"
 	case RightParen:
 		return "RightParen"
+	case RightShift:
+		return ">>"
 	case Space:
 		return "Space"
 	case String:
 		return "String"
-	case Keyword:
-		return "Keyword"
+	// Keywords
 	case Iota:
 		return "Iota"
 	default:
@@ -297,6 +306,30 @@ func lexAny(l *Scanner) stateFn {
 			return l.errorf("expected :=")
 		}
 		l.emit(ColonEquals)
+	case r == '>':
+		switch l.peek() {
+		case '>':
+			l.next()
+			l.emit(RightShift)
+		default:
+			l.emit(Char)
+		}
+	case r == '<':
+		switch l.peek() {
+		case '<':
+			l.next()
+			l.emit(LeftShift)
+		default:
+			l.emit(Char)
+		}
+	case r == '*':
+		switch l.peek() {
+		case '*':
+			l.next()
+			l.emit(Exponent)
+		default:
+			l.emit(Char)
+		}
 	case r == '"':
 		return lexQuote
 	case r == '`':

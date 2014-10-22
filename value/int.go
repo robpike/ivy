@@ -24,7 +24,7 @@ const (
 	maxInt  = 1<<(intBits-1) - 1
 )
 
-func SetInt(s string) (Int, ParseState) {
+func SetIntString(s string) (Int, ParseState) {
 	i, err := strconv.ParseInt(s, 0, intBits)
 	if err == nil {
 		return Int{x: i}, Valid
@@ -44,25 +44,18 @@ func (i Int) Eval() Value {
 	return i
 }
 
-func (i Int) set(res int64) Value {
-	if minInt <= res && res <= maxInt {
-		i.x = res
-		return i
-	}
-	var z BigInt
-	z.x.SetInt64(res)
-	return z
-}
-
 func (i Int) Add(x Value) Value {
 	switch x := x.(type) {
 	case Int:
-		return i.set(i.x + x.x)
+		return ValueInt64(i.x + x.x)
 	case BigInt:
-		var z BigInt
-		z.x.SetInt64(i.x)
-		z.x = *z.x.Add(&z.x, &x.x)
-		return z
+		return BigInt64(i.x).Add(x)
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Add(x.x[j])
+		}
+		return ValueSlice(n)
 	}
 	panic(Errorf("unimplemented Add(Int, %T)", x))
 }
@@ -70,12 +63,15 @@ func (i Int) Add(x Value) Value {
 func (i Int) Sub(x Value) Value {
 	switch x := x.(type) {
 	case Int:
-		return i.set(i.x - x.x)
+		return ValueInt64(i.x - x.x)
 	case BigInt:
-		var z BigInt
-		z.x.SetInt64(i.x)
-		z.x = *z.x.Sub(&z.x, &x.x)
-		return z
+		return BigInt64(i.x).Sub(x)
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Sub(x.x[j])
+		}
+		return ValueSlice(n)
 	}
 	panic(Errorf("unimplemented Sub(Int, %T)", x))
 }
@@ -83,12 +79,15 @@ func (i Int) Sub(x Value) Value {
 func (i Int) Mul(x Value) Value {
 	switch x := x.(type) {
 	case Int:
-		return i.set(i.x * x.x)
+		return ValueInt64(i.x * x.x)
 	case BigInt:
-		var z BigInt
-		z.x.SetInt64(i.x)
-		z.x = *z.x.Mul(&z.x, &x.x)
-		return z
+		return BigInt64(i.x).Mul(x)
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Mul(x.x[j])
+		}
+		return ValueSlice(n)
 	}
 	panic(Errorf("unimplemented Mul(Int, %T)", x))
 }
@@ -99,14 +98,104 @@ func (i Int) Div(x Value) Value {
 		if x.x == 0 {
 			panic(Error("division by zero"))
 		}
-		return i.set(i.x / x.x)
+		return ValueInt64(i.x / x.x)
 	case BigInt:
-		var z BigInt
-		z.x.SetInt64(i.x)
-		z.x = *z.x.Div(&z.x, &x.x)
-		return z
+		return BigInt64(i.x).Div(x)
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Div(x.x[j])
+		}
+		return ValueSlice(n)
 	}
 	panic(Errorf("unimplemented Div(Int, %T)", x))
+}
+
+func (i Int) Pow(x Value) Value {
+	switch x := x.(type) {
+	case Int:
+		if x.x < 0 {
+			panic(Errorf("unimplemented negative exponent %s", x))
+		}
+		// Let math/big figure out the algorithm.
+		return BigInt64(i.x).Pow(x)
+	case BigInt:
+		if x.x.Sign() < 0 {
+			panic(Errorf("unimplemented negative exponent %s", x))
+		}
+		return BigInt64(i.x).Pow(x)
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Pow(x.x[j])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Pow(Int, %T)", x))
+}
+
+func (i Int) And(x Value) Value {
+	switch x := x.(type) {
+	case Int:
+		return ValueInt64(i.x & x.x)
+	case BigInt:
+		return BigInt64(i.x).And(x)
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.And(x.x[j])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented And(Int, %T)", x))
+}
+
+func (i Int) Or(x Value) Value {
+	switch x := x.(type) {
+	case Int:
+		return ValueInt64(i.x | x.x)
+	case BigInt:
+		return BigInt64(i.x).Or(x)
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Or(x.x[j])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Or(Int, %T)", x))
+}
+
+func (i Int) Xor(x Value) Value {
+	switch x := x.(type) {
+	case Int:
+		return ValueInt64(i.x ^ x.x)
+	case BigInt:
+		return BigInt64(i.x).Xor(x)
+	case Vector:
+		n := make([]Value, x.Len())
+		for j := range x.x {
+			n[j] = i.Xor(x.x[j])
+		}
+		return ValueSlice(n)
+	}
+	panic(Errorf("unimplemented Xor(Int, %T)", x))
+}
+
+func shiftCount(x Value) uint {
+	count, ok := x.(Int)
+	if !ok || count.x < 0 || count.x >= intBits {
+		panic(Errorf("illegal shift count %d", count.x))
+	}
+	return uint(count.x)
+}
+
+func (i Int) Lsh(x Value) Value {
+	return ValueInt64(i.x << shiftCount(x))
+}
+
+func (i Int) Rsh(x Value) Value {
+	return ValueInt64(i.x >> shiftCount(x))
 }
 
 func (i Int) Neg() Value {
@@ -127,5 +216,5 @@ func (i Int) Iota() Value {
 	for j := range v {
 		v[j] = Int{x: int64(j) + 1} // TODO: assumes small
 	}
-	return SetVector(v)
+	return ValueSlice(v)
 }

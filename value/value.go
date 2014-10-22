@@ -21,6 +21,12 @@ type Value interface {
 	Sub(Value) Value
 	Mul(Value) Value
 	Div(Value) Value
+	Pow(Value) Value
+	Lsh(Value) Value
+	Rsh(Value) Value
+	Or(Value) Value
+	And(Value) Value
+	Xor(Value) Value
 
 	// Unary operators
 	Neg() Value
@@ -66,8 +72,32 @@ func (unimplemented) Div(Value) Value {
 	panic("Div unimplemented")
 }
 
+func (unimplemented) Pow(Value) Value {
+	panic("Pow unimplemented")
+}
+
+func (unimplemented) Lsh(Value) Value {
+	panic("Lsh unimplemented")
+}
+
+func (unimplemented) Rsh(Value) Value {
+	panic("Rsh unimplemented")
+}
+
 func (unimplemented) Neg() Value {
 	panic("Neg unimplemented")
+}
+
+func (unimplemented) And(Value) Value {
+	panic("and unimplemented")
+}
+
+func (unimplemented) Or(Value) Value {
+	panic("or unimplemented")
+}
+
+func (unimplemented) Xor(Value) Value {
+	panic("Xor unimplemented")
 }
 
 func (unimplemented) Iota() Value {
@@ -82,12 +112,25 @@ const (
 	Fail
 )
 
-func Set(s string) (Value, bool) {
+func ValueString(s string) (Value, bool) {
 	// start small
-	i, state := SetInt(s)
+	i, state := SetIntString(s)
 	if state != Retry {
 		return i, true
 	}
-	b, state := SetBigInt(s)
+	b, state := SetBigIntString(s)
 	return b, state == Valid
+}
+
+func ValueInt64(x int64) Value {
+	if minInt <= x && x <= maxInt {
+		return Int{x: x}
+	}
+	return BigInt64(x)
+}
+
+func BigInt64(x int64) BigInt {
+	var z BigInt
+	z.x.SetInt64(x)
+	return z
 }

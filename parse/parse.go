@@ -55,8 +55,20 @@ func (b *Binary) Eval() value.Value {
 		return b.left.Eval().Mul(b.right.Eval())
 	case "/":
 		return b.left.Eval().Div(b.right.Eval())
+	case "**":
+		return b.left.Eval().Pow(b.right.Eval())
+	case "<<":
+		return b.left.Eval().Lsh(b.right.Eval())
+	case ">>":
+		return b.left.Eval().Rsh(b.right.Eval())
+	case "&":
+		return b.left.Eval().And(b.right.Eval())
+	case "|":
+		return b.left.Eval().Or(b.right.Eval())
+	case "^":
+		return b.left.Eval().Xor(b.right.Eval())
 	}
-	panic(value.Errorf("no implementation of binary %s", b.op))
+	panic(value.Errorf("binary %s unimplemented", b.op))
 }
 
 func Tree(e value.Expr) string {
@@ -163,12 +175,12 @@ Loop:
 		switch p.Peek().Type {
 		case scan.Newline, scan.RightParen:
 			break Loop
-		case scan.Char:
+		case scan.Char, scan.LeftShift, scan.RightShift, scan.Exponent:
 			// Binary.
 			tok = p.Next()
 			op := tok.Text
 			switch op {
-			case "+", "-", "*", "/":
+			case "+", "-", "*", "/", "**", "<<", ">>", "&", "|", "^":
 			default:
 				p.errorf("unexpected %q", tok)
 			}
@@ -196,7 +208,7 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		// Unary.
 		op := tok.Text
 		switch op {
-		case "+", "-", "*", "/":
+		case "+", "-":
 		default:
 			p.errorf("unexpected %q", tok)
 		}
@@ -232,7 +244,7 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 
 // Number turns the token into a singleton numeric Value.
 func (p *Parser) Number(tok scan.Token) value.Value {
-	x, ok := value.Set(tok.Text)
+	x, ok := value.ValueString(tok.Text)
 	if !ok {
 		panic(value.Errorf("syntax error in number: %s", tok.Text))
 	}
@@ -249,96 +261,5 @@ func (p *Parser) NumberOrVector(tok scan.Token) value.Value {
 	for p.Peek().Type == scan.Number {
 		v = append(v, p.Number(p.Next()))
 	}
-	return value.SetVector(v)
+	return value.ValueSlice(v)
 }
-
-/*
-func (p *Parser) Line() (value.Expr, bool) {
-	var expr value.Expr
-Loop:
-	for {
-		// We save the line number here so error messages from this line
-		// are labeled with this source line. Otherwise we complain after we've absorbed
-		// the terminating newline and the line numbers are off by one in errors.
-		p.lineNum = p.lexer.Line()
-		tok := p.Next()
-		switch tok.Type {
-		case scan.Newline:
-			break Loop
-		case scan.EOF:
-			return expr, false
-		case scan.Identifier:
-			op := tok.Text
-			switch tok.Text {
-			case "iota":
-			default:
-				p.errorf("unexpected %q", tok)
-			}
-			tok = p.Next()
-			if expr == nil {
-				expr = &Unary{
-					op:    "iota",
-					right: p.operand(tok),
-				}
-			} else {
-				expr = &Binary{
-					op:    op,
-					left:  expr,
-					right: p.operand(tok),
-				}
-			}
-			continue
-		case scan.Char:
-			op := tok.Text
-			switch op {
-			case "+", "-", "*", "/":
-			default:
-				p.errorf("unexpected %q", tok)
-			}
-			tok = p.Next()
-			if expr == nil {
-				expr = &Unary{
-					op:    op,
-					right: p.operand(tok),
-				}
-			} else {
-				expr = &Binary{
-					op:    op,
-					left:  expr,
-					right: p.operand(tok),
-				}
-			}
-			continue
-		case scan.Number:
-			expr = p.operand(tok)
-			continue
-		}
-		p.errorf("unexpected %s", tok)
-	}
-	if p.errorCount > 0 {
-		return nil, true
-	}
-	return expr, true
-}
-
-// sitting on the first number.
-func (p *Parser) operand(tok scan.Token) value.Value {
-	var v []value.Value
-	for {
-		if tok.Type != scan.Number {
-			p.Back(tok)
-			break
-		}
-		x, ok := value.Set(tok.Text)
-		if !ok {
-			panic(value.Errorf("syntax error in number: %s", tok.Text))
-		}
-		v = append(v, x)
-		tok = p.Next()
-	}
-	if len(v) == 1 {
-		return v[0]
-	}
-	return value.SetVector(v)
-}
-*/
