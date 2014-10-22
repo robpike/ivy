@@ -172,8 +172,15 @@ func binaryVectorOp(u Vector, op string, v Vector) Value {
 }
 
 var (
-	add, sub, mul, div, pow, and, or, xor, lsh, rsh *binaryOp
-	binaryOps                                       map[string]*binaryOp
+	add, sub, mul, div, pow *binaryOp
+	and, or, xor, lsh, rsh  *binaryOp
+	eq, ne, lt, le, gt, ge  *binaryOp
+	binaryOps               map[string]*binaryOp
+)
+
+var (
+	zero = valueInt64(0)
+	one  = valueInt64(1)
 )
 
 func init() {
@@ -358,6 +365,144 @@ func init() {
 		},
 	}
 
+	eq = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			func(u, v Value) Value {
+				i, j := u.(Int), v.(Int)
+				if i.x == j.x {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				i, j := u.(BigInt), v.(BigInt)
+				if i.x.Cmp(&j.x) == 0 {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u.(Vector), "==", v.(Vector))
+			},
+		},
+	}
+
+	ne = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			func(u, v Value) Value {
+				i, j := u.(Int), v.(Int)
+				if i.x != j.x {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				i, j := u.(BigInt), v.(BigInt)
+				if i.x.Cmp(&j.x) != 0 {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u.(Vector), "!=", v.(Vector))
+			},
+		},
+	}
+
+	lt = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			func(u, v Value) Value {
+				i, j := u.(Int), v.(Int)
+				if i.x < j.x {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				i, j := u.(BigInt), v.(BigInt)
+				if i.x.Cmp(&j.x) < 0 {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u.(Vector), "<", v.(Vector))
+			},
+		},
+	}
+
+	le = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			func(u, v Value) Value {
+				i, j := u.(Int), v.(Int)
+				if i.x <= j.x {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				i, j := u.(BigInt), v.(BigInt)
+				if i.x.Cmp(&j.x) <= 0 {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u.(Vector), "<=", v.(Vector))
+			},
+		},
+	}
+
+	gt = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			func(u, v Value) Value {
+				i, j := u.(Int), v.(Int)
+				if i.x > j.x {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				i, j := u.(BigInt), v.(BigInt)
+				if i.x.Cmp(&j.x) > 0 {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u.(Vector), ">", v.(Vector))
+			},
+		},
+	}
+
+	ge = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			func(u, v Value) Value {
+				i, j := u.(Int), v.(Int)
+				if i.x >= j.x {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				i, j := u.(BigInt), v.(BigInt)
+				if i.x.Cmp(&j.x) >= 0 {
+					return one
+				}
+				return zero
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u.(Vector), ">=", v.(Vector))
+			},
+		},
+	}
+
 	binaryOps = map[string]*binaryOp{
 		"+":  add,
 		"-":  sub,
@@ -369,5 +514,11 @@ func init() {
 		"^":  xor,
 		"<<": lsh,
 		">>": rsh,
+		"==": eq,
+		"!=": ne,
+		"<":  lt,
+		"<=": le,
+		">":  gt,
+		">=": ge,
 	}
 }

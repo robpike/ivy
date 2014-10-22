@@ -180,12 +180,12 @@ Loop:
 		switch p.Peek().Type {
 		case scan.Newline, scan.RightParen:
 			break Loop
-		case scan.Char, scan.LeftShift, scan.RightShift, scan.Exponent:
+		case scan.Char, scan.LeftShift, scan.RightShift, scan.Exponent, scan.Equal, scan.NotEqual, scan.LessOrEqual, scan.GreaterOrEqual:
 			// Binary.
 			tok = p.Next()
 			op := tok.Text
 			switch op {
-			case "+", "-", "*", "/", "**", "<<", ">>", "&", "|", "^":
+			case "+", "-", "*", "/", "**", "<<", ">>", "&", "|", "^", "==", "!=", ">", "<", ">=", "<=":
 			default:
 				p.errorf("unexpected %q", tok)
 			}

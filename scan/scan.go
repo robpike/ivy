@@ -36,16 +36,20 @@ const (
 	ColonEquals  // colon-equals (':=') introducing a declaration
 	Dot          // dot
 	EOF
-	Exponent   // '**' exponentiation
-	Identifier // alphanumeric identifier
-	LeftParen  // '('
-	LeftShift  // '<<'
-	Number     // simple number, including imaginary
-	RawString  // raw quoted string (includes quotes)
-	RightParen // ')'
-	RightShift // '>>'
-	Space      // run of spaces separating
-	String     // quoted string (includes quotes)
+	Equal          // '=='
+	Exponent       // '**' exponentiation
+	GreaterOrEqual // '>='
+	Identifier     // alphanumeric identifier
+	LessOrEqual    // '<='
+	LeftParen      // '('
+	LeftShift      // '<<'
+	NotEqual       // '!='
+	Number         // simple number, including imaginary
+	RawString      // raw quoted string (includes quotes)
+	RightParen     // ')'
+	RightShift     // '>>'
+	Space          // run of spaces separating
+	String         // quoted string (includes quotes)
 	// Keywords appear after all the rest.
 	Keyword // used only to delimit the keywords
 	Iota    //iota
@@ -71,14 +75,22 @@ func (t Type) String() string {
 		return "."
 	case EOF:
 		return "EOF"
+	case Equal:
+		return "=="
 	case Exponent:
 		return "**"
+	case GreaterOrEqual:
+		return ">="
 	case Identifier:
 		return "Identifier"
+	case LessOrEqual:
+		return "<="
 	case LeftParen:
 		return "LeftParen"
 	case LeftShift:
 		return "<<"
+	case NotEqual:
+		return "!="
 	case Number:
 		return "Number"
 	case RawString:
@@ -306,11 +318,30 @@ func lexAny(l *Scanner) stateFn {
 			return l.errorf("expected :=")
 		}
 		l.emit(ColonEquals)
+	case r == '=':
+		switch l.peek() {
+		case '=':
+			l.next()
+			l.emit(Equal)
+		default:
+			l.emit(Char)
+		}
+	case r == '!':
+		switch l.peek() {
+		case '=':
+			l.next()
+			l.emit(NotEqual)
+		default:
+			l.emit(Char)
+		}
 	case r == '>':
 		switch l.peek() {
 		case '>':
 			l.next()
 			l.emit(RightShift)
+		case '=':
+			l.next()
+			l.emit(GreaterOrEqual)
 		default:
 			l.emit(Char)
 		}
@@ -319,6 +350,9 @@ func lexAny(l *Scanner) stateFn {
 		case '<':
 			l.next()
 			l.emit(LeftShift)
+		case '=':
+			l.next()
+			l.emit(LessOrEqual)
 		default:
 			l.emit(Char)
 		}
