@@ -95,10 +95,10 @@ func toInt(t bool) Value {
 }
 
 var (
-	add, sub, mul, div, mod, pow *binaryOp
-	and, or, xor, lsh, rsh       *binaryOp
-	eq, ne, lt, le, gt, ge       *binaryOp
-	binaryOps                    map[string]*binaryOp
+	add, sub, mul, quo, rem, div, mod, pow *binaryOp
+	and, or, xor, lsh, rsh                 *binaryOp
+	eq, ne, lt, le, gt, ge                 *binaryOp
+	binaryOps                              map[string]*binaryOp
 )
 
 var (
@@ -156,7 +156,7 @@ func init() {
 		},
 	}
 
-	div = &binaryOp{
+	quo = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
@@ -170,7 +170,7 @@ func init() {
 				if x.x.Sign() == 0 {
 					panic(Error("division by zero"))
 				}
-				return binaryBigIntOp(u, (*big.Int).Quo, v) // Go-like division. TODO: This or Div?
+				return binaryBigIntOp(u, (*big.Int).Quo, v) // Go-like division.
 			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "/", v)
@@ -178,7 +178,7 @@ func init() {
 		},
 	}
 
-	mod = &binaryOp{
+	rem = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
@@ -192,7 +192,41 @@ func init() {
 				if x.x.Sign() == 0 {
 					panic(Error("modulo by zero"))
 				}
-				return binaryBigIntOp(u, (*big.Int).Mod, v)
+				return binaryBigIntOp(u, (*big.Int).Rem, v) // Go-like modulo.
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u, "%", v)
+			},
+		},
+	}
+
+	div = &binaryOp{
+		whichType: powType, // Use BigInts to avoid the analysis here.
+		fn: [numType]binaryFn{
+			nil,
+			func(u, v Value) Value {
+				x := v.(BigInt)
+				if x.x.Sign() == 0 {
+					panic(Error("division by zero"))
+				}
+				return binaryBigIntOp(u, (*big.Int).Div, v) // Euclidean division.
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u, "/", v)
+			},
+		},
+	}
+
+	mod = &binaryOp{
+		whichType: powType, // Use BigInts to avoid the analysis here.
+		fn: [numType]binaryFn{
+			nil,
+			func(u, v Value) Value {
+				x := v.(BigInt)
+				if x.x.Sign() == 0 {
+					panic(Error("modulo by zero"))
+				}
+				return binaryBigIntOp(u, (*big.Int).Mod, v) // Euclidan modulo.
 			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "%", v)
@@ -387,22 +421,24 @@ func init() {
 	}
 
 	binaryOps = map[string]*binaryOp{
-		"+":  add,
-		"-":  sub,
-		"*":  mul,
-		"/":  div,
-		"%":  mod,
-		"**": pow,
-		"&":  and,
-		"|":  or,
-		"^":  xor,
-		"<<": lsh,
-		">>": rsh,
-		"==": eq,
-		"!=": ne,
-		"<":  lt,
-		"<=": le,
-		">":  gt,
-		">=": ge,
+		"+":   add,
+		"-":   sub,
+		"*":   mul,
+		"/":   quo,
+		"%":   rem,
+		"div": div,
+		"mod": mod,
+		"**":  pow,
+		"&":   and,
+		"|":   or,
+		"^":   xor,
+		"<<":  lsh,
+		">>":  rsh,
+		"==":  eq,
+		"!=":  ne,
+		"<":   lt,
+		"<=":  le,
+		">":   gt,
+		">=":  ge,
 	}
 }

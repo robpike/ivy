@@ -179,18 +179,6 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 			op:    op,
 			right: p.Operand(p.Next()),
 		}
-	case scan.Identifier:
-		// Magic words.
-		op := tok.Text
-		switch tok.Text {
-		case "iota":
-		default:
-			p.errorf("unexpected %q", tok)
-		}
-		expr = &Unary{
-			op:    op,
-			right: p.Operand(p.Next()),
-		}
 	case scan.LeftParen:
 		expr = p.Expr(p.Next())
 		tok := p.Next()

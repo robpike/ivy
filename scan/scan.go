@@ -348,7 +348,13 @@ Loop:
 			if !l.atTerminator() {
 				return l.errorf("bad character %#U", r)
 			}
-			l.emit(Identifier)
+			// Some identifiers are operators.
+			switch l.input[l.start:l.pos] {
+			case "iota", "div", "mod":
+				l.emit(Operator)
+			default:
+				l.emit(Identifier)
+			}
 			break Loop
 		}
 	}
@@ -488,7 +494,7 @@ func isAlphaNumeric(r rune) bool {
 // if it is a two-character operator.
 func (l *Scanner) isOperator(r rune) bool {
 	switch r {
-	case '+', '-', '&', '|', '^':
+	case '+', '-', '/', '%', '&', '|', '^':
 		// No follow-on possible.
 	case ':':
 		switch l.peek() {
