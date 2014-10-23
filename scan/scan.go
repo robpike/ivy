@@ -30,29 +30,21 @@ const (
 	Error        // error occurred; value is text of error
 	Newline
 	// Interesting things
-	Bool         // boolean constant
 	Char         // printable ASCII character; grab bag for comma etc.
 	CharConstant // character constant
-	ColonEquals  // colon-equals (':=') introducing a declaration
 	Dot          // dot
 	EOF
-	Equal          // '=='
-	Exponent       // '**' exponentiation
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
-	LessOrEqual    // '<='
 	LeftParen      // '('
-	LeftShift      // '<<'
-	NotEqual       // '!='
 	Number         // simple number, including imaginary
+	Operator       // known operator
 	RawString      // raw quoted string (includes quotes)
 	RightParen     // ')'
-	RightShift     // '>>'
 	Space          // run of spaces separating
 	String         // quoted string (includes quotes)
 	// Keywords appear after all the rest.
 	Keyword // used only to delimit the keywords
-	Iota    //iota
 )
 
 func (t Type) String() string {
@@ -63,49 +55,29 @@ func (t Type) String() string {
 		return "Error"
 	case Newline:
 		return "Newline"
-	case Bool:
-		return "Bool"
 	case Char:
 		return "Char"
 	case CharConstant:
 		return "CharConstant"
-	case ColonEquals:
-		return ":="
 	case Dot:
 		return "."
 	case EOF:
 		return "EOF"
-	case Equal:
-		return "=="
-	case Exponent:
-		return "**"
-	case GreaterOrEqual:
-		return ">="
 	case Identifier:
 		return "Identifier"
-	case LessOrEqual:
-		return "<="
 	case LeftParen:
 		return "LeftParen"
-	case LeftShift:
-		return "<<"
-	case NotEqual:
-		return "!="
 	case Number:
 		return "Number"
 	case RawString:
 		return "RawString"
 	case RightParen:
 		return "RightParen"
-	case RightShift:
-		return ">>"
 	case Space:
 		return "Space"
 	case String:
 		return "String"
 	// Keywords
-	case Iota:
-		return "Iota"
 	default:
 		return fmt.Sprintf("type %d", t)
 	}
@@ -126,7 +98,7 @@ func (i Token) String() string {
 }
 
 var key = map[string]Type{
-	"iota": Iota,
+// No keywords (yet?).
 }
 
 const eof = -1
@@ -313,57 +285,9 @@ func lexAny(l *Scanner) stateFn {
 		return lexSpace
 	case isSpace(r):
 		return lexSpace
-	case r == ':':
-		if l.next() != '=' {
-			return l.errorf("expected :=")
-		}
-		l.emit(ColonEquals)
-	case r == '=':
-		switch l.peek() {
-		case '=':
-			l.next()
-			l.emit(Equal)
-		default:
-			l.emit(Char)
-		}
-	case r == '!':
-		switch l.peek() {
-		case '=':
-			l.next()
-			l.emit(NotEqual)
-		default:
-			l.emit(Char)
-		}
-	case r == '>':
-		switch l.peek() {
-		case '>':
-			l.next()
-			l.emit(RightShift)
-		case '=':
-			l.next()
-			l.emit(GreaterOrEqual)
-		default:
-			l.emit(Char)
-		}
-	case r == '<':
-		switch l.peek() {
-		case '<':
-			l.next()
-			l.emit(LeftShift)
-		case '=':
-			l.next()
-			l.emit(LessOrEqual)
-		default:
-			l.emit(Char)
-		}
-	case r == '*':
-		switch l.peek() {
-		case '*':
-			l.next()
-			l.emit(Exponent)
-		default:
-			l.emit(Char)
-		}
+	case l.isOperator(r):
+		l.emit(Operator)
+		return lexSpace
 	case r == '"':
 		return lexQuote
 	case r == '`':
@@ -421,16 +345,10 @@ Loop:
 			// absorb.
 		default:
 			l.backup()
-			word := l.input[l.start:l.pos]
 			if !l.atTerminator() {
 				return l.errorf("bad character %#U", r)
 			}
-			switch {
-			case word == "true", word == "false":
-				l.emit(Bool)
-			default:
-				l.emit(Identifier)
-			}
+			l.emit(Identifier)
 			break Loop
 		}
 	}
@@ -564,4 +482,48 @@ func isEndOfLine(r rune) bool {
 // isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+// isOperator reports whether r is an operator. It may advance the lexer one character
+// if it is a two-character operator.
+func (l *Scanner) isOperator(r rune) bool {
+	switch r {
+	case '+', '-', '&', '|', '^':
+		// No follow-on possible.
+	case ':':
+		switch l.peek() {
+		case '=':
+			l.next()
+		default:
+			return false
+		}
+	case '=':
+		switch l.peek() {
+		case '=':
+			l.next()
+		}
+	case '!':
+		switch l.peek() {
+		case '=':
+			l.next()
+		}
+	case '>':
+		switch l.peek() {
+		case '>', '=':
+			l.next()
+		}
+	case '<':
+		switch l.peek() {
+		case '<', '=':
+			l.next()
+		}
+	case '*':
+		switch l.peek() {
+		case '*':
+			l.next()
+		}
+	default:
+		return false
+	}
+	return true
 }

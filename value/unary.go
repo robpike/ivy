@@ -20,7 +20,7 @@ func unaryVectorOp(op string, i Value) Value {
 }
 
 var (
-	unaryPlus, unaryMinus, unaryBitwiseNot *unaryO
+	unaryPlus, unaryMinus, unaryBitwiseNot *unaryOp
 	unaryLogicalNot, unaryIota             *unaryOp
 	unaryOps                               map[string]*unaryOp
 )

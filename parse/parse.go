@@ -145,18 +145,12 @@ Loop:
 		switch p.Peek().Type {
 		case scan.Newline, scan.RightParen:
 			break Loop
-		case scan.Char, scan.LeftShift, scan.RightShift, scan.Exponent, scan.Equal, scan.NotEqual, scan.LessOrEqual, scan.GreaterOrEqual:
+		case scan.Operator:
 			// Binary.
 			tok = p.Next()
-			op := tok.Text
-			switch op {
-			case "+", "-", "*", "/", "**", "<<", ">>", "&", "|", "^", "==", "!=", ">", "<", ">=", "<=":
-			default:
-				p.errorf("unexpected %q", tok)
-			}
 			expr = &Binary{
 				left:  expr,
-				op:    op,
+				op:    tok.Text,
 				right: p.Operand(p.Next()),
 			}
 		default:
@@ -174,17 +168,12 @@ Loop:
 func (p *Parser) Operand(tok scan.Token) value.Expr {
 	var expr value.Expr
 	switch tok.Type {
-	case scan.Char:
+	case scan.Operator:
 		// Unary.
 		op := tok.Text
-		switch op {
-		case "+", "-", "*", "/", "**", "<<", ">>", "&", "|", "^", "==", "!=", ">", "<", ">=", "<=":
-			if p.Peek().Text == `\` {
-				// Reduce operation.
-				op += p.Next().Text
-			}
-		default:
-			p.errorf("unexpected %q", tok)
+		if p.Peek().Text == `\` {
+			// Reduce operation.
+			op += p.Next().Text
 		}
 		expr = &Unary{
 			op:    op,
