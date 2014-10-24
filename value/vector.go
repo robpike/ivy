@@ -39,7 +39,9 @@ func (v Vector) ToType(which valueType) Value {
 	case intType:
 		panic("bigint to int")
 	case bigIntType:
-		panic("vector to bigint")
+		panic("vector to big int")
+	case bigRatType:
+		panic("vector to big rat")
 	case vectorType:
 		return v
 	}

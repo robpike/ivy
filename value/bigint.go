@@ -36,6 +36,10 @@ func (i BigInt) ToType(which valueType) Value {
 		panic("bigint to int")
 	case bigIntType:
 		return i
+	case bigRatType:
+		var r BigRat
+		r.x.SetInt(&i.x)
+		return r
 	case vectorType:
 		return ValueSlice([]Value{i})
 	}
