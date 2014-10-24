@@ -111,7 +111,7 @@ func toInt(t bool) Value {
 
 var (
 	add, sub, mul, pow        *binaryOp
-	div, idiv, imod, quo, rem *binaryOp
+	quo, idiv, imod, div, mod *binaryOp
 	and, or, xor, lsh, rsh    *binaryOp
 	eq, ne, lt, le, gt, ge    *binaryOp
 	binaryOps                 map[string]*binaryOp
@@ -181,7 +181,25 @@ func init() {
 		},
 	}
 
-	quo = &binaryOp{
+	quo = &binaryOp{ // Rational division.
+		whichType: rationalType, // Use BigRats to avoid the analysis here.
+		fn: [numType]binaryFn{
+			nil,
+			nil,
+			func(u, v Value) Value {
+				x := v.(BigRat)
+				if x.x.Sign() == 0 {
+					panic(Error("division by zero"))
+				}
+				return binaryBigRatOp(u, (*big.Rat).Quo, v) // True division.
+			},
+			func(u, v Value) Value {
+				return binaryVectorOp(u, "/", v)
+			},
+		},
+	}
+
+	idiv = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
@@ -199,12 +217,12 @@ func init() {
 			},
 			nil, // Not defined for rationals. Use div.
 			func(u, v Value) Value {
-				return binaryVectorOp(u, "/", v)
+				return binaryVectorOp(u, "idiv", v)
 			},
 		},
 	}
 
-	rem = &binaryOp{
+	imod = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			func(u, v Value) Value {
@@ -222,12 +240,12 @@ func init() {
 			},
 			nil, // Not defined for rationals. Use mod.
 			func(u, v Value) Value {
-				return binaryVectorOp(u, "%", v)
+				return binaryVectorOp(u, "imod", v)
 			},
 		},
 	}
 
-	idiv = &binaryOp{ // Euclidean integer division.
+	div = &binaryOp{ // Euclidean integer division.
 		whichType: powType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
 			nil,
@@ -240,12 +258,12 @@ func init() {
 			},
 			nil, // Not defined for rationals. Use div.
 			func(u, v Value) Value {
-				return binaryVectorOp(u, "/", v)
+				return binaryVectorOp(u, "div", v)
 			},
 		},
 	}
 
-	imod = &binaryOp{ // Euclidean integer modulus.
+	mod = &binaryOp{ // Euclidean integer modulus.
 		whichType: powType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
 			nil,
@@ -258,25 +276,7 @@ func init() {
 			},
 			nil, // Not defined for rationals. Use mod.
 			func(u, v Value) Value {
-				return binaryVectorOp(u, "%", v)
-			},
-		},
-	}
-
-	div = &binaryOp{ // Rational division.
-		whichType: rationalType, // Use BigRats to avoid the analysis here.
-		fn: [numType]binaryFn{
-			nil,
-			nil,
-			func(u, v Value) Value {
-				x := v.(BigRat)
-				if x.x.Sign() == 0 {
-					panic(Error("division by zero"))
-				}
-				return binaryBigRatOp(u, (*big.Rat).Quo, v) // True division.
-			},
-			func(u, v Value) Value {
-				return binaryVectorOp(u, "div", v)
+				return binaryVectorOp(u, "mod", v)
 			},
 		},
 	}
@@ -501,11 +501,11 @@ func init() {
 		"+":    add,
 		"-":    sub,
 		"*":    mul,
-		"/":    quo,
-		"%":    rem,
-		"idiv": idiv,
-		"imod": imod,
-		"div":  div,
+		"/":    quo,  // Exact rational division.
+		"idiv": idiv, // Go-like truncating integer division.
+		"imod": imod, // Go-like integer moduls.
+		"div":  div,  // Euclidean integer division.
+		"mod":  mod,  // Euclidean integer division.
 		"**":   pow,
 		"&":    and,
 		"|":    or,

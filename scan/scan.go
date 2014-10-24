@@ -350,7 +350,7 @@ Loop:
 			}
 			// Some identifiers are operators.
 			switch l.input[l.start:l.pos] {
-			case "iota", "div", "mod":
+			case "iota", "div", "mod", "idiv", "imod":
 				l.emit(Operator)
 			default:
 				l.emit(Identifier)
