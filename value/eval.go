@@ -15,6 +15,12 @@ const (
 	numType
 )
 
+var typeName = [...]string{"int", "big int", "vector"}
+
+func (t valueType) String() string {
+	return typeName[t]
+}
+
 type unaryFn func(Value) Value
 
 type unaryOp struct {
@@ -29,7 +35,12 @@ func Unary(opName string, v Value) Value {
 	if op == nil {
 		panic(Errorf("unary %s not implemented", opName))
 	}
-	return op.fn[whichType(v)](v)
+	which := whichType(v)
+	fn := op.fn[which]
+	if fn == nil {
+		panic(Errorf("unary %s not implemented on type %s", opName, which))
+	}
+	return fn(v)
 }
 
 type binaryFn func(Value, Value) Value
@@ -62,7 +73,11 @@ func Binary(v1 Value, opName string, v2 Value) Value {
 		panic(Errorf("binary %s not implemented", opName))
 	}
 	which := op.whichType(whichType(v1), whichType(v2))
-	return op.fn[which](v1.ToType(which), v2.ToType(which))
+	fn := op.fn[which]
+	if fn == nil {
+		panic(Errorf("binary %s not implemented on type %s", opName, which))
+	}
+	return fn(v1.ToType(which), v2.ToType(which))
 }
 
 func Reduce(opName string, v Value) Value {

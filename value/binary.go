@@ -95,10 +95,10 @@ func toInt(t bool) Value {
 }
 
 var (
-	add, sub, mul, quo, rem, div, mod, pow *binaryOp
-	and, or, xor, lsh, rsh                 *binaryOp
-	eq, ne, lt, le, gt, ge                 *binaryOp
-	binaryOps                              map[string]*binaryOp
+	add, sub, mul, quo, rem, idiv, imod, pow *binaryOp
+	and, or, xor, lsh, rsh                   *binaryOp
+	eq, ne, lt, le, gt, ge                   *binaryOp
+	binaryOps                                map[string]*binaryOp
 )
 
 var (
@@ -200,7 +200,7 @@ func init() {
 		},
 	}
 
-	div = &binaryOp{
+	idiv = &binaryOp{ // Euclidean integer division.
 		whichType: powType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
 			nil,
@@ -217,7 +217,7 @@ func init() {
 		},
 	}
 
-	mod = &binaryOp{
+	imod = &binaryOp{ // Euclidean integer modulus.
 		whichType: powType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
 			nil,
@@ -421,24 +421,24 @@ func init() {
 	}
 
 	binaryOps = map[string]*binaryOp{
-		"+":   add,
-		"-":   sub,
-		"*":   mul,
-		"/":   quo,
-		"%":   rem,
-		"div": div,
-		"mod": mod,
-		"**":  pow,
-		"&":   and,
-		"|":   or,
-		"^":   xor,
-		"<<":  lsh,
-		">>":  rsh,
-		"==":  eq,
-		"!=":  ne,
-		"<":   lt,
-		"<=":  le,
-		">":   gt,
-		">=":  ge,
+		"+":    add,
+		"-":    sub,
+		"*":    mul,
+		"/":    quo,
+		"%":    rem,
+		"idiv": idiv,
+		"imod": imod,
+		"**":   pow,
+		"&":    and,
+		"|":    or,
+		"^":    xor,
+		"<<":   lsh,
+		">>":   rsh,
+		"==":   eq,
+		"!=":   ne,
+		"<":    lt,
+		"<=":   le,
+		">":    gt,
+		">=":   ge,
 	}
 }
