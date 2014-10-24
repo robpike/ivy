@@ -4,19 +4,22 @@
 
 package value
 
-import "math/big"
+import (
+	"errors"
+	"math/big"
+)
 
 type BigInt struct {
 	x big.Int
 }
 
-func SetBigIntString(s string) (BigInt, ParseState) {
+func SetBigIntString(s string) (BigInt, error) {
 	var i BigInt
 	_, ok := i.x.SetString(s, 0)
 	if !ok {
-		return BigInt{}, Fail
+		return BigInt{}, errors.New("integer parse error")
 	}
-	return i, Valid
+	return i, nil
 }
 
 func (i BigInt) String() string {
@@ -39,8 +42,8 @@ func (i BigInt) ToType(which valueType) Value {
 	panic("BigInt.ToType")
 }
 
-// reduce pulls, if possible, a BigInt down to an Int.
-func (i BigInt) reduce() Value {
+// shrink shrinks, if possible, a BigInt down to an Int.
+func (i BigInt) shrink() Value {
 	if i.x.BitLen() < intBits {
 		return Int{x: i.x.Int64()}
 	}

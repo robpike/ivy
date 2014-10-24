@@ -4,10 +4,28 @@
 
 package value
 
+import "math/big"
+
 // Unary operators.
 
 // To avoid initialization cycles when we refer to the ops from inside
 // themselves, we use an init function to initialize the ops.
+
+// unaryBigIntOp applies the op to a BigInt.
+func unaryBigIntOp(op func(*big.Int, *big.Int) *big.Int, v Value) Value {
+	i := v.(BigInt)
+	var z BigInt
+	op(&z.x, &i.x)
+	return z.shrink()
+}
+
+// unaryBigRatOp applies the op to a BigRat.
+func unaryBigRatOp(op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
+	i := v.(BigRat)
+	var z BigRat
+	op(&z.x, &i.x)
+	return z.shrink()
+}
 
 // unaryVectorOp applies op elementwise to i.
 func unaryVectorOp(op string, i Value) Value {
@@ -31,6 +49,7 @@ func init() {
 			func(v Value) Value { return v },
 			func(v Value) Value { return v },
 			func(v Value) Value { return v },
+			func(v Value) Value { return v },
 		},
 	}
 
@@ -42,9 +61,10 @@ func init() {
 				return i
 			},
 			func(v Value) Value {
-				i := v.(BigInt)
-				i.x.Neg(&i.x)
-				return i
+				return unaryBigIntOp((*big.Int).Neg, v)
+			},
+			func(v Value) Value {
+				return unaryBigRatOp((*big.Rat).Neg, v)
 			},
 			func(v Value) Value {
 				return unaryVectorOp("-", v)
@@ -66,6 +86,7 @@ func init() {
 				z.x.Xor(&i.x, &bigMinusOne.x)
 				return z
 			},
+			nil,
 			func(v Value) Value {
 				return unaryVectorOp("^", v)
 			},
@@ -87,6 +108,7 @@ func init() {
 				}
 				return zero
 			},
+			nil,
 			func(v Value) Value {
 				return unaryVectorOp("!", v)
 			},
@@ -106,8 +128,9 @@ func init() {
 				}
 				return ValueSlice(n)
 			},
-			func(v Value) Value { panic(Error("no iota for big int")) },
-			func(v Value) Value { panic(Error("no iota for vector")) },
+			nil,
+			nil,
+			nil,
 		},
 	}
 

@@ -195,9 +195,9 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 
 // Number turns the token into a singleton numeric Value.
 func (p *Parser) Number(tok scan.Token) value.Value {
-	x, ok := value.ValueString(tok.Text)
-	if !ok {
-		panic(value.Errorf("syntax error in number: %s", tok.Text))
+	x, err := value.ValueString(tok.Text)
+	if err != nil {
+		panic(value.Errorf("%s: %s", tok.Text, err))
 	}
 	return x
 }

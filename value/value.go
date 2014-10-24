@@ -26,25 +26,26 @@ func (err Error) Error() string {
 }
 
 func Errorf(format string, args ...interface{}) Error {
-	return Error(fmt.Sprintf("ivy: "+format, args...))
+	return Error(fmt.Sprintf(format, args...))
 }
 
 type ParseState int
 
-const (
-	Valid ParseState = iota
-	Retry
-	Fail
-)
-
-func ValueString(s string) (Value, bool) {
+func ValueString(s string) (Value, error) {
 	// start small
-	i, state := SetIntString(s)
-	if state != Retry {
-		return i, true
+	i, err := SetIntString(s)
+	if err == nil {
+		return i, nil
 	}
-	b, state := SetBigIntString(s)
-	return b, state == Valid
+	b, err := SetBigIntString(s)
+	if err == nil {
+		return b.shrink(), nil
+	}
+	r, err := SetBigRatString(s)
+	if err == nil {
+		return r.shrink(), nil
+	}
+	return nil, err
 }
 
 func valueInt64(x int64) Value {
@@ -56,6 +57,12 @@ func valueInt64(x int64) Value {
 
 func bigInt64(x int64) BigInt {
 	var z BigInt
+	z.x.SetInt64(x)
+	return z
+}
+
+func bigRatInt64(x int64) BigRat {
+	var z BigRat
 	z.x.SetInt64(x)
 	return z
 }

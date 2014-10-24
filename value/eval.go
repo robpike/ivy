@@ -11,11 +11,12 @@ type valueType int
 const (
 	intType valueType = iota
 	bigIntType
+	bigRatType
 	vectorType
 	numType
 )
 
-var typeName = [...]string{"int", "big int", "vector"}
+var typeName = [...]string{"int", "big int", "rational", "vector"}
 
 func (t valueType) String() string {
 	return typeName[t]
@@ -61,6 +62,8 @@ func whichType(v Value) valueType {
 		return intType
 	case BigInt:
 		return bigIntType
+	case BigRat:
+		return bigRatType
 	case Vector:
 		return vectorType
 	}

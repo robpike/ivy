@@ -6,7 +6,6 @@ package value
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 )
 
@@ -23,16 +22,9 @@ const (
 	maxInt  = 1<<(intBits-1) - 1
 )
 
-func SetIntString(s string) (Int, ParseState) {
+func SetIntString(s string) (Int, error) {
 	i, err := strconv.ParseInt(s, 0, intBits)
-	if err == nil {
-		return Int{x: i}, Valid
-	}
-	if err, ok := err.(*strconv.NumError); ok && err.Err == strconv.ErrRange {
-		return Int{}, Retry
-	}
-	log.Print(err)
-	return Int{}, Fail
+	return Int{x: i}, err
 }
 
 func (i Int) String() string {
@@ -49,6 +41,8 @@ func (i Int) ToType(which valueType) Value {
 		return i
 	case bigIntType:
 		return bigInt64(i.x)
+	case bigRatType:
+		return bigRatInt64(i.x)
 	case vectorType:
 		return ValueSlice([]Value{i})
 	}
