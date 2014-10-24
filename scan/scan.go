@@ -33,6 +33,7 @@ const (
 	Char         // printable ASCII character; grab bag for comma etc.
 	CharConstant // character constant
 	Dot          // dot
+	Dollar       // dollar
 	EOF
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
@@ -46,6 +47,16 @@ const (
 	// Keywords appear after all the rest.
 	Keyword // used only to delimit the keywords
 )
+
+var operatorWord = map[string]bool{
+	"abs":  true,
+	"div":  true,
+	"idiv": true,
+	"imod": true,
+	"int":  true,
+	"iota": true,
+	"mod":  true,
+}
 
 func (t Type) String() string {
 	switch t {
@@ -61,6 +72,8 @@ func (t Type) String() string {
 		return "CharConstant"
 	case Dot:
 		return "."
+	case Dollar:
+		return "$"
 	case EOF:
 		return "EOF"
 	case Identifier:
@@ -294,6 +307,9 @@ func lexAny(l *Scanner) stateFn {
 		return lexRawQuote
 	case r == '\'':
 		return lexChar
+	case r == '$':
+		l.emit(Dollar)
+		return lexAny
 	case r == '.':
 		if !unicode.IsDigit(l.peek()) {
 			l.emit(Dot)
@@ -301,6 +317,9 @@ func lexAny(l *Scanner) stateFn {
 		}
 		fallthrough // '.' can start a number.
 	case r == '_' || '0' <= r && r <= '9':
+		l.backup()
+		return lexNumber
+	case '0' <= r && r <= '9':
 		l.backup()
 		return lexNumber
 	case isAlphaNumeric(r):
@@ -349,10 +368,9 @@ Loop:
 				return l.errorf("bad character %#U", r)
 			}
 			// Some identifiers are operators.
-			switch l.input[l.start:l.pos] {
-			case "iota", "div", "mod", "idiv", "imod":
+			if operatorWord[l.input[l.start:l.pos]] {
 				l.emit(Operator)
-			default:
+			} else {
 				l.emit(Identifier)
 			}
 			break Loop
@@ -371,7 +389,10 @@ func (l *Scanner) atTerminator() bool {
 		return true
 	}
 	switch r {
-	case eof, '.', ',', '|', ':', ')', '(':
+	case eof, '.', ',', '|', ':', ')', '(', '$':
+		return true
+	}
+	if l.isOperator(r) {
 		return true
 	}
 	// Does r start the delimiter? This can be ambiguous (with delim=="//", $x/2 will
@@ -409,6 +430,8 @@ Loop:
 // and "089" - but when it's wrong the input is invalid and the parser (via
 // strconv) will notice.
 func lexNumber(l *Scanner) stateFn {
+	// Optional leading sign.
+	l.accept("_")
 	if !l.scanNumber() {
 		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
 	}
@@ -417,8 +440,6 @@ func lexNumber(l *Scanner) stateFn {
 }
 
 func (l *Scanner) scanNumber() bool {
-	// Optional leading sign.
-	l.accept("_")
 	// Is it hex?
 	digits := "0123456789"
 	if l.accept("0") && l.accept("xX") {

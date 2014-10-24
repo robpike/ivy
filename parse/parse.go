@@ -66,11 +66,15 @@ type Parser struct {
 	errorLine  int // Line number of last error.
 	errorCount int // Number of errors.
 	peekTok    scan.Token
+	prev       value.Value // previous value
 }
+
+var zero, _ = value.ValueString("0")
 
 func NewParser(lexer lex.TokenReader) *Parser {
 	return &Parser{
 		lexer: lexer,
+		prev:  zero,
 	}
 }
 
@@ -117,7 +121,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 //	EOF
 //	'\n'
 //	Expr '\n'
-func (p *Parser) Line() (value.Expr, bool) {
+func (p *Parser) Line() (value.Value, bool) {
 	tok := p.Next()
 	switch tok.Type {
 	case scan.EOF:
@@ -130,7 +134,9 @@ func (p *Parser) Line() (value.Expr, bool) {
 		if tok.Type != scan.Newline {
 			p.errorf("unexpected %q", tok)
 		}
-		return x, true
+		//fmt.Println(Tree(x))
+		p.prev = x.Eval()
+		return p.prev, true
 	}
 }
 
@@ -187,6 +193,8 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		}
 	case scan.Number:
 		expr = p.NumberOrVector(tok)
+	case scan.Dollar:
+		return p.prev
 	default:
 		panic(value.Errorf("unexpected %s", tok))
 	}

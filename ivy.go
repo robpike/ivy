@@ -50,10 +50,9 @@ func run(p *parse.Parser) {
 	}()
 	for {
 		fmt.Print("_\t")
-		expr, ok := p.Line()
-		if expr != nil {
-			// fmt.Println(parse.Tree(expr))
-			fmt.Println(expr.Eval())
+		value, ok := p.Line()
+		if value != nil {
+			fmt.Println(value)
 		}
 		if !ok {
 			break

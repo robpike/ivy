@@ -38,9 +38,9 @@ func unaryVectorOp(op string, i Value) Value {
 }
 
 var (
-	unaryPlus, unaryMinus, unaryBitwiseNot *unaryOp
-	unaryLogicalNot, unaryIota             *unaryOp
-	unaryOps                               map[string]*unaryOp
+	unaryPlus, unaryMinus, unaryBitwiseNot, unaryLogicalNot *unaryOp
+	unaryAbs, unaryInt, unaryIota                           *unaryOp
+	unaryOps                                                map[string]*unaryOp
 )
 
 func init() {
@@ -115,6 +115,41 @@ func init() {
 		},
 	}
 
+	unaryAbs = &unaryOp{
+		fn: [numType]unaryFn{
+			func(v Value) Value {
+				i := v.(Int)
+				if i.x < 0 {
+					i.x = -i.x
+				}
+				return i
+			},
+			func(v Value) Value {
+				return unaryBigIntOp((*big.Int).Abs, v)
+			},
+			func(v Value) Value {
+				return unaryBigRatOp((*big.Rat).Abs, v)
+			},
+			func(v Value) Value {
+				return unaryVectorOp("abs", v)
+			},
+		},
+	}
+
+	unaryInt = &unaryOp{
+		fn: [numType]unaryFn{
+			func(v Value) Value { return v },
+			func(v Value) Value { return v },
+			func(v Value) Value {
+				i := v.(BigRat)
+				var z BigInt
+				z.x.Quo(i.x.Num(), i.x.Denom()) // Truncates towards zero.
+				return z
+			},
+			nil,
+		},
+	}
+
 	unaryIota = &unaryOp{
 		fn: [numType]unaryFn{
 			func(v Value) Value {
@@ -139,6 +174,8 @@ func init() {
 		"-":    unaryMinus,
 		"^":    unaryBitwiseNot,
 		"!":    unaryLogicalNot,
+		"abs":  unaryAbs,
+		"int":  unaryInt,
 		"iota": unaryIota,
 	}
 }
