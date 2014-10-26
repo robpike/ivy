@@ -20,9 +20,9 @@ func binaryArithType(t1, t2 valueType) valueType {
 	return t2
 }
 
-// powType is like binaryArithType but never returns smaller than BigInt,
+// divType is like binaryArithType but never returns smaller than BigInt,
 // because the only implementation of exponentiation we have is in big.Int.
-func powType(t1, t2 valueType) valueType {
+func divType(t1, t2 valueType) valueType {
 	if t1 == intType {
 		t1 = bigIntType
 	}
@@ -246,7 +246,7 @@ func init() {
 	}
 
 	div = &binaryOp{ // Euclidean integer division.
-		whichType: powType, // Use BigInts to avoid the analysis here.
+		whichType: divType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
 			nil,
 			func(u, v Value) Value {
@@ -264,7 +264,7 @@ func init() {
 	}
 
 	mod = &binaryOp{ // Euclidean integer modulus.
-		whichType: powType, // Use BigInts to avoid the analysis here.
+		whichType: divType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
 			nil,
 			func(u, v Value) Value {
@@ -282,13 +282,34 @@ func init() {
 	}
 
 	pow = &binaryOp{
-		whichType: powType,
+		whichType: divType,
 		fn: [numType]binaryFn{
 			nil, // Use BigInt for this.
 			func(u, v Value) Value {
 				return binaryBigIntOp(u, bigIntPow, v)
 			},
-			nil, // TODO. Not too hard, but messy.
+			func(u, v Value) Value {
+				// We know v is integral. (n/d)**2 is n**2/d**2.
+				rexp := v.(BigRat).x
+				switch rexp.Sign() {
+				case 0:
+					return one
+				case -1:
+					panic(Error("negative exponent not implemented"))
+				}
+				if !rexp.IsInt() {
+					panic(Error("fractional exponent not implemented"))
+				}
+				rat := u.(BigRat).x
+				num := rat.Num()
+				den := rat.Denom()
+				exp := rexp.Num()
+				num.Exp(num, exp, nil)
+				den.Exp(den, exp, nil)
+				var z BigRat
+				z.x.SetFrac(num, den)
+				return z
+			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "**", v)
 			},
@@ -344,7 +365,7 @@ func init() {
 	}
 
 	lsh = &binaryOp{
-		whichType: powType, // Shifts are like power: let BigInt do the work.
+		whichType: divType, // Shifts are like power: let BigInt do the work.
 		fn: [numType]binaryFn{
 			nil, // Use BigInt for this.
 			func(u, v Value) Value {
@@ -361,7 +382,7 @@ func init() {
 	}
 
 	rsh = &binaryOp{
-		whichType: powType, // Shifts are like power: let BigInt do the work.
+		whichType: divType, // Shifts are like power: let BigInt do the work.
 		fn: [numType]binaryFn{
 			nil, // Use BigInt for this.
 			func(u, v Value) Value {
