@@ -286,6 +286,13 @@ func init() {
 		fn: [numType]binaryFn{
 			nil, // Use BigInt for this.
 			func(u, v Value) Value {
+				i := v.(BigInt)
+				switch i.x.Sign() {
+				case 0:
+					return one
+				case -1:
+					panic(Error("negative exponent not implemented"))
+				}
 				return binaryBigIntOp(u, bigIntPow, v)
 			},
 			func(u, v Value) Value {
@@ -297,13 +304,10 @@ func init() {
 				case -1:
 					panic(Error("negative exponent not implemented"))
 				}
-				if !rexp.IsInt() {
-					panic(Error("fractional exponent not implemented"))
-				}
+				exp := rexp.Num()
 				rat := u.(BigRat).x
 				num := rat.Num()
 				den := rat.Denom()
-				exp := rexp.Num()
 				num.Exp(num, exp, nil)
 				den.Exp(den, exp, nil)
 				var z BigRat
