@@ -114,6 +114,7 @@ var (
 	quo, idiv, imod, div, mod *binaryOp
 	and, or, xor, lsh, rsh    *binaryOp
 	eq, ne, lt, le, gt, ge    *binaryOp
+	min, max                  *binaryOp
 	binaryOps                 map[string]*binaryOp
 )
 
@@ -522,6 +523,42 @@ func init() {
 		},
 	}
 
+	min = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			func(u, v Value) Value {
+				i, j := u.(Int).x, v.(Int).x
+				if i < j {
+					return u
+				}
+				return v
+			},
+			nil,
+			nil,
+			func(u, v Value) Value {
+				return binaryVectorOp(u, "min", v)
+			},
+		},
+	}
+
+	max = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			func(u, v Value) Value {
+				i, j := u.(Int).x, v.(Int).x
+				if i > j {
+					return u
+				}
+				return v
+			},
+			nil,
+			nil,
+			func(u, v Value) Value {
+				return binaryVectorOp(u, "min", v)
+			},
+		},
+	}
+
 	binaryOps = map[string]*binaryOp{
 		"+":    add,
 		"-":    sub,
@@ -543,5 +580,7 @@ func init() {
 		"<=":   le,
 		">":    gt,
 		">=":   ge,
+		"min":  min,
+		"max":  max,
 	}
 }

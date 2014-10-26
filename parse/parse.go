@@ -134,7 +134,7 @@ func (p *Parser) Line() (value.Value, bool) {
 		if tok.Type != scan.Newline {
 			p.errorf("unexpected %q", tok)
 		}
-		fmt.Println(Tree(x))
+		// fmt.Println(Tree(x))
 		p.prev = x.Eval()
 		return p.prev, true
 	}
@@ -143,34 +143,28 @@ func (p *Parser) Line() (value.Value, bool) {
 // Expr
 //	Operand
 //	Operand binop Expr
-// Left associative, so "1+2+3" is "(1+2)+3".
 func (p *Parser) Expr(tok scan.Token) value.Expr {
 	expr := p.Operand(tok)
-Loop:
-	for {
-		switch p.Peek().Type {
-		case scan.Newline, scan.RightParen:
-			break Loop
-		case scan.Operator:
-			// Binary.
-			tok = p.Next()
-			expr = &Binary{
-				left:  expr,
-				op:    tok.Text,
-				right: p.Operand(p.Next()),
-			}
-		default:
-			panic(value.Errorf("unexpected %s after expression", p.Peek()))
+	switch p.Peek().Type {
+	case scan.Newline, scan.RightParen:
+		return expr
+	case scan.Operator:
+		// Binary.
+		tok = p.Next()
+		return &Binary{
+			left:  expr,
+			op:    tok.Text,
+			right: p.Expr(p.Next()),
 		}
 	}
-	return expr
+	panic(value.Errorf("unexpected %s after expression", p.Peek()))
 }
 
 // Operand
 //	( Expr )
 //	Number
 //	Vector
-//	unop Operand
+//	unop Expr
 func (p *Parser) Operand(tok scan.Token) value.Expr {
 	var expr value.Expr
 	switch tok.Type {
@@ -183,7 +177,7 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		}
 		expr = &Unary{
 			op:    op,
-			right: p.Operand(p.Next()),
+			right: p.Expr(p.Next()),
 		}
 	case scan.LeftParen:
 		expr = p.Expr(p.Next())
