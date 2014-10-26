@@ -26,15 +26,13 @@ type Token struct {
 type Type int
 
 const (
-	Nothing Type = iota
-	Error        // error occurred; value is text of error
+	EOF   Type = iota // zero value so closed channel delivers EOF
+	Error             // error occurred; value is text of error
 	Newline
 	// Interesting things
-	Char         // printable ASCII character; grab bag for comma etc.
-	CharConstant // character constant
-	Dot          // dot
-	Dollar       // dollar
-	EOF
+	Char           // printable ASCII character; grab bag for comma etc.
+	CharConstant   // character constant
+	Dot            // dot
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
 	LeftParen      // '('
@@ -60,8 +58,6 @@ var operatorWord = map[string]bool{
 
 func (t Type) String() string {
 	switch t {
-	case Nothing:
-		return "Nothing"
 	case Error:
 		return "Error"
 	case Newline:
@@ -72,8 +68,6 @@ func (t Type) String() string {
 		return "CharConstant"
 	case Dot:
 		return "."
-	case Dollar:
-		return "$"
 	case EOF:
 		return "EOF"
 	case Identifier:
@@ -82,6 +76,8 @@ func (t Type) String() string {
 		return "LeftParen"
 	case Number:
 		return "Number"
+	case Operator:
+		return "Operator"
 	case RawString:
 		return "RawString"
 	case RightParen:
@@ -185,11 +181,6 @@ func (l *Scanner) backup() {
 // emit passes an item back to the client.
 func (l *Scanner) emit(t Type) {
 	s := l.input[l.start:l.pos]
-	if t == Number && len(s) > 0 && s[0] == '_' {
-		// TODO Ugly. Is there a better way?
-		s = "-" + s[1:]
-	}
-	//fmt.Printf("EMIT %q %d %d type %s\n", s, l.start, l.pos, t)
 	l.Tokens <- Token{t, l.start, s}
 	l.start = l.pos
 }
@@ -252,6 +243,7 @@ func (l *Scanner) run() {
 	for l.state = lexSpace; l.state != nil; {
 		l.state = l.state(l)
 	}
+	close(l.Tokens)
 }
 
 // state functions
@@ -298,30 +290,32 @@ func lexAny(l *Scanner) stateFn {
 		return lexSpace
 	case isSpace(r):
 		return lexSpace
-	case l.isOperator(r):
-		l.emit(Operator)
-		return lexSpace
 	case r == '"':
 		return lexQuote
 	case r == '`':
 		return lexRawQuote
 	case r == '\'':
 		return lexChar
-	case r == '$':
-		l.emit(Dollar)
-		return lexAny
 	case r == '.':
 		if !unicode.IsDigit(l.peek()) {
 			l.emit(Dot)
 			return lexAny
 		}
 		fallthrough // '.' can start a number.
-	case r == '_' || '0' <= r && r <= '9':
-		l.backup()
-		return lexNumber
+	case r == '-':
+		// It's the start of a number iff there is space before it (or it's first).
+		// Otherwise it's an operator.
+		if l.start > 0 && !isSpace(rune(l.input[l.start-1])) { // FIX
+			l.emit(Operator)
+			return lexAny
+		}
+		fallthrough
 	case '0' <= r && r <= '9':
 		l.backup()
 		return lexNumber
+	case l.isOperator(r): // Must be after numbers, so '-' can be a sign.
+		l.emit(Operator)
+		return lexSpace
 	case isAlphaNumeric(r):
 		l.backup()
 		return lexIdentifier
@@ -431,7 +425,14 @@ Loop:
 // strconv) will notice.
 func lexNumber(l *Scanner) stateFn {
 	// Optional leading sign.
-	l.accept("_")
+	if l.accept("-") {
+		// Might not be a number
+		r := l.peek()
+		if r != '.' && !unicode.IsDigit(r) {
+			l.emit(Operator)
+			return lexAny
+		}
+	}
 	if !l.scanNumber() {
 		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
 	}

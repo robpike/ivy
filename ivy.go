@@ -55,7 +55,7 @@ func run(p *parse.Parser) {
 			fmt.Println(value)
 		}
 		if !ok {
-			break
+			os.Exit(0)
 		}
 	}
 }

@@ -80,8 +80,8 @@ func NewParser(lexer lex.TokenReader) *Parser {
 
 func (p *Parser) Next() scan.Token {
 	tok := p.peekTok
-	if tok.Type != scan.Nothing {
-		p.peekTok = scan.Token{Type: scan.Nothing}
+	if tok.Type != scan.EOF {
+		p.peekTok = scan.Token{Type: scan.EOF}
 	} else {
 		tok = p.lexer.Next()
 	}
@@ -94,7 +94,7 @@ func (p *Parser) Back(tok scan.Token) {
 
 func (p *Parser) Peek() scan.Token {
 	tok := p.peekTok
-	if tok.Type != scan.Nothing {
+	if tok.Type != scan.EOF {
 		return tok
 	}
 	p.peekTok = p.lexer.Next()
@@ -134,7 +134,7 @@ func (p *Parser) Line() (value.Value, bool) {
 		if tok.Type != scan.Newline {
 			p.errorf("unexpected %q", tok)
 		}
-		//fmt.Println(Tree(x))
+		fmt.Println(Tree(x))
 		p.prev = x.Eval()
 		return p.prev, true
 	}
@@ -193,7 +193,7 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		}
 	case scan.Number:
 		expr = p.NumberOrVector(tok)
-	case scan.Dollar:
+	case scan.Dot:
 		return p.prev
 	default:
 		panic(value.Errorf("unexpected %s", tok))
