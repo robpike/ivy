@@ -155,7 +155,7 @@ func init() {
 			func(v Value) Value {
 				i := v.(Int)
 				if i.x <= 0 || maxInt < i.x {
-					panic(Errorf("bad iota %d)", i.x))
+					panic(Errorf("bad iota %d", i.x))
 				}
 				n := make([]Value, i.x)
 				for k := range n {
@@ -175,7 +175,7 @@ func init() {
 		"^":    unaryBitwiseNot,
 		"!":    unaryLogicalNot,
 		"abs":  unaryAbs,
-		"int":  unaryInt,
+		"int":  unaryInt, // TODO: should be min and max
 		"iota": unaryIota,
 	}
 }

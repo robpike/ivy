@@ -14,6 +14,8 @@ import (
 	"code.google.com/p/rspace/ivy/value"
 )
 
+var vars = make(map[string]value.Value)
+
 type Unary struct {
 	op    string
 	right value.Expr
@@ -120,14 +122,24 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 // Line:
 //	EOF
 //	'\n'
+//	var ':=' Expr
 //	Expr '\n'
 func (p *Parser) Line() (value.Value, bool) {
 	tok := p.Next()
+	variable := ""
 	switch tok.Type {
 	case scan.EOF:
 		return nil, false
 	case scan.Newline:
 		return nil, true
+	case scan.Identifier:
+		next := p.Peek()
+		if next.Type == scan.ColonEquals {
+			p.Next()
+			variable = tok.Text
+			tok = p.Next()
+		}
+		fallthrough
 	default:
 		x := p.Expr(tok)
 		tok = p.Next()
@@ -136,6 +148,9 @@ func (p *Parser) Line() (value.Value, bool) {
 		}
 		// fmt.Println(Tree(x))
 		p.prev = x.Eval()
+		if variable != "" {
+			vars[variable] = p.prev
+		}
 		return p.prev, true
 	}
 }
@@ -164,6 +179,7 @@ func (p *Parser) Expr(tok scan.Token) value.Expr {
 //	( Expr )
 //	Number
 //	Vector
+//	variable
 //	unop Expr
 func (p *Parser) Operand(tok scan.Token) value.Expr {
 	var expr value.Expr
@@ -187,6 +203,11 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		}
 	case scan.Number:
 		expr = p.NumberOrVector(tok)
+	case scan.Identifier:
+		expr = vars[tok.Text]
+		if expr == nil {
+			panic(value.Errorf("%s undefined", tok.Text))
+		}
 	case scan.Dot:
 		return p.prev
 	default:

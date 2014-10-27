@@ -32,6 +32,7 @@ const (
 	// Interesting things
 	Char           // printable ASCII character; grab bag for comma etc.
 	CharConstant   // character constant
+	ColonEquals    // ':='
 	Dot            // dot
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
@@ -68,6 +69,8 @@ func (t Type) String() string {
 		return "Char"
 	case CharConstant:
 		return "CharConstant"
+	case ColonEquals:
+		return "ColonEquals"
 	case Dot:
 		return "."
 	case EOF:
@@ -298,6 +301,14 @@ func lexAny(l *Scanner) stateFn {
 		return lexRawQuote
 	case r == '\'':
 		return lexChar
+	case r == ':':
+		if l.peek() == '=' {
+			l.next()
+			l.emit(ColonEquals)
+		} else {
+			l.emit(Char)
+		}
+		return lexSpace
 	case r == '.':
 		if !unicode.IsDigit(l.peek()) {
 			l.emit(Dot)
@@ -381,14 +392,7 @@ Loop:
 // day to implement arithmetic.
 func (l *Scanner) atTerminator() bool {
 	r := l.peek()
-	if isSpace(r) || isEndOfLine(r) {
-		return true
-	}
-	switch r {
-	case eof, '.', ',', '|', ':', ')', '(', '$':
-		return true
-	}
-	if l.isOperator(r) {
+	if isSpace(r) || isEndOfLine(r) || unicode.IsPunct(r) {
 		return true
 	}
 	// Does r start the delimiter? This can be ambiguous (with delim=="//", $x/2 will

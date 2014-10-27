@@ -533,8 +533,20 @@ func init() {
 				}
 				return v
 			},
-			nil,
-			nil,
+			func(u, v Value) Value {
+				i, j := u.(BigInt), v.(BigInt)
+				if i.x.Cmp(&j.x) < 0 {
+					return u
+				}
+				return v
+			},
+			func(u, v Value) Value {
+				i, j := u.(BigRat), v.(BigRat)
+				if i.x.Cmp(&j.x) < 0 {
+					return u
+				}
+				return v
+			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "min", v)
 			},
@@ -551,8 +563,20 @@ func init() {
 				}
 				return v
 			},
-			nil,
-			nil,
+			func(u, v Value) Value {
+				i, j := u.(BigInt), v.(BigInt)
+				if i.x.Cmp(&j.x) > 0 {
+					return u
+				}
+				return v
+			},
+			func(u, v Value) Value {
+				i, j := u.(BigRat), v.(BigRat)
+				if i.x.Cmp(&j.x) > 0 {
+					return u
+				}
+				return v
+			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "min", v)
 			},
