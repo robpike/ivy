@@ -6,15 +6,11 @@ package parse
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"code.google.com/p/rspace/ivy/lex"
 	"code.google.com/p/rspace/ivy/scan"
 	"code.google.com/p/rspace/ivy/value"
 )
-
-var vars = make(map[string]value.Value)
 
 type Unary struct {
 	op    string
@@ -49,6 +45,8 @@ func Tree(e value.Expr) string {
 		return ""
 	case value.BigInt:
 		return fmt.Sprintf("<big %s>", e)
+	case value.BigRat:
+		return fmt.Sprintf("<rat %s>", e)
 	case value.Int:
 		return fmt.Sprintf("<%s>", e)
 	case value.Vector:
@@ -65,18 +63,18 @@ func Tree(e value.Expr) string {
 type Parser struct {
 	lexer      lex.TokenReader
 	lineNum    int
-	errorLine  int // Line number of last error.
 	errorCount int // Number of errors.
 	peekTok    scan.Token
-	prev       value.Value // previous value
+	vars       map[string]value.Value
 }
 
 var zero, _ = value.ValueString("0")
 
 func NewParser(lexer lex.TokenReader) *Parser {
 	return &Parser{
-		lexer: lexer,
-		prev:  zero,
+		lexer:   lexer,
+		lineNum: 1,
+		vars:    make(map[string]value.Value),
 	}
 }
 
@@ -104,19 +102,13 @@ func (p *Parser) Peek() scan.Token {
 }
 
 func (p *Parser) errorf(format string, args ...interface{}) {
-	if p.lineNum == p.errorLine {
-		// Only one error per line.
-		return
+	// Flush to newline.
+	for p.Next().Type != scan.Newline {
 	}
-	p.errorLine = p.lineNum
 	// Put file and line information on head of message.
 	format = "%s:%d: " + format + "\n"
 	args = append([]interface{}{p.lexer.FileName(), p.lineNum}, args...)
-	fmt.Fprintf(os.Stderr, format, args...)
-	p.errorCount++
-	if p.errorCount > 10 {
-		log.Fatal("too many errors")
-	}
+	panic(value.Errorf(format, args...))
 }
 
 // Line:
@@ -130,6 +122,9 @@ func (p *Parser) Line() (value.Value, bool) {
 	switch tok.Type {
 	case scan.EOF:
 		return nil, false
+	case scan.Error:
+		p.errorf("%q", tok)
+		return nil, false
 	case scan.Newline:
 		return nil, true
 	case scan.Identifier:
@@ -142,16 +137,20 @@ func (p *Parser) Line() (value.Value, bool) {
 		fallthrough
 	default:
 		x := p.Expr(tok)
+		if x == nil {
+			return nil, true
+		}
 		tok = p.Next()
 		if tok.Type != scan.Newline {
 			p.errorf("unexpected %q", tok)
 		}
-		// fmt.Println(Tree(x))
-		p.prev = x.Eval()
+		fmt.Println(Tree(x))
+		expr := x.Eval()
+		p.vars["_"] = expr
 		if variable != "" {
-			vars[variable] = p.prev
+			p.vars[variable] = expr
 		}
-		return p.prev, true
+		return expr, true
 	}
 }
 
@@ -172,12 +171,14 @@ func (p *Parser) Expr(tok scan.Token) value.Expr {
 			right: p.Expr(p.Next()),
 		}
 	}
-	panic(value.Errorf("unexpected %s after expression", p.Peek()))
+	p.errorf("unexpected %s after expression", p.Peek())
+	return nil
 }
 
 // Operand
 //	( Expr )
 //	Number
+//	Rational
 //	Vector
 //	variable
 //	unop Expr
@@ -201,17 +202,15 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		if tok.Type != scan.RightParen {
 			p.errorf("expected right paren, found", tok)
 		}
-	case scan.Number:
+	case scan.Number, scan.Rational:
 		expr = p.NumberOrVector(tok)
 	case scan.Identifier:
-		expr = vars[tok.Text]
+		expr = p.vars[tok.Text]
 		if expr == nil {
-			panic(value.Errorf("%s undefined", tok.Text))
+			p.errorf("%s undefined", tok.Text)
 		}
-	case scan.Dot:
-		return p.prev
 	default:
-		panic(value.Errorf("unexpected %s", tok))
+		p.errorf("unexpected %s", tok)
 	}
 	return expr
 }
@@ -220,7 +219,7 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 func (p *Parser) Number(tok scan.Token) value.Value {
 	x, err := value.ValueString(tok.Text)
 	if err != nil {
-		panic(value.Errorf("%s: %s", tok.Text, err))
+		p.errorf("%s: %s", tok.Text, err)
 	}
 	return x
 }

@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:generate stringer -type Type
+
 package scan
 
 import (
@@ -33,18 +35,16 @@ const (
 	Char           // printable ASCII character; grab bag for comma etc.
 	CharConstant   // character constant
 	ColonEquals    // ':='
-	Dot            // dot
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
 	LeftParen      // '('
-	Number         // simple number, including imaginary
+	Number         // simple number
 	Operator       // known operator
+	Rational       // rational number like 2/3
 	RawString      // raw quoted string (includes quotes)
 	RightParen     // ')'
 	Space          // run of spaces separating
 	String         // quoted string (includes quotes)
-	// Keywords appear after all the rest.
-	Keyword // used only to delimit the keywords
 )
 
 var operatorWord = map[string]bool{
@@ -59,60 +59,16 @@ var operatorWord = map[string]bool{
 	"mod":  true,
 }
 
-func (t Type) String() string {
-	switch t {
-	case Error:
-		return "Error"
-	case Newline:
-		return "Newline"
-	case Char:
-		return "Char"
-	case CharConstant:
-		return "CharConstant"
-	case ColonEquals:
-		return "ColonEquals"
-	case Dot:
-		return "."
-	case EOF:
-		return "EOF"
-	case Identifier:
-		return "Identifier"
-	case LeftParen:
-		return "LeftParen"
-	case Number:
-		return "Number"
-	case Operator:
-		return "Operator"
-	case RawString:
-		return "RawString"
-	case RightParen:
-		return "RightParen"
-	case Space:
-		return "Space"
-	case String:
-		return "String"
-	// Keywords
-	default:
-		return fmt.Sprintf("type %d", t)
-	}
-}
-
 func (i Token) String() string {
 	switch {
 	case i.Type == EOF:
 		return "EOF"
 	case i.Type == Error:
 		return "error: " + i.Text
-	case i.Type > Keyword:
-		return fmt.Sprintf("<%s>", i.Text)
 	case len(i.Text) > 10:
 		return fmt.Sprintf("%s: %.10q...", i.Type, i.Text)
 	}
 	return fmt.Sprintf("%s: %q", i.Type, i.Text)
-}
-
-var key = map[string]Type{
-// No keywords (yet?).
 }
 
 const eof = -1
@@ -218,11 +174,10 @@ func (l *Scanner) lineNumber() int {
 	return 1 + strings.Count(l.input[:l.lastPos], "\n")
 }
 
-// errorf returns an error token and terminates the scan by passing
-// back a nil pointer that will be the next state, terminating l.nextToken.
+// errorf returns an error token and continues to scan.
 func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
 	l.Tokens <- Token{Error, l.start, fmt.Sprintf(format, args...)}
-	return nil
+	return lexAny
 }
 
 // nextToken returns the next item from the input.
@@ -309,12 +264,6 @@ func lexAny(l *Scanner) stateFn {
 			l.emit(Char)
 		}
 		return lexSpace
-	case r == '.':
-		if !unicode.IsDigit(l.peek()) {
-			l.emit(Dot)
-			return lexAny
-		}
-		fallthrough // '.' can start a number.
 	case r == '-':
 		// It's the start of a number iff there is space before it (or it's first).
 		// Otherwise it's an operator.
@@ -323,7 +272,7 @@ func lexAny(l *Scanner) stateFn {
 			return lexAny
 		}
 		fallthrough
-	case '0' <= r && r <= '9':
+	case r == '.' || '0' <= r && r <= '9':
 		l.backup()
 		return lexNumber
 	case l.isOperator(r): // Must be after numbers, so '-' can be a sign.
@@ -442,7 +391,25 @@ func lexNumber(l *Scanner) stateFn {
 	if !l.scanNumber() {
 		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
 	}
-	l.emit(Number)
+	if l.peek() != '/' {
+		l.emit(Number)
+		return lexAny
+	}
+	// Might be a rational.
+	l.accept("/")
+
+	if r := l.peek(); r != '.' && !unicode.IsDigit(r) {
+		// Oops, not a number. Hack!
+		l.pos-- // back up before '/'
+		l.emit(Number)
+		l.accept("/")
+		l.emit(Operator)
+		return lexAny
+	}
+	if !l.scanNumber() {
+		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
+	}
+	l.emit(Rational)
 	return lexAny
 }
 

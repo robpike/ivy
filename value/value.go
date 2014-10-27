@@ -4,7 +4,11 @@
 
 package value
 
-import "fmt"
+import (
+	"fmt"
+	"math/big"
+	"strings"
+)
 
 type Expr interface {
 	String() string
@@ -32,7 +36,33 @@ func Errorf(format string, args ...interface{}) Error {
 type ParseState int
 
 func ValueString(s string) (Value, error) {
-	// start small
+	// Is it a rational? If so, it's tricky.
+	if strings.ContainsRune(s, '/') {
+		elems := strings.Split(s, "/")
+		if len(elems) != 2 {
+			panic("bad rat")
+		}
+		num, err := ValueString(elems[0])
+		if err != nil {
+			return nil, err
+		}
+		den, err := ValueString(elems[1])
+		if err != nil {
+			return nil, err
+		}
+		// Common simple case.
+		if whichType(num) == intType && whichType(den) == intType {
+			return bigRatTwoInt64s(num.(Int).x, den.(Int).x).shrink(), nil
+		}
+		// General mix-em-up.
+		rden := den.ToType(bigRatType)
+		if z := rden.(BigRat).x; z.Sign() == 0 {
+			panic(Error("zero denominator in rational"))
+		}
+		return binaryBigRatOp(num.ToType(bigRatType), (*big.Rat).Quo, rden), nil
+	}
+	// Not a rational, but might be something like 1.3e-2 and therefore
+	// become a rational.
 	i, err := SetIntString(s)
 	if err == nil {
 		return i, nil
@@ -64,5 +94,14 @@ func bigInt64(x int64) BigInt {
 func bigRatInt64(x int64) BigRat {
 	var z BigRat
 	z.x.SetInt64(x)
+	return z
+}
+
+func bigRatTwoInt64s(x, y int64) BigRat {
+	var z BigRat
+	if y == 0 {
+		panic(Error("zero denominator in rational"))
+	}
+	z.x.SetFrac64(x, y)
 	return z
 }
