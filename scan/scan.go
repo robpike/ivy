@@ -298,7 +298,6 @@ func lexAny(l *Scanner) stateFn {
 	default:
 		return l.errorf("unrecognized character in action: %#U", r)
 	}
-	return lexAny
 }
 
 // lexSpace scans a run of space characters.

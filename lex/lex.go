@@ -175,8 +175,6 @@ func (in *Input) Next() scan.Token {
 			return tok
 		}
 	}
-	in.Error("recursive macro invocation")
-	panic("not reached")
 }
 
 // preprocessor processes a preprocessor directive. It returns true iff it completes.

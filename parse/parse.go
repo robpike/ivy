@@ -200,7 +200,7 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		expr = p.Expr(p.Next())
 		tok := p.Next()
 		if tok.Type != scan.RightParen {
-			p.errorf("expected right paren, found", tok)
+			p.errorf("expected right paren, found %s", tok)
 		}
 	case scan.Number, scan.Rational:
 		expr = p.NumberOrVector(tok)
