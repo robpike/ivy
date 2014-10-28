@@ -10,16 +10,15 @@ import (
 )
 
 type BigInt struct {
-	x big.Int
+	x *big.Int
 }
 
 func SetBigIntString(s string) (BigInt, error) {
-	var i BigInt
-	_, ok := i.x.SetString(s, 0)
+	i, ok := big.NewInt(0).SetString(s, 0)
 	if !ok {
 		return BigInt{}, errors.New("integer parse error")
 	}
-	return i, nil
+	return BigInt{x: i}, nil
 }
 
 func (i BigInt) String() string {
@@ -37,9 +36,8 @@ func (i BigInt) ToType(which valueType) Value {
 	case bigIntType:
 		return i
 	case bigRatType:
-		var r BigRat
-		r.x.SetInt(&i.x)
-		return r
+		r := big.NewRat(0, 1).SetInt(i.x)
+		return BigRat{x: r}
 	case vectorType:
 		return ValueSlice([]Value{i})
 	}

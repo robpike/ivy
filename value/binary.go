@@ -83,15 +83,15 @@ func binaryVectorOp(i Value, op string, j Value) Value {
 
 func binaryBigIntOp(u Value, op func(*big.Int, *big.Int, *big.Int) *big.Int, v Value) Value {
 	i, j := u.(BigInt), v.(BigInt)
-	var z BigInt
-	op(&z.x, &i.x, &j.x)
+	z := bigInt64(0)
+	op(z.x, i.x, j.x)
 	return z.shrink()
 }
 
 func binaryBigRatOp(u Value, op func(*big.Rat, *big.Rat, *big.Rat) *big.Rat, v Value) Value {
 	i, j := u.(BigRat), v.(BigRat)
-	var z BigRat
-	op(&z.x, &i.x, &j.x)
+	z := bigRatInt64(0)
+	op(z.x, i.x, j.x)
 	return z.shrink()
 }
 
@@ -311,7 +311,7 @@ func init() {
 				den := rat.Denom()
 				num.Exp(num, exp, nil)
 				den.Exp(den, exp, nil)
-				var z BigRat
+				z := bigRatInt64(0)
 				z.x.SetFrac(num, den)
 				return z
 			},
@@ -375,8 +375,8 @@ func init() {
 			nil, // Use BigInt for this.
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Lsh(&i.x, shiftCount(j))
+				z := bigInt64(0)
+				z.x.Lsh(i.x, shiftCount(j))
 				return z.shrink()
 			},
 			nil,
@@ -392,8 +392,8 @@ func init() {
 			nil, // Use BigInt for this.
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				var z BigInt
-				z.x.Rsh(&i.x, shiftCount(j))
+				z := bigInt64(0)
+				z.x.Rsh(i.x, shiftCount(j))
 				return z.shrink()
 			},
 			nil,
@@ -411,11 +411,11 @@ func init() {
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				return toInt(i.x.Cmp(&j.x) == 0)
+				return toInt(i.x.Cmp(j.x) == 0)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
-				return toInt(i.x.Cmp(&j.x) == 0)
+				return toInt(i.x.Cmp(j.x) == 0)
 			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "==", v)
@@ -431,11 +431,11 @@ func init() {
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				return toInt(i.x.Cmp(&j.x) != 0)
+				return toInt(i.x.Cmp(j.x) != 0)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
-				return toInt(i.x.Cmp(&j.x) != 0)
+				return toInt(i.x.Cmp(j.x) != 0)
 			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "!=", v)
@@ -451,11 +451,11 @@ func init() {
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				return toInt(i.x.Cmp(&j.x) < 0)
+				return toInt(i.x.Cmp(j.x) < 0)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
-				return toInt(i.x.Cmp(&j.x) < 0)
+				return toInt(i.x.Cmp(j.x) < 0)
 			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "<", v)
@@ -471,11 +471,11 @@ func init() {
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				return toInt(i.x.Cmp(&j.x) <= 0)
+				return toInt(i.x.Cmp(j.x) <= 0)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
-				return toInt(i.x.Cmp(&j.x) <= 0)
+				return toInt(i.x.Cmp(j.x) <= 0)
 			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, "<=", v)
@@ -491,11 +491,11 @@ func init() {
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				return toInt(i.x.Cmp(&j.x) > 0)
+				return toInt(i.x.Cmp(j.x) > 0)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
-				return toInt(i.x.Cmp(&j.x) > 0)
+				return toInt(i.x.Cmp(j.x) > 0)
 			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, ">", v)
@@ -511,11 +511,11 @@ func init() {
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				return toInt(i.x.Cmp(&j.x) >= 0)
+				return toInt(i.x.Cmp(j.x) >= 0)
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
-				return toInt(i.x.Cmp(&j.x) >= 0)
+				return toInt(i.x.Cmp(j.x) >= 0)
 			},
 			func(u, v Value) Value {
 				return binaryVectorOp(u, ">=", v)
@@ -535,14 +535,14 @@ func init() {
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				if i.x.Cmp(&j.x) < 0 {
+				if i.x.Cmp(j.x) < 0 {
 					return u
 				}
 				return v
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
-				if i.x.Cmp(&j.x) < 0 {
+				if i.x.Cmp(j.x) < 0 {
 					return u
 				}
 				return v
@@ -565,14 +565,14 @@ func init() {
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
-				if i.x.Cmp(&j.x) > 0 {
+				if i.x.Cmp(j.x) > 0 {
 					return u
 				}
 				return v
 			},
 			func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
-				if i.x.Cmp(&j.x) > 0 {
+				if i.x.Cmp(j.x) > 0 {
 					return u
 				}
 				return v

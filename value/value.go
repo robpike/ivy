@@ -86,22 +86,16 @@ func valueInt64(x int64) Value {
 }
 
 func bigInt64(x int64) BigInt {
-	var z BigInt
-	z.x.SetInt64(x)
-	return z
+	return BigInt{x: big.NewInt(x)}
 }
 
 func bigRatInt64(x int64) BigRat {
-	var z BigRat
-	z.x.SetInt64(x)
-	return z
+	return bigRatTwoInt64s(x, 1)
 }
 
 func bigRatTwoInt64s(x, y int64) BigRat {
-	var z BigRat
 	if y == 0 {
 		panic(Error("zero denominator in rational"))
 	}
-	z.x.SetFrac64(x, y)
-	return z
+	return BigRat{x: big.NewRat(x, y)}
 }

@@ -14,16 +14,16 @@ import "math/big"
 // unaryBigIntOp applies the op to a BigInt.
 func unaryBigIntOp(op func(*big.Int, *big.Int) *big.Int, v Value) Value {
 	i := v.(BigInt)
-	var z BigInt
-	op(&z.x, &i.x)
+	z := bigInt64(0)
+	op(z.x, i.x)
 	return z.shrink()
 }
 
 // unaryBigRatOp applies the op to a BigRat.
 func unaryBigRatOp(op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
 	i := v.(BigRat)
-	var z BigRat
-	op(&z.x, &i.x)
+	z := bigRatInt64(0)
+	op(z.x, i.x)
 	return z.shrink()
 }
 
@@ -82,8 +82,8 @@ func init() {
 			func(v Value) Value {
 				// Lots of ways to do this, here's one.
 				i := v.(BigInt)
-				var z BigInt
-				z.x.Xor(&i.x, &bigMinusOne.x)
+				z := bigInt64(0)
+				z.x.Xor(i.x, bigMinusOne.x)
 				return z
 			},
 			nil,
@@ -142,7 +142,7 @@ func init() {
 			func(v Value) Value { return v },
 			func(v Value) Value {
 				i := v.(BigRat)
-				var z BigInt
+				z := bigInt64(0)
 				z.x.Quo(i.x.Num(), i.x.Denom()) // Truncates towards zero.
 				return z
 			},

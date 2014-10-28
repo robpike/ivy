@@ -10,16 +10,15 @@ import (
 )
 
 type BigRat struct {
-	x big.Rat
+	x *big.Rat
 }
 
 func SetBigRatString(s string) (BigRat, error) {
-	var r BigRat
-	_, ok := r.x.SetString(s)
+	r, ok := big.NewRat(0, 1).SetString(s)
 	if !ok {
 		return BigRat{}, errors.New("rational number syntax")
 	}
-	return r, nil
+	return BigRat{x: r}, nil
 }
 
 func (r BigRat) String() string {
@@ -49,7 +48,5 @@ func (r BigRat) shrink() Value {
 	if !r.x.IsInt() {
 		return r
 	}
-	var b BigInt
-	b.x = *r.x.Num()
-	return b.shrink()
+	return BigInt{x: r.x.Num()}.shrink()
 }
