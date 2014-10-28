@@ -227,12 +227,14 @@ func (p *Parser) Number(tok scan.Token) value.Value {
 // NumberOrVector turns the token and what follows into a numeric Value, possibly a vector.
 func (p *Parser) NumberOrVector(tok scan.Token) value.Value {
 	x := p.Number(tok)
-	if p.Peek().Type != scan.Number {
+	typ := p.Peek().Type
+	if typ != scan.Number && typ != scan.Rational {
 		return x
 	}
 	v := []value.Value{x}
-	for p.Peek().Type == scan.Number {
+	for typ == scan.Number || typ == scan.Rational {
 		v = append(v, p.Number(p.Next()))
+		typ = p.Peek().Type
 	}
 	return value.ValueSlice(v)
 }
