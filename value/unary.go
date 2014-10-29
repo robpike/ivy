@@ -46,27 +46,27 @@ var (
 func init() {
 	unaryPlus = &unaryOp{
 		fn: [numType]unaryFn{
-			func(v Value) Value { return v },
-			func(v Value) Value { return v },
-			func(v Value) Value { return v },
-			func(v Value) Value { return v },
+			intType:    func(v Value) Value { return v },
+			bigIntType: func(v Value) Value { return v },
+			bigRatType: func(v Value) Value { return v },
+			vectorType: func(v Value) Value { return v },
 		},
 	}
 
 	unaryMinus = &unaryOp{
 		fn: [numType]unaryFn{
-			func(v Value) Value {
+			intType: func(v Value) Value {
 				i := v.(Int)
 				i.x = -i.x
 				return i
 			},
-			func(v Value) Value {
+			bigIntType: func(v Value) Value {
 				return unaryBigIntOp((*big.Int).Neg, v)
 			},
-			func(v Value) Value {
+			bigRatType: func(v Value) Value {
 				return unaryBigRatOp((*big.Rat).Neg, v)
 			},
-			func(v Value) Value {
+			vectorType: func(v Value) Value {
 				return unaryVectorOp("-", v)
 			},
 		},
@@ -74,20 +74,19 @@ func init() {
 
 	unaryBitwiseNot = &unaryOp{
 		fn: [numType]unaryFn{
-			func(v Value) Value {
+			intType: func(v Value) Value {
 				i := v.(Int)
 				i.x = ^i.x
 				return i
 			},
-			func(v Value) Value {
+			bigIntType: func(v Value) Value {
 				// Lots of ways to do this, here's one.
 				i := v.(BigInt)
 				z := bigInt64(0)
 				z.x.Xor(i.x, bigMinusOne.x)
 				return z
 			},
-			nil,
-			func(v Value) Value {
+			vectorType: func(v Value) Value {
 				return unaryVectorOp("^", v)
 			},
 		},
@@ -95,21 +94,20 @@ func init() {
 
 	unaryLogicalNot = &unaryOp{
 		fn: [numType]unaryFn{
-			func(v Value) Value {
+			intType: func(v Value) Value {
 				if v.(Int).x == 0 {
 					return one
 				}
 				return zero
 			},
-			func(v Value) Value {
+			bigIntType: func(v Value) Value {
 				i := v.(BigInt)
 				if i.x.Sign() == 0 {
 					return one
 				}
 				return zero
 			},
-			nil,
-			func(v Value) Value {
+			vectorType: func(v Value) Value {
 				return unaryVectorOp("!", v)
 			},
 		},
@@ -117,20 +115,20 @@ func init() {
 
 	unaryAbs = &unaryOp{
 		fn: [numType]unaryFn{
-			func(v Value) Value {
+			intType: func(v Value) Value {
 				i := v.(Int)
 				if i.x < 0 {
 					i.x = -i.x
 				}
 				return i
 			},
-			func(v Value) Value {
+			bigIntType: func(v Value) Value {
 				return unaryBigIntOp((*big.Int).Abs, v)
 			},
-			func(v Value) Value {
+			bigRatType: func(v Value) Value {
 				return unaryBigRatOp((*big.Rat).Abs, v)
 			},
-			func(v Value) Value {
+			vectorType: func(v Value) Value {
 				return unaryVectorOp("abs", v)
 			},
 		},
@@ -138,21 +136,20 @@ func init() {
 
 	unaryInt = &unaryOp{
 		fn: [numType]unaryFn{
-			func(v Value) Value { return v },
-			func(v Value) Value { return v },
-			func(v Value) Value {
+			intType:    func(v Value) Value { return v },
+			bigIntType: func(v Value) Value { return v },
+			bigRatType: func(v Value) Value {
 				i := v.(BigRat)
 				z := bigInt64(0)
 				z.x.Quo(i.x.Num(), i.x.Denom()) // Truncates towards zero.
 				return z
 			},
-			nil,
 		},
 	}
 
 	unaryIota = &unaryOp{
 		fn: [numType]unaryFn{
-			func(v Value) Value {
+			intType: func(v Value) Value {
 				i := v.(Int)
 				if i.x <= 0 || maxInt < i.x {
 					panic(Errorf("bad iota %d", i.x))
@@ -163,9 +160,6 @@ func init() {
 				}
 				return ValueSlice(n)
 			},
-			nil,
-			nil,
-			nil,
 		},
 	}
 

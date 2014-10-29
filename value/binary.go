@@ -131,16 +131,16 @@ func init() {
 	add = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return valueInt64(u.(Int).x + v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Add, v)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Add, v)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "+", v)
 			},
 		},
@@ -149,16 +149,16 @@ func init() {
 	sub = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return valueInt64(u.(Int).x - v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Sub, v)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Sub, v)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "-", v)
 			},
 		},
@@ -167,16 +167,16 @@ func init() {
 	mul = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return valueInt64(u.(Int).x * v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Mul, v)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Mul, v)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "*", v)
 			},
 		},
@@ -185,16 +185,14 @@ func init() {
 	quo = &binaryOp{ // Rational division.
 		whichType: rationalType, // Use BigRats to avoid the analysis here.
 		fn: [numType]binaryFn{
-			nil,
-			nil,
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				x := v.(BigRat)
 				if x.x.Sign() == 0 {
 					panic(Error("division by zero"))
 				}
 				return binaryBigRatOp(u, (*big.Rat).Quo, v) // True division.
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "/", v)
 			},
 		},
@@ -203,21 +201,21 @@ func init() {
 	idiv = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				if v.(Int).x == 0 {
 					panic(Error("division by zero"))
 				}
 				return valueInt64(u.(Int).x / v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				x := v.(BigInt)
 				if x.x.Sign() == 0 {
 					panic(Error("division by zero"))
 				}
 				return binaryBigIntOp(u, (*big.Int).Quo, v) // Go-like division.
 			},
-			nil, // Not defined for rationals. Use div.
-			func(u, v Value) Value {
+			bigRatType: nil, // Not defined for rationals. Use div.
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "idiv", v)
 			},
 		},
@@ -226,21 +224,21 @@ func init() {
 	imod = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				if v.(Int).x == 0 {
 					panic(Error("modulo by zero"))
 				}
 				return valueInt64(u.(Int).x % v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				x := v.(BigInt)
 				if x.x.Sign() == 0 {
 					panic(Error("modulo by zero"))
 				}
 				return binaryBigIntOp(u, (*big.Int).Rem, v) // Go-like modulo.
 			},
-			nil, // Not defined for rationals. Use mod.
-			func(u, v Value) Value {
+			bigRatType: nil, // Not defined for rationals. Use mod.
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "imod", v)
 			},
 		},
@@ -249,16 +247,15 @@ func init() {
 	div = &binaryOp{ // Euclidean integer division.
 		whichType: divType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
-			nil,
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				x := v.(BigInt)
 				if x.x.Sign() == 0 {
 					panic(Error("division by zero"))
 				}
 				return binaryBigIntOp(u, (*big.Int).Div, v) // Euclidean division.
 			},
-			nil, // Not defined for rationals. Use div.
-			func(u, v Value) Value {
+			bigRatType: nil, // Not defined for rationals. Use div.
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "div", v)
 			},
 		},
@@ -267,16 +264,15 @@ func init() {
 	mod = &binaryOp{ // Euclidean integer modulus.
 		whichType: divType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
-			nil,
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				x := v.(BigInt)
 				if x.x.Sign() == 0 {
 					panic(Error("modulo by zero"))
 				}
 				return binaryBigIntOp(u, (*big.Int).Mod, v) // Euclidan modulo.
 			},
-			nil, // Not defined for rationals. Use mod.
-			func(u, v Value) Value {
+			bigRatType: nil, // Not defined for rationals. Use mod.
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "mod", v)
 			},
 		},
@@ -285,8 +281,7 @@ func init() {
 	pow = &binaryOp{
 		whichType: divType,
 		fn: [numType]binaryFn{
-			nil, // Use BigInt for this.
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i := v.(BigInt)
 				switch i.x.Sign() {
 				case 0:
@@ -296,7 +291,7 @@ func init() {
 				}
 				return binaryBigIntOp(u, bigIntPow, v)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				// We know v is integral. (n/d)**2 is n**2/d**2.
 				rexp := v.(BigRat).x
 				switch rexp.Sign() {
@@ -315,7 +310,7 @@ func init() {
 				z.x.SetFrac(num, den)
 				return z
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "**", v)
 			},
 		},
@@ -324,14 +319,13 @@ func init() {
 	and = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return valueInt64(u.(Int).x & v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).And, v)
 			},
-			nil,
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "&", v)
 			},
 		},
@@ -340,14 +334,13 @@ func init() {
 	or = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return valueInt64(u.(Int).x | v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Or, v)
 			},
-			nil,
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "|", v)
 			},
 		},
@@ -356,14 +349,13 @@ func init() {
 	xor = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return valueInt64(u.(Int).x ^ v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Xor, v)
 			},
-			nil,
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "^", v)
 			},
 		},
@@ -372,15 +364,13 @@ func init() {
 	lsh = &binaryOp{
 		whichType: divType, // Shifts are like power: let BigInt do the work.
 		fn: [numType]binaryFn{
-			nil, // Use BigInt for this.
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				z := bigInt64(0)
 				z.x.Lsh(i.x, shiftCount(j))
 				return z.shrink()
 			},
-			nil,
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "<<", v)
 			},
 		},
@@ -389,15 +379,13 @@ func init() {
 	rsh = &binaryOp{
 		whichType: divType, // Shifts are like power: let BigInt do the work.
 		fn: [numType]binaryFn{
-			nil, // Use BigInt for this.
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				z := bigInt64(0)
 				z.x.Rsh(i.x, shiftCount(j))
 				return z.shrink()
 			},
-			nil,
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, ">>", v)
 			},
 		},
@@ -406,18 +394,18 @@ func init() {
 	eq = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return toInt(u.(Int).x == v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.x.Cmp(j.x) == 0)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.x.Cmp(j.x) == 0)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "==", v)
 			},
 		},
@@ -426,18 +414,18 @@ func init() {
 	ne = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return toInt(u.(Int).x != v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.x.Cmp(j.x) != 0)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.x.Cmp(j.x) != 0)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "!=", v)
 			},
 		},
@@ -446,18 +434,18 @@ func init() {
 	lt = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return toInt(u.(Int).x < v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.x.Cmp(j.x) < 0)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.x.Cmp(j.x) < 0)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "<", v)
 			},
 		},
@@ -466,18 +454,18 @@ func init() {
 	le = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return toInt(u.(Int).x <= v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.x.Cmp(j.x) <= 0)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.x.Cmp(j.x) <= 0)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "<=", v)
 			},
 		},
@@ -486,18 +474,18 @@ func init() {
 	gt = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return toInt(u.(Int).x > v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.x.Cmp(j.x) > 0)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.x.Cmp(j.x) > 0)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, ">", v)
 			},
 		},
@@ -506,18 +494,18 @@ func init() {
 	ge = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				return toInt(u.(Int).x >= v.(Int).x)
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.x.Cmp(j.x) >= 0)
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.x.Cmp(j.x) >= 0)
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, ">=", v)
 			},
 		},
@@ -526,28 +514,28 @@ func init() {
 	min = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				i, j := u.(Int).x, v.(Int).x
 				if i < j {
 					return u
 				}
 				return v
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				if i.x.Cmp(j.x) < 0 {
 					return u
 				}
 				return v
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				if i.x.Cmp(j.x) < 0 {
 					return u
 				}
 				return v
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "min", v)
 			},
 		},
@@ -556,28 +544,28 @@ func init() {
 	max = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			func(u, v Value) Value {
+			intType: func(u, v Value) Value {
 				i, j := u.(Int).x, v.(Int).x
 				if i > j {
 					return u
 				}
 				return v
 			},
-			func(u, v Value) Value {
+			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				if i.x.Cmp(j.x) > 0 {
 					return u
 				}
 				return v
 			},
-			func(u, v Value) Value {
+			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				if i.x.Cmp(j.x) > 0 {
 					return u
 				}
 				return v
 			},
-			func(u, v Value) Value {
+			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "min", v)
 			},
 		},
