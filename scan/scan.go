@@ -80,6 +80,7 @@ type stateFn func(*Scanner) stateFn
 type Scanner struct {
 	Tokens     chan Token // channel of scanned items
 	r          io.ByteReader
+	done       bool
 	name       string // the name of the input; used only for error reports
 	buf        []byte
 	input      string  // the line of text being scanned.
@@ -93,33 +94,33 @@ type Scanner struct {
 	parenDepth int     // nesting depth of ( ) exprs
 }
 
-// loadLine reads the next line of input and stores it in the input.
+// loadLine reads the next line of input and stores it in (appends it to) the input.
+// (l.input may have data left over when we are called.)
 func (l *Scanner) loadLine() {
 	l.buf = l.buf[:0]
 	for {
 		c, err := l.r.ReadByte()
 		if err != nil {
-			l.input = string(l.buf)
-			return
+			l.done = true
+			break
 		}
 		l.buf = append(l.buf, c)
 		if c == '\n' {
 			break
 		}
 	}
-	l.input = string(l.buf)
-	l.pos = 0
+	l.input = l.input[l.start:l.pos] + string(l.buf)
+	l.pos -= l.start
 	l.start = 0
 }
 
 // next returns the next rune in the input.
 func (l *Scanner) next() rune {
-	if int(l.pos) >= len(l.input) {
+	if l.done && Pos(len(l.input)) == l.start {
+		return eof
+	}
+	if !l.done && int(l.pos) >= len(l.input) {
 		l.loadLine()
-		if len(l.input) == 0 {
-			l.width = 0
-			return eof
-		}
 	}
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.width = Pos(w)
@@ -236,9 +237,6 @@ func lexComment(l *Scanner) stateFn {
 
 // lexAny scans non-space items.
 func lexAny(l *Scanner) stateFn {
-	if l.pos >= Pos(len(l.input)) {
-		return nil
-	}
 	if strings.HasPrefix(l.input[l.pos:], startComment) {
 		return lexComment
 	}

@@ -103,7 +103,7 @@ func (p *Parser) Peek() scan.Token {
 
 func (p *Parser) errorf(format string, args ...interface{}) {
 	// Flush to newline.
-	for p.Next().Type != scan.Newline {
+	for p.Next().Type != scan.Newline && p.Next().Type != scan.EOF {
 	}
 	// Put file and line information on head of message.
 	format = "%s:%d: " + format + "\n"
@@ -141,7 +141,7 @@ func (p *Parser) Line() (value.Value, bool) {
 			return nil, true
 		}
 		tok = p.Next()
-		if tok.Type != scan.Newline {
+		if tok.Type != scan.Newline && tok.Type != scan.EOF {
 			p.errorf("unexpected %q", tok)
 		}
 		fmt.Println(Tree(x))
@@ -160,7 +160,7 @@ func (p *Parser) Line() (value.Value, bool) {
 func (p *Parser) Expr(tok scan.Token) value.Expr {
 	expr := p.Operand(tok)
 	switch p.Peek().Type {
-	case scan.Newline, scan.RightParen:
+	case scan.Newline, scan.EOF, scan.RightParen:
 		return expr
 	case scan.Operator:
 		// Binary.
