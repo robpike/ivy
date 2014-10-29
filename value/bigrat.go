@@ -6,6 +6,7 @@ package value
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 )
 
@@ -22,7 +23,7 @@ func SetBigRatString(s string) (BigRat, error) {
 }
 
 func (r BigRat) String() string {
-	return r.x.String()
+	return fmt.Sprintf(ratFormat, r.x.Num(), r.x.Denom())
 }
 
 func (r BigRat) Eval() Value {

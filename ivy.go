@@ -15,6 +15,8 @@ import (
 	"code.google.com/p/rspace/ivy/value"
 )
 
+var format = flag.String("format", "%v", "format string")
+
 func init() {
 	flag.Var(&iFlag, "I", "include directory; can be set multiple times")
 }
@@ -25,6 +27,7 @@ func main() {
 
 	flag.Usage = usage
 	flag.Parse()
+	value.Format(*format)
 	//	if flag.NArg() != 1 {
 	//		flag.Usage()
 	//	}

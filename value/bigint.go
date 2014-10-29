@@ -6,6 +6,7 @@ package value
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 )
 
@@ -22,7 +23,7 @@ func SetBigIntString(s string) (BigInt, error) {
 }
 
 func (i BigInt) String() string {
-	return i.x.String()
+	return fmt.Sprintf(format, i.x)
 }
 
 func (i BigInt) Eval() Value {

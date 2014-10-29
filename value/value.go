@@ -33,6 +33,16 @@ func Errorf(format string, args ...interface{}) Error {
 	return Error(fmt.Sprintf(format, args...))
 }
 
+var (
+	format    = "%v"
+	ratFormat = "%v/%v"
+)
+
+func Format(s string) {
+	format = s
+	ratFormat = s + "/" + s
+}
+
 type ParseState int
 
 func ValueString(s string) (Value, error) {

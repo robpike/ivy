@@ -15,11 +15,11 @@ type Vector struct {
 
 func (v Vector) String() string {
 	var b bytes.Buffer
-	for i := range v.x {
+	for i, x := range v.x {
 		if i > 0 {
 			fmt.Fprint(&b, " ")
 		}
-		fmt.Fprint(&b, v.x[i].String())
+		fmt.Fprintf(&b, "%s", x)
 	}
 	return b.String()
 }
