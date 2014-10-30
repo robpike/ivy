@@ -91,7 +91,6 @@ type Scanner struct {
 	start      Pos     // start position of this item
 	width      Pos     // width of last rune read from input
 	lastPos    Pos     // position of most recent item returned by nextToken
-	parenDepth int     // nesting depth of ( ) exprs
 }
 
 // loadLine reads the next line of input and stores it in (appends it to) the input.
@@ -281,14 +280,9 @@ func lexAny(l *Scanner) stateFn {
 		return lexIdentifier
 	case r == '(':
 		l.emit(LeftParen)
-		l.parenDepth++
 		return lexAny
 	case r == ')':
 		l.emit(RightParen)
-		l.parenDepth--
-		if l.parenDepth < 0 {
-			return l.errorf("unexpected right paren %#U", r)
-		}
 		return lexAny
 	case r <= unicode.MaxASCII && unicode.IsPrint(r):
 		l.emit(Char)

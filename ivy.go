@@ -34,7 +34,7 @@ func main() {
 
 	conf := new(config.Config)
 	conf.SetFormat(*format)
-	conf.SetDebug("printParse", *printParse)
+	conf.SetDebug("printparse", *printParse)
 
 	value.SetConfig(conf)
 

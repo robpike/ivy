@@ -74,3 +74,7 @@ func (i Int) ToType(which valueType) Value {
 	}
 	panic("Int.ToType")
 }
+
+func (i Int) ToBool() bool {
+	return i.x != 0
+}

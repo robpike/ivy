@@ -4,7 +4,13 @@
 
 package parse
 
-import "code.google.com/p/rspace/ivy/scan"
+import (
+	"fmt"
+	"strconv"
+
+	"code.google.com/p/rspace/ivy/scan"
+	"code.google.com/p/rspace/ivy/value"
+)
 
 func (p *Parser) need(want scan.Type) scan.Token {
 	tok := p.Next()
@@ -15,9 +21,30 @@ func (p *Parser) need(want scan.Type) scan.Token {
 }
 
 func (p *Parser) special() {
-	switch p.need(scan.Identifier) {
+	switch p.need(scan.Identifier).Text {
 	case "format":
-		p.config.SetFormat(p.need(scan.String).Text)
+		str, err := strconv.Unquote(p.need(scan.String).Text)
+		if err != nil {
+			p.errorf("%s", err)
+		}
+		p.config.SetFormat(str)
+	case "debug":
+		name := p.need(scan.Identifier).Text
+		if p.Peek().Type != scan.Number {
+			// Just print the value
+			if p.config.Debug(name) {
+				fmt.Println("1")
+			} else {
+				fmt.Println("0")
+			}
+			break
+		}
+		number, err := value.ValueString(p.need(scan.Number).Text)
+		if err != nil {
+			p.errorf("%s", err)
+		}
+		v, ok := number.(value.Int)
+		p.config.SetDebug(name, ok && v.ToBool())
 	}
 	p.need(scan.Newline)
 }
