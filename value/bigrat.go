@@ -23,7 +23,7 @@ func SetBigRatString(s string) (BigRat, error) {
 }
 
 func (r BigRat) String() string {
-	return fmt.Sprintf(ratFormat, r.x.Num(), r.x.Denom())
+	return fmt.Sprintf(conf.RatFormat(), r.x.Num(), r.x.Denom())
 }
 
 func (r BigRat) Eval() Value {

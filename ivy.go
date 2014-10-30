@@ -10,12 +10,16 @@ import (
 	"log"
 	"os"
 
+	"code.google.com/p/rspace/ivy/config"
 	"code.google.com/p/rspace/ivy/lex"
 	"code.google.com/p/rspace/ivy/parse"
 	"code.google.com/p/rspace/ivy/value"
 )
 
-var format = flag.String("format", "%v", "format string")
+var (
+	format     = flag.String("format", "%v", "format string")
+	printParse = flag.Bool("printparse", false, "print parse tree")
+)
 
 func init() {
 	flag.Var(&iFlag, "I", "include directory; can be set multiple times")
@@ -27,13 +31,30 @@ func main() {
 
 	flag.Usage = usage
 	flag.Parse()
-	value.Format(*format)
-	//	if flag.NArg() != 1 {
-	//		flag.Usage()
-	//	}
 
-	lexer := lex.NewLexer( /*flag.Arg(0)*/ "/dev/stdin", []string(iFlag))
-	parser := parse.NewParser(lexer)
+	conf := new(config.Config)
+	conf.SetFormat(*format)
+	conf.SetDebug("printParse", *printParse)
+
+	value.SetConfig(conf)
+
+	name := ""
+	fd := os.Stdin
+	var err error
+	switch flag.NArg() {
+	case 0:
+	case 1:
+		name = flag.Arg(0)
+		fd, err = os.Open(name)
+		if err != nil {
+			log.Fatalf("ivy: %s\n", err)
+		}
+	default:
+		flag.Usage()
+	}
+
+	lexer := lex.NewLexer(name, fd, []string(iFlag))
+	parser := parse.NewParser(conf, lexer)
 	for {
 		run(parser)
 	}

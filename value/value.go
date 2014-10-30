@@ -8,7 +8,15 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+
+	"code.google.com/p/rspace/ivy/config"
 )
+
+var conf *config.Config
+
+func SetConfig(c *config.Config) {
+	conf = c
+}
 
 type Expr interface {
 	String() string
@@ -31,16 +39,6 @@ func (err Error) Error() string {
 
 func Errorf(format string, args ...interface{}) Error {
 	return Error(fmt.Sprintf(format, args...))
-}
-
-var (
-	format    = "%v"
-	ratFormat = "%v/%v"
-)
-
-func Format(s string) {
-	format = s
-	ratFormat = s + "/" + s
 }
 
 type ParseState int

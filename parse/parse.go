@@ -7,6 +7,7 @@ package parse
 import (
 	"fmt"
 
+	"code.google.com/p/rspace/ivy/config"
 	"code.google.com/p/rspace/ivy/lex"
 	"code.google.com/p/rspace/ivy/scan"
 	"code.google.com/p/rspace/ivy/value"
@@ -62,6 +63,7 @@ func Tree(e value.Expr) string {
 
 type Parser struct {
 	lexer      lex.TokenReader
+	config     *config.Config
 	lineNum    int
 	errorCount int // Number of errors.
 	peekTok    scan.Token
@@ -70,9 +72,10 @@ type Parser struct {
 
 var zero, _ = value.ValueString("0")
 
-func NewParser(lexer lex.TokenReader) *Parser {
+func NewParser(conf *config.Config, lexer lex.TokenReader) *Parser {
 	return &Parser{
 		lexer:   lexer,
+		config:  conf,
 		lineNum: 1,
 		vars:    make(map[string]value.Value),
 	}
@@ -125,6 +128,9 @@ func (p *Parser) Line() (value.Value, bool) {
 	case scan.Error:
 		p.errorf("%q", tok)
 		return nil, false
+	case scan.RightParen:
+		p.special()
+		return nil, true
 	case scan.Newline:
 		return nil, true
 	case scan.Identifier:
@@ -144,7 +150,9 @@ func (p *Parser) Line() (value.Value, bool) {
 		if tok.Type != scan.Newline && tok.Type != scan.EOF {
 			p.errorf("unexpected %q", tok)
 		}
-		fmt.Println(Tree(x))
+		if p.config.Debug("printParse") {
+			fmt.Println(Tree(x))
+		}
 		expr := x.Eval()
 		p.vars["_"] = expr
 		if variable != "" {

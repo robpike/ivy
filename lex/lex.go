@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -16,15 +15,9 @@ import (
 	"code.google.com/p/rspace/ivy/scan"
 )
 
-func NewLexer(name string, directories []string) TokenReader {
+func NewLexer(name string, r io.Reader, directories []string) TokenReader {
 	input := NewInput(name, directories)
-	fd, err := os.Open(name)
-	if err != nil {
-		log.Printf("ivy: %s\n", err)
-		return nil
-	}
-	input.Push(NewTokenizer(name, bufio.NewReader(fd)))
-	// TODO WHO CLOSES FD?
+	input.Push(NewTokenizer(name, bufio.NewReader(r)))
 	return input
 }
 

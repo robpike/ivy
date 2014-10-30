@@ -28,7 +28,7 @@ func SetIntString(s string) (Int, error) {
 }
 
 func (i Int) String() string {
-	return fmt.Sprintf(format, i.x)
+	return fmt.Sprintf(conf.Format(), i.x)
 }
 
 var buf []byte
