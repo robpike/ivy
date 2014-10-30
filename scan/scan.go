@@ -48,14 +48,16 @@ const (
 )
 
 var operatorWord = map[string]bool{
-	"abs":  true,
-	"div":  true,
-	"idiv": true,
-	"imod": true,
-	"iota": true,
-	"min":  true,
-	"max":  true,
-	"mod":  true,
+	"abs":   true,
+	"ceil":  true,
+	"div":   true,
+	"floor": true,
+	"idiv":  true,
+	"imod":  true,
+	"iota":  true,
+	"min":   true,
+	"max":   true,
+	"mod":   true,
 }
 
 func (i Token) String() string {

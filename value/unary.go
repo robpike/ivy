@@ -39,7 +39,7 @@ func unaryVectorOp(op string, i Value) Value {
 
 var (
 	unaryPlus, unaryMinus, unaryBitwiseNot, unaryLogicalNot *unaryOp
-	unaryAbs, unaryIota, unaryMin, unaryMax                 *unaryOp
+	unaryAbs, unaryIota, floor, ceil                        *unaryOp
 	unaryOps                                                map[string]*unaryOp
 )
 
@@ -134,8 +134,7 @@ func init() {
 		},
 	}
 
-	unaryMin = &unaryOp{
-		// Floor.
+	floor = &unaryOp{
 		fn: [numType]unaryFn{
 			intType:    func(v Value) Value { return v },
 			bigIntType: func(v Value) Value { return v },
@@ -164,13 +163,12 @@ func init() {
 				return z
 			},
 			vectorType: func(v Value) Value {
-				return unaryVectorOp("min", v)
+				return unaryVectorOp("floor", v)
 			},
 		},
 	}
 
-	unaryMax = &unaryOp{
-		// Ceiling.
+	ceil = &unaryOp{
 		fn: [numType]unaryFn{
 			intType:    func(v Value) Value { return v },
 			bigIntType: func(v Value) Value { return v },
@@ -199,7 +197,7 @@ func init() {
 				return z
 			},
 			vectorType: func(v Value) Value {
-				return unaryVectorOp("max", v)
+				return unaryVectorOp("ceil", v)
 			},
 		},
 	}
@@ -221,13 +219,13 @@ func init() {
 	}
 
 	unaryOps = map[string]*unaryOp{
-		"+":    unaryPlus,
-		"-":    unaryMinus,
-		"^":    unaryBitwiseNot,
-		"!":    unaryLogicalNot,
-		"abs":  unaryAbs,
-		"max":  unaryMax,
-		"min":  unaryMin,
-		"iota": unaryIota,
+		"+":     unaryPlus,
+		"-":     unaryMinus,
+		"^":     unaryBitwiseNot,
+		"!":     unaryLogicalNot,
+		"abs":   unaryAbs,
+		"ceil":  ceil,
+		"floor": floor,
+		"iota":  unaryIota,
 	}
 }
