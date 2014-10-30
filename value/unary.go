@@ -150,13 +150,9 @@ func init() {
 					j.x.Abs(i.x)
 					i = j
 				}
-				num := i.x.Num()
-				denom := i.x.Denom()
 				z := bigInt64(0)
-				if positive {
-					z.x.Quo(num, denom)
-				} else {
-					z.x.Quo(num, denom)
+				z.x.Quo(i.x.Num(), i.x.Denom())
+				if !positive {
 					z.x.Add(z.x, bigOne.x)
 					z.x.Neg(z.x)
 				}
@@ -184,14 +180,11 @@ func init() {
 					j.x.Abs(i.x)
 					i = j
 				}
-				num := i.x.Num()
-				denom := i.x.Denom()
 				z := bigInt64(0)
+				z.x.Quo(i.x.Num(), i.x.Denom())
 				if positive {
-					z.x.Quo(num, denom)
 					z.x.Add(z.x, bigOne.x)
 				} else {
-					z.x.Quo(num, denom)
 					z.x.Neg(z.x)
 				}
 				return z
