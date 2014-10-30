@@ -9,25 +9,23 @@ import (
 	"fmt"
 )
 
-type Vector struct {
-	x []Value
-}
+type Vector []Value
+
+func (i Vector) Format() {}
 
 func (v Vector) String() string {
 	var b bytes.Buffer
-	for i, x := range v.x {
+	for i, elem := range v {
 		if i > 0 {
 			fmt.Fprint(&b, " ")
 		}
-		fmt.Fprintf(&b, "%s", x)
+		fmt.Fprintf(&b, "%s", elem)
 	}
 	return b.String()
 }
 
-func ValueSlice(x []Value) Vector {
-	return Vector{
-		x: x,
-	}
+func ValueSlice(elem []Value) Vector {
+	return Vector(elem)
 }
 
 func (v Vector) Eval() Value {
@@ -49,7 +47,7 @@ func (v Vector) ToType(which valueType) Value {
 }
 
 func (v Vector) Len() int {
-	return len(v.x)
+	return len(v)
 }
 
 func (v Vector) sameLength(x Vector) {

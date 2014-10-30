@@ -11,19 +11,21 @@ import (
 )
 
 type BigInt struct {
-	x *big.Int
+	*big.Int
 }
+
+func (i BigInt) Format() {}
 
 func SetBigIntString(s string) (BigInt, error) {
 	i, ok := big.NewInt(0).SetString(s, 0)
 	if !ok {
 		return BigInt{}, errors.New("integer parse error")
 	}
-	return BigInt{x: i}, nil
+	return BigInt{i}, nil
 }
 
 func (i BigInt) String() string {
-	return fmt.Sprintf(conf.Format(), i.x)
+	return fmt.Sprintf(conf.Format(), i.Int)
 }
 
 func (i BigInt) Eval() Value {
@@ -37,8 +39,8 @@ func (i BigInt) ToType(which valueType) Value {
 	case bigIntType:
 		return i
 	case bigRatType:
-		r := big.NewRat(0, 1).SetInt(i.x)
-		return BigRat{x: r}
+		r := big.NewRat(0, 1).SetInt(i.Int)
+		return BigRat{r}
 	case vectorType:
 		return ValueSlice([]Value{i})
 	}
@@ -47,8 +49,8 @@ func (i BigInt) ToType(which valueType) Value {
 
 // shrink shrinks, if possible, a BigInt down to an Int.
 func (i BigInt) shrink() Value {
-	if i.x.BitLen() < intBits {
-		return Int{x: i.x.Int64()}
+	if i.BitLen() < intBits {
+		return Int(i.Int64())
 	}
 	return i
 }

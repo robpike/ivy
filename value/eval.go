@@ -88,9 +88,9 @@ func Reduce(opName string, v Value) Value {
 	if !ok {
 		panic(Error("reduction operand is not a vector"))
 	}
-	acc := vec.x[0]
+	acc := vec[0]
 	for i := 1; i < vec.Len(); i++ {
-		acc = Binary(acc, opName, vec.x[i]) // TODO!
+		acc = Binary(acc, opName, vec[i]) // TODO!
 	}
 	return acc
 }

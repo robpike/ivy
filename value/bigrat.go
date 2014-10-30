@@ -11,7 +11,7 @@ import (
 )
 
 type BigRat struct {
-	x *big.Rat
+	*big.Rat
 }
 
 func SetBigRatString(s string) (BigRat, error) {
@@ -19,11 +19,13 @@ func SetBigRatString(s string) (BigRat, error) {
 	if !ok {
 		return BigRat{}, errors.New("rational number syntax")
 	}
-	return BigRat{x: r}, nil
+	return BigRat{r}, nil
 }
 
+func (i BigRat) Format() {}
+
 func (r BigRat) String() string {
-	return fmt.Sprintf(conf.RatFormat(), r.x.Num(), r.x.Denom())
+	return fmt.Sprintf(conf.RatFormat(), r.Num(), r.Denom())
 }
 
 func (r BigRat) Eval() Value {
@@ -46,8 +48,8 @@ func (r BigRat) ToType(which valueType) Value {
 
 // shrink pulls, if possible, a BigRat down to a BigInt or Int.
 func (r BigRat) shrink() Value {
-	if !r.x.IsInt() {
+	if !r.IsInt() {
 		return r
 	}
-	return BigInt{x: r.x.Num()}.shrink()
+	return BigInt{r.Num()}.shrink()
 }

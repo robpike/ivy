@@ -29,6 +29,14 @@ type Value interface {
 	Eval() Value
 
 	ToType(valueType) Value
+
+	// The fmt package looks for Formatter before Stringer, but we want
+	// to use Stringer only. big.Int and big.Rat implement Formatter,
+	// and we embed them in our BigInt and BigRat types. To make sure
+	// that our String gets called rather than the inner Format, we
+	// put a non-matching stub Format method into this interface.
+	// This is ugly but very simple and cheap.
+	Format()
 }
 
 type Error string
@@ -60,11 +68,11 @@ func ValueString(s string) (Value, error) {
 		}
 		// Common simple case.
 		if whichType(num) == intType && whichType(den) == intType {
-			return bigRatTwoInt64s(num.(Int).x, den.(Int).x).shrink(), nil
+			return bigRatTwoInt64s(int64(num.(Int)), int64(den.(Int))).shrink(), nil
 		}
 		// General mix-em-up.
 		rden := den.ToType(bigRatType)
-		if z := rden.(BigRat).x; z.Sign() == 0 {
+		if rden.(BigRat).Sign() == 0 {
 			panic(Error("zero denominator in rational"))
 		}
 		return binaryBigRatOp(num.ToType(bigRatType), (*big.Rat).Quo, rden), nil
@@ -86,15 +94,8 @@ func ValueString(s string) (Value, error) {
 	return nil, err
 }
 
-func valueInt64(x int64) Value {
-	if minInt <= x && x <= maxInt {
-		return Int{x: x}
-	}
-	return bigInt64(x)
-}
-
 func bigInt64(x int64) BigInt {
-	return BigInt{x: big.NewInt(x)}
+	return BigInt{big.NewInt(x)}
 }
 
 func bigRatInt64(x int64) BigRat {
@@ -105,5 +106,5 @@ func bigRatTwoInt64s(x, y int64) BigRat {
 	if y == 0 {
 		panic(Error("zero denominator in rational"))
 	}
-	return BigRat{x: big.NewRat(x, y)}
+	return BigRat{big.NewRat(x, y)}
 }

@@ -15,7 +15,7 @@ import "math/big"
 func unaryBigIntOp(op func(*big.Int, *big.Int) *big.Int, v Value) Value {
 	i := v.(BigInt)
 	z := bigInt64(0)
-	op(z.x, i.x)
+	op(z.Int, i.Int)
 	return z.shrink()
 }
 
@@ -23,7 +23,7 @@ func unaryBigIntOp(op func(*big.Int, *big.Int) *big.Int, v Value) Value {
 func unaryBigRatOp(op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
 	i := v.(BigRat)
 	z := bigRatInt64(0)
-	op(z.x, i.x)
+	op(z.Rat, i.Rat)
 	return z.shrink()
 }
 
@@ -31,8 +31,8 @@ func unaryBigRatOp(op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
 func unaryVectorOp(op string, i Value) Value {
 	u := i.(Vector)
 	n := make([]Value, u.Len())
-	for k := range u.x {
-		n[k] = Unary(op, u.x[k])
+	for k := range u {
+		n[k] = Unary(op, u[k])
 	}
 	return ValueSlice(n)
 }
@@ -56,9 +56,7 @@ func init() {
 	unaryMinus = &unaryOp{
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
-				i := v.(Int)
-				i.x = -i.x
-				return i
+				return -v.(Int)
 			},
 			bigIntType: func(v Value) Value {
 				return unaryBigIntOp((*big.Int).Neg, v)
@@ -75,16 +73,11 @@ func init() {
 	unaryBitwiseNot = &unaryOp{
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
-				i := v.(Int)
-				i.x = ^i.x
-				return i
+				return ^v.(Int)
 			},
 			bigIntType: func(v Value) Value {
 				// Lots of ways to do this, here's one.
-				i := v.(BigInt)
-				z := bigInt64(0)
-				z.x.Xor(i.x, bigMinusOne.x)
-				return z
+				return BigInt{Int: bigInt64(0).Xor(v.(BigInt).Int, bigMinusOne.Int)}
 			},
 			vectorType: func(v Value) Value {
 				return unaryVectorOp("^", v)
@@ -95,14 +88,13 @@ func init() {
 	unaryLogicalNot = &unaryOp{
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
-				if v.(Int).x == 0 {
+				if v.(Int) == 0 {
 					return one
 				}
 				return zero
 			},
 			bigIntType: func(v Value) Value {
-				i := v.(BigInt)
-				if i.x.Sign() == 0 {
+				if v.(BigInt).Sign() == 0 {
 					return one
 				}
 				return zero
@@ -117,8 +109,8 @@ func init() {
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				i := v.(Int)
-				if i.x < 0 {
-					i.x = -i.x
+				if i < 0 {
+					i = -i
 				}
 				return i
 			},
@@ -140,21 +132,21 @@ func init() {
 			bigIntType: func(v Value) Value { return v },
 			bigRatType: func(v Value) Value {
 				i := v.(BigRat)
-				if i.x.IsInt() {
+				if i.IsInt() {
 					// It can't be an integer, which means we must move up or down.
 					panic("min: is int")
 				}
-				positive := i.x.Sign() >= 0
+				positive := i.Sign() >= 0
 				if !positive {
 					j := bigRatInt64(0)
-					j.x.Abs(i.x)
+					j.Abs(i.Rat)
 					i = j
 				}
 				z := bigInt64(0)
-				z.x.Quo(i.x.Num(), i.x.Denom())
+				z.Quo(i.Num(), i.Denom())
 				if !positive {
-					z.x.Add(z.x, bigOne.x)
-					z.x.Neg(z.x)
+					z.Add(z.Int, bigOne.Int)
+					z.Neg(z.Int)
 				}
 				return z
 			},
@@ -170,22 +162,22 @@ func init() {
 			bigIntType: func(v Value) Value { return v },
 			bigRatType: func(v Value) Value {
 				i := v.(BigRat)
-				if i.x.IsInt() {
+				if i.IsInt() {
 					// It can't be an integer, which means we must move up or down.
 					panic("max: is int")
 				}
-				positive := i.x.Sign() >= 0
+				positive := i.Sign() >= 0
 				if !positive {
 					j := bigRatInt64(0)
-					j.x.Abs(i.x)
+					j.Abs(i.Rat)
 					i = j
 				}
 				z := bigInt64(0)
-				z.x.Quo(i.x.Num(), i.x.Denom())
+				z.Quo(i.Num(), i.Denom())
 				if positive {
-					z.x.Add(z.x, bigOne.x)
+					z.Add(z.Int, bigOne.Int)
 				} else {
-					z.x.Neg(z.x)
+					z.Neg(z.Int)
 				}
 				return z
 			},
@@ -199,12 +191,12 @@ func init() {
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				i := v.(Int)
-				if i.x <= 0 || maxInt < i.x {
-					panic(Errorf("bad iota %d", i.x))
+				if i <= 0 || maxInt < i {
+					panic(Errorf("bad iota %d", i))
 				}
-				n := make([]Value, i.x)
+				n := make([]Value, i)
 				for k := range n {
-					n[k] = Int{x: int64(k) + 1}
+					n[k] = Int(int64(k) + 1)
 				}
 				return ValueSlice(n)
 			},
