@@ -37,6 +37,11 @@ func rationalType(t1, t2 valueType) valueType {
 	return binaryArithType(t1, t2)
 }
 
+// toVectorType promotes both arguments to vectors.
+func toVectorType(t1, t2 valueType) valueType {
+	return vectorType
+}
+
 // shiftCount converts x to an unsigned integer.
 func shiftCount(x Value) uint {
 	switch count := x.(type) {
@@ -114,6 +119,7 @@ var (
 	quo, idiv, imod, div, mod *binaryOp
 	and, or, xor, lsh, rsh    *binaryOp
 	eq, ne, lt, le, gt, ge    *binaryOp
+	binaryIota                *binaryOp
 	min, max                  *binaryOp
 	binaryOps                 map[string]*binaryOp
 )
@@ -511,6 +517,29 @@ func init() {
 		},
 	}
 
+	binaryIota = &binaryOp{
+		whichType: toVectorType,
+		fn: [numType]binaryFn{
+			vectorType: func(u, v Value) Value {
+				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
+				A, B := u.(Vector), v.(Vector)
+				indices := make([]Value, len(B.x))
+				// TODO: This is n^2.
+			Outer:
+				for i, b := range B.x {
+					for j, a := range A.x {
+						if Binary(a, "==", b).(Int).x == 1 {
+							indices[i] = Int{x: int64(j + 1)}
+							continue Outer
+						}
+					}
+					indices[i] = zero
+				}
+				return ValueSlice(indices)
+			},
+		},
+	}
+
 	min = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
@@ -592,6 +621,7 @@ func init() {
 		"<=":   le,
 		">":    gt,
 		">=":   ge,
+		"iota": binaryIota,
 		"min":  min,
 		"max":  max,
 	}

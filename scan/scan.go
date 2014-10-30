@@ -52,7 +52,6 @@ var operatorWord = map[string]bool{
 	"div":  true,
 	"idiv": true,
 	"imod": true,
-	"int":  true,
 	"iota": true,
 	"min":  true,
 	"max":  true,

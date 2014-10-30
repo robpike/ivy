@@ -39,7 +39,7 @@ func unaryVectorOp(op string, i Value) Value {
 
 var (
 	unaryPlus, unaryMinus, unaryBitwiseNot, unaryLogicalNot *unaryOp
-	unaryAbs, unaryInt, unaryIota                           *unaryOp
+	unaryAbs, unaryIota, unaryMin, unaryMax                 *unaryOp
 	unaryOps                                                map[string]*unaryOp
 )
 
@@ -134,15 +134,72 @@ func init() {
 		},
 	}
 
-	unaryInt = &unaryOp{
+	unaryMin = &unaryOp{
+		// Floor.
 		fn: [numType]unaryFn{
 			intType:    func(v Value) Value { return v },
 			bigIntType: func(v Value) Value { return v },
 			bigRatType: func(v Value) Value {
 				i := v.(BigRat)
+				if i.x.IsInt() {
+					// It can't be an integer, which means we must move up or down.
+					panic("min: is int")
+				}
+				positive := i.x.Sign() >= 0
+				if !positive {
+					j := bigRatInt64(0)
+					j.x.Abs(i.x)
+					i = j
+				}
+				num := i.x.Num()
+				denom := i.x.Denom()
 				z := bigInt64(0)
-				z.x.Quo(i.x.Num(), i.x.Denom()) // Truncates towards zero.
+				if positive {
+					z.x.Quo(num, denom)
+				} else {
+					z.x.Quo(num, denom)
+					z.x.Add(z.x, bigOne.x)
+					z.x.Neg(z.x)
+				}
 				return z
+			},
+			vectorType: func(v Value) Value {
+				return unaryVectorOp("min", v)
+			},
+		},
+	}
+
+	unaryMax = &unaryOp{
+		// Ceiling.
+		fn: [numType]unaryFn{
+			intType:    func(v Value) Value { return v },
+			bigIntType: func(v Value) Value { return v },
+			bigRatType: func(v Value) Value {
+				i := v.(BigRat)
+				if i.x.IsInt() {
+					// It can't be an integer, which means we must move up or down.
+					panic("max: is int")
+				}
+				positive := i.x.Sign() >= 0
+				if !positive {
+					j := bigRatInt64(0)
+					j.x.Abs(i.x)
+					i = j
+				}
+				num := i.x.Num()
+				denom := i.x.Denom()
+				z := bigInt64(0)
+				if positive {
+					z.x.Quo(num, denom)
+					z.x.Add(z.x, bigOne.x)
+				} else {
+					z.x.Quo(num, denom)
+					z.x.Neg(z.x)
+				}
+				return z
+			},
+			vectorType: func(v Value) Value {
+				return unaryVectorOp("max", v)
 			},
 		},
 	}
@@ -169,7 +226,8 @@ func init() {
 		"^":    unaryBitwiseNot,
 		"!":    unaryLogicalNot,
 		"abs":  unaryAbs,
-		"int":  unaryInt, // TODO: should be min and max
+		"max":  unaryMax,
+		"min":  unaryMin,
 		"iota": unaryIota,
 	}
 }
