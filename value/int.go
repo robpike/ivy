@@ -25,8 +25,6 @@ func SetIntString(s string) (Int, error) {
 	return Int(i), err
 }
 
-func (i Int) Format() {}
-
 func (i Int) String() string {
 	return fmt.Sprintf(conf.Format(), int64(i))
 }

@@ -11,8 +11,6 @@ import (
 
 type Vector []Value
 
-func (i Vector) Format() {}
-
 func (v Vector) String() string {
 	var b bytes.Buffer
 	for i, elem := range v {

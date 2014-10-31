@@ -29,14 +29,6 @@ type Value interface {
 	Eval() Value
 
 	ToType(valueType) Value
-
-	// The fmt package looks for Formatter before Stringer, but we want
-	// to use Stringer only. big.Int and big.Rat implement Formatter,
-	// and we embed them in our BigInt and BigRat types. To make sure
-	// that our String gets called rather than the inner Format, we
-	// put a non-matching stub Format method into this interface.
-	// This is ugly but very simple and cheap.
-	Format()
 }
 
 type Error string

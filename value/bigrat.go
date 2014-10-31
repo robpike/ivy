@@ -22,8 +22,6 @@ func SetBigRatString(s string) (BigRat, error) {
 	return BigRat{r}, nil
 }
 
-func (i BigRat) Format() {}
-
 func (r BigRat) String() string {
 	return fmt.Sprintf(conf.RatFormat(), r.Num(), r.Denom())
 }
