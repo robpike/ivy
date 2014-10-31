@@ -58,6 +58,7 @@ var operatorWord = map[string]bool{
 	"min":   true,
 	"max":   true,
 	"mod":   true,
+	"rho":   true,
 }
 
 func (i Token) String() string {

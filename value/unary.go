@@ -39,7 +39,8 @@ func unaryVectorOp(op string, i Value) Value {
 
 var (
 	unaryPlus, unaryMinus, unaryBitwiseNot, unaryLogicalNot *unaryOp
-	unaryAbs, unaryIota, floor, ceil                        *unaryOp
+	unaryAbs, unaryIota, unaryRho                           *unaryOp
+	floor, ceil                                             *unaryOp
 	unaryOps                                                map[string]*unaryOp
 )
 
@@ -203,6 +204,15 @@ func init() {
 		},
 	}
 
+	unaryRho = &unaryOp{
+		fn: [numType]unaryFn{
+			// TODO: scalars should return an empty vector
+			vectorType: func(v Value) Value {
+				return Int(len(v.(Vector)))
+			},
+		},
+	}
+
 	unaryOps = map[string]*unaryOp{
 		"+":     unaryPlus,
 		"-":     unaryMinus,
@@ -212,5 +222,6 @@ func init() {
 		"ceil":  ceil,
 		"floor": floor,
 		"iota":  unaryIota,
+		"rho":   unaryRho,
 	}
 }

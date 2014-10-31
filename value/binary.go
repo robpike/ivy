@@ -119,7 +119,7 @@ var (
 	quo, idiv, imod, div, mod *binaryOp
 	and, or, xor, lsh, rsh    *binaryOp
 	eq, ne, lt, le, gt, ge    *binaryOp
-	binaryIota                *binaryOp
+	binaryIota, rho           *binaryOp
 	min, max                  *binaryOp
 	binaryOps                 map[string]*binaryOp
 )
@@ -592,6 +592,33 @@ func init() {
 		},
 	}
 
+	rho = &binaryOp{
+		whichType: toVectorType, // TODO: correct?
+		fn: [numType]binaryFn{
+			vectorType: func(u, v Value) Value {
+				// A⍴B: Array of shape A with data B
+				A, B := u.(Vector), v.(Vector)
+				if len(A) != 1 {
+					panic(Error("matrix not implemented"))
+				}
+				n, ok := A[0].(Int)
+				if !ok || n <= 0 { // TODO: 0 should be ok.
+					panic(Error("bad index"))
+				}
+				values := make([]Value, n)
+				j := 0
+				for i := range values {
+					if j >= len(B) {
+						j = 0
+					}
+					values[i] = B[j]
+					j++
+				}
+				return ValueSlice(values)
+			},
+		},
+	}
+
 	binaryOps = map[string]*binaryOp{
 		"+":    add,
 		"-":    sub,
@@ -616,5 +643,6 @@ func init() {
 		"iota": binaryIota,
 		"min":  min,
 		"max":  max,
+		"rho":  rho,
 	}
 }
