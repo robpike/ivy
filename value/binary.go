@@ -4,7 +4,10 @@
 
 package value
 
-import "math/big"
+import (
+	"fmt"
+	"math/big"
+)
 
 // Binary operators.
 
@@ -136,6 +139,7 @@ var (
 	quo, idiv, imod, div, mod *binaryOp
 	and, or, xor, lsh, rsh    *binaryOp
 	eq, ne, lt, le, gt, ge    *binaryOp
+	index                     *binaryOp
 	binaryIota, rho           *binaryOp
 	min, max                  *binaryOp
 	binaryOps                 map[string]*binaryOp
@@ -588,6 +592,68 @@ func init() {
 		},
 	}
 
+	index = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			vectorType: func(u, v Value) Value {
+				fmt.Println("vector index", u, "[", v, "]")
+				// A[B]: The successive elements of A with indexes elements of B.
+				A, B := u.(Vector), v.(Vector)
+				values := make([]Value, len(B))
+				for i, b := range B {
+					x, ok := b.(Int)
+					if !ok {
+						panic(Error("index must be integer"))
+					}
+					if x <= 0 || x > Int(A.Len()) {
+						panic(Errorf("index %d out of range", x))
+					}
+					// TODO: fix when there is an index base.
+					values[i] = A[x-1]
+				}
+				return ValueSlice(values)
+			},
+			matrixType: func(u, v Value) Value {
+				// A[B]: The successive elements of A with indexes elements of B.
+				A, mB := u.(Matrix), v.(Matrix)
+				if mB.shape.Len() != 1 {
+					panic(Errorf("bad index rank %d", mB.shape.Len()))
+				}
+				B := mB.data
+				elemSize := A.elemSize()
+				values := make(Vector, 0, elemSize*len(B))
+				switch A.shape.Len() {
+				default:
+					panic(Errorf("can't handle rank %d in index", A.shape.Len()))
+				case 2:
+					B := mB.data
+					for _, b := range B {
+						x, ok := b.(Int)
+						if !ok {
+							panic(Error("index must be integer"))
+						}
+						if x <= 0 || x > Int(A.shape[0].(Int)) {
+							panic(Errorf("index %d out of range", x))
+						}
+						// TODO: fix when there is an index base.
+						start := elemSize * int(x-1)
+						values = append(values, A.data[start:start+elemSize]...)
+					}
+					if len(B) == 1 {
+						return values
+					}
+					newShape := make(Vector, len(A.shape))
+					copy(newShape, A.shape)
+					newShape[0] = Int(len(B))
+					return Matrix{
+						shape: newShape,
+						data:  values,
+					}
+				}
+			},
+		},
+	}
+
 	binaryIota = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
@@ -713,6 +779,7 @@ func init() {
 		"<=":   le,
 		">":    gt,
 		">=":   ge,
+		"[]":   index,
 		"iota": binaryIota,
 		"min":  min,
 		"max":  max,

@@ -50,7 +50,7 @@ func (i BigInt) ToType(which valueType) Value {
 	case vectorType:
 		return ValueSlice([]Value{i})
 	case matrixType:
-		return ValueMatrix([]Value{one, one}, []Value{i})
+		return ValueMatrix([]Value{one}, []Value{i})
 	}
 	panic("BigInt.ToType")
 }

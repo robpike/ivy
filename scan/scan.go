@@ -37,11 +37,13 @@ const (
 	ColonEquals    // ':='
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
+	LeftBrack      // '['
 	LeftParen      // '('
 	Number         // simple number
 	Operator       // known operator
 	Rational       // rational number like 2/3
 	RawString      // raw quoted string (includes quotes)
+	RightBrack     // ']'
 	RightParen     // ')'
 	Space          // run of spaces separating
 	String         // quoted string (includes quotes)
@@ -280,6 +282,12 @@ func lexAny(l *Scanner) stateFn {
 	case isAlphaNumeric(r):
 		l.backup()
 		return lexIdentifier
+	case r == '[':
+		l.emit(LeftBrack)
+		return lexAny
+	case r == ']':
+		l.emit(RightBrack)
+		return lexAny
 	case r == '(':
 		l.emit(LeftParen)
 		return lexAny

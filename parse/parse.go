@@ -68,6 +68,7 @@ type Parser struct {
 	errorCount int // Number of errors.
 	peekTok    scan.Token
 	vars       map[string]value.Value
+	curTok     scan.Token // most recent token from lexer
 }
 
 var zero, _ = value.ValueString("0")
@@ -87,6 +88,7 @@ func (p *Parser) Next() scan.Token {
 		p.peekTok = scan.Token{Type: scan.EOF}
 	} else {
 		tok = p.lexer.Next()
+		p.curTok = tok
 	}
 	return tok
 }
@@ -106,8 +108,10 @@ func (p *Parser) Peek() scan.Token {
 
 func (p *Parser) errorf(format string, args ...interface{}) {
 	// Flush to newline.
-	for p.Next().Type != scan.Newline && p.Next().Type != scan.EOF {
+	for p.curTok.Type != scan.Newline {
+		p.Next()
 	}
+	p.peekTok = scan.Token{Type: scan.EOF}
 	// Put file and line information on head of message.
 	format = "%s:%d: " + format + "\n"
 	args = append([]interface{}{p.lexer.FileName(), p.lineNum}, args...)
@@ -168,7 +172,7 @@ func (p *Parser) Line() (value.Value, bool) {
 func (p *Parser) Expr(tok scan.Token) value.Expr {
 	expr := p.Operand(tok)
 	switch p.Peek().Type {
-	case scan.Newline, scan.EOF, scan.RightParen:
+	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack:
 		return expr
 	case scan.Operator:
 		// Binary.
@@ -185,10 +189,13 @@ func (p *Parser) Expr(tok scan.Token) value.Expr {
 
 // Operand
 //	( Expr )
+//	( Expr ) [ Expr ]...
+//	Operand
 //	Number
 //	Rational
 //	Vector
 //	variable
+//	variable [ Expr ]...
 //	unop Expr
 func (p *Parser) Operand(tok scan.Token) value.Expr {
 	var expr value.Expr
@@ -210,6 +217,7 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		if tok.Type != scan.RightParen {
 			p.errorf("expected right paren, found %s", tok)
 		}
+		expr = p.index(expr)
 	case scan.Number, scan.Rational:
 		expr = p.NumberOrVector(tok)
 	case scan.Identifier:
@@ -217,8 +225,30 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		if expr == nil {
 			p.errorf("%s undefined", tok.Text)
 		}
+		expr = p.index(expr)
 	default:
 		p.errorf("unexpected %s", tok)
+	}
+	return expr
+}
+
+// Indexing
+//	expr
+//	expr [ expr ]
+//	expr [ expr ] [ expr ] ....
+func (p *Parser) index(expr value.Expr) value.Expr {
+	for p.Peek().Type == scan.LeftBrack {
+		p.Next()
+		index := p.Expr(p.Next())
+		tok := p.Next()
+		if tok.Type != scan.RightBrack {
+			p.errorf("expected right bracket, found %s", tok)
+		}
+		expr = &Binary{
+			op:    "[]",
+			left:  expr,
+			right: index,
+		}
 	}
 	return expr
 }

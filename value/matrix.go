@@ -71,10 +71,7 @@ func (m Matrix) String() string {
 		}
 	case 3:
 		n := int(m.shape[0].(Int))
-		size := 1
-		for _, i := range m.shape[1:] {
-			size *= int(i.(Int))
-		}
+		size := m.elemSize()
 		start := 0
 		for i := 0; i < n; i++ {
 			if i > 0 {
@@ -92,6 +89,16 @@ func (m Matrix) String() string {
 		fmt.Printf("shape: %s; elems: %s\n", m.shape, m.data)
 	}
 	return b.String()
+}
+
+// elemSize returns the length of the submatrix forming the elements of the matrix.
+// Given shape [a, b, c, ...] it is b*c*....
+func (m Matrix) elemSize() int {
+	size := 1
+	for _, i := range m.shape[1:] {
+		size *= int(i.(Int))
+	}
+	return size
 }
 
 func ValueMatrix(shape, data []Value) Matrix {
@@ -114,7 +121,7 @@ func (m Matrix) ToType(which valueType) Value {
 	case bigRatType:
 		panic("matrix to big rat")
 	case vectorType:
-		panic("matrix to big vector")
+		panic("matrix to vector")
 	case matrixType:
 		return m
 	}

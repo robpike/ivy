@@ -70,7 +70,7 @@ func (i Int) ToType(which valueType) Value {
 	case vectorType:
 		return ValueSlice([]Value{i})
 	case matrixType:
-		return ValueMatrix([]Value{one, one}, []Value{i})
+		return ValueMatrix([]Value{one}, []Value{i})
 	}
 	panic("Int.ToType")
 }
