@@ -92,13 +92,31 @@ func binaryVectorOp(i Value, op string, j Value) Value {
 // binaryMatrixOp applies op elementwise to i and j.
 func binaryMatrixOp(i Value, op string, j Value) Value {
 	u, v := i.(Matrix), j.(Matrix)
-	u.sameShape(v)
-	n := make([]Value, u.data.Len())
-	for k := range u.data {
-		n[k] = Binary(u.data[k], op, v.data[k])
+	shape := u.shape
+	var n []Value
+	// One or the other may be a scalar in disguise.
+	switch {
+	case len(u.shape) == 1 && u.shape[0].(Int) == 1:
+		shape = v.shape
+		n = make([]Value, v.data.Len())
+		for k := range v.data {
+			n[k] = Binary(u.data[0], op, v.data[k])
+		}
+	case len(v.shape) == 1 && v.shape[0].(Int) == 1:
+		n = make([]Value, v.data.Len())
+		for k := range u.data {
+			n[k] = Binary(u.data[0], op, v.data[0])
+		}
+	default:
+		// Matrix on matrix.
+		u.sameShape(v)
+		n = make([]Value, u.data.Len())
+		for k := range u.data {
+			n[k] = Binary(u.data[k], op, v.data[k])
+		}
 	}
 	return Matrix{
-		u.shape,
+		shape,
 		ValueSlice(n),
 	}
 }

@@ -134,11 +134,11 @@ func (m Matrix) Shape() Vector {
 
 func (x Matrix) sameShape(y Matrix) {
 	if len(x.shape) != len(y.shape) {
-		panic(Errorf("rank mismatch: %s %s", x.shape, y.shape))
+		panic(Errorf("rank mismatch: %s != %s", x.shape, y.shape))
 	}
 	for i, d := range x.shape {
 		if d != y.shape[i] {
-			panic(Errorf("rank mismatch: %s %s", x.shape, y.shape))
+			panic(Errorf("rank mismatch: %s != %s", x.shape, y.shape))
 		}
 	}
 }
