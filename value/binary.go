@@ -97,18 +97,20 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 	// One or the other may be a scalar in disguise.
 	switch {
 	case len(u.shape) == 1 && u.shape[0].(Int) == 1:
+		// Scalar op Matrix.
 		shape = v.shape
 		n = make([]Value, v.data.Len())
 		for k := range v.data {
 			n[k] = Binary(u.data[0], op, v.data[k])
 		}
 	case len(v.shape) == 1 && v.shape[0].(Int) == 1:
+		// Matrix op Scalar.
 		n = make([]Value, v.data.Len())
 		for k := range u.data {
 			n[k] = Binary(u.data[0], op, v.data[0])
 		}
 	default:
-		// Matrix on matrix.
+		// Matrix op Matrix.
 		u.sameShape(v)
 		n = make([]Value, u.data.Len())
 		for k := range u.data {
