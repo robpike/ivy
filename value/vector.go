@@ -40,8 +40,10 @@ func (v Vector) ToType(which valueType) Value {
 		panic("vector to big rat")
 	case vectorType:
 		return v
+	case matrixType:
+		return ValueMatrix([]Value{Int(len(v))}, v)
 	}
-	panic("BigInt.ToType")
+	panic("Vector.ToType")
 }
 
 func (v Vector) Len() int {

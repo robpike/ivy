@@ -37,6 +37,19 @@ func unaryVectorOp(op string, i Value) Value {
 	return ValueSlice(n)
 }
 
+// unaryMatrixOp applies op elementwise to i.
+func unaryMatrixOp(op string, i Value) Value {
+	u := i.(Matrix)
+	n := make([]Value, u.data.Len())
+	for k := range u.data {
+		n[k] = Unary(op, u.data[k])
+	}
+	return Matrix{
+		shape: u.shape,
+		data:  ValueSlice(n),
+	}
+}
+
 var (
 	unaryPlus, unaryMinus, unaryBitwiseNot, unaryLogicalNot *unaryOp
 	unaryAbs, unaryIota, unaryRho                           *unaryOp
@@ -51,6 +64,7 @@ func init() {
 			bigIntType: func(v Value) Value { return v },
 			bigRatType: func(v Value) Value { return v },
 			vectorType: func(v Value) Value { return v },
+			matrixType: func(v Value) Value { return v },
 		},
 	}
 
@@ -68,6 +82,9 @@ func init() {
 			vectorType: func(v Value) Value {
 				return unaryVectorOp("-", v)
 			},
+			matrixType: func(v Value) Value {
+				return unaryMatrixOp("-", v)
+			},
 		},
 	}
 
@@ -82,6 +99,9 @@ func init() {
 			},
 			vectorType: func(v Value) Value {
 				return unaryVectorOp("^", v)
+			},
+			matrixType: func(v Value) Value {
+				return unaryMatrixOp("^", v)
 			},
 		},
 	}
@@ -103,6 +123,9 @@ func init() {
 			vectorType: func(v Value) Value {
 				return unaryVectorOp("!", v)
 			},
+			matrixType: func(v Value) Value {
+				return unaryMatrixOp("!", v)
+			},
 		},
 	}
 
@@ -123,6 +146,9 @@ func init() {
 			},
 			vectorType: func(v Value) Value {
 				return unaryVectorOp("abs", v)
+			},
+			matrixType: func(v Value) Value {
+				return unaryMatrixOp("abs", v)
 			},
 		},
 	}
@@ -153,6 +179,9 @@ func init() {
 			},
 			vectorType: func(v Value) Value {
 				return unaryVectorOp("floor", v)
+			},
+			matrixType: func(v Value) Value {
+				return unaryMatrixOp("floor", v)
 			},
 		},
 	}
@@ -185,6 +214,9 @@ func init() {
 			vectorType: func(v Value) Value {
 				return unaryVectorOp("ceil", v)
 			},
+			matrixType: func(v Value) Value {
+				return unaryMatrixOp("ceil", v)
+			},
 		},
 	}
 
@@ -209,6 +241,9 @@ func init() {
 			// TODO: scalars should return an empty vector
 			vectorType: func(v Value) Value {
 				return Int(len(v.(Vector)))
+			},
+			matrixType: func(v Value) Value {
+				return v.(Matrix).shape
 			},
 		},
 	}

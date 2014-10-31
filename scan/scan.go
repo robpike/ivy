@@ -334,7 +334,7 @@ Loop:
 // day to implement arithmetic.
 func (l *Scanner) atTerminator() bool {
 	r := l.peek()
-	if isSpace(r) || isEndOfLine(r) || unicode.IsPunct(r) {
+	if isSpace(r) || isEndOfLine(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
 		return true
 	}
 	// Does r start the delimiter? This can be ambiguous (with delim=="//", $x/2 will

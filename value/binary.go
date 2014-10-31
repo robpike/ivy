@@ -37,9 +37,12 @@ func rationalType(t1, t2 valueType) valueType {
 	return binaryArithType(t1, t2)
 }
 
-// toVectorType promotes both arguments to vectors.
-func toVectorType(t1, t2 valueType) valueType {
-	return vectorType
+// atLeastVectorType promotes both arguments to at least vectors.
+func atLeastVectorType(t1, t2 valueType) valueType {
+	if t1 < matrixType && t2 < matrixType {
+		return vectorType
+	}
+	return matrixType
 }
 
 // shiftCount converts x to an unsigned integer.
@@ -84,6 +87,20 @@ func binaryVectorOp(i Value, op string, j Value) Value {
 		n[k] = Binary(u[k], op, v[k])
 	}
 	return ValueSlice(n)
+}
+
+// binaryMatrixOp applies op elementwise to i and j.
+func binaryMatrixOp(i Value, op string, j Value) Value {
+	u, v := i.(Matrix), j.(Matrix)
+	u.sameShape(v)
+	n := make([]Value, u.data.Len())
+	for k := range u.data {
+		n[k] = Binary(u.data[k], op, v.data[k])
+	}
+	return Matrix{
+		u.shape,
+		ValueSlice(n),
+	}
 }
 
 func binaryBigIntOp(u Value, op func(*big.Int, *big.Int, *big.Int) *big.Int, v Value) Value {
@@ -149,6 +166,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "+", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "+", v)
+			},
 		},
 	}
 
@@ -166,6 +186,9 @@ func init() {
 			},
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "-", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "-", v)
 			},
 		},
 	}
@@ -185,6 +208,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "*", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "*", v)
+			},
 		},
 	}
 
@@ -199,6 +225,9 @@ func init() {
 			},
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "/", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "/", v)
 			},
 		},
 	}
@@ -222,6 +251,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "idiv", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "idiv", v)
+			},
 		},
 	}
 
@@ -244,6 +276,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "imod", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "imod", v)
+			},
 		},
 	}
 
@@ -260,6 +295,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "div", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "div", v)
+			},
 		},
 	}
 
@@ -275,6 +313,9 @@ func init() {
 			bigRatType: nil, // Not defined for rationals. Use mod.
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "mod", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "mod", v)
 			},
 		},
 	}
@@ -313,6 +354,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "**", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "**", v)
+			},
 		},
 	}
 
@@ -327,6 +371,9 @@ func init() {
 			},
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "&", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "&", v)
 			},
 		},
 	}
@@ -343,6 +390,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "|", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "|", v)
+			},
 		},
 	}
 
@@ -357,6 +407,9 @@ func init() {
 			},
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "^", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "^", v)
 			},
 		},
 	}
@@ -373,6 +426,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "<<", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "<<", v)
+			},
 		},
 	}
 
@@ -387,6 +443,9 @@ func init() {
 			},
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, ">>", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, ">>", v)
 			},
 		},
 	}
@@ -408,6 +467,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "==", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "==", v)
+			},
 		},
 	}
 
@@ -427,6 +489,9 @@ func init() {
 			},
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "!=", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "!=", v)
 			},
 		},
 	}
@@ -448,6 +513,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "<", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "<", v)
+			},
 		},
 	}
 
@@ -467,6 +535,9 @@ func init() {
 			},
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "<=", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "<=", v)
 			},
 		},
 	}
@@ -488,6 +559,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, ">", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, ">", v)
+			},
 		},
 	}
 
@@ -508,11 +582,14 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, ">=", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, ">=", v)
+			},
 		},
 	}
 
 	binaryIota = &binaryOp{
-		whichType: toVectorType,
+		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
 				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
@@ -560,6 +637,9 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "min", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "min", v)
+			},
 		},
 	}
 
@@ -589,32 +669,25 @@ func init() {
 			vectorType: func(u, v Value) Value {
 				return binaryVectorOp(u, "min", v)
 			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "max", v)
+			},
 		},
 	}
 
 	rho = &binaryOp{
-		whichType: toVectorType, // TODO: correct?
+		whichType: atLeastVectorType, // TODO: correct?
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
-				// A⍴B: Array of shape A with data B
-				A, B := u.(Vector), v.(Vector)
-				if len(A) != 1 {
-					panic(Error("matrix not implemented"))
+				return reshape(u.(Vector), v.(Vector))
+			},
+			matrixType: func(u, v Value) Value {
+				// LHS must be a vector underneath.
+				A, B := u.(Matrix), v.(Matrix)
+				if len(A.shape) != 1 {
+					panic(Error("lhs of rho cannot be matrix"))
 				}
-				n, ok := A[0].(Int)
-				if !ok || n <= 0 { // TODO: 0 should be ok.
-					panic(Error("bad index"))
-				}
-				values := make([]Value, n)
-				j := 0
-				for i := range values {
-					if j >= len(B) {
-						j = 0
-					}
-					values[i] = B[j]
-					j++
-				}
-				return ValueSlice(values)
+				return reshape(A.data, B.data)
 			},
 		},
 	}

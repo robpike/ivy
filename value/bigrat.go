@@ -40,6 +40,8 @@ func (r BigRat) ToType(which valueType) Value {
 		return r
 	case vectorType:
 		return ValueSlice([]Value{r})
+	case matrixType:
+		return ValueMatrix([]Value{one, one}, []Value{r})
 	}
 	panic("BigRat.ToType")
 }
