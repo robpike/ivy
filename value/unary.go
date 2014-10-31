@@ -51,10 +51,11 @@ func unaryMatrixOp(op string, i Value) Value {
 }
 
 var (
-	unaryPlus, unaryMinus, unaryBitwiseNot, unaryLogicalNot *unaryOp
-	unaryAbs, unaryIota, unaryRho                           *unaryOp
-	floor, ceil                                             *unaryOp
-	unaryOps                                                map[string]*unaryOp
+	unaryPlus, unaryMinus, unaryRecip *unaryOp
+	unaryBitwiseNot, unaryLogicalNot  *unaryOp
+	unaryAbs, unaryIota, unaryRho     *unaryOp
+	floor, ceil                       *unaryOp
+	unaryOps                          map[string]*unaryOp
 )
 
 func init() {
@@ -84,6 +85,39 @@ func init() {
 			},
 			matrixType: func(v Value) Value {
 				return unaryMatrixOp("-", v)
+			},
+		},
+	}
+
+	unaryRecip = &unaryOp{
+		fn: [numType]unaryFn{
+			intType: func(v Value) Value {
+				i := int64(v.(Int))
+				if i == 0 {
+					panic(Error("division by zero"))
+				}
+				return BigRat{
+					Rat: big.NewRat(0, 1).SetFrac64(1, i),
+				}.shrink()
+			},
+			bigIntType: func(v Value) Value {
+				// Zero division cannot happen for unary.
+				return BigRat{
+					Rat: big.NewRat(0, 1).SetFrac(bigOne.Int, v.(BigInt).Int),
+				}.shrink()
+			},
+			bigRatType: func(v Value) Value {
+				// Zero division cannot happen for unary.
+				r := v.(BigRat)
+				return BigRat{
+					Rat: big.NewRat(0, 1).SetFrac(r.Denom(), r.Num()),
+				}.shrink()
+			},
+			vectorType: func(v Value) Value {
+				return unaryVectorOp("/", v)
+			},
+			matrixType: func(v Value) Value {
+				return unaryMatrixOp("/", v)
 			},
 		},
 	}
@@ -251,6 +285,7 @@ func init() {
 	unaryOps = map[string]*unaryOp{
 		"+":     unaryPlus,
 		"-":     unaryMinus,
+		"/":     unaryRecip,
 		"^":     unaryBitwiseNot,
 		"!":     unaryLogicalNot,
 		"abs":   unaryAbs,

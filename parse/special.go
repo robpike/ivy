@@ -31,11 +31,12 @@ func (p *Parser) special() {
 	case "debug":
 		name := p.need(scan.Identifier).Text
 		if p.Peek().Type != scan.Number {
-			// Just print the value
+			// Toggle the value
+			p.config.SetDebug(name, !p.config.Debug(name))
 			if p.config.Debug(name) {
-				fmt.Println("1")
+				fmt.Println("now 1")
 			} else {
-				fmt.Println("0")
+				fmt.Println("now 0")
 			}
 			break
 		}

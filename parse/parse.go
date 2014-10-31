@@ -154,7 +154,7 @@ func (p *Parser) Line() (value.Value, bool) {
 		if tok.Type != scan.Newline && tok.Type != scan.EOF {
 			p.errorf("unexpected %q", tok)
 		}
-		if p.config.Debug("printparse") {
+		if p.config.Debug("parse") {
 			fmt.Println(Tree(x))
 		}
 		expr := x.Eval()

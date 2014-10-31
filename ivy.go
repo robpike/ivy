@@ -17,13 +17,14 @@ import (
 )
 
 var (
-	format     = flag.String("format", "%v", "format string")
-	printParse = flag.Bool("printparse", false, "print parse tree")
+	format = flag.String("format", "%v", "format string")
 )
 
 func init() {
 	flag.Var(&iFlag, "I", "include directory; can be set multiple times")
 }
+
+var conf config.Config
 
 func main() {
 	log.SetFlags(0)
@@ -32,11 +33,9 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	conf := new(config.Config)
 	conf.SetFormat(*format)
-	conf.SetDebug("printparse", *printParse)
 
-	value.SetConfig(conf)
+	value.SetConfig(&conf)
 
 	name := ""
 	fd := os.Stdin
@@ -54,7 +53,7 @@ func main() {
 	}
 
 	lexer := lex.NewLexer(name, fd, []string(iFlag))
-	parser := parse.NewParser(conf, lexer)
+	parser := parse.NewParser(&conf, lexer)
 	for {
 		run(parser)
 	}
@@ -76,6 +75,9 @@ func run(p *parse.Parser) {
 		fmt.Print("_\t")
 		value, ok := p.Line()
 		if value != nil {
+			if conf.Debug("type") {
+				fmt.Printf("%T:\n", value)
+			}
 			fmt.Println(value)
 		}
 		if !ok {

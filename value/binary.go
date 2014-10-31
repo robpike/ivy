@@ -4,10 +4,7 @@
 
 package value
 
-import (
-	"fmt"
-	"math/big"
-)
+import "math/big"
 
 // Binary operators.
 
@@ -596,7 +593,6 @@ func init() {
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
-				fmt.Println("vector index", u, "[", v, "]")
 				// A[B]: The successive elements of A with indexes elements of B.
 				A, B := u.(Vector), v.(Vector)
 				values := make([]Value, len(B))
@@ -614,7 +610,7 @@ func init() {
 				return ValueSlice(values)
 			},
 			matrixType: func(u, v Value) Value {
-				// A[B]: The successive elements of A with indexes elements of B.
+				// A[B]: The successive elements of A with indexes given by elements of B.
 				A, mB := u.(Matrix), v.(Matrix)
 				if mB.shape.Len() != 1 {
 					panic(Errorf("bad index rank %d", mB.shape.Len()))
@@ -622,33 +618,41 @@ func init() {
 				B := mB.data
 				elemSize := A.elemSize()
 				values := make(Vector, 0, elemSize*len(B))
-				switch A.shape.Len() {
-				default:
-					panic(Errorf("can't handle rank %d in index", A.shape.Len()))
-				case 2:
-					B := mB.data
-					for _, b := range B {
-						x, ok := b.(Int)
-						if !ok {
-							panic(Error("index must be integer"))
-						}
-						if x <= 0 || x > Int(A.shape[0].(Int)) {
-							panic(Errorf("index %d out of range", x))
-						}
-						// TODO: fix when there is an index base.
-						start := elemSize * int(x-1)
-						values = append(values, A.data[start:start+elemSize]...)
+				for _, b := range B {
+					x, ok := b.(Int)
+					if !ok {
+						panic(Error("index must be integer"))
 					}
-					if len(B) == 1 {
+					if x <= 0 || x > Int(A.shape[0].(Int)) {
+						panic(Errorf("index %d out of range (shape %s)", x, A.shape))
+					}
+					// TODO: fix when there is an index base.
+					start := elemSize * int(x-1)
+					values = append(values, A.data[start:start+elemSize]...)
+				}
+				if len(B) == 1 {
+					// Special considerations. The result might need type reduction.
+					// TODO: Should this be Matrix.shrink?
+					// Is the result a vector?
+					if len(A.shape) == 2 {
 						return values
 					}
-					newShape := make(Vector, len(A.shape))
-					copy(newShape, A.shape)
-					newShape[0] = Int(len(B))
-					return Matrix{
-						shape: newShape,
-						data:  values,
+					// Is it a matrix with a first rank of 1?
+					if B[0].(Int) == 1 {
+						newShape := make(Vector, len(A.shape)-1)
+						copy(newShape, A.shape[1:])
+						return Matrix{
+							shape: newShape,
+							data:  values,
+						}
 					}
+				}
+				newShape := make(Vector, len(A.shape))
+				copy(newShape, A.shape)
+				newShape[0] = Int(len(B))
+				return Matrix{
+					shape: newShape,
+					data:  values,
 				}
 			},
 		},
