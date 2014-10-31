@@ -7,6 +7,7 @@ package value
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 /*
@@ -26,27 +27,69 @@ func (m Matrix) String() string {
 	var b bytes.Buffer
 	switch len(m.shape) {
 	case 0:
-		panic(Errorf("TODO: no matrix dimensions"))
+		panic(Errorf("matrix is scalar"))
 	case 1:
 		panic(Errorf("matrix is vector"))
 	case 2:
 		nrows := int(m.shape[0].(Int))
 		ncols := int(m.shape[1].(Int))
+		if nrows == 0 || ncols == 0 {
+			return ""
+		}
+		// We print the elements into one big string,
+		// slice that, and then format so they line up.
+		// Will need some rethinking when decimal points
+		// can appear.
+		// Vector.String does what we want for the first part.
+		strs := strings.Split(m.data.String(), " ")
+		wid := 1
+		for _, s := range strs {
+			if wid < len(s) {
+				wid = len(s)
+			}
+		}
 		for row := 0; row < nrows; row++ {
+			if row > 0 {
+				b.WriteByte('\n')
+			}
 			index := row * ncols
 			for col := 0; col < ncols; col++ {
 				if col > 0 {
-					fmt.Fprint(&b, " ")
+					b.WriteByte(' ')
 				}
-				fmt.Fprint(&b, m.data[index])
+				s := strs[index]
+				pad := wid - len(s)
+				for ; pad >= 10; pad -= 10 {
+					b.WriteString("          ")
+				}
+				for ; pad > 0; pad-- {
+					b.WriteString(" ")
+				}
+				b.WriteString(s)
 				index++
 			}
-			fmt.Fprint(&b, "\n")
+		}
+	case 3:
+		n := int(m.shape[0].(Int))
+		size := 1
+		for _, i := range m.shape[1:] {
+			size *= int(i.(Int))
+		}
+		start := 0
+		for i := 0; i < n; i++ {
+			if i > 0 {
+				b.WriteString("\n\n")
+			}
+			m := Matrix{
+				shape: m.shape[1:],
+				data:  m.data[start : start+size],
+			}
+			b.WriteString(m.String())
+			start += size
 		}
 	default:
 		// TODO STUPID
-		fmt.Fprintln(&b, "shape: ", m.shape)
-		fmt.Fprintln(&b, "elems: ", m.data)
+		fmt.Printf("shape: %s; elems: %s\n", m.shape, m.data)
 	}
 	return b.String()
 }

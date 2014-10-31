@@ -329,9 +329,7 @@ Loop:
 }
 
 // atTerminator reports whether the input is at valid termination character to
-// appear after an identifier. Breaks .X.Y into two pieces. Also catches cases
-// like "$x+2" not being acceptable without a space, in case we decide one
-// day to implement arithmetic.
+// appear after an identifier.
 func (l *Scanner) atTerminator() bool {
 	r := l.peek()
 	if isSpace(r) || isEndOfLine(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
