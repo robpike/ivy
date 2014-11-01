@@ -278,6 +278,7 @@ func lexAny(l *Scanner) stateFn {
 			l.emit(Assign)
 			return lexAny
 		}
+		l.next()
 		fallthrough // for ==
 	case l.isOperator(r): // Must be after numbers, so '-' can be a sign.
 		l.emit(Operator)
@@ -493,13 +494,6 @@ func (l *Scanner) isOperator(r rune) bool {
 	switch r {
 	case '+', '-', '/', '%', '&', '|', '^', '~', ',':
 		// No follow-on possible.
-	case ':':
-		switch l.peek() {
-		case '=':
-			l.next()
-		default:
-			return false
-		}
 	case '!':
 		if l.peek() != '=' {
 			return false
