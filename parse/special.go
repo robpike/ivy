@@ -41,7 +41,11 @@ func (p *Parser) special() {
 		v, ok := number.(value.Int)
 		p.config.SetDebug(name, ok && v.ToBool())
 	case "format":
-		str, err := strconv.Unquote(p.need(scan.String).Text)
+		if p.Peek().Type != scan.String {
+			fmt.Printf("%q\n", p.config.Format())
+			break
+		}
+		str, err := strconv.Unquote(p.Next().Text)
 		if err != nil {
 			p.errorf("%s", err)
 		}
@@ -51,11 +55,21 @@ func (p *Parser) special() {
 			fmt.Println(p.config.Origin())
 			break
 		}
-		origin, err := strconv.Atoi(p.need(scan.Number).Text)
+		origin, err := strconv.Atoi(p.Next().Text)
 		if err != nil {
 			p.errorf("%s", err)
 		}
 		p.config.SetOrigin(origin)
+	case "prompt":
+		if p.Peek().Type != scan.String {
+			fmt.Printf("%q\n", p.config.Prompt())
+			break
+		}
+		str, err := strconv.Unquote(p.Next().Text)
+		if err != nil {
+			p.errorf("%s", err)
+		}
+		p.config.SetPrompt(str)
 	default:
 		p.errorf(")%s: not recognized", text)
 	}

@@ -19,6 +19,7 @@ import (
 var (
 	format = flag.String("format", "%v", "format string for printing numbers")
 	origin = flag.Int("origin", 1, "index origin")
+	prompt = flag.String("prompt", "", "command prompt")
 )
 
 func init() {
@@ -36,6 +37,7 @@ func main() {
 
 	conf.SetFormat(*format)
 	conf.SetOrigin(*origin)
+	conf.SetPrompt(*prompt)
 
 	value.SetConfig(&conf)
 
@@ -74,7 +76,7 @@ func run(p *parse.Parser) {
 		panic(err)
 	}()
 	for {
-		fmt.Print("_\t")
+		fmt.Print(conf.Prompt())
 		value, ok := p.Line()
 		if value != nil {
 			if conf.Debug("type") {
@@ -85,6 +87,7 @@ func run(p *parse.Parser) {
 		if !ok {
 			os.Exit(0)
 		}
+		fmt.Println()
 	}
 }
 

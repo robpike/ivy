@@ -5,6 +5,7 @@
 package config
 
 type Config struct {
+	prompt    string
 	format    string
 	ratFormat string
 	origin    int
@@ -45,6 +46,14 @@ func (c *Config) Origin() int {
 	return c.origin
 }
 
-func (c *Config) SetOrigin(o int) {
-	c.origin = o
+func (c *Config) SetOrigin(origin int) {
+	c.origin = origin
+}
+
+func (c *Config) Prompt() string {
+	return c.prompt
+}
+
+func (c *Config) SetPrompt(prompt string) {
+	c.prompt = prompt
 }
