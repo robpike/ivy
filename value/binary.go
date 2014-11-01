@@ -695,16 +695,17 @@ func init() {
 				// A[B]: The successive elements of A with indexes elements of B.
 				A, B := u.(Vector), v.(Vector)
 				values := make([]Value, len(B))
+				origin := Int(conf.Origin())
 				for i, b := range B {
 					x, ok := b.(Int)
 					if !ok {
 						panic(Error("index must be integer"))
 					}
-					if x <= 0 || x > Int(A.Len()) {
-						panic(Errorf("index %d out of range", x))
+					x -= origin
+					if x < 0 || Int(A.Len()) <= x {
+						panic(Errorf("index %d out of range", x+origin))
 					}
-					// TODO: fix when there is an index base.
-					values[i] = A[x-1]
+					values[i] = A[x]
 				}
 				return ValueSlice(values)
 			},
@@ -715,18 +716,19 @@ func init() {
 					panic(Errorf("bad index rank %d", mB.shape.Len()))
 				}
 				B := mB.data
-				elemSize := A.elemSize()
-				values := make(Vector, 0, elemSize*len(B))
+				elemSize := Int(A.elemSize())
+				values := make(Vector, 0, elemSize*Int(len(B)))
+				origin := Int(conf.Origin())
 				for _, b := range B {
 					x, ok := b.(Int)
 					if !ok {
 						panic(Error("index must be integer"))
 					}
-					if x <= 0 || x > Int(A.shape[0].(Int)) {
-						panic(Errorf("index %d out of range (shape %s)", x, A.shape))
+					x -= origin
+					if x < 0 || Int(A.shape[0].(Int)) <= x {
+						panic(Errorf("index %d out of range (shape %s)", x+origin, A.shape))
 					}
-					// TODO: fix when there is an index base.
-					start := elemSize * int(x-1)
+					start := elemSize * x
 					values = append(values, A.data[start:start+elemSize]...)
 				}
 				if len(B) == 1 {
@@ -766,8 +768,8 @@ func init() {
 			Outer:
 				for i, b := range B {
 					for j, a := range A {
-						if Binary(a, "==", b).(Int) == 1 {
-							indices[i] = Int(j + 1)
+						if toBool(Binary(a, "==", b)) {
+							indices[i] = Int(j + conf.Origin())
 							continue Outer
 						}
 					}

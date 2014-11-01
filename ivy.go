@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	format = flag.String("format", "%v", "format string")
+	format = flag.String("format", "%v", "format string for printing numbers")
+	origin = flag.Int("origin", 1, "index origin")
 )
 
 func init() {
@@ -34,6 +35,7 @@ func main() {
 	flag.Parse()
 
 	conf.SetFormat(*format)
+	conf.SetOrigin(*origin)
 
 	value.SetConfig(&conf)
 

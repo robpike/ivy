@@ -22,21 +22,15 @@ func (p *Parser) need(want scan.Type) scan.Token {
 
 func (p *Parser) special() {
 	switch text := p.need(scan.Identifier).Text; text {
-	case "format":
-		str, err := strconv.Unquote(p.need(scan.String).Text)
-		if err != nil {
-			p.errorf("%s", err)
-		}
-		p.config.SetFormat(str)
 	case "debug":
 		name := p.need(scan.Identifier).Text
 		if p.Peek().Type != scan.Number {
 			// Toggle the value
 			p.config.SetDebug(name, !p.config.Debug(name))
 			if p.config.Debug(name) {
-				fmt.Println("now 1")
+				fmt.Println("1")
 			} else {
-				fmt.Println("now 0")
+				fmt.Println("0")
 			}
 			break
 		}
@@ -46,6 +40,22 @@ func (p *Parser) special() {
 		}
 		v, ok := number.(value.Int)
 		p.config.SetDebug(name, ok && v.ToBool())
+	case "format":
+		str, err := strconv.Unquote(p.need(scan.String).Text)
+		if err != nil {
+			p.errorf("%s", err)
+		}
+		p.config.SetFormat(str)
+	case "origin":
+		if p.Peek().Type != scan.Number {
+			fmt.Println(p.config.Origin())
+			break
+		}
+		origin, err := strconv.Atoi(p.need(scan.Number).Text)
+		if err != nil {
+			p.errorf("%s", err)
+		}
+		p.config.SetOrigin(origin)
 	default:
 		p.errorf(")%s: not recognized", text)
 	}

@@ -291,7 +291,7 @@ func init() {
 				}
 				n := make([]Value, i)
 				for k := range n {
-					n[k] = Int(int64(k) + 1)
+					n[k] = Int(k + conf.Origin())
 				}
 				return ValueSlice(n)
 			},

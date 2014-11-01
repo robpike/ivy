@@ -7,6 +7,7 @@ package config
 type Config struct {
 	format    string
 	ratFormat string
+	origin    int
 	debug     map[string]bool
 }
 
@@ -38,4 +39,12 @@ func (c *Config) SetDebug(s string, state bool) {
 		c.debug = make(map[string]bool)
 	}
 	c.debug[s] = state
+}
+
+func (c *Config) Origin() int {
+	return c.origin
+}
+
+func (c *Config) SetOrigin(o int) {
+	c.origin = o
 }
