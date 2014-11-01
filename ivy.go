@@ -7,8 +7,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 
 	"code.google.com/p/rspace/ivy/config"
 	"code.google.com/p/rspace/ivy/lex"
@@ -17,9 +19,10 @@ import (
 )
 
 var (
-	format = flag.String("format", "%v", "format string for printing numbers")
-	origin = flag.Int("origin", 1, "index origin")
-	prompt = flag.String("prompt", "", "command prompt")
+	execute = flag.Bool("e", false, "execute arguments as a single expression")
+	format  = flag.String("format", "%v", "format string for printing numbers")
+	origin  = flag.Int("origin", 1, "index origin")
+	prompt  = flag.String("prompt", "", "command prompt")
 )
 
 func init() {
@@ -41,29 +44,50 @@ func main() {
 
 	value.SetConfig(&conf)
 
-	name := ""
-	fd := os.Stdin
-	var err error
-	switch flag.NArg() {
-	case 0:
-	case 1:
-		name = flag.Arg(0)
-		fd, err = os.Open(name)
-		if err != nil {
-			log.Fatalf("ivy: %s\n", err)
-		}
-	default:
-		flag.Usage()
+	if *execute {
+		runArgs()
+		return
 	}
 
-	lexer := lex.NewLexer(name, fd, []string(iFlag))
+	if flag.NArg() > 0 {
+		for i := 0; i < flag.NArg(); i++ {
+			name := flag.Arg(i)
+			var fd io.Reader
+			var err error
+			interactive := false
+			if name == "-" {
+				fd = os.Stdin
+				interactive = true
+			} else {
+				fd, err = os.Open(name)
+			}
+			if err != nil {
+				log.Fatalf("ivy: %s\n", err)
+			}
+			lexer := lex.NewLexer(name, fd, []string(iFlag))
+			parser := parse.NewParser(&conf, lexer)
+			if !run(parser, interactive) {
+				break
+			}
+		}
+		return
+	}
+
+	lexer := lex.NewLexer("", os.Stdin, []string(iFlag))
 	parser := parse.NewParser(&conf, lexer)
 	for {
-		run(parser)
+		run(parser, true)
 	}
 }
 
-func run(p *parse.Parser) {
+func runArgs() {
+	lexer := lex.NewLexer("", strings.NewReader(strings.Join(flag.Args(), " ")), []string(iFlag))
+	parser := parse.NewParser(&conf, lexer)
+	run(parser, false)
+
+}
+
+func run(p *parse.Parser, interactive bool) (success bool) {
 	defer func() {
 		err := recover()
 		if err == nil {
@@ -71,12 +95,15 @@ func run(p *parse.Parser) {
 		}
 		if err, ok := err.(value.Error); ok {
 			log.Print(err)
+			success = false
 			return
 		}
 		panic(err)
 	}()
 	for {
-		fmt.Print(conf.Prompt())
+		if interactive {
+			fmt.Print(conf.Prompt())
+		}
 		value, ok := p.Line()
 		if value != nil {
 			if conf.Debug("type") {
@@ -85,9 +112,11 @@ func run(p *parse.Parser) {
 			fmt.Println(value)
 		}
 		if !ok {
-			os.Exit(0)
+			return true
 		}
-		fmt.Println()
+		if interactive {
+			fmt.Println()
+		}
 	}
 }
 
@@ -108,7 +137,7 @@ func (m *multiFlag) Set(val string) error {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage: asm [options] file.s\n")
+	fmt.Fprintf(os.Stderr, "usage: ivy [options] [file ...]\n")
 	fmt.Fprintf(os.Stderr, "Flags:\n")
 	flag.PrintDefaults()
 	os.Exit(2)
