@@ -75,8 +75,7 @@ func main() {
 
 	lexer := lex.NewLexer("", os.Stdin, []string(iFlag))
 	parser := parse.NewParser(&conf, lexer)
-	for {
-		run(parser, true)
+	for !run(parser, true) {
 	}
 }
 
@@ -87,6 +86,7 @@ func runArgs() {
 
 }
 
+// run runs until EOF or error. The return value says whether we completed without error.
 func run(p *parse.Parser, interactive bool) (success bool) {
 	defer func() {
 		err := recover()
