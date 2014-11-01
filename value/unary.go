@@ -27,29 +27,6 @@ func unaryBigRatOp(op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
 	return z.shrink()
 }
 
-// unaryVectorOp applies op elementwise to i.
-func unaryVectorOp(op string, i Value) Value {
-	u := i.(Vector)
-	n := make([]Value, u.Len())
-	for k := range u {
-		n[k] = Unary(op, u[k])
-	}
-	return ValueSlice(n)
-}
-
-// unaryMatrixOp applies op elementwise to i.
-func unaryMatrixOp(op string, i Value) Value {
-	u := i.(Matrix)
-	n := make([]Value, u.data.Len())
-	for k := range u.data {
-		n[k] = Unary(op, u.data[k])
-	}
-	return Matrix{
-		shape: u.shape,
-		data:  ValueSlice(n),
-	}
-}
-
 var (
 	unaryPlus, unaryMinus, unaryRecip *unaryOp
 	unaryAbs, unarySignum             *unaryOp
@@ -71,6 +48,7 @@ func init() {
 	}
 
 	unaryMinus = &unaryOp{
+		elementwise: true,
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				return -v.(Int)
@@ -81,16 +59,11 @@ func init() {
 			bigRatType: func(v Value) Value {
 				return unaryBigRatOp((*big.Rat).Neg, v)
 			},
-			vectorType: func(v Value) Value {
-				return unaryVectorOp("-", v)
-			},
-			matrixType: func(v Value) Value {
-				return unaryMatrixOp("-", v)
-			},
 		},
 	}
 
 	unaryRecip = &unaryOp{
+		elementwise: true,
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				i := int64(v.(Int))
@@ -114,16 +87,11 @@ func init() {
 					Rat: big.NewRat(0, 1).SetFrac(r.Denom(), r.Num()),
 				}.shrink()
 			},
-			vectorType: func(v Value) Value {
-				return unaryVectorOp("/", v)
-			},
-			matrixType: func(v Value) Value {
-				return unaryMatrixOp("/", v)
-			},
 		},
 	}
 
 	unarySignum = &unaryOp{
+		elementwise: true,
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				i := int64(v.(Int))
@@ -141,16 +109,11 @@ func init() {
 			bigRatType: func(v Value) Value {
 				return Int(v.(BigRat).Sign())
 			},
-			vectorType: func(v Value) Value {
-				return unaryVectorOp("sgn", v)
-			},
-			matrixType: func(v Value) Value {
-				return unaryMatrixOp("sgn", v)
-			},
 		},
 	}
 
 	unaryBitwiseNot = &unaryOp{
+		elementwise: true,
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				return ^v.(Int)
@@ -159,16 +122,11 @@ func init() {
 				// Lots of ways to do this, here's one.
 				return BigInt{Int: bigInt64(0).Xor(v.(BigInt).Int, bigMinusOne.Int)}
 			},
-			vectorType: func(v Value) Value {
-				return unaryVectorOp("^", v)
-			},
-			matrixType: func(v Value) Value {
-				return unaryMatrixOp("^", v)
-			},
 		},
 	}
 
 	unaryLogicalNot = &unaryOp{
+		elementwise: true,
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				if v.(Int) == 0 {
@@ -182,16 +140,11 @@ func init() {
 				}
 				return zero
 			},
-			vectorType: func(v Value) Value {
-				return unaryVectorOp("~", v)
-			},
-			matrixType: func(v Value) Value {
-				return unaryMatrixOp("~", v)
-			},
 		},
 	}
 
 	unaryAbs = &unaryOp{
+		elementwise: true,
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				i := v.(Int)
@@ -206,16 +159,11 @@ func init() {
 			bigRatType: func(v Value) Value {
 				return unaryBigRatOp((*big.Rat).Abs, v)
 			},
-			vectorType: func(v Value) Value {
-				return unaryVectorOp("abs", v)
-			},
-			matrixType: func(v Value) Value {
-				return unaryMatrixOp("abs", v)
-			},
 		},
 	}
 
 	floor = &unaryOp{
+		elementwise: true,
 		fn: [numType]unaryFn{
 			intType:    func(v Value) Value { return v },
 			bigIntType: func(v Value) Value { return v },
@@ -239,16 +187,11 @@ func init() {
 				}
 				return z
 			},
-			vectorType: func(v Value) Value {
-				return unaryVectorOp("floor", v)
-			},
-			matrixType: func(v Value) Value {
-				return unaryMatrixOp("floor", v)
-			},
 		},
 	}
 
 	ceil = &unaryOp{
+		elementwise: true,
 		fn: [numType]unaryFn{
 			intType:    func(v Value) Value { return v },
 			bigIntType: func(v Value) Value { return v },
@@ -273,12 +216,6 @@ func init() {
 				}
 				return z
 			},
-			vectorType: func(v Value) Value {
-				return unaryVectorOp("ceil", v)
-			},
-			matrixType: func(v Value) Value {
-				return unaryMatrixOp("ceil", v)
-			},
 		},
 	}
 
@@ -286,8 +223,11 @@ func init() {
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
 				i := v.(Int)
-				if i <= 0 || maxInt < i {
+				if i < 0 || maxInt < i {
 					panic(Errorf("bad iota %d", i))
+				}
+				if i == 0 {
+					return Vector{}
 				}
 				n := make([]Value, i)
 				for k := range n {
@@ -300,7 +240,15 @@ func init() {
 
 	unaryRho = &unaryOp{
 		fn: [numType]unaryFn{
-			// TODO: scalars should return an empty vector
+			intType: func(v Value) Value {
+				return Vector{}
+			},
+			bigIntType: func(v Value) Value {
+				return Vector{}
+			},
+			bigRatType: func(v Value) Value {
+				return Vector{}
+			},
 			vectorType: func(v Value) Value {
 				return Int(len(v.(Vector)))
 			},

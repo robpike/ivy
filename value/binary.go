@@ -64,65 +64,6 @@ func shiftCount(x Value) uint {
 	panic(Error("illegal shift count type"))
 }
 
-// binaryVectorOp applies op elementwise to i and j.
-func binaryVectorOp(i Value, op string, j Value) Value {
-	u, v := i.(Vector), j.(Vector)
-	if len(u) == 1 {
-		n := make([]Value, v.Len())
-		for k := range v {
-			n[k] = Binary(u[0], op, v[k])
-		}
-		return ValueSlice(n)
-	}
-	if len(v) == 1 {
-		n := make([]Value, u.Len())
-		for k := range u {
-			n[k] = Binary(u[k], op, v[0])
-		}
-		return ValueSlice(n)
-	}
-	u.sameLength(v)
-	n := make([]Value, u.Len())
-	for k := range u {
-		n[k] = Binary(u[k], op, v[k])
-	}
-	return ValueSlice(n)
-}
-
-// binaryMatrixOp applies op elementwise to i and j.
-func binaryMatrixOp(i Value, op string, j Value) Value {
-	u, v := i.(Matrix), j.(Matrix)
-	shape := u.shape
-	var n []Value
-	// One or the other may be a scalar in disguise.
-	switch {
-	case len(u.shape) == 1 && u.shape[0].(Int) == 1:
-		// Scalar op Matrix.
-		shape = v.shape
-		n = make([]Value, v.data.Len())
-		for k := range v.data {
-			n[k] = Binary(u.data[0], op, v.data[k])
-		}
-	case len(v.shape) == 1 && v.shape[0].(Int) == 1:
-		// Matrix op Scalar.
-		n = make([]Value, u.data.Len())
-		for k := range u.data {
-			n[k] = Binary(u.data[k], op, v.data[0])
-		}
-	default:
-		// Matrix op Matrix.
-		u.sameShape(v)
-		n = make([]Value, u.data.Len())
-		for k := range u.data {
-			n[k] = Binary(u.data[k], op, v.data[k])
-		}
-	}
-	return Matrix{
-		shape,
-		ValueSlice(n),
-	}
-}
-
 func binaryBigIntOp(u Value, op func(*big.Int, *big.Int, *big.Int) *big.Int, v Value) Value {
 	i, j := u.(BigInt), v.(BigInt)
 	z := bigInt64(0)
@@ -189,7 +130,8 @@ var (
 
 func init() {
 	add = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return u.(Int) + v.(Int)
@@ -200,17 +142,12 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Add, v)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "+", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "+", v)
-			},
 		},
 	}
 
 	sub = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return u.(Int) - v.(Int)
@@ -221,17 +158,12 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Sub, v)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "-", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "-", v)
-			},
 		},
 	}
 
 	mul = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return u.(Int) * v.(Int)
@@ -242,17 +174,12 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Mul, v)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "*", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "*", v)
-			},
 		},
 	}
 
 	quo = &binaryOp{ // Rational division.
-		whichType: rationalType, // Use BigRats to avoid the analysis here.
+		elementwise: true,
+		whichType:   rationalType, // Use BigRats to avoid the analysis here.
 		fn: [numType]binaryFn{
 			bigRatType: func(u, v Value) Value {
 				if v.(BigRat).Sign() == 0 {
@@ -260,17 +187,12 @@ func init() {
 				}
 				return binaryBigRatOp(u, (*big.Rat).Quo, v) // True division.
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "/", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "/", v)
-			},
 		},
 	}
 
 	idiv = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				if v.(Int) == 0 {
@@ -285,17 +207,12 @@ func init() {
 				return binaryBigIntOp(u, (*big.Int).Quo, v) // Go-like division.
 			},
 			bigRatType: nil, // Not defined for rationals. Use div.
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "idiv", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "idiv", v)
-			},
 		},
 	}
 
 	imod = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				if v.(Int) == 0 {
@@ -310,17 +227,12 @@ func init() {
 				return binaryBigIntOp(u, (*big.Int).Rem, v) // Go-like modulo.
 			},
 			bigRatType: nil, // Not defined for rationals. Use mod.
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "imod", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "imod", v)
-			},
 		},
 	}
 
 	div = &binaryOp{ // Euclidean integer division.
-		whichType: divType, // Use BigInts to avoid the analysis here.
+		elementwise: true,
+		whichType:   divType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
@@ -329,17 +241,12 @@ func init() {
 				return binaryBigIntOp(u, (*big.Int).Div, v) // Euclidean division.
 			},
 			bigRatType: nil, // Not defined for rationals. Use div.
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "div", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "div", v)
-			},
 		},
 	}
 
 	mod = &binaryOp{ // Euclidean integer modulus.
-		whichType: divType, // Use BigInts to avoid the analysis here.
+		elementwise: true,
+		whichType:   divType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
@@ -348,17 +255,12 @@ func init() {
 				return binaryBigIntOp(u, (*big.Int).Mod, v) // Euclidan modulo.
 			},
 			bigRatType: nil, // Not defined for rationals. Use mod.
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "mod", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "mod", v)
-			},
 		},
 	}
 
 	exp = &binaryOp{
-		whichType: divType,
+		elementwise: true,
+		whichType:   divType,
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				switch v.(BigInt).Sign() {
@@ -388,17 +290,12 @@ func init() {
 				z.SetFrac(num, den)
 				return z
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "**", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "**", v)
-			},
 		},
 	}
 
 	bitAnd = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return u.(Int) & v.(Int)
@@ -406,17 +303,12 @@ func init() {
 			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).And, v)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "&", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "&", v)
-			},
 		},
 	}
 
 	bitOr = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return u.(Int) | v.(Int)
@@ -424,17 +316,12 @@ func init() {
 			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Or, v)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "|", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "|", v)
-			},
 		},
 	}
 
 	bitXor = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return u.(Int) ^ v.(Int)
@@ -442,17 +329,12 @@ func init() {
 			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Xor, v)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "^", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "^", v)
-			},
 		},
 	}
 
 	lsh = &binaryOp{
-		whichType: divType, // Shifts are like exp: let BigInt do the work.
+		elementwise: true,
+		whichType:   divType, // Shifts are like exp: let BigInt do the work.
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
@@ -460,17 +342,12 @@ func init() {
 				z.Lsh(i.Int, shiftCount(j))
 				return z.shrink()
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "<<", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "<<", v)
-			},
 		},
 	}
 
 	rsh = &binaryOp{
-		whichType: divType, // Shifts are like exp: let BigInt do the work.
+		elementwise: true,
+		whichType:   divType, // Shifts are like exp: let BigInt do the work.
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
@@ -478,17 +355,12 @@ func init() {
 				z.Rsh(i.Int, shiftCount(j))
 				return z.shrink()
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, ">>", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, ">>", v)
-			},
 		},
 	}
 
 	eq = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) == v.(Int))
@@ -501,17 +373,12 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) == 0)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "==", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "==", v)
-			},
 		},
 	}
 
 	ne = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) != v.(Int))
@@ -524,17 +391,12 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) != 0)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "!=", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "!=", v)
-			},
 		},
 	}
 
 	lt = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) < v.(Int))
@@ -547,17 +409,12 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) < 0)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "<", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "<", v)
-			},
 		},
 	}
 
 	le = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) <= v.(Int))
@@ -570,17 +427,12 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) <= 0)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "<=", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "<=", v)
-			},
 		},
 	}
 
 	gt = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) > v.(Int))
@@ -593,17 +445,12 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) > 0)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, ">", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, ">", v)
-			},
 		},
 	}
 
 	ge = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) >= v.(Int))
@@ -616,17 +463,12 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) >= 0)
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, ">=", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, ">=", v)
-			},
 		},
 	}
 
 	logicalAnd = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
@@ -636,18 +478,13 @@ func init() {
 			},
 			bigRatType: func(u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
-			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "and", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "and", v)
 			},
 		},
 	}
 
 	logicalOr = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
@@ -657,18 +494,13 @@ func init() {
 			},
 			bigRatType: func(u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
-			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "or", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "or", v)
 			},
 		},
 	}
 
 	logicalXor = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
@@ -678,12 +510,6 @@ func init() {
 			},
 			bigRatType: func(u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
-			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "xor", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "xor", v)
 			},
 		},
 	}
@@ -781,7 +607,8 @@ func init() {
 	}
 
 	min = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				if u.(Int) < v.(Int) {
@@ -803,17 +630,12 @@ func init() {
 				}
 				return v
 			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "min", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "min", v)
-			},
 		},
 	}
 
 	max = &binaryOp{
-		whichType: binaryArithType,
+		elementwise: true,
+		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				if u.(Int) > v.(Int) {
@@ -834,12 +656,6 @@ func init() {
 					return u
 				}
 				return v
-			},
-			vectorType: func(u, v Value) Value {
-				return binaryVectorOp(u, "min", v)
-			},
-			matrixType: func(u, v Value) Value {
-				return binaryMatrixOp(u, "max", v)
 			},
 		},
 	}
