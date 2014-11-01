@@ -91,11 +91,21 @@ func (m Matrix) String() string {
 	return b.String()
 }
 
-// elemSize returns the length of the submatrix forming the elements of the matrix.
+// elemSize returns number of elements of the submatrix forming the elements of the matrix.
 // Given shape [a, b, c, ...] it is b*c*....
 func (m Matrix) elemSize() int {
+	return size(m.shape[1:])
+}
+
+// size returns number of elements of the matrix.
+// Given shape [a, b, c, ...] it is b*c*....
+func (m Matrix) size() int {
+	return size(m.shape)
+}
+
+func size(shape []Value) int {
 	size := 1
-	for _, i := range m.shape[1:] {
+	for _, i := range shape {
 		size *= int(i.(Int))
 	}
 	return size

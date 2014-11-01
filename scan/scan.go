@@ -34,7 +34,7 @@ const (
 	// Interesting things
 	Char           // printable ASCII character; grab bag for comma etc.
 	CharConstant   // character constant
-	ColonEquals    // ':='
+	Assign         // '='
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
 	LeftBrack      // '['
@@ -51,6 +51,7 @@ const (
 
 var operatorWord = map[string]bool{
 	"abs":   true,
+	"and":   true,
 	"ceil":  true,
 	"div":   true,
 	"floor": true,
@@ -60,7 +61,11 @@ var operatorWord = map[string]bool{
 	"min":   true,
 	"max":   true,
 	"mod":   true,
+	"not":   true,
+	"or":    true,
 	"rho":   true,
+	"sgn":   true,
+	"xor":   true,
 }
 
 func (i Token) String() string {
@@ -257,14 +262,6 @@ func lexAny(l *Scanner) stateFn {
 		return lexRawQuote
 	case r == '\'':
 		return lexChar
-	case r == ':':
-		if l.peek() == '=' {
-			l.next()
-			l.emit(ColonEquals)
-		} else {
-			l.emit(Char)
-		}
-		return lexSpace
 	case r == '-':
 		// It's the start of a number iff there is space before it (or it's first).
 		// Otherwise it's an operator.
@@ -276,6 +273,12 @@ func lexAny(l *Scanner) stateFn {
 	case r == '.' || '0' <= r && r <= '9':
 		l.backup()
 		return lexNumber
+	case r == '=':
+		if l.peek() != '=' {
+			l.emit(Assign)
+			return lexAny
+		}
+		fallthrough // for ==
 	case l.isOperator(r): // Must be after numbers, so '-' can be a sign.
 		l.emit(Operator)
 		return lexSpace
@@ -488,7 +491,7 @@ func isAlphaNumeric(r rune) bool {
 // if it is a two-character operator.
 func (l *Scanner) isOperator(r rune) bool {
 	switch r {
-	case '+', '-', '/', '%', '&', '|', '^':
+	case '+', '-', '/', '%', '&', '|', '^', '~', ',':
 		// No follow-on possible.
 	case ':':
 		switch l.peek() {
@@ -497,16 +500,11 @@ func (l *Scanner) isOperator(r rune) bool {
 		default:
 			return false
 		}
-	case '=':
-		switch l.peek() {
-		case '=':
-			l.next()
-		}
 	case '!':
-		switch l.peek() {
-		case '=':
-			l.next()
+		if l.peek() != '=' {
+			return false
 		}
+		l.next()
 	case '>':
 		switch l.peek() {
 		case '>', '=':

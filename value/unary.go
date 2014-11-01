@@ -52,8 +52,9 @@ func unaryMatrixOp(op string, i Value) Value {
 
 var (
 	unaryPlus, unaryMinus, unaryRecip *unaryOp
+	unaryAbs, unarySignum             *unaryOp
 	unaryBitwiseNot, unaryLogicalNot  *unaryOp
-	unaryAbs, unaryIota, unaryRho     *unaryOp
+	unaryIota, unaryRho, unaryRavel   *unaryOp
 	floor, ceil                       *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
@@ -122,6 +123,33 @@ func init() {
 		},
 	}
 
+	unarySignum = &unaryOp{
+		fn: [numType]unaryFn{
+			intType: func(v Value) Value {
+				i := int64(v.(Int))
+				if i > 0 {
+					return one
+				}
+				if i < 0 {
+					return minusOne
+				}
+				return zero
+			},
+			bigIntType: func(v Value) Value {
+				return Int(v.(BigInt).Sign())
+			},
+			bigRatType: func(v Value) Value {
+				return Int(v.(BigRat).Sign())
+			},
+			vectorType: func(v Value) Value {
+				return unaryVectorOp("sgn", v)
+			},
+			matrixType: func(v Value) Value {
+				return unaryMatrixOp("sgn", v)
+			},
+		},
+	}
+
 	unaryBitwiseNot = &unaryOp{
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
@@ -155,10 +183,10 @@ func init() {
 				return zero
 			},
 			vectorType: func(v Value) Value {
-				return unaryVectorOp("!", v)
+				return unaryVectorOp("~", v)
 			},
 			matrixType: func(v Value) Value {
-				return unaryMatrixOp("!", v)
+				return unaryMatrixOp("~", v)
 			},
 		},
 	}
@@ -282,16 +310,38 @@ func init() {
 		},
 	}
 
+	unaryRavel = &unaryOp{
+		fn: [numType]unaryFn{
+			intType: func(v Value) Value {
+				return ValueSlice([]Value{v})
+			},
+			bigIntType: func(v Value) Value {
+				return ValueSlice([]Value{v})
+			},
+			bigRatType: func(v Value) Value {
+				return ValueSlice([]Value{v})
+			},
+			vectorType: func(v Value) Value {
+				return v
+			},
+			matrixType: func(v Value) Value {
+				return v.(Matrix).data
+			},
+		},
+	}
+
 	unaryOps = map[string]*unaryOp{
 		"+":     unaryPlus,
 		"-":     unaryMinus,
 		"/":     unaryRecip,
+		"sgn":   unarySignum,
 		"^":     unaryBitwiseNot,
-		"!":     unaryLogicalNot,
+		"~":     unaryLogicalNot,
 		"abs":   unaryAbs,
 		"ceil":  ceil,
 		"floor": floor,
 		"iota":  unaryIota,
 		"rho":   unaryRho,
+		",":     unaryRavel,
 	}
 }

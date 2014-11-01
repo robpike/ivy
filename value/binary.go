@@ -105,9 +105,9 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 		}
 	case len(v.shape) == 1 && v.shape[0].(Int) == 1:
 		// Matrix op Scalar.
-		n = make([]Value, v.data.Len())
+		n = make([]Value, u.data.Len())
 		for k := range u.data {
-			n[k] = Binary(u.data[0], op, v.data[0])
+			n[k] = Binary(u.data[k], op, v.data[0])
 		}
 	default:
 		// Matrix op Matrix.
@@ -137,13 +137,13 @@ func binaryBigRatOp(u Value, op func(*big.Rat, *big.Rat, *big.Rat) *big.Rat, v V
 	return z.shrink()
 }
 
-// bigIntPow is the "op" for pow on *big.Int. Different signature for Exp means we can't use *big.Exp directly.
-func bigIntPow(i, j, k *big.Int) *big.Int {
+// bigIntExp is the "op" for exp on *big.Int. Different signature for Exp means we can't use *big.Exp directly.
+func bigIntExp(i, j, k *big.Int) *big.Int {
 	i.Exp(j, k, nil)
 	return i
 }
 
-// toInt turns the boolean into 0 or 1.
+// toInt turns the boolean into an Int 0 or 1.
 func toInt(t bool) Value {
 	if t {
 		return one
@@ -151,15 +151,31 @@ func toInt(t bool) Value {
 	return zero
 }
 
+// toBool turns the Value into a Go bool.
+func toBool(t Value) bool {
+	switch t := t.(type) {
+	case Int:
+		return t != 0
+	case BigInt:
+		return t.Sign() != 0
+	case BigRat:
+		return t.Sign() != 0
+	default:
+		panic(Errorf("cannot convert %T to bool", t))
+	}
+}
+
 var (
-	add, sub, mul, pow        *binaryOp
-	quo, idiv, imod, div, mod *binaryOp
-	and, or, xor, lsh, rsh    *binaryOp
-	eq, ne, lt, le, gt, ge    *binaryOp
-	index                     *binaryOp
-	binaryIota, rho           *binaryOp
-	min, max                  *binaryOp
-	binaryOps                 map[string]*binaryOp
+	add, sub, mul, exp                 *binaryOp
+	quo, idiv, imod, div, mod          *binaryOp
+	bitAnd, bitOr, bitXor              *binaryOp
+	lsh, rsh                           *binaryOp
+	eq, ne, lt, le, gt, ge             *binaryOp
+	index                              *binaryOp
+	logicalAnd, logicalOr, logicalXor  *binaryOp
+	binaryIota, binaryRho, binaryRavel *binaryOp
+	min, max                           *binaryOp
+	binaryOps                          map[string]*binaryOp
 )
 
 var (
@@ -341,7 +357,7 @@ func init() {
 		},
 	}
 
-	pow = &binaryOp{
+	exp = &binaryOp{
 		whichType: divType,
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
@@ -351,7 +367,7 @@ func init() {
 				case -1:
 					panic(Error("negative exponent not implemented"))
 				}
-				return binaryBigIntOp(u, bigIntPow, v)
+				return binaryBigIntOp(u, bigIntExp, v)
 			},
 			bigRatType: func(u, v Value) Value {
 				// We know v is integral. (n/d)**2 is n**2/d**2.
@@ -381,7 +397,7 @@ func init() {
 		},
 	}
 
-	and = &binaryOp{
+	bitAnd = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
@@ -399,7 +415,7 @@ func init() {
 		},
 	}
 
-	or = &binaryOp{
+	bitOr = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
@@ -417,7 +433,7 @@ func init() {
 		},
 	}
 
-	xor = &binaryOp{
+	bitXor = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
@@ -436,7 +452,7 @@ func init() {
 	}
 
 	lsh = &binaryOp{
-		whichType: divType, // Shifts are like power: let BigInt do the work.
+		whichType: divType, // Shifts are like exp: let BigInt do the work.
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
@@ -454,7 +470,7 @@ func init() {
 	}
 
 	rsh = &binaryOp{
-		whichType: divType, // Shifts are like power: let BigInt do the work.
+		whichType: divType, // Shifts are like exp: let BigInt do the work.
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
@@ -609,6 +625,69 @@ func init() {
 		},
 	}
 
+	logicalAnd = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			intType: func(u, v Value) Value {
+				return toInt(toBool(u) && toBool(v))
+			},
+			bigIntType: func(u, v Value) Value {
+				return toInt(toBool(u) && toBool(v))
+			},
+			bigRatType: func(u, v Value) Value {
+				return toInt(toBool(u) && toBool(v))
+			},
+			vectorType: func(u, v Value) Value {
+				return binaryVectorOp(u, "and", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "and", v)
+			},
+		},
+	}
+
+	logicalOr = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			intType: func(u, v Value) Value {
+				return toInt(toBool(u) || toBool(v))
+			},
+			bigIntType: func(u, v Value) Value {
+				return toInt(toBool(u) || toBool(v))
+			},
+			bigRatType: func(u, v Value) Value {
+				return toInt(toBool(u) || toBool(v))
+			},
+			vectorType: func(u, v Value) Value {
+				return binaryVectorOp(u, "or", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "or", v)
+			},
+		},
+	}
+
+	logicalXor = &binaryOp{
+		whichType: binaryArithType,
+		fn: [numType]binaryFn{
+			intType: func(u, v Value) Value {
+				return toInt(toBool(u) != toBool(v))
+			},
+			bigIntType: func(u, v Value) Value {
+				return toInt(toBool(u) != toBool(v))
+			},
+			bigRatType: func(u, v Value) Value {
+				return toInt(toBool(u) != toBool(v))
+			},
+			vectorType: func(u, v Value) Value {
+				return binaryVectorOp(u, "xor", v)
+			},
+			matrixType: func(u, v Value) Value {
+				return binaryMatrixOp(u, "xor", v)
+			},
+		},
+	}
+
 	index = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
@@ -657,14 +736,12 @@ func init() {
 					if len(A.shape) == 2 {
 						return values
 					}
-					// Is it a matrix with a first rank of 1?
-					if B[0].(Int) == 1 {
-						newShape := make(Vector, len(A.shape)-1)
-						copy(newShape, A.shape[1:])
-						return Matrix{
-							shape: newShape,
-							data:  values,
-						}
+					// Matrix of one less degree.
+					newShape := make(Vector, len(A.shape)-1)
+					copy(newShape, A.shape[1:])
+					return Matrix{
+						shape: newShape,
+						data:  values,
 					}
 				}
 				newShape := make(Vector, len(A.shape))
@@ -765,7 +842,7 @@ func init() {
 		},
 	}
 
-	rho = &binaryOp{
+	binaryRho = &binaryOp{
 		whichType: atLeastVectorType, // TODO: correct?
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
@@ -782,6 +859,45 @@ func init() {
 		},
 	}
 
+	binaryRavel = &binaryOp{
+		whichType: atLeastVectorType, // TODO: correct?
+		fn: [numType]binaryFn{
+			intType: func(u, v Value) Value {
+				return ValueSlice([]Value{u, v})
+			},
+			bigIntType: func(u, v Value) Value {
+				return ValueSlice([]Value{u, v})
+			},
+			bigRatType: func(u, v Value) Value {
+				return ValueSlice([]Value{u, v})
+			},
+			vectorType: func(u, v Value) Value {
+				return append(u.(Vector), v.(Vector)...)
+			},
+			matrixType: func(u, v Value) Value {
+				A := u.(Matrix)
+				B := v.(Matrix)
+				if len(A.shape) == 0 || len(B.shape) == 0 {
+					panic(Error("empty matrix for ,"))
+				}
+				if len(A.shape) != len(B.shape)+1 || A.elemSize() != B.size() {
+					panic(Errorf("ravel rank mismatch: %s != %s", A.shape[1:], B.shape))
+				}
+				elemSize := A.elemSize()
+				newShape := make(Vector, len(A.shape))
+				copy(newShape, A.shape)
+				newData := make(Vector, len(A.data), len(A.data)+elemSize)
+				copy(newData, A.data)
+				newData = append(newData, B.data...)
+				newShape[0] = newShape[0].(Int) + 1
+				return Matrix{
+					shape: newShape,
+					data:  newData,
+				}
+			},
+		},
+	}
+
 	binaryOps = map[string]*binaryOp{
 		"+":    add,
 		"-":    sub,
@@ -791,10 +907,10 @@ func init() {
 		"imod": imod, // Go-like integer moduls.
 		"div":  div,  // Euclidean integer division.
 		"mod":  mod,  // Euclidean integer division.
-		"**":   pow,
-		"&":    and,
-		"|":    or,
-		"^":    xor,
+		"**":   exp,
+		"&":    bitAnd,
+		"|":    bitOr,
+		"^":    bitXor,
 		"<<":   lsh,
 		">>":   rsh,
 		"==":   eq,
@@ -804,9 +920,13 @@ func init() {
 		">":    gt,
 		">=":   ge,
 		"[]":   index,
+		"and":  logicalAnd,
+		"or":   logicalOr,
+		"xor":  logicalXor,
 		"iota": binaryIota,
 		"min":  min,
 		"max":  max,
-		"rho":  rho,
+		"rho":  binaryRho,
+		",":    binaryRavel,
 	}
 }

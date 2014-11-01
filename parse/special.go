@@ -21,7 +21,7 @@ func (p *Parser) need(want scan.Type) scan.Token {
 }
 
 func (p *Parser) special() {
-	switch p.need(scan.Identifier).Text {
+	switch text := p.need(scan.Identifier).Text; text {
 	case "format":
 		str, err := strconv.Unquote(p.need(scan.String).Text)
 		if err != nil {
@@ -46,6 +46,8 @@ func (p *Parser) special() {
 		}
 		v, ok := number.(value.Int)
 		p.config.SetDebug(name, ok && v.ToBool())
+	default:
+		p.errorf(")%s: not recognized", text)
 	}
 	p.need(scan.Newline)
 }

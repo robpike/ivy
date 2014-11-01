@@ -126,6 +126,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 func (p *Parser) Line() (value.Value, bool) {
 	tok := p.Next()
 	variable := ""
+	isAssignment := false
 	switch tok.Type {
 	case scan.EOF:
 		return nil, false
@@ -139,7 +140,8 @@ func (p *Parser) Line() (value.Value, bool) {
 		return nil, true
 	case scan.Identifier:
 		next := p.Peek()
-		if next.Type == scan.ColonEquals {
+		if next.Type == scan.Assign {
+			isAssignment = true
 			p.Next()
 			variable = tok.Text
 			tok = p.Next()
@@ -161,6 +163,9 @@ func (p *Parser) Line() (value.Value, bool) {
 		p.vars["_"] = expr
 		if variable != "" {
 			p.vars[variable] = expr
+		}
+		if isAssignment {
+			return nil, true // Don't print
 		}
 		return expr, true
 	}
