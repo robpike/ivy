@@ -225,13 +225,8 @@ const (
 func lexComment(l *Scanner) stateFn {
 	l.pos += Pos(len(startComment))
 	for {
-		r := l.peek()
-		if r == eof {
-			break
-		}
-		l.next()
-		l.pos += Pos(utf8.RuneLen(r))
-		if r == '\n' {
+		r := l.next()
+		if r == eof || r == '\n' {
 			break
 		}
 	}
