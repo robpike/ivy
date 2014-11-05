@@ -78,3 +78,10 @@ func (i Int) ToType(which valueType) Value {
 func (i Int) ToBool() bool {
 	return i != 0
 }
+
+func (i Int) maybeBig() Value {
+	if minInt <= i && i <= maxInt {
+		return i
+	}
+	return bigInt64(int64(i))
+}

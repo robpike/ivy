@@ -134,7 +134,7 @@ func init() {
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
-				return u.(Int) + v.(Int)
+				return (u.(Int) + v.(Int)).maybeBig()
 			},
 			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Add, v)
@@ -150,7 +150,7 @@ func init() {
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
-				return u.(Int) - v.(Int)
+				return (u.(Int) - v.(Int)).maybeBig()
 			},
 			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Sub, v)
@@ -166,7 +166,7 @@ func init() {
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
-				return u.(Int) * v.(Int)
+				return (u.(Int) * v.(Int)).maybeBig()
 			},
 			bigIntType: func(u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Mul, v)
