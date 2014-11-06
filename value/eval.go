@@ -31,7 +31,7 @@ type unaryOp struct {
 }
 
 func Unary(opName string, v Value) Value {
-	if strings.HasSuffix(opName, `\`) {
+	if len(opName) > 1 && strings.HasSuffix(opName, `/`) {
 		return Reduce(opName[:len(opName)-1], v)
 	}
 	op := unaryOps[opName]
@@ -60,11 +60,6 @@ type binaryOp struct {
 	elementwise bool // whether the operation applies elementwise to vectors and matrices
 	whichType   func(a, b valueType) valueType
 	fn          [numType]binaryFn
-}
-
-type reduceOp struct {
-	zero Value
-	fn   unaryFn
 }
 
 func whichType(v Value) valueType {

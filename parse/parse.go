@@ -108,7 +108,7 @@ func (p *Parser) Peek() scan.Token {
 
 func (p *Parser) errorf(format string, args ...interface{}) {
 	// Flush to newline.
-	for p.curTok.Type != scan.Newline {
+	for p.curTok.Type != scan.Newline && p.curTok.Type != scan.EOF {
 		p.Next()
 	}
 	p.peekTok = scan.Token{Type: scan.EOF}
@@ -207,13 +207,8 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 	switch tok.Type {
 	case scan.Operator:
 		// Unary.
-		op := tok.Text
-		if p.Peek().Text == `\` {
-			// Reduce operation.
-			op += p.Next().Text
-		}
 		expr = &Unary{
-			op:    op,
+			op:    tok.Text,
 			right: p.Expr(p.Next()),
 		}
 	case scan.LeftParen:

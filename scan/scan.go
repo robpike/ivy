@@ -68,6 +68,39 @@ var operatorWord = map[string]bool{
 	"xor":   true,
 }
 
+// isBinary identifies the binary operators; these can be used in reductions.
+var isBinary = map[string]bool{
+	"+":    true,
+	"-":    true,
+	"*":    true,
+	"/":    true,
+	"idiv": true,
+	"imod": true,
+	"div":  true,
+	"mod":  true,
+	"**":   true,
+	"&":    true,
+	"|":    true,
+	"^":    true,
+	"<<":   true,
+	">>":   true,
+	"==":   true,
+	"!=":   true,
+	"<":    true,
+	"<=":   true,
+	">":    true,
+	">=":   true,
+	"[]":   true,
+	"and":  true,
+	"or":   true,
+	"xor":  true,
+	"iota": true,
+	"min":  true,
+	"max":  true,
+	"rho":  true,
+	",":    true, // Silly but not wrong.
+}
+
 func (i Token) String() string {
 	switch {
 	case i.Type == EOF:
@@ -218,7 +251,7 @@ func (l *Scanner) run() {
 // state functions
 
 const (
-	startComment = "//"
+	startComment = "#"
 )
 
 // lexComment scans a comment. The comment marker is known to be present.
@@ -276,6 +309,10 @@ func lexAny(l *Scanner) stateFn {
 		l.next()
 		fallthrough // for ==
 	case l.isOperator(r): // Must be after numbers, so '-' can be a sign.
+		// It might be a reduction.
+		if l.peek() == '/' && isBinary[l.input[l.start:l.pos]] {
+			l.next()
+		}
 		l.emit(Operator)
 		return lexSpace
 	case isAlphaNumeric(r):

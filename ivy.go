@@ -66,7 +66,7 @@ func main() {
 			}
 			lexer := lex.NewLexer(name, fd, []string(iFlag))
 			parser := parse.NewParser(&conf, lexer)
-			if !run(parser, interactive) {
+			if !run(parser, os.Stdout, interactive) {
 				break
 			}
 		}
@@ -75,19 +75,19 @@ func main() {
 
 	lexer := lex.NewLexer("", os.Stdin, []string(iFlag))
 	parser := parse.NewParser(&conf, lexer)
-	for !run(parser, true) {
+	for !run(parser, os.Stdout, true) {
 	}
 }
 
 func runArgs() {
 	lexer := lex.NewLexer("", strings.NewReader(strings.Join(flag.Args(), " ")), []string(iFlag))
 	parser := parse.NewParser(&conf, lexer)
-	run(parser, false)
+	run(parser, os.Stdout, false)
 
 }
 
 // run runs until EOF or error. The return value says whether we completed without error.
-func run(p *parse.Parser, interactive bool) (success bool) {
+func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
 	defer func() {
 		err := recover()
 		if err == nil {
@@ -102,20 +102,20 @@ func run(p *parse.Parser, interactive bool) (success bool) {
 	}()
 	for {
 		if interactive {
-			fmt.Print(conf.Prompt())
+			fmt.Fprint(writer, conf.Prompt())
 		}
 		value, ok := p.Line()
 		if value != nil {
 			if conf.Debug("type") {
-				fmt.Printf("%T:\n", value)
+				fmt.Fprintf(writer, "%T:\n", value)
 			}
-			fmt.Println(value)
+			fmt.Fprintln(writer, value)
 		}
 		if !ok {
 			return true
 		}
 		if interactive {
-			fmt.Println()
+			fmt.Fprintln(writer)
 		}
 	}
 }
