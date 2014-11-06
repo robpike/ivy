@@ -1,0 +1,19 @@
+Each test file is suffixed ".ivy".
+
+Each contains a list of examples separated by blank lines.
+Comments are discarded.
+
+Each example is one or more non-blank lines, the input, followed
+by one or lines indented by a tab (perhaps otherwise empty), the
+output. The output, trimmed of leading tab, must match the result
+of running ivy with the input.
+
+Example:
+
+)origin 0
+iota 10
+	0 1 2 3 4 5 6 7 8 9
+
+)origin 1
+iota 10
+	1 2 3 4 5 6 7 8 9 10
