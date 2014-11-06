@@ -184,6 +184,7 @@ func (l *Scanner) backup() {
 // emit passes an item back to the client.
 func (l *Scanner) emit(t Type) {
 	s := l.input[l.start:l.pos]
+	// fmt.Printf("emit %s\n", Token{t, l.start, s})
 	l.Tokens <- Token{t, l.start, s}
 	l.start = l.pos
 }
@@ -281,7 +282,7 @@ func lexAny(l *Scanner) stateFn {
 		return nil
 	case r == '\n': // TODO: \r
 		l.emit(Newline)
-		return lexSpace
+		return lexAny
 	case isSpace(r):
 		return lexSpace
 	case r == '"':

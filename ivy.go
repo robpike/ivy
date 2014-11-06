@@ -96,6 +96,9 @@ func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
 		if err, ok := err.(value.Error); ok {
 			log.Print(err)
 			success = false
+			if interactive {
+				fmt.Fprintln(writer)
+			}
 			return
 		}
 		panic(err)

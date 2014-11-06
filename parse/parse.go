@@ -88,8 +88,8 @@ func (p *Parser) Next() scan.Token {
 		p.peekTok = scan.Token{Type: scan.EOF}
 	} else {
 		tok = p.lexer.Next()
-		p.curTok = tok
 	}
+	p.curTok = tok
 	return tok
 }
 
