@@ -272,8 +272,11 @@ func init() {
 				return binaryBigIntOp(u, bigIntExp, v)
 			},
 			bigRatType: func(u, v Value) Value {
-				// We know v is integral. (n/d)**2 is n**2/d**2.
 				rexp := v.(BigRat)
+				if !rexp.IsInt() {
+					panic(Error("fractional exponent not implemented"))
+				}
+				// We know v is integral. (n/d)**2 is n**2/d**2.
 				switch rexp.Sign() {
 				case 0:
 					return one
@@ -603,6 +606,26 @@ func init() {
 				}
 				return ValueSlice(indices)
 			},
+			matrixType: func(u, v Value) Value {
+				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
+				A, B := u.(Matrix), v.(Matrix)
+				indices := make([]Value, len(B.data))
+				// TODO: This is n^2.
+			Outer:
+				for i, b := range B.data {
+					for j, a := range A.data {
+						if toBool(Binary(a, "==", b)) {
+							indices[i] = Int(j + conf.Origin())
+							continue Outer
+						}
+					}
+					indices[i] = zero
+				}
+				return Matrix{
+					shape: B.shape,
+					data:  ValueSlice(indices),
+				}
+			},
 		},
 	}
 
@@ -619,16 +642,16 @@ func init() {
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				if i.Cmp(j.Int) < 0 {
-					return u
+					return i.shrink()
 				}
-				return v
+				return j.shrink()
 			},
 			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				if i.Cmp(j.Rat) < 0 {
-					return u
+					return i.shrink()
 				}
-				return v
+				return j.shrink()
 			},
 		},
 	}
@@ -653,9 +676,9 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				if i.Cmp(j.Rat) > 0 {
-					return u
+					return i.shrink()
 				}
-				return v
+				return j.shrink()
 			},
 		},
 	}

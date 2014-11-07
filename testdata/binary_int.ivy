@@ -1,0 +1,421 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Binary operations with ints on the left.
+# Each operation is listed with:
+#
+#
+#	int + int
+#	int + bigint
+#	int + bigrat
+#	int + vector
+#	int + matrix
+#
+#	Ops:
+#
+#	+
+#	-
+#	*
+#	/
+#	idiv
+#	imod
+#	div
+#	mod
+#	**
+#	&
+#	|
+#	^
+#	<<
+#	>>
+#	==
+#	!=
+#	<
+#	<=
+#	>
+#	>=
+#	[] (Not implemented for int)
+#	and
+#	or
+#	xor
+#	iota
+#	min
+#	max
+#	rho
+#	,
+
+2+5
+	7
+
+2+1e10
+	10000000002
+
+2+1/3
+	7/3
+
+2+iota 3
+	3 4 5
+
+2+2 3 rho iota 10
+	3 4 5
+	6 7 8
+
+2-5
+	-3
+
+2-1e10
+	-9999999998
+
+2-1/3
+	5/3
+
+2-iota 3
+	1 0 -1
+
+2-2 3 rho iota 10
+	 1  0 -1
+	-2 -3 -4
+
+2*5
+	10
+
+2*1e10
+	20000000000
+
+2*1/3
+	2/3
+
+2*iota 3
+	2 4 6
+
+2*2 3 rho iota 10
+	 2  4  6
+	 8 10 12
+
+2 / 5
+	2/5
+
+2 / 1e10
+	1/5000000000
+
+2 / 1/3
+	6
+
+2 / iota 3
+	2 1 2/3
+
+2 / 2 3 rho iota 10
+	  2   1 2/3
+	1/2 2/5 1/3
+
+2 idiv 5
+	0
+
+2 idiv 1e10
+	0
+
+2 idiv iota 3
+	2 1 0
+
+2 idiv 2 3 rho iota 10
+	2 1 0
+	0 0 0
+
+2 imod 5
+	2
+
+2 imod 1e10
+	2
+
+2 imod iota 3
+	0 0 2
+
+2 imod 2 3 rho iota 10
+	0 0 2
+	2 2 2
+
+2 ** 5
+	32
+
+1 ** 1e10
+	1
+
+2 ** iota 3
+	2 4 8
+
+2 ** 2 3 rho iota 10
+	 2  4  8
+	16 32 64
+
+2 & 7
+	2
+
+2 & 2+1e10
+	2
+
+2 & iota 3
+	0 2 2
+
+2 &  2 3 rho iota 10
+	0 2 2
+	0 0 2
+
+2 | 7
+	7
+
+2 | 2+1e10
+	10000000002
+
+2 | iota 3
+	3 2 3
+
+2 |  2 3 rho iota 10
+	3 2 3
+	6 7 6
+
+2 ^ 7
+	5
+
+2 ^ 2+1e10
+	10000000000
+
+2 ^ iota 3
+	3 0 1
+
+2 ^  2 3 rho iota 10
+	3 0 1
+	6 7 4
+
+2 << 5
+	64
+
+2 << iota 3
+	4 8 16
+
+2 <<  2 3 rho iota 10
+	  4   8  16
+	 32  64 128
+
+222 >> 5
+	6
+
+222 >> iota 3
+	111 55 27
+
+222 >>  2 3 rho iota 10
+	111  55  27
+	 13   6   3
+
+2 == 5
+	0
+
+2 == 1e10
+	0
+
+2 == 1/3
+	0
+
+2 == iota 3
+	0 1 0
+
+2 ==  2 3 rho iota 10
+	0 1 0
+	0 0 0
+
+2 != 5
+	1
+
+2 != 1e10
+	1
+
+2 != 1/3
+	1
+
+2 != iota 3
+	1 0 1
+
+2 !=  2 3 rho iota 10
+	1 0 1
+	1 1 1
+
+2 < 5
+	1
+
+2 < 1e10
+	1
+
+2 < 1/3
+	0
+
+2 < iota 3
+	0 0 1
+
+2 <  2 3 rho iota 10
+	0 0 1
+	1 1 1
+
+2 <= 5
+	1
+
+2 <= 1e10
+	1
+
+2 <= 1/3
+	0
+
+2 <= iota 3
+	0 1 1
+
+2 <=  2 3 rho iota 10
+	0 1 1
+	1 1 1
+
+2 > 5
+	0
+
+2 > 1e10
+	0
+
+2 > 1/3
+	1
+
+2 > iota 3
+	1 0 0
+
+2 >  2 3 rho iota 10
+	1 0 0
+	0 0 0
+
+2 >= 5
+	0
+
+2 >= 1e10
+	0
+
+2 >= 1/3
+	1
+
+2 >= iota 3
+	1 1 0
+
+2 >=  2 3 rho iota 10
+	1 1 0
+	0 0 0
+
+2 and 5
+	1
+
+2 and 1e10
+	1
+
+2 and 1/3
+	1
+
+2 and  -1 + iota 3
+	0 1 1
+
+2 and  -2 + 2 3 rho iota 10
+	1 0 1
+	1 1 1
+
+2 or 5
+	1
+
+2 or 1e10
+	1
+
+2 or 1/3
+	1
+
+2 or -2 + iota 3
+	1 1 1
+
+0 or -2 + iota 3
+	1 0 1
+
+2 or -2 + 2 3 rho iota 10
+	1 1 1
+	1 1 1
+
+0 or -2 +2 3 rho iota 10
+	1 0 1
+	1 1 1
+
+2 xor 3
+	0
+
+2 xor 1e10
+	0
+
+1 xor 1/3
+	0
+
+1 xor -2 + iota 3
+	0 1 0
+
+1 xor -2+ 2 3 rho iota 10
+	0 1 0
+	0 0 0
+
+2 iota 1 2 3
+	0 1 0 
+
+2 iota 2 3 rho iota 10
+	0 1 0
+	0 0 0
+
+2 min 5
+	2
+
+2 min 1e10
+	2
+
+2 min 1/3
+	1/3
+
+2 min iota 3
+	1 2 2
+
+2 min  2 3 rho iota 10
+	1 2 2
+	2 2 2
+
+2 max 5
+	5
+
+2 max 1e10
+	10000000000
+
+2 max 1/3
+	2
+
+2 max iota 3
+	2 2 3
+
+2 max 2 3 rho iota 10
+	2 2 3
+	4 5 6
+
+2 rho 5
+	5 5
+
+2 rho 1e10
+	10000000000 10000000000
+
+2 rho iota 3
+	1 2
+
+2 rho 2 3 rho iota 10
+	1 2
+
+2 , 5
+	2 5
+
+2 , 1e10
+	2 10000000000
+
+2 , 1/3
+	2 1/3
+
+2 , iota 3
+	2 1 2 3

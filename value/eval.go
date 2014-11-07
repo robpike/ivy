@@ -79,6 +79,11 @@ func whichType(v Value) valueType {
 }
 
 func Binary(u Value, opName string, v Value) Value {
+	if dot := strings.IndexByte(opName, '.'); dot > 0 {
+		left := opName[:dot]
+		right := opName[dot+1:]
+		return InnerProduct(u, left, right, v)
+	}
 	op := binaryOps[opName]
 	if op == nil {
 		panic(Errorf("binary %s not implemented", opName))
@@ -99,6 +104,29 @@ func Binary(u Value, opName string, v Value) Value {
 		panic(Errorf("binary %s not implemented on type %s", opName, which))
 	}
 	return fn(u, v)
+}
+
+func InnerProduct(u Value, left, right string, v Value) Value {
+	// Vectors only for now.
+	i, ok := u.(Vector)
+	if !ok {
+		panic(Errorf("inner product not implemented on type %s", whichType(u)))
+	}
+	j, ok := v.(Vector)
+	if !ok {
+		panic(Errorf("inner product not implemented on type %s", whichType(v)))
+	}
+	i.sameLength(j)
+	var x Value = zero
+	switch left {
+	case "*", "/": // TODO: what are the correct operators here? Should we complain?
+		x = one
+	}
+	for k, e := range i {
+		tmp := Binary(e, right, j[k])
+		x = Binary(x, left, tmp)
+	}
+	return x
 }
 
 func Reduce(opName string, v Value) Value {

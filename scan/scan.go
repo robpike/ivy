@@ -310,9 +310,23 @@ func lexAny(l *Scanner) stateFn {
 		l.next()
 		fallthrough // for ==
 	case l.isOperator(r): // Must be after numbers, so '-' can be a sign.
-		// It might be a reduction.
-		if l.peek() == '/' && isBinary[l.input[l.start:l.pos]] {
-			l.next()
+		// It might be an inner product or reduction.
+		// TODO: Make reduce and inner product work for alphabetic operators like min, idiv.
+		if isBinary[l.input[l.start:l.pos]] {
+			switch l.peek() {
+			case '.':
+				l.next() // Accept the '.'.
+				startRight := l.pos
+				r = l.next()
+				if !l.isOperator(r) {
+					return l.errorf("unrecognized character in inner product: %#U", r)
+				}
+				if !isBinary[l.input[startRight:l.pos]] {
+					return l.errorf("invalid inner product %s", l.input[l.start:l.pos])
+				}
+			case '/':
+				l.next()
+			}
 		}
 		l.emit(Operator)
 		return lexSpace
