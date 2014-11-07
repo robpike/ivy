@@ -79,10 +79,8 @@ func whichType(v Value) valueType {
 }
 
 func Binary(u Value, opName string, v Value) Value {
-	if dot := strings.IndexByte(opName, '.'); dot > 0 {
-		left := opName[:dot]
-		right := opName[dot+1:]
-		return InnerProduct(u, left, right, v)
+	if strings.Contains(opName, ".") {
+		return InnerProduct(u, opName, v)
 	}
 	op := binaryOps[opName]
 	if op == nil {
@@ -106,7 +104,10 @@ func Binary(u Value, opName string, v Value) Value {
 	return fn(u, v)
 }
 
-func InnerProduct(u Value, left, right string, v Value) Value {
+func InnerProduct(u Value, opName string, v Value) Value {
+	dot := strings.IndexByte(opName, '.')
+	left := opName[:dot]
+	right := opName[dot+1:]
 	// Vectors only for now.
 	i, ok := u.(Vector)
 	if !ok {
@@ -117,15 +118,16 @@ func InnerProduct(u Value, left, right string, v Value) Value {
 		panic(Errorf("inner product not implemented on type %s", whichType(v)))
 	}
 	i.sameLength(j)
-	var x Value = zero
-	switch left {
-	case "*", "/": // TODO: what are the correct operators here? Should we complain?
-		x = one
-	}
+	var x Value
 	for k, e := range i {
 		tmp := Binary(e, right, j[k])
-		x = Binary(x, left, tmp)
+		if k == 0 {
+			x = tmp
+		} else {
+			x = Binary(x, left, tmp)
+		}
 	}
+	// TODO: An observation: +.*.min.max is well defined. We could implement it easily.
 	return x
 }
 

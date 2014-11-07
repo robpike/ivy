@@ -188,7 +188,7 @@ func (p *Parser) Expr(tok scan.Token) value.Expr {
 			right: p.Expr(p.Next()),
 		}
 	}
-	p.errorf("unexpected %s after expression", p.Peek())
+	p.errorf("after expression: unexpected %s", p.Peek())
 	return nil
 }
 

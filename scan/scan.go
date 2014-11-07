@@ -310,26 +310,7 @@ func lexAny(l *Scanner) stateFn {
 		l.next()
 		fallthrough // for ==
 	case l.isOperator(r): // Must be after numbers, so '-' can be a sign.
-		// It might be an inner product or reduction.
-		// TODO: Make reduce and inner product work for alphabetic operators like min, idiv.
-		if isBinary[l.input[l.start:l.pos]] {
-			switch l.peek() {
-			case '.':
-				l.next() // Accept the '.'.
-				startRight := l.pos
-				r = l.next()
-				if !l.isOperator(r) {
-					return l.errorf("unrecognized character in inner product: %#U", r)
-				}
-				if !isBinary[l.input[startRight:l.pos]] {
-					return l.errorf("invalid inner product %s", l.input[l.start:l.pos])
-				}
-			case '/':
-				l.next()
-			}
-		}
-		l.emit(Operator)
-		return lexSpace
+		return lexOperator
 	case isAlphaNumeric(r):
 		l.backup()
 		return lexIdentifier
@@ -377,7 +358,7 @@ Loop:
 			}
 			// Some identifiers are operators.
 			if operatorWord[l.input[l.start:l.pos]] {
-				l.emit(Operator)
+				return lexOperator
 			} else {
 				l.emit(Identifier)
 			}
@@ -385,6 +366,40 @@ Loop:
 		}
 	}
 	return lexAny
+}
+
+// lexOperator completes scanning an operator. We have already accepted the + or
+// whatever; there may be a reduction or inner product.
+func lexOperator(l *Scanner) stateFn {
+	// It might be an inner product or reduction, but only if it is a binary operator.
+	if isBinary[l.input[l.start:l.pos]] {
+		switch l.peek() {
+		case '/':
+			// Reduction.
+			l.next()
+		case '.':
+			// Inner product
+			l.next() // Accept the '.'.
+			startRight := l.pos
+			r := l.next()
+			switch {
+			case l.isOperator(r):
+			case isAlphaNumeric(r):
+				for isAlphaNumeric(r) {
+					r = l.next()
+				}
+				l.backup()
+				if !l.atTerminator() {
+					return l.errorf("bad character %#U", r)
+				}
+				if !operatorWord[l.input[startRight:l.pos]] {
+					return l.errorf("%s not an operator", l.input[startRight:l.pos])
+				}
+			}
+		}
+	}
+	l.emit(Operator)
+	return lexSpace
 }
 
 // atTerminator reports whether the input is at valid termination character to
