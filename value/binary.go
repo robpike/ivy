@@ -609,21 +609,9 @@ func init() {
 			matrixType: func(u, v Value) Value {
 				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
 				A, B := u.(Matrix), v.(Matrix)
-				indices := make([]Value, len(B.data))
-				// TODO: This is n^2.
-			Outer:
-				for i, b := range B.data {
-					for j, a := range A.data {
-						if toBool(Binary(a, "==", b)) {
-							indices[i] = Int(j + conf.Origin())
-							continue Outer
-						}
-					}
-					indices[i] = zero
-				}
 				return Matrix{
 					shape: B.shape,
-					data:  ValueSlice(indices),
+					data:  Binary(A.data, "iota", B.data).(Vector),
 				}
 			},
 		},

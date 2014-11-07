@@ -127,7 +127,6 @@ func InnerProduct(u Value, opName string, v Value) Value {
 			x = Binary(x, left, tmp)
 		}
 	}
-	// TODO: An observation: +.*.min.max is well defined. We could implement it easily.
 	return x
 }
 
