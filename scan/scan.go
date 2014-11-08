@@ -160,11 +160,11 @@ func (l *Scanner) loadLine() {
 
 // next returns the next rune in the input.
 func (l *Scanner) next() rune {
-	if l.done && Pos(len(l.input)) == l.start {
-		return eof
-	}
-	if !l.done && int(l.pos) >= len(l.input) {
+	if !l.done && int(l.pos) == len(l.input) {
 		l.loadLine()
+	}
+	if Pos(len(l.input)) == l.start {
+		return eof
 	}
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.width = Pos(w)
@@ -336,7 +336,7 @@ func lexAny(l *Scanner) stateFn {
 		l.emit(Char)
 		return lexAny
 	default:
-		return l.errorf("unrecognized character in action: %#U", r)
+		return l.errorf("unrecognized character: %#U", r)
 	}
 }
 
