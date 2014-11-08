@@ -12,12 +12,13 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"code.google.com/p/rspace/ivy/config"
 	"code.google.com/p/rspace/ivy/scan"
 )
 
-func NewLexer(name string, r io.Reader, directories []string) TokenReader {
-	input := NewInput(name, directories)
-	input.Push(NewTokenizer(name, bufio.NewReader(r)))
+func NewLexer(conf *config.Config, name string, r io.Reader, directories []string) TokenReader {
+	input := NewInput(conf, name, directories)
+	input.Push(NewTokenizer(conf, name, bufio.NewReader(r)))
 	return input
 }
 
@@ -48,9 +49,9 @@ type Tokenizer struct {
 	fileName string
 }
 
-func NewTokenizer(name string, r io.ByteReader) *Tokenizer {
+func NewTokenizer(conf *config.Config, name string, r io.ByteReader) *Tokenizer {
 	return &Tokenizer{
-		s:        scan.New(name, r),
+		s:        scan.New(conf, name, r),
 		line:     1,
 		fileName: name,
 	}
@@ -118,13 +119,15 @@ func (s *Stack) SetPos(line int, file string) {
 // and parses and instantiates macro definitions.
 type Input struct {
 	Stack
+	config          *config.Config
 	directories     []string
 	beginningOfLine bool
 	ifdefStack      []bool
 }
 
-func NewInput(name string, directories []string) *Input {
+func NewInput(conf *config.Config, name string, directories []string) *Input {
 	return &Input{
+		config: conf,
 		// include directories: look in source dir, then -I directories.
 		directories:     append([]string{filepath.Dir(name)}, directories...),
 		beginningOfLine: true,
@@ -207,7 +210,7 @@ func (in *Input) get() {
 			in.Error("#get:", err)
 		}
 	}
-	in.Push(NewTokenizer(name, bufio.NewReader(fd)))
+	in.Push(NewTokenizer(in.config, name, bufio.NewReader(fd)))
 }
 
 func (in *Input) Push(r TokenReader) {

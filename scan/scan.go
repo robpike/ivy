@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 
+	"code.google.com/p/rspace/ivy/config"
+
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -121,6 +123,7 @@ type stateFn func(*Scanner) stateFn
 // Scanner holds the state of the scanner.
 type Scanner struct {
 	Tokens     chan Token // channel of scanned items
+	config     *config.Config
 	r          io.ByteReader
 	done       bool
 	name       string // the name of the input; used only for error reports
@@ -184,7 +187,9 @@ func (l *Scanner) backup() {
 // emit passes an item back to the client.
 func (l *Scanner) emit(t Type) {
 	s := l.input[l.start:l.pos]
-	// fmt.Printf("emit %s\n", Token{t, l.start, s})
+	if l.config.Debug("tokens") {
+		fmt.Printf("emit %s\n", Token{t, l.start, s})
+	}
 	l.Tokens <- Token{t, l.start, s}
 	l.start = l.pos
 }
@@ -231,9 +236,10 @@ func (l *Scanner) nextToken() Token {
 }
 
 // New creates a new scanner for the input string.
-func New(name string, r io.ByteReader) *Scanner {
+func New(conf *config.Config, name string, r io.ByteReader) *Scanner {
 	l := &Scanner{
 		r:      r,
+		config: conf,
 		name:   name,
 		Tokens: make(chan Token),
 	}

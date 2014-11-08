@@ -64,7 +64,7 @@ func main() {
 			if err != nil {
 				log.Fatalf("ivy: %s\n", err)
 			}
-			lexer := lex.NewLexer(name, fd, []string(iFlag))
+			lexer := lex.NewLexer(&conf, name, fd, []string(iFlag))
 			parser := parse.NewParser(&conf, lexer)
 			if !run(parser, os.Stdout, interactive) {
 				break
@@ -73,14 +73,14 @@ func main() {
 		return
 	}
 
-	lexer := lex.NewLexer("", os.Stdin, []string(iFlag))
+	lexer := lex.NewLexer(&conf, "", os.Stdin, []string(iFlag))
 	parser := parse.NewParser(&conf, lexer)
 	for !run(parser, os.Stdout, true) {
 	}
 }
 
 func runArgs() {
-	lexer := lex.NewLexer("", strings.NewReader(strings.Join(flag.Args(), " ")), []string(iFlag))
+	lexer := lex.NewLexer(&conf, "", strings.NewReader(strings.Join(flag.Args(), " ")), []string(iFlag))
 	parser := parse.NewParser(&conf, lexer)
 	run(parser, os.Stdout, false)
 
