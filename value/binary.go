@@ -114,6 +114,7 @@ var (
 	eq, ne, lt, le, gt, ge             *binaryOp
 	index                              *binaryOp
 	logicalAnd, logicalOr, logicalXor  *binaryOp
+	logicalNand, logicalNor            *binaryOp
 	binaryIota, binaryRho, binaryRavel *binaryOp
 	min, max                           *binaryOp
 	binaryOps                          map[string]*binaryOp
@@ -517,6 +518,38 @@ func init() {
 		},
 	}
 
+	logicalNand = &binaryOp{
+		elementwise: true,
+		whichType:   binaryArithType,
+		fn: [numType]binaryFn{
+			intType: func(u, v Value) Value {
+				return toInt(!(toBool(u) && toBool(v)))
+			},
+			bigIntType: func(u, v Value) Value {
+				return toInt(!(toBool(u) && toBool(v)))
+			},
+			bigRatType: func(u, v Value) Value {
+				return toInt(!(toBool(u) && toBool(v)))
+			},
+		},
+	}
+
+	logicalNor = &binaryOp{
+		elementwise: true,
+		whichType:   binaryArithType,
+		fn: [numType]binaryFn{
+			intType: func(u, v Value) Value {
+				return toInt(!toBool(u) && !toBool(v))
+			},
+			bigIntType: func(u, v Value) Value {
+				return toInt(!toBool(u) && !toBool(v))
+			},
+			bigRatType: func(u, v Value) Value {
+				return toInt(!toBool(u) && !toBool(v))
+			},
+		},
+	}
+
 	index = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
@@ -752,6 +785,8 @@ func init() {
 		"and":  logicalAnd,
 		"or":   logicalOr,
 		"xor":  logicalXor,
+		"nand": logicalNand,
+		"nor":  logicalNor,
 		"iota": binaryIota,
 		"min":  min,
 		"max":  max,

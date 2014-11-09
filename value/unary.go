@@ -4,7 +4,11 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+	"math/rand"
+	"time"
+)
 
 // Unary operators.
 
@@ -28,6 +32,7 @@ func unaryBigRatOp(op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
 }
 
 var (
+	unaryRoll                         *unaryOp
 	unaryPlus, unaryMinus, unaryRecip *unaryOp
 	unaryAbs, unarySignum             *unaryOp
 	unaryBitwiseNot, unaryLogicalNot  *unaryOp
@@ -36,7 +41,29 @@ var (
 	unaryOps                          map[string]*unaryOp
 )
 
+var random *rand.Rand
+
 func init() {
+	random = rand.New(rand.NewSource(time.Now().Unix()))
+}
+
+func bigIntRand(a, b *big.Int) *big.Int {
+	return a.Rand(random, b)
+}
+
+func init() {
+	unaryRoll = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType: func(v Value) Value {
+				return Int(random.Int63n(int64(v.(Int))))
+			},
+			bigIntType: func(v Value) Value {
+				return unaryBigIntOp(bigIntRand, v)
+			},
+		},
+	}
+
 	unaryPlus = &unaryOp{
 		fn: [numType]unaryFn{
 			intType:    func(v Value) Value { return v },
@@ -279,6 +306,7 @@ func init() {
 	}
 
 	unaryOps = map[string]*unaryOp{
+		"?":     unaryRoll,
 		"+":     unaryPlus,
 		"-":     unaryMinus,
 		"/":     unaryRecip,

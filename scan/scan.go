@@ -63,6 +63,8 @@ var operatorWord = map[string]bool{
 	"min":   true,
 	"max":   true,
 	"mod":   true,
+	"nand":  true,
+	"nor":   true,
 	"not":   true,
 	"or":    true,
 	"rho":   true,
@@ -560,7 +562,7 @@ func isAlphaNumeric(r rune) bool {
 // if it is a two-character operator.
 func (l *Scanner) isOperator(r rune) bool {
 	switch r {
-	case '+', '-', '/', '%', '&', '|', '^', '~', ',':
+	case '?', '+', '-', '/', '%', '&', '|', '^', '~', ',':
 		// No follow-on possible.
 	case '!':
 		if l.peek() != '=' {

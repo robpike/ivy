@@ -38,6 +38,8 @@
 #	and
 #	or
 #	xor
+#	nand
+#	nor
 #	iota
 #	min
 #	max
@@ -354,6 +356,56 @@
 	0 1 0
 
 1 xor -2+ 2 3 rho iota 10
+	0 1 0
+	0 0 0
+
+0 nand 0
+	1
+
+0 nand 1
+	1
+
+1 nand 0
+	1
+
+1 nand 1
+	0
+
+2 nand 1e10
+	0
+
+1 nand 1/3
+	0
+
+1 nand -2 + iota 3
+	0 1 0
+
+1 nand -2+ 2 3 rho iota 10
+	0 1 0
+	0 0 0
+
+0 nor 0
+	1
+
+0 nor 1
+	0
+
+1 nor 0
+	0
+
+1 nor 1
+	0
+
+2 nor 1e10
+	0
+
+1 nor 1/3
+	0
+
+0 nor -2 + iota 3
+	0 1 0
+
+0 nor -2+ 2 3 rho iota 10
 	0 1 0
 	0 0 0
 

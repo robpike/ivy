@@ -22,7 +22,7 @@ and their correpondence are listed here. The correspondence is incomplete and in
 Unary functions.
 
 Name              APL   Ivy     Meaning
-Roll              ?B            One integer selected randomly from the first B integers
+Roll              ?B    ?       One integer selected randomly from the first B integers
 Ceiling           ⌈B    ceil    Least integer greater than or equal to B
 Floor             ⌊B    floor   Greatest integer less than or equal to B
 Shape             ⍴B    rho     Number of components in each dimension of B
@@ -46,7 +46,7 @@ Execute           ⍎B            Execute an APL expression
 Monadic format    ⍕B            A character representation of B
 Monadic transpose ⍉B            Reverse the axes of B
 Factorial         !B            Product of integers 1 to B
-Bitwise not             &       Bitwise complement of B (integer only)
+Bitwise not             ^       Bitwise complement of B (integer only)
 
 Binary functions.
 
@@ -92,8 +92,8 @@ Greater than          A>B   >       Comparison: 1 if true, 0 if false
 Not equal             A≠B   !=      Comparison: 1 if true, 0 if false
 Or                    A∨B   or      Logic: 0 if A and B are 0; 1 otherwise
 And                   A∧B   and     Logic: 1 if A and B are 1; 0 otherwise
-Nor                   A⍱B           Logic: 1 if both A and B are 0; otherwise 0
-Nand                  A⍲B           Logic: 0 if both A and B are 1; otherwise 1
+Nor                   A⍱B   nor     Logic: 1 if both A and B are 0; otherwise 0
+Nand                  A⍲B   nand    Logic: 0 if both A and B are 1; otherwise 1
 Xor                         xor     Logic: 1 if A != B; otherwise 0
 Bitwise and                 &       Bitwise A and B (integer only)
 Bitwise or                  |       Bitwise A or B (integer only)

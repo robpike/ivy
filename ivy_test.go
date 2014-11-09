@@ -72,7 +72,7 @@ func TestAll(t *testing.T) {
 var testBuf bytes.Buffer
 
 func runTest(t *testing.T, name string, lineNum int, input, output []string) bool {
-	lexer := lex.NewLexer(name, strings.NewReader(strings.Join(input, "\n")), nil)
+	lexer := lex.NewLexer(&conf, name, strings.NewReader(strings.Join(input, "\n")), nil)
 	parser := parse.NewParser(&conf, lexer)
 	testBuf.Reset()
 	run(parser, &testBuf, false)
