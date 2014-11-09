@@ -59,6 +59,9 @@ func (p *Parser) special() {
 		if err != nil {
 			p.errorf("%s", err)
 		}
+		if origin != 0 && origin != 1 {
+			p.errorf("illegal origin", err)
+		}
 		p.config.SetOrigin(origin)
 	case "prompt":
 		if p.Peek().Type != scan.String {

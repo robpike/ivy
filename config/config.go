@@ -4,11 +4,14 @@
 
 package config
 
+import "math/big"
+
 type Config struct {
 	prompt    string
 	format    string
 	ratFormat string
 	origin    int
+	bigOrigin *big.Int
 	debug     map[string]bool
 }
 
@@ -46,8 +49,13 @@ func (c *Config) Origin() int {
 	return c.origin
 }
 
+func (c *Config) BigOrigin() *big.Int {
+	return c.bigOrigin
+}
+
 func (c *Config) SetOrigin(origin int) {
 	c.origin = origin
+	c.bigOrigin = big.NewInt(int64(origin))
 }
 
 func (c *Config) Prompt() string {

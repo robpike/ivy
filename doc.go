@@ -40,8 +40,8 @@ Pi times          ○B            Multiply by π
 Logarithm         ⍟B            Natural logarithm of B
 Reversal          ⌽B            Reverse elements of B along last axis
 Reversal          ⊖B            Reverse elements of B along first axis
-Grade up          ⍋B            Indices of B which will arrange B in ascending order
-Grade down        ⍒B            Indices of B which will arrange B in descending order
+Grade up          ⍋B    up      Indices of B which will arrange B in ascending order
+Grade down        ⍒B    down    Indices of B which will arrange B in descending order
 Execute           ⍎B            Execute an APL expression
 Monadic format    ⍕B            A character representation of B
 Monadic transpose ⍉B            Reverse the axes of B
@@ -66,8 +66,8 @@ Membership            A∈B           1 for elements of A present in B; 0 where 
 Maximum               A⌈B   max     The greater value of A or B
 Minimum               A⌊B   min     The smaller value of A or B
 Reshape               A⍴B   rho     Array of shape A with data B
-Take                  A↑B           Select the first (or last) A elements of B according to ×A
-Drop                  A↓B           Remove the first (or last) A elements of B according to ×A
+Take                  A↑B   take    Select the first (or last) A elements of B according to ×A
+Drop                  A↓B   drop    Remove the first (or last) A elements of B according to ×A
 Decode                A⊥B           Value of a polynomial whose coefficients are B at A
 Encode                A⊤B           Base-A representation of the value of B
 Residue               A∣B           B modulo A

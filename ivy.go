@@ -21,7 +21,7 @@ import (
 var (
 	execute = flag.Bool("e", false, "execute arguments as a single expression")
 	format  = flag.String("format", "%v", "format string for printing numbers")
-	origin  = flag.Int("origin", 1, "index origin")
+	origin  = flag.Int("origin", 1, "index origin (must be 0 or 1)")
 	prompt  = flag.String("prompt", "", "command prompt")
 )
 
@@ -37,6 +37,10 @@ func main() {
 
 	flag.Usage = usage
 	flag.Parse()
+
+	if *origin != 0 && *origin != 1 {
+		log.Fatalf("ivy: illegal origin value %d", *origin)
+	}
 
 	conf.SetFormat(*format)
 	conf.SetOrigin(*origin)
@@ -62,7 +66,7 @@ func main() {
 				fd, err = os.Open(name)
 			}
 			if err != nil {
-				log.Fatalf("ivy: %s\n", err)
+				log.Fatalf("ivy: %s", err)
 			}
 			lexer := lex.NewLexer(&conf, name, fd, []string(iFlag))
 			parser := parse.NewParser(&conf, lexer)

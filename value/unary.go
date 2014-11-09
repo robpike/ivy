@@ -37,6 +37,7 @@ var (
 	unaryAbs, unarySignum             *unaryOp
 	unaryBitwiseNot, unaryLogicalNot  *unaryOp
 	unaryIota, unaryRho, unaryRavel   *unaryOp
+	gradeUp, gradeDown                *unaryOp
 	floor, ceil                       *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
@@ -47,8 +48,10 @@ func init() {
 	random = rand.New(rand.NewSource(time.Now().Unix()))
 }
 
+// bigIntRand sets a to a random number in [origin, origin+b].
 func bigIntRand(a, b *big.Int) *big.Int {
-	return a.Rand(random, b)
+	a.Rand(random, b)
+	return a.Add(a, conf.BigOrigin())
 }
 
 func init() {
@@ -56,9 +59,16 @@ func init() {
 		elementwise: true,
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
-				return Int(random.Int63n(int64(v.(Int))))
+				i := int64(v.(Int))
+				if i <= 0 {
+					panic(Errorf("illegal roll value %v", v))
+				}
+				return Int(conf.Origin()) + Int(random.Int63n(i))
 			},
 			bigIntType: func(v Value) Value {
+				if v.(BigInt).Sign() <= 0 {
+					panic(Errorf("illegal roll value %v", v))
+				}
 				return unaryBigIntOp(bigIntRand, v)
 			},
 		},
@@ -305,6 +315,26 @@ func init() {
 		},
 	}
 
+	gradeUp = &unaryOp{
+		fn: [numType]unaryFn{
+			vectorType: func(v Value) Value {
+				return v.(Vector).grade()
+			},
+		},
+	}
+
+	gradeDown = &unaryOp{
+		fn: [numType]unaryFn{
+			vectorType: func(v Value) Value {
+				x := v.(Vector).grade()
+				for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
+					x[i], x[j] = x[j], x[i]
+				}
+				return x
+			},
+		},
+	}
+
 	unaryOps = map[string]*unaryOp{
 		"?":     unaryRoll,
 		"+":     unaryPlus,
@@ -319,5 +349,7 @@ func init() {
 		"iota":  unaryIota,
 		"rho":   unaryRho,
 		",":     unaryRavel,
+		"up":    gradeUp,
+		"down":  gradeDown,
 	}
 }

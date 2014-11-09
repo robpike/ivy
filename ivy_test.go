@@ -75,7 +75,10 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 	lexer := lex.NewLexer(&conf, name, strings.NewReader(strings.Join(input, "\n")), nil)
 	parser := parse.NewParser(&conf, lexer)
 	testBuf.Reset()
-	run(parser, &testBuf, false)
+	if !run(parser, &testBuf, false) {
+		t.Fatalf("\nexecution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
+		return false
+	}
 	result := testBuf.String()
 	if !equal(strings.Split(result, "\n"), output) {
 		t.Errorf("\n%s:%d:\n%s\ngot:\n%swant:\n%s",

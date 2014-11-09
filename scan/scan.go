@@ -56,7 +56,10 @@ var operatorWord = map[string]bool{
 	"and":   true,
 	"ceil":  true,
 	"div":   true,
+	"down":  true,
+	"drop":  true,
 	"floor": true,
+	"grade": true,
 	"idiv":  true,
 	"imod":  true,
 	"iota":  true,
@@ -69,6 +72,8 @@ var operatorWord = map[string]bool{
 	"or":    true,
 	"rho":   true,
 	"sgn":   true,
+	"take":  true,
+	"up":    true,
 	"xor":   true,
 }
 

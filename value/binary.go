@@ -107,17 +107,19 @@ func toBool(t Value) bool {
 }
 
 var (
-	add, sub, mul, exp                 *binaryOp
-	quo, idiv, imod, div, mod          *binaryOp
-	bitAnd, bitOr, bitXor              *binaryOp
-	lsh, rsh                           *binaryOp
-	eq, ne, lt, le, gt, ge             *binaryOp
-	index                              *binaryOp
-	logicalAnd, logicalOr, logicalXor  *binaryOp
-	logicalNand, logicalNor            *binaryOp
-	binaryIota, binaryRho, binaryRavel *binaryOp
-	min, max                           *binaryOp
-	binaryOps                          map[string]*binaryOp
+	add, sub, mul, exp                *binaryOp
+	quo, idiv, imod, div, mod         *binaryOp
+	bitAnd, bitOr, bitXor             *binaryOp
+	lsh, rsh                          *binaryOp
+	eq, ne, lt, le, gt, ge            *binaryOp
+	index                             *binaryOp
+	logicalAnd, logicalOr, logicalXor *binaryOp
+	logicalNand, logicalNor           *binaryOp
+	binaryIota, binaryRho             *binaryOp
+	binaryCatenate                    *binaryOp
+	take, drop                        *binaryOp
+	min, max                          *binaryOp
+	binaryOps                         map[string]*binaryOp
 )
 
 var (
@@ -721,7 +723,7 @@ func init() {
 		},
 	}
 
-	binaryRavel = &binaryOp{
+	binaryCatenate = &binaryOp{
 		whichType: atLeastVectorType, // TODO: correct?
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
@@ -760,6 +762,72 @@ func init() {
 		},
 	}
 
+	take = &binaryOp{
+		whichType: atLeastVectorType, // TODO: correct?
+		fn: [numType]binaryFn{
+			vectorType: func(u, v Value) Value {
+				const bad = Error("bad count for take")
+				i := v.(Vector)
+				nv, ok := u.(Vector)
+				if !ok || len(nv) != 1 {
+					panic(bad)
+				}
+				n, ok := nv[0].(Int)
+				if !ok {
+					panic(bad)
+				}
+				len := Int(len(i))
+				switch {
+				case n < 0:
+					if -n > len {
+						panic(bad)
+					}
+					i = i[len+n : len]
+				case n == 0:
+				case n > 0:
+					if n > len {
+						panic(bad)
+					}
+					i = i[0:n]
+				}
+				return i
+			},
+		},
+	}
+
+	drop = &binaryOp{
+		whichType: atLeastVectorType, // TODO: correct?
+		fn: [numType]binaryFn{
+			vectorType: func(u, v Value) Value {
+				const bad = Error("bad count for drop")
+				i := v.(Vector)
+				nv, ok := u.(Vector)
+				if !ok || len(nv) != 1 {
+					panic(bad)
+				}
+				n, ok := nv[0].(Int)
+				if !ok {
+					panic(bad)
+				}
+				len := Int(len(i))
+				switch {
+				case n < 0:
+					if -n > len {
+						panic(bad)
+					}
+					i = i[0 : len+n]
+				case n == 0:
+				case n > 0:
+					if n > len {
+						panic(bad)
+					}
+					i = i[n:]
+				}
+				return i
+			},
+		},
+	}
+
 	binaryOps = map[string]*binaryOp{
 		"+":    add,
 		"-":    sub,
@@ -791,6 +859,8 @@ func init() {
 		"min":  min,
 		"max":  max,
 		"rho":  binaryRho,
-		",":    binaryRavel,
+		",":    binaryCatenate,
+		"take": take,
+		"drop": drop,
 	}
 }
