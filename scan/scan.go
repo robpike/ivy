@@ -142,7 +142,6 @@ type Scanner struct {
 	pos        Pos     // current position in the input
 	start      Pos     // start position of this item
 	width      Pos     // width of last rune read from input
-	lastPos    Pos     // position of most recent item returned by nextToken
 }
 
 // loadLine reads the next line of input and stores it in (appends it to) the input.
@@ -222,24 +221,10 @@ func (l *Scanner) acceptRun(valid string) {
 	l.backup()
 }
 
-// lineNumber reports which line we're on, based on the position of
-// the previous item returned by nextToken. Doing it this way
-// means we don't have to worry about peek double counting.
-func (l *Scanner) lineNumber() int {
-	return 1 + strings.Count(l.input[:l.lastPos], "\n")
-}
-
 // errorf returns an error token and continues to scan.
 func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
 	l.Tokens <- Token{Error, l.start, fmt.Sprintf(format, args...)}
 	return lexAny
-}
-
-// nextToken returns the next item from the input.
-func (l *Scanner) nextToken() Token {
-	token := <-l.Tokens
-	l.lastPos = token.Pos // TODO
-	return token
 }
 
 // New creates a new scanner for the input string.

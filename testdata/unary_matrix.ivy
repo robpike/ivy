@@ -1,0 +1,75 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Unary operations on matrices.
+
+# We need to make some first
+
+2 3 rho 1
+	1 1 1
+	1 1 1
+
+2 3 rho iota 6
+	1 2 3
+	4 5 6
+
+2 3 rho 1 2.5
+	  1 5/2   1
+	5/2   1 5/2
+
+
+)seed 0
+?2 3 rho iota 6
+	1 1 2
+	3 3 4
+
++ 2 3 rho 23 45 56 
+	23 45 56
+	23 45 56
+
++ 2 3 rho -23 45 56 
+	-23  45  56
+	-23  45  56
+
+- 2 3 rho 23 45 56 
+	-23 -45 -56
+	-23 -45 -56
+
+/2 3 rho 23 45 56 
+	1/23 1/45 1/56
+	1/23 1/45 1/56
+
+/2 3 rho -23 45 56 
+	-1/23  1/45  1/56
+	-1/23  1/45  1/56
+
+sgn 2 3 rho 23 -45 0 
+	 1 -1  0
+	 1 -1  0
+
+~2 3 rho 23 0 56 
+		0 1 0
+		0 1 0
+
+abs 2 3 rho -23 45 56 
+	23 45 56
+	23 45 56
+
+floor 2 3 rho -23.5 45.5 56.5 
+	-24  45  56
+	-24  45  56
+
+ceil 2 3 rho -23.5 45.5 56.5 
+	-23  46  57
+	-23  46  57
+
+rho 2 3 rho 23 45 56 78
+	2 3
+
+2 3 rho 23 45 56 78
+	23 45 56
+	78 23 45
+
+,2 3 rho 23 45 56 78
+	23 45 56 78 23 45

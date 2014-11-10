@@ -1,0 +1,70 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Unary operations on vectors.
+
+23 45 56
+	23 45 56
+
+1/3 2/3 3/4
+	1/3 2/3 3/4
+
+1e10 1.5
+	10000000000 3/2
+
+)seed 0
+?10 10 10
+	6 3 8
+
++ 23 45 56
+	23 45 56
+
+# TODO: this is scanned incorrectly
++-23 -45 -56
+	-23 45 56
+
++ -23 -45 -56
+	-23 -45 -56
+
+- 23 45 56
+	-23 -45 -56
+
+--23 45 56
+	23 45 56
+
+- -23 -45 -56
+	23 45 56
+
+/23 45 56
+	1/23 1/45 1/56
+
+/-23 45 56
+	-1/23 -1/45 -1/56
+
+sgn -1/3 0 3 1e10
+	-1 0 1 1
+
+~0 1 2 3
+	1 0 0 0
+
+abs -75/23 3 4
+	75/23 3 4
+
+floor -75/23 3.1 4.2
+	-4 3 4
+
+ceil -75/23 3.1 4.2
+	-3 4 5
+
+rho 75/23 17 28
+	3
+
+,3 4 5
+	3 4 5
+
+up 6 5 8 10 4 1 2 5 4 7
+	6 7 9 5 2 8 1 10 3 4
+
+down 6 5 8 10 4 1 2 5 4 7
+	4 3 10 1 8 2 5 9 7 6

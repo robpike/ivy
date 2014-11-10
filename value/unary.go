@@ -167,6 +167,12 @@ func init() {
 				}
 				return zero
 			},
+			bigRatType: func(v Value) Value {
+				if v.(BigRat).Sign() == 0 {
+					return one
+				}
+				return zero
+			},
 		},
 	}
 

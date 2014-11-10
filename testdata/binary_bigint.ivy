@@ -1,0 +1,32 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# TODO incomplete
+
+# Binary operations on big ints.
+
+100000000003 div 4
+	25000000000
+
+-100000000003 div 4
+	-25000000001
+
+100000000003 idiv 4
+	25000000000
+
+-100000000003 idiv 4
+	-25000000000
+
+100000000003 mod 4
+	3
+
+-100000000003 mod 4
+	1
+
+100000000003 imod 4
+	3
+
+-100000000003 imod 4
+	-3
+
