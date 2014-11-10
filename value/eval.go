@@ -197,14 +197,14 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 	var n []Value
 	// One or the other may be a scalar in disguise.
 	switch {
-	case len(u.shape) == 1 && u.shape[0].(Int) == 1:
+	case isScalar(u):
 		// Scalar op Matrix.
 		shape = v.shape
 		n = make([]Value, v.data.Len())
 		for k := range v.data {
 			n[k] = Binary(u.data[0], op, v.data[k])
 		}
-	case len(v.shape) == 1 && v.shape[0].(Int) == 1:
+	case isScalar(v):
 		// Matrix op Scalar.
 		n = make([]Value, u.data.Len())
 		for k := range u.data {
@@ -222,4 +222,14 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 		shape,
 		ValueSlice(n),
 	}
+}
+
+// isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.
+func isScalar(u Matrix) bool {
+	for _, dim := range u.shape {
+		if dim.(Int) != 1 {
+			return false
+		}
+	}
+	return true
 }
