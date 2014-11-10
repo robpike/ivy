@@ -4,11 +4,7 @@
 
 package value
 
-import (
-	"math/big"
-	"math/rand"
-	"time"
-)
+import "math/big"
 
 // Unary operators.
 
@@ -42,15 +38,9 @@ var (
 	unaryOps                          map[string]*unaryOp
 )
 
-var random *rand.Rand
-
-func init() {
-	random = rand.New(rand.NewSource(time.Now().Unix()))
-}
-
 // bigIntRand sets a to a random number in [origin, origin+b].
 func bigIntRand(a, b *big.Int) *big.Int {
-	a.Rand(random, b)
+	a.Rand(conf.Random(), b)
 	return a.Add(a, conf.BigOrigin())
 }
 
@@ -63,7 +53,7 @@ func init() {
 				if i <= 0 {
 					panic(Errorf("illegal roll value %v", v))
 				}
-				return Int(conf.Origin()) + Int(random.Int63n(i))
+				return Int(conf.Origin()) + Int(conf.Random().Int63n(i))
 			},
 			bigIntType: func(v Value) Value {
 				if v.(BigInt).Sign() <= 0 {

@@ -726,15 +726,6 @@ func init() {
 	binaryCatenate = &binaryOp{
 		whichType: atLeastVectorType, // TODO: correct?
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
-				return ValueSlice([]Value{u, v})
-			},
-			bigIntType: func(u, v Value) Value {
-				return ValueSlice([]Value{u, v})
-			},
-			bigRatType: func(u, v Value) Value {
-				return ValueSlice([]Value{u, v})
-			},
 			vectorType: func(u, v Value) Value {
 				return append(u.(Vector), v.(Vector)...)
 			},

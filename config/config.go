@@ -4,7 +4,11 @@
 
 package config
 
-import "math/big"
+import (
+	"math/big"
+	"math/rand"
+	"time"
+)
 
 type Config struct {
 	prompt    string
@@ -13,6 +17,8 @@ type Config struct {
 	origin    int
 	bigOrigin *big.Int
 	debug     map[string]bool
+	source    rand.Source
+	random    *rand.Rand
 }
 
 func (c *Config) Format() string {
@@ -64,4 +70,21 @@ func (c *Config) Prompt() string {
 
 func (c *Config) SetPrompt(prompt string) {
 	c.prompt = prompt
+}
+
+func (c *Config) init() {
+	if c.random == nil {
+		c.source = rand.NewSource(time.Now().Unix())
+		c.random = rand.New(c.source)
+	}
+}
+
+func (c *Config) Random() *rand.Rand {
+	c.init()
+	return c.random
+}
+
+func (c *Config) RandomSeed(seed int64) {
+	c.init()
+	c.source.Seed(seed)
 }

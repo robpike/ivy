@@ -3,6 +3,11 @@
 # license that can be found in the LICENSE file.
 
 # Unary operations on small ints.
+
+)seed 0
+?10
+	6
+
 23
 	23
 
@@ -26,6 +31,30 @@
 
 /-23
 	-1/23
+
+23 div 4
+	5
+
+-23 div 4
+	-6
+
+23 div 4
+	5
+
+-23 idiv 4
+	-5
+
+3 mod 4
+	3
+
+-3 mod 4
+	1
+
+3 mod 4
+	3
+
+-3 imod 4
+	-3
 
 sgn -1
 	-1
@@ -92,3 +121,6 @@ rho 0
 
 rho 10
 	
+
+,3
+	3

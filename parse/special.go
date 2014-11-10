@@ -63,6 +63,16 @@ func (p *Parser) special() {
 			p.errorf("illegal origin", err)
 		}
 		p.config.SetOrigin(origin)
+	case "seed":
+		if p.Peek().Type != scan.Number {
+			fmt.Println(p.config.Origin())
+			break
+		}
+		seed, err := strconv.Atoi(p.Next().Text)
+		if err != nil {
+			p.errorf("%s", err)
+		}
+		p.config.RandomSeed(int64(seed))
 	case "prompt":
 		if p.Peek().Type != scan.String {
 			fmt.Printf("%q\n", p.config.Prompt())
