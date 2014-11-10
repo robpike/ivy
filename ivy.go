@@ -93,6 +93,9 @@ func runArgs() {
 // run runs until EOF or error. The return value says whether we completed without error.
 func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
 	defer func() {
+		if conf.Debug("panic") {
+			return
+		}
 		err := recover()
 		if err == nil {
 			return

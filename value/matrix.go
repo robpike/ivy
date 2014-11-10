@@ -159,6 +159,9 @@ func reshape(A, B Vector) Value {
 	if len(A) == 0 {
 		panic(Error("bad index"))
 	}
+	if len(B) == 0 {
+		panic(Error("reshape of empty vector"))
+	}
 	nelems := Int(1)
 	for i := range A {
 		n, ok := A[i].(Int)

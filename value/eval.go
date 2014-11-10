@@ -210,6 +210,31 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 		for k := range u.data {
 			n[k] = Binary(u.data[k], op, v.data[0])
 		}
+	case isVector(u, v.shape):
+		// Vector op Matrix.
+		shape = v.shape
+		n = make([]Value, v.data.Len())
+		dim := int(u.shape[0].(Int))
+		index := 0
+		for k := range v.data {
+			n[k] = Binary(u.data[index], op, v.data[k])
+			index++
+			if index >= dim {
+				index = 0
+			}
+		}
+	case isVector(v, u.shape):
+		// Vector op Matrix.
+		n = make([]Value, u.data.Len())
+		dim := int(v.shape[0].(Int))
+		index := 0
+		for k := range u.data {
+			n[k] = Binary(v.data[index], op, u.data[k])
+			index++
+			if index >= dim {
+				index = 0
+			}
+		}
 	default:
 		// Matrix op Matrix.
 		u.sameShape(v)
@@ -227,6 +252,20 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 // isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.
 func isScalar(u Matrix) bool {
 	for _, dim := range u.shape {
+		if dim.(Int) != 1 {
+			return false
+		}
+	}
+	return true
+}
+
+// isVector reports whether u is an 1x1x...xn item where n is the last dimension
+// of the shape, that is, an n-vector promoted to matrix.
+func isVector(u Matrix, shape Vector) bool {
+	if len(u.shape) == 0 || len(shape) == 0 || u.shape[0] != shape[len(shape)-1] {
+		return false
+	}
+	for _, dim := range u.shape[1:] {
 		if dim.(Int) != 1 {
 			return false
 		}
