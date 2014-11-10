@@ -290,9 +290,9 @@ func lexAny(l *Scanner) stateFn {
 	case r == '\'':
 		return lexChar
 	case r == '-':
-		// It's the start of a number iff there is space before it (or it's first).
+		// It's the start of a number iff there is nothing, a space or a paren before it.
 		// Otherwise it's an operator.
-		if l.start > 0 && !isSpace(rune(l.input[l.start-1])) { // FIX
+		if l.start > 0 && (!isSpace(rune(l.input[l.start-1])) && l.input[l.start-1] != '(') { // FIX
 			l.emit(Operator)
 			return lexAny
 		}

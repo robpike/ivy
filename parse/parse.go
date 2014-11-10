@@ -200,7 +200,7 @@ func (p *Parser) Expr(tok scan.Token) value.Expr {
 //	Rational
 //	Vector
 //	variable
-//	variable [ Expr ]...
+//	Operand [ Expr ]...
 //	unop Expr
 func (p *Parser) Operand(tok scan.Token) value.Expr {
 	var expr value.Expr
@@ -217,7 +217,6 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		if tok.Type != scan.RightParen {
 			p.errorf("expected right paren, found %s", tok)
 		}
-		expr = p.index(expr)
 	case scan.Number, scan.Rational:
 		expr = p.NumberOrVector(tok)
 	case scan.Identifier:
@@ -225,11 +224,10 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 		if expr == nil {
 			p.errorf("%s undefined", tok.Text)
 		}
-		expr = p.index(expr)
 	default:
 		p.errorf("unexpected %s", tok)
 	}
-	return expr
+	return p.index(expr)
 }
 
 // Indexing
