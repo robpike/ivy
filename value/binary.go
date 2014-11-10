@@ -622,7 +622,7 @@ func init() {
 	}
 
 	binaryIota = &binaryOp{
-		whichType: binaryArithType,
+		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
 				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
@@ -775,6 +775,7 @@ func init() {
 					}
 					i = i[len+n : len]
 				case n == 0:
+					return ValueSlice(nil)
 				case n > 0:
 					if n > len {
 						panic(bad)
