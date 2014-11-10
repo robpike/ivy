@@ -290,11 +290,15 @@ func lexAny(l *Scanner) stateFn {
 	case r == '\'':
 		return lexChar
 	case r == '-':
-		// It's the start of a number iff there is nothing, a space or a paren before it.
-		// Otherwise it's an operator.
-		if l.start > 0 && (!isSpace(rune(l.input[l.start-1])) && l.input[l.start-1] != '(') { // FIX
-			l.emit(Operator)
-			return lexAny
+		// It's an operator if it's preceded immediately (no spaces) by an operand, which is
+		// an identifier, an indexed expression, or a parenthesized expression.
+		// Otherwise it could be a signed number.
+		if l.start > 0 {
+			r, _ := utf8.DecodeLastRuneInString(l.input[:l.start])
+			if isAlphaNumeric(r) || r == ')' || r == ']' {
+				l.emit(Operator)
+				return lexAny
+			}
 		}
 		fallthrough
 	case r == '.' || '0' <= r && r <= '9':
