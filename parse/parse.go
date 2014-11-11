@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"robpike.io/ivy/config"
-	"robpike.io/ivy/lex"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
@@ -62,23 +61,25 @@ func Tree(e value.Expr) string {
 }
 
 type Parser struct {
-	lexer      lex.TokenReader
+	scanner    *scan.Scanner
 	config     *config.Config
+	fileName   string
 	lineNum    int
 	errorCount int // Number of errors.
 	peekTok    scan.Token
 	vars       map[string]value.Value
-	curTok     scan.Token // most recent token from lexer
+	curTok     scan.Token // most recent token from scanner
 }
 
 var zero, _ = value.ValueString("0")
 
-func NewParser(conf *config.Config, lexer lex.TokenReader) *Parser {
+func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner) *Parser {
 	return &Parser{
-		lexer:   lexer,
-		config:  conf,
-		lineNum: 1,
-		vars:    make(map[string]value.Value),
+		scanner:  scanner,
+		config:   conf,
+		fileName: fileName,
+		lineNum:  1,
+		vars:     make(map[string]value.Value),
 	}
 }
 
@@ -87,7 +88,7 @@ func (p *Parser) Next() scan.Token {
 	if tok.Type != scan.EOF {
 		p.peekTok = scan.Token{Type: scan.EOF}
 	} else {
-		tok = p.lexer.Next()
+		tok = <-p.scanner.Tokens
 	}
 	p.curTok = tok
 	return tok
@@ -102,7 +103,7 @@ func (p *Parser) Peek() scan.Token {
 	if tok.Type != scan.EOF {
 		return tok
 	}
-	p.peekTok = p.lexer.Next()
+	p.peekTok = <-p.scanner.Tokens
 	return p.peekTok
 }
 
@@ -114,7 +115,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 	p.peekTok = scan.Token{Type: scan.EOF}
 	// Put file and line information on head of message.
 	format = "%s:%d: " + format + "\n"
-	args = append([]interface{}{p.lexer.FileName(), p.lineNum}, args...)
+	args = append([]interface{}{p.fileName, p.lineNum}, args...)
 	panic(value.Errorf(format, args...))
 }
 

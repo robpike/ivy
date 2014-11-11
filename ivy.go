@@ -5,6 +5,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -13,8 +14,8 @@ import (
 	"strings"
 
 	"robpike.io/ivy/config"
-	"robpike.io/ivy/lex"
 	"robpike.io/ivy/parse"
+	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
 
@@ -69,8 +70,8 @@ func main() {
 			if err != nil {
 				log.Fatalf("ivy: %s", err)
 			}
-			lexer := lex.NewLexer(&conf, name, fd, []string(iFlag))
-			parser := parse.NewParser(&conf, lexer)
+			scanner := scan.New(&conf, name, bufio.NewReader(fd))
+			parser := parse.NewParser(&conf, name, scanner)
 			if !run(parser, os.Stdout, interactive) {
 				break
 			}
@@ -78,15 +79,15 @@ func main() {
 		return
 	}
 
-	lexer := lex.NewLexer(&conf, "", os.Stdin, []string(iFlag))
-	parser := parse.NewParser(&conf, lexer)
+	scanner := scan.New(&conf, "", bufio.NewReader(os.Stdin))
+	parser := parse.NewParser(&conf, "", scanner)
 	for !run(parser, os.Stdout, true) {
 	}
 }
 
 func runArgs() {
-	lexer := lex.NewLexer(&conf, "", strings.NewReader(strings.Join(flag.Args(), " ")), []string(iFlag))
-	parser := parse.NewParser(&conf, lexer)
+	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(flag.Args(), " ")))
+	parser := parse.NewParser(&conf, "", scanner)
 	run(parser, os.Stdout, false)
 
 }
