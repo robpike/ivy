@@ -190,7 +190,7 @@ func (l *Scanner) backup() {
 	l.pos -= l.width
 }
 
-// emit passes an item back to the client.
+//  passes an item back to the client.
 func (l *Scanner) emit(t Type) {
 	s := l.input[l.start:l.pos]
 	if l.config.Debug("tokens") {
@@ -241,7 +241,7 @@ func New(conf *config.Config, name string, r io.ByteReader) *Scanner {
 
 // run runs the state machine for the Scanner.
 func (l *Scanner) run() {
-	for l.state = lexSpace; l.state != nil; {
+	for l.state = lexAny; l.state != nil; {
 		l.state = l.state(l)
 	}
 	close(l.Tokens)
@@ -249,13 +249,8 @@ func (l *Scanner) run() {
 
 // state functions
 
-const (
-	startComment = "#"
-)
-
-// lexComment scans a comment. The comment marker is known to be present.
+// lexComment scans a comment. The comment marker has been consumed.
 func lexComment(l *Scanner) stateFn {
-	l.pos += Pos(len(startComment))
 	for {
 		r := l.next()
 		if r == eof || r == '\n' {
@@ -272,15 +267,14 @@ func lexComment(l *Scanner) stateFn {
 
 // lexAny scans non-space items.
 func lexAny(l *Scanner) stateFn {
-	if strings.HasPrefix(l.input[l.pos:], startComment) {
-		return lexComment
-	}
 	switch r := l.next(); {
 	case r == eof:
 		return nil
 	case r == '\n': // TODO: \r
 		l.emit(Newline)
 		return lexAny
+	case r == '#':
+		return lexComment
 	case isSpace(r):
 		return lexSpace
 	case r == '"':

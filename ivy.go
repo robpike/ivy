@@ -60,9 +60,10 @@ func main() {
 			var err error
 			interactive := false
 			if name == "-" {
-				fd = os.Stdin
 				interactive = true
+				fd = os.Stdin
 			} else {
+				interactive = false
 				fd, err = os.Open(name)
 			}
 			if err != nil {
