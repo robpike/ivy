@@ -7,10 +7,10 @@ package parse
 import (
 	"fmt"
 
-	"code.google.com/p/rspace/ivy/config"
-	"code.google.com/p/rspace/ivy/lex"
-	"code.google.com/p/rspace/ivy/scan"
-	"code.google.com/p/rspace/ivy/value"
+	"github.com/robpike/ivy/config"
+	"github.com/robpike/ivy/lex"
+	"github.com/robpike/ivy/scan"
+	"github.com/robpike/ivy/value"
 )
 
 type Unary struct {

@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"code.google.com/p/rspace/ivy/config"
-	"code.google.com/p/rspace/ivy/scan"
+	"github.com/robpike/ivy/config"
+	"github.com/robpike/ivy/scan"
 )
 
 func NewLexer(conf *config.Config, name string, r io.Reader, directories []string) TokenReader {

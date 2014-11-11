@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"code.google.com/p/rspace/ivy/config"
+	"github.com/robpike/ivy/config"
 
 	"strings"
 	"unicode"

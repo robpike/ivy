@@ -12,10 +12,10 @@ import (
 	"os"
 	"strings"
 
-	"code.google.com/p/rspace/ivy/config"
-	"code.google.com/p/rspace/ivy/lex"
-	"code.google.com/p/rspace/ivy/parse"
-	"code.google.com/p/rspace/ivy/value"
+	"github.com/robpike/ivy/config"
+	"github.com/robpike/ivy/lex"
+	"github.com/robpike/ivy/parse"
+	"github.com/robpike/ivy/value"
 )
 
 var (

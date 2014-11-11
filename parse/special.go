@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"code.google.com/p/rspace/ivy/scan"
-	"code.google.com/p/rspace/ivy/value"
+	"github.com/robpike/ivy/scan"
+	"github.com/robpike/ivy/value"
 )
 
 func (p *Parser) need(want scan.Type) scan.Token {

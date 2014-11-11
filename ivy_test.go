@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
-	"code.google.com/p/rspace/ivy/lex"
-	"code.google.com/p/rspace/ivy/parse"
-	"code.google.com/p/rspace/ivy/value"
+	"github.com/robpike/ivy/lex"
+	"github.com/robpike/ivy/parse"
+	"github.com/robpike/ivy/value"
 )
 
 func TestAll(t *testing.T) {

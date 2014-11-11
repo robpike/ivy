@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"strings"
 
-	"code.google.com/p/rspace/ivy/config"
+	"github.com/robpike/ivy/config"
 )
 
 var conf *config.Config
