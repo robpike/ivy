@@ -156,11 +156,13 @@ func (in *Input) Next() scan.Token {
 	for {
 		tok := in.Stack.Next()
 		switch tok.Type {
-		case scan.Number:
+		case scan.Identifier:
 			switch tok.Text {
 			case "get":
+				// TODO: this is a dreg from its macro processing origins.
+				// Should do this at a higher level.
 				if !in.beginningOfLine {
-					in.Error("'#' must be first item on line")
+					in.Error("'get' must be first item on line")
 				}
 				in.beginningOfLine = in.preprocessor(tok.Text)
 				continue
