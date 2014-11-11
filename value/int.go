@@ -31,30 +31,6 @@ func (i Int) String() string {
 
 var buf []byte
 
-func (i Int) XXXFormat(f fmt.State, verb rune) {
-	// TODO: f.Width, f.Precision, f.Flags, also floating format?
-	var prefix []byte
-	base := 10
-	switch verb {
-	case 'b':
-		base = 2
-	case 'o':
-		base = 8
-		prefix = []byte{'0'}
-	case 'x':
-		base = 16
-		prefix = []byte{'0', 'x'}
-	case 'X':
-		base = 16
-		prefix = []byte{'0', 'X'}
-	}
-	if !f.Flag('#') {
-		prefix = prefix[:0]
-	}
-	buf = append(buf[0:0], prefix...)
-	f.Write(strconv.AppendInt(buf, int64(i), base))
-}
-
 func (i Int) Eval() Value {
 	return i
 }
