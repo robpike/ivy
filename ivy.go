@@ -12,10 +12,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/robpike/ivy/config"
-	"github.com/robpike/ivy/lex"
-	"github.com/robpike/ivy/parse"
-	"github.com/robpike/ivy/value"
+	"robpike.io/ivy/config"
+	"robpike.io/ivy/lex"
+	"robpike.io/ivy/parse"
+	"robpike.io/ivy/value"
 )
 
 var (

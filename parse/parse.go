@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parse
+package parse // import "robpike.io/ivy/parse"
 
 import (
 	"fmt"
 
-	"github.com/robpike/ivy/config"
-	"github.com/robpike/ivy/lex"
-	"github.com/robpike/ivy/scan"
-	"github.com/robpike/ivy/value"
+	"robpike.io/ivy/config"
+	"robpike.io/ivy/lex"
+	"robpike.io/ivy/scan"
+	"robpike.io/ivy/value"
 )
 
 type Unary struct {

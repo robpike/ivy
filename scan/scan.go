@@ -4,13 +4,13 @@
 
 //go:generate stringer -type Type
 
-package scan
+package scan // import "robpike.io/ivy/scan"
 
 import (
 	"fmt"
 	"io"
 
-	"github.com/robpike/ivy/config"
+	"robpike.io/ivy/config"
 
 	"strings"
 	"unicode"

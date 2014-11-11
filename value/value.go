@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value
+package value // import "robpike.io/ivy/value"
 
 import (
 	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/robpike/ivy/config"
+	"robpike.io/ivy/config"
 )
 
 var conf *config.Config

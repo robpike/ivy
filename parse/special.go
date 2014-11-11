@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parse
+package parse // import "robpike.io/ivy/parse"
 
 import (
 	"fmt"
 	"strconv"
 
-	"github.com/robpike/ivy/scan"
-	"github.com/robpike/ivy/value"
+	"robpike.io/ivy/scan"
+	"robpike.io/ivy/value"
 )
 
 func (p *Parser) need(want scan.Type) scan.Token {

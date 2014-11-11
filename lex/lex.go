@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package lex
+package lex // import "robpike.io/ivy/lex"
 
 import (
 	"bufio"
@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/robpike/ivy/config"
-	"github.com/robpike/ivy/scan"
+	"robpike.io/ivy/config"
+	"robpike.io/ivy/scan"
 )
 
 func NewLexer(conf *config.Config, name string, r io.Reader, directories []string) TokenReader {
