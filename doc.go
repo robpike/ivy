@@ -111,5 +111,25 @@ Operators and axis indicator
 	Inner product       .    .    A+.×B        +.*          Matrix product of A and B
 	Outer product       ∘.        A∘.×B                     Outer product of A and B
 
+Special commands
+
+Ivy accepts a number of special commands, introduced by a right paren
+at the beginning of the line. Most report the current value if a new value
+is not specified.
+
+	) debug name 0|1
+		Toggle or set the named debugging flag.
+	) format "%v"
+		Set the format for printing values.
+	) get "file.ivy"
+		Read commands from the named file; return to
+		interactive execution afterwards.
+	) origin 1
+		Set the origin for indexing a vector or matrix.
+	) prompt ""
+		Set the interactive prompt.
+	) seed 0
+		Set the seed for the ? operator.
+
 */
 package main

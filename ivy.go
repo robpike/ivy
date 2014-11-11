@@ -89,7 +89,6 @@ func runArgs() {
 	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(flag.Args(), " ")))
 	parser := parse.NewParser(&conf, "", scanner)
 	run(parser, os.Stdout, false)
-
 }
 
 // run runs until EOF or error. The return value says whether we completed without error.
