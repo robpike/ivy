@@ -104,11 +104,11 @@ Binary functions.
 Operators and axis indicator
 
 	Name                APL  Ivy  APL Example  Ivy Example  Meaning (of example)
-	Reduce (last axis)  /    /    +/B          +/b          Sum across B
+	Reduce (last axis)  /    /    +/B          +/B          Sum across B
 	Reduce (first axis) ⌿         +⌿B                       Sum down B
 	Scan (last axis)    \         +\B                       Running sum across B
 	Scan (first axis)   ⍀         +⍀B                       Running sum down B
-	Inner product       .    .    A+.×B        +.*          Matrix product of A and B
+	Inner product       .    .    A+.×B        A+.*B        Matrix product of A and B
 	Outer product       ∘.        A∘.×B                     Outer product of A and B
 
 Special commands

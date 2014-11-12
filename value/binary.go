@@ -270,21 +270,30 @@ func init() {
 				case 0:
 					return one
 				case -1:
-					panic(Error("negative exponent not implemented"))
+					if u.(BigInt).Sign() == 0 {
+						panic(Error("negative exponent of zero"))
+					}
+					v = Unary("abs", v).ToType(bigIntType)
+					return Unary("/", binaryBigIntOp(u, bigIntExp, v))
 				}
 				return binaryBigIntOp(u, bigIntExp, v)
 			},
 			bigRatType: func(u, v Value) Value {
-				rexp := v.(BigRat)
-				if !rexp.IsInt() {
-					panic(Error("fractional exponent not implemented"))
-				}
 				// We know v is integral. (n/d)**2 is n**2/d**2.
+				rexp := v.(BigRat)
+				positive := true
 				switch rexp.Sign() {
 				case 0:
 					return one
 				case -1:
-					panic(Error("negative exponent not implemented"))
+					if u.(BigRat).Sign() == 0 {
+						panic(Error("negative exponent of zero"))
+					}
+					positive = false
+					rexp = Unary("-", v).ToType(bigRatType).(BigRat)
+				}
+				if !rexp.IsInt() {
+					panic(Error("fractional exponent not implemented"))
 				}
 				exp := rexp.Num()
 				rat := u.(BigRat)
@@ -293,8 +302,12 @@ func init() {
 				num.Exp(num, exp, nil)
 				den.Exp(den, exp, nil)
 				z := bigRatInt64(0)
-				z.SetFrac(num, den)
-				return z
+				if positive {
+					z.SetFrac(num, den)
+				} else {
+					z.SetFrac(den, num)
+				}
+				return z.shrink()
 			},
 		},
 	}
