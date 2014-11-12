@@ -80,7 +80,7 @@ func whichType(v Value) valueType {
 
 func Binary(u Value, opName string, v Value) Value {
 	if strings.Contains(opName, ".") {
-		return InnerProduct(u, opName, v)
+		return innerProduct(u, opName, v)
 	}
 	op := binaryOps[opName]
 	if op == nil {
@@ -104,19 +104,34 @@ func Binary(u Value, opName string, v Value) Value {
 	return fn(u, v)
 }
 
-func InnerProduct(u Value, opName string, v Value) Value {
+func outerProduct(u Value, opName string, v Value) Value {
+	// Vectors only for now, but can promote from scalars.
+	i := u.ToType(vectorType).(Vector)
+	j := v.ToType(vectorType).(Vector)
+	m := Matrix{
+		shape: ValueSlice([]Value{Int(len(i)), Int(len(j))}),
+		data:  ValueSlice(make(Vector, len(i)*len(j))),
+	}
+	index := 0
+	for _, vi := range i {
+		for _, vj := range j {
+			m.data[index] = Binary(vi, opName, vj)
+			index++
+		}
+	}
+	return m // TODO: Shrink?
+}
+
+func innerProduct(u Value, opName string, v Value) Value {
 	dot := strings.IndexByte(opName, '.')
 	left := opName[:dot]
 	right := opName[dot+1:]
-	// Vectors only for now.
-	i, ok := u.(Vector)
-	if !ok {
-		panic(Errorf("inner product not implemented on type %s", whichType(u)))
+	if left == "o" {
+		return outerProduct(u, right, v)
 	}
-	j, ok := v.(Vector)
-	if !ok {
-		panic(Errorf("inner product not implemented on type %s", whichType(v)))
-	}
+	// Vectors only for now, but can promote from scalars.
+	i := u.ToType(vectorType).(Vector)
+	j := v.ToType(vectorType).(Vector)
 	i.sameLength(j)
 	var x Value
 	for k, e := range i {

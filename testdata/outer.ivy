@@ -1,0 +1,41 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Outer products.
+
+# Scalars
+
+# Test of number scanning with no spaces.
+
+3o.*5
+	15
+
+3 o.* 5
+	15
+
+1/3 o.* 1/4
+	1/12
+
+3e10 o.* 5e10
+	1500000000000000000000
+
+# Vectors
+
+2 3 o.+ 10 11 12
+	12 13 14
+	13 14 15
+
+2 3 4 o.* 10 11
+	20 22
+	30 33
+	40 44
+
+2 3 4 o.min 10 11
+	2 2
+	3 3
+	4 4
+
+2 3 o.max 10 11 12
+	10 11 12
+	10 11 12

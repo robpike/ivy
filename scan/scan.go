@@ -305,7 +305,9 @@ func lexAny(l *Scanner) stateFn {
 		}
 		l.next()
 		fallthrough // for ==
-	case l.isOperator(r): // Must be after numbers, so '-' can be a sign.
+	case l.isOperator(r):
+		// Must be after after = so == is an operator,
+		// and after numbers, so '-' can be a sign.
 		return lexOperator
 	case isAlphaNumeric(r):
 		l.backup()
@@ -353,7 +355,11 @@ Loop:
 				return l.errorf("bad character %#U", r)
 			}
 			// Some identifiers are operators.
-			if operatorWord[l.input[l.start:l.pos]] {
+			word := l.input[l.start:l.pos]
+			if word == "o" && l.peek() == '.' {
+				return lexOperator
+			}
+			if operatorWord[word] {
 				return lexOperator
 			} else {
 				l.emit(Identifier)
@@ -365,16 +371,17 @@ Loop:
 }
 
 // lexOperator completes scanning an operator. We have already accepted the + or
-// whatever; there may be a reduction or inner product.
+// whatever; there may be a reduction or inner or outer product.
 func lexOperator(l *Scanner) stateFn {
 	// It might be an inner product or reduction, but only if it is a binary operator.
-	if isBinary[l.input[l.start:l.pos]] {
+	word := l.input[l.start:l.pos]
+	if word == "o" || isBinary[l.input[l.start:l.pos]] {
 		switch l.peek() {
 		case '/':
 			// Reduction.
 			l.next()
 		case '.':
-			// Inner product
+			// Inner or outer product
 			l.next() // Accept the '.'.
 			startRight := l.pos
 			r := l.next()
@@ -488,8 +495,8 @@ func (l *Scanner) scanNumber() bool {
 		l.accept("+-")
 		l.acceptRun("0123456789")
 	}
-	// Next thing mustn't be alphanumeric.
-	if isAlphaNumeric(l.peek()) {
+	// Next thing mustn't be alphanumeric except possibly an o for outer product (3o.+2).
+	if l.peek() != 'o' && isAlphaNumeric(l.peek()) {
 		l.next()
 		return false
 	}
@@ -572,6 +579,11 @@ func (l *Scanner) isOperator(r rune) bool {
 		case '*':
 			l.next()
 		}
+	case '=':
+		if l.peek() != '=' {
+			return false
+		}
+		l.next()
 	default:
 		return false
 	}
