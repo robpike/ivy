@@ -32,7 +32,7 @@ type unaryOp struct {
 
 func Unary(opName string, v Value) Value {
 	if len(opName) > 1 && strings.HasSuffix(opName, `/`) {
-		return Reduce(opName[:len(opName)-1], v)
+		return reduce(opName[:len(opName)-1], v)
 	}
 	op := unaryOps[opName]
 	if op == nil {
@@ -80,7 +80,7 @@ func whichType(v Value) valueType {
 
 func Binary(u Value, opName string, v Value) Value {
 	if strings.Contains(opName, ".") {
-		return innerProduct(u, opName, v)
+		return product(u, opName, v)
 	}
 	op := binaryOps[opName]
 	if op == nil {
@@ -104,48 +104,97 @@ func Binary(u Value, opName string, v Value) Value {
 	return fn(u, v)
 }
 
-func outerProduct(u Value, opName string, v Value) Value {
-	// Vectors only for now, but can promote from scalars.
-	i := u.ToType(vectorType).(Vector)
-	j := v.ToType(vectorType).(Vector)
-	m := Matrix{
-		shape: ValueSlice([]Value{Int(len(i)), Int(len(j))}),
-		data:  ValueSlice(make(Vector, len(i)*len(j))),
-	}
-	index := 0
-	for _, vi := range i {
-		for _, vj := range j {
-			m.data[index] = Binary(vi, opName, vj)
-			index++
-		}
-	}
-	return m // TODO: Shrink?
-}
-
-func innerProduct(u Value, opName string, v Value) Value {
+func product(u Value, opName string, v Value) Value {
 	dot := strings.IndexByte(opName, '.')
 	left := opName[:dot]
 	right := opName[dot+1:]
+	which := atLeastVectorType(whichType(u), whichType(v))
+	u = u.ToType(which)
+	v = v.ToType(which)
 	if left == "o" {
 		return outerProduct(u, right, v)
 	}
-	// Vectors only for now, but can promote from scalars.
-	i := u.ToType(vectorType).(Vector)
-	j := v.ToType(vectorType).(Vector)
-	i.sameLength(j)
-	var x Value
-	for k, e := range i {
-		tmp := Binary(e, right, j[k])
-		if k == 0 {
-			x = tmp
-		} else {
-			x = Binary(x, left, tmp)
-		}
-	}
-	return x
+	return innerProduct(u, left, right, v)
 }
 
-func Reduce(opName string, v Value) Value {
+// u and v are known to be the same type and at least Vectors.
+func innerProduct(u Value, left, right string, v Value) Value {
+	switch u := u.(type) {
+	case Vector:
+		v := v.(Vector)
+		u.sameLength(v)
+		var x Value
+		for k, e := range u {
+			tmp := Binary(e, right, v[k])
+			if k == 0 {
+				x = tmp
+			} else {
+				x = Binary(x, left, tmp)
+			}
+		}
+		return x
+	case Matrix:
+		// Say we're doing +.*
+		// result[i,j] = +/(u[row i] * v[column j])
+		// The result is a square matrix with each dimension the number of columns of the lhs.
+		v := v.(Matrix)
+		if len(u.shape) != 2 || len(v.shape) != 2 {
+			Errorf("can't do inner product on shape %s times %s", u.shape, v.shape)
+		}
+		urows := int(u.shape[0].(Int))
+		ucols := int(u.shape[1].(Int))
+		vrows := int(v.shape[0].(Int))
+		vcols := int(v.shape[1].(Int))
+		if vrows != ucols || vcols != urows {
+			Errorf("shape mismatch for inner product %s times %s", u.shape, v.shape)
+		}
+		data := make(Vector, urows*urows)
+		shape := ValueSlice([]Value{u.shape[0], u.shape[0]})
+		row, col := 0, 0
+		for i := range data {
+			acc := Binary(u.data[row*ucols], right, v.data[col])
+			for j := 1; j < ucols; j++ {
+				acc = Binary(acc, left, Binary(u.data[row*ucols+j], right, v.data[j*vcols+col]))
+			}
+			data[i] = acc
+			col++
+			if col >= urows {
+				row++
+				col = 0
+			}
+		}
+		return Matrix{
+			shape: shape,
+			data:  data,
+		}
+	}
+	Errorf("can't do inner product on %s", whichType(u))
+	panic("not reached")
+}
+
+// u and v are known to be at least Vectors.
+func outerProduct(u Value, opName string, v Value) Value {
+	switch u := u.(type) {
+	case Vector:
+		v := v.(Vector)
+		m := Matrix{
+			shape: ValueSlice([]Value{Int(len(u)), Int(len(v))}),
+			data:  ValueSlice(make(Vector, len(u)*len(v))),
+		}
+		index := 0
+		for _, vu := range u {
+			for _, vv := range v {
+				m.data[index] = Binary(vu, opName, vv)
+				index++
+			}
+		}
+		return m // TODO: Shrink?
+	}
+	Errorf("can't do outer product on %s", whichType(u))
+	panic("not reached")
+}
+
+func reduce(opName string, v Value) Value {
 	switch v := v.(type) {
 	case Int, BigInt, BigRat:
 		return v
@@ -180,7 +229,7 @@ func Reduce(opName string, v Value) Value {
 			data:  data,
 		}
 	}
-	Errorf("bad type for reduce")
+	Errorf("can't do reduce on %s", whichType(v))
 	panic("not reached")
 }
 
