@@ -27,9 +27,9 @@ func (m Matrix) String() string {
 	var b bytes.Buffer
 	switch len(m.shape) {
 	case 0:
-		panic(Errorf("matrix is scalar"))
+		Errorf("matrix is scalar")
 	case 1:
-		panic(Errorf("matrix is vector"))
+		Errorf("matrix is vector")
 	case 2:
 		nrows := int(m.shape[0].(Int))
 		ncols := int(m.shape[1].(Int))
@@ -144,11 +144,11 @@ func (m Matrix) Shape() Vector {
 
 func (x Matrix) sameShape(y Matrix) {
 	if len(x.shape) != len(y.shape) {
-		panic(Errorf("rank mismatch: %s != %s", x.shape, y.shape))
+		Errorf("rank mismatch: %s != %s", x.shape, y.shape)
 	}
 	for i, d := range x.shape {
 		if d != y.shape[i] {
-			panic(Errorf("rank mismatch: %s != %s", x.shape, y.shape))
+			Errorf("rank mismatch: %s != %s", x.shape, y.shape)
 		}
 	}
 }
@@ -157,20 +157,20 @@ func (x Matrix) sameShape(y Matrix) {
 // A⍴B: Array of shape A with data B
 func reshape(A, B Vector) Value {
 	if len(A) == 0 {
-		panic(Error("bad index"))
+		Errorf("bad index")
 	}
 	if len(B) == 0 {
-		panic(Error("reshape of empty vector"))
+		Errorf("reshape of empty vector")
 	}
 	nelems := Int(1)
 	for i := range A {
 		n, ok := A[i].(Int)
 		if !ok || n <= 0 || maxInt < n { // TODO: 0 should be ok.
-			panic(Error("bad index"))
+			Errorf("bad index")
 		}
 		nelems *= n
 		if maxInt < nelems {
-			panic(Error("too big"))
+			Errorf("too big")
 		}
 	}
 	values := make([]Value, nelems)

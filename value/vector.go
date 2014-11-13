@@ -53,7 +53,7 @@ func (v Vector) Len() int {
 
 func (v Vector) sameLength(x Vector) {
 	if v.Len() != x.Len() {
-		panic(Errorf("length mismatch: %d %d", v.Len(), x.Len()))
+		Errorf("length mismatch: %d %d", v.Len(), x.Len())
 	}
 }
 

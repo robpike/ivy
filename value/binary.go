@@ -50,7 +50,7 @@ func shiftCount(x Value) uint {
 	switch count := x.(type) {
 	case Int:
 		if count < 0 || count >= maxInt {
-			panic(Errorf("illegal shift count %d", count))
+			Errorf("illegal shift count %d", count)
 		}
 		return uint(count)
 	case BigInt:
@@ -61,7 +61,8 @@ func shiftCount(x Value) uint {
 			return shiftCount(reduced)
 		}
 	}
-	panic(Error("illegal shift count type"))
+	Errorf("illegal shift count type")
+	panic("not reached")
 }
 
 func binaryBigIntOp(u Value, op func(*big.Int, *big.Int, *big.Int) *big.Int, v Value) Value {
@@ -101,9 +102,9 @@ func toBool(t Value) bool {
 		return t.Sign() != 0
 	case BigRat:
 		return t.Sign() != 0
-	default:
-		panic(Errorf("cannot convert %T to bool", t))
 	}
+	Errorf("cannot convert %T to bool", t)
+	panic("not reached")
 }
 
 var (
@@ -186,7 +187,7 @@ func init() {
 		fn: [numType]binaryFn{
 			bigRatType: func(u, v Value) Value {
 				if v.(BigRat).Sign() == 0 {
-					panic(Error("division by zero"))
+					Errorf("division by zero")
 				}
 				return binaryBigRatOp(u, (*big.Rat).Quo, v) // True division.
 			},
@@ -199,13 +200,13 @@ func init() {
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				if v.(Int) == 0 {
-					panic(Error("division by zero"))
+					Errorf("division by zero")
 				}
 				return u.(Int) / v.(Int)
 			},
 			bigIntType: func(u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
-					panic(Error("division by zero"))
+					Errorf("division by zero")
 				}
 				return binaryBigIntOp(u, (*big.Int).Quo, v) // Go-like division.
 			},
@@ -219,13 +220,13 @@ func init() {
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				if v.(Int) == 0 {
-					panic(Error("modulo by zero"))
+					Errorf("modulo by zero")
 				}
 				return u.(Int) % v.(Int)
 			},
 			bigIntType: func(u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
-					panic(Error("modulo by zero"))
+					Errorf("modulo by zero")
 				}
 				return binaryBigIntOp(u, (*big.Int).Rem, v) // Go-like modulo.
 			},
@@ -239,7 +240,7 @@ func init() {
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
-					panic(Error("division by zero"))
+					Errorf("division by zero")
 				}
 				return binaryBigIntOp(u, (*big.Int).Div, v) // Euclidean division.
 			},
@@ -253,7 +254,7 @@ func init() {
 		fn: [numType]binaryFn{
 			bigIntType: func(u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
-					panic(Error("modulo by zero"))
+					Errorf("modulo by zero")
 				}
 				return binaryBigIntOp(u, (*big.Int).Mod, v) // Euclidan modulo.
 			},
@@ -271,7 +272,7 @@ func init() {
 					return one
 				case -1:
 					if u.(BigInt).Sign() == 0 {
-						panic(Error("negative exponent of zero"))
+						Errorf("negative exponent of zero")
 					}
 					v = Unary("abs", v).ToType(bigIntType)
 					return Unary("/", binaryBigIntOp(u, bigIntExp, v))
@@ -287,13 +288,13 @@ func init() {
 					return one
 				case -1:
 					if u.(BigRat).Sign() == 0 {
-						panic(Error("negative exponent of zero"))
+						Errorf("negative exponent of zero")
 					}
 					positive = false
 					rexp = Unary("-", v).ToType(bigRatType).(BigRat)
 				}
 				if !rexp.IsInt() {
-					panic(Error("fractional exponent not implemented"))
+					Errorf("fractional exponent not implemented")
 				}
 				exp := rexp.Num()
 				rat := u.(BigRat)
@@ -576,11 +577,11 @@ func init() {
 				for i, b := range B {
 					x, ok := b.(Int)
 					if !ok {
-						panic(Error("index must be integer"))
+						Errorf("index must be integer")
 					}
 					x -= origin
 					if x < 0 || Int(A.Len()) <= x {
-						panic(Errorf("index %d out of range", x+origin))
+						Errorf("index %d out of range", x+origin)
 					}
 					values[i] = A[x]
 				}
@@ -590,7 +591,7 @@ func init() {
 				// A[B]: The successive elements of A with indexes given by elements of B.
 				A, mB := u.(Matrix), v.(Matrix)
 				if mB.shape.Len() != 1 {
-					panic(Errorf("bad index rank %d", mB.shape.Len()))
+					Errorf("bad index rank %d", mB.shape.Len())
 				}
 				B := mB.data
 				elemSize := Int(A.elemSize())
@@ -599,11 +600,11 @@ func init() {
 				for _, b := range B {
 					x, ok := b.(Int)
 					if !ok {
-						panic(Error("index must be integer"))
+						Errorf("index must be integer")
 					}
 					x -= origin
 					if x < 0 || Int(A.shape[0].(Int)) <= x {
-						panic(Errorf("index %d out of range (shape %s)", x+origin, A.shape))
+						Errorf("index %d out of range (shape %s)", x+origin, A.shape)
 					}
 					start := elemSize * x
 					values = append(values, A.data[start:start+elemSize]...)
@@ -729,7 +730,7 @@ func init() {
 				// LHS must be a vector underneath.
 				A, B := u.(Matrix), v.(Matrix)
 				if len(A.shape) != 1 {
-					panic(Error("lhs of rho cannot be matrix"))
+					Errorf("lhs of rho cannot be matrix")
 				}
 				return reshape(A.data, B.data)
 			},
@@ -746,10 +747,10 @@ func init() {
 				A := u.(Matrix)
 				B := v.(Matrix)
 				if len(A.shape) == 0 || len(B.shape) == 0 {
-					panic(Error("empty matrix for ,"))
+					Errorf("empty matrix for ,")
 				}
 				if len(A.shape) != len(B.shape)+1 || A.elemSize() != B.size() {
-					panic(Errorf("ravel rank mismatch: %s != %s", A.shape[1:], B.shape))
+					Errorf("ravel rank mismatch: %s != %s", A.shape[1:], B.shape)
 				}
 				elemSize := A.elemSize()
 				newShape := make(Vector, len(A.shape))

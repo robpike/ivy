@@ -51,13 +51,13 @@ func init() {
 			intType: func(v Value) Value {
 				i := int64(v.(Int))
 				if i <= 0 {
-					panic(Errorf("illegal roll value %v", v))
+					Errorf("illegal roll value %v", v)
 				}
 				return Int(conf.Origin()) + Int(conf.Random().Int63n(i))
 			},
 			bigIntType: func(v Value) Value {
 				if v.(BigInt).Sign() <= 0 {
-					panic(Errorf("illegal roll value %v", v))
+					Errorf("illegal roll value %v", v)
 				}
 				return unaryBigIntOp(bigIntRand, v)
 			},
@@ -95,7 +95,7 @@ func init() {
 			intType: func(v Value) Value {
 				i := int64(v.(Int))
 				if i == 0 {
-					panic(Error("division by zero"))
+					Errorf("division by zero")
 				}
 				return BigRat{
 					Rat: big.NewRat(0, 1).SetFrac64(1, i),
@@ -257,7 +257,7 @@ func init() {
 			intType: func(v Value) Value {
 				i := v.(Int)
 				if i < 0 || maxInt < i {
-					panic(Errorf("bad iota %d", i))
+					Errorf("bad iota %d", i)
 				}
 				if i == 0 {
 					return Vector{}

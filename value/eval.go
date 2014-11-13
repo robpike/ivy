@@ -36,7 +36,7 @@ func Unary(opName string, v Value) Value {
 	}
 	op := unaryOps[opName]
 	if op == nil {
-		panic(Errorf("unary %s not implemented", opName))
+		Errorf("unary %s not implemented", opName)
 	}
 	which := whichType(v)
 	fn := op.fn[which]
@@ -49,7 +49,7 @@ func Unary(opName string, v Value) Value {
 				return unaryMatrixOp(opName, v)
 			}
 		}
-		panic(Errorf("unary %s not implemented on type %s", opName, which))
+		Errorf("unary %s not implemented on type %s", opName, which)
 	}
 	return fn(v)
 }
@@ -84,7 +84,7 @@ func Binary(u Value, opName string, v Value) Value {
 	}
 	op := binaryOps[opName]
 	if op == nil {
-		panic(Errorf("binary %s not implemented", opName))
+		Errorf("binary %s not implemented", opName)
 	}
 	which := op.whichType(whichType(u), whichType(v))
 	u = u.ToType(which)
@@ -99,7 +99,7 @@ func Binary(u Value, opName string, v Value) Value {
 				return binaryMatrixOp(u, opName, v)
 			}
 		}
-		panic(Errorf("binary %s not implemented on type %s", opName, which))
+		Errorf("binary %s not implemented on type %s", opName, which)
 	}
 	return fn(u, v)
 }
@@ -147,8 +147,6 @@ func innerProduct(u Value, opName string, v Value) Value {
 
 func Reduce(opName string, v Value) Value {
 	switch v := v.(type) {
-	default:
-		panic(Error("bad type for reduce"))
 	case Int, BigInt, BigRat:
 		return v
 	case Vector:
@@ -159,7 +157,7 @@ func Reduce(opName string, v Value) Value {
 		return acc
 	case Matrix:
 		if len(v.shape) < 2 {
-			panic(Errorf("shape for matrix is degenerate: %s", v.shape))
+			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
 		stride := int(v.shape[len(v.shape)-1].(Int))
 		shape := v.shape[:len(v.shape)-1]
@@ -182,6 +180,8 @@ func Reduce(opName string, v Value) Value {
 			data:  data,
 		}
 	}
+	Errorf("bad type for reduce")
+	panic("not reached")
 }
 
 // unaryVectorOp applies op elementwise to i.

@@ -116,7 +116,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 	// Put file and line information on head of message.
 	format = "%s:%d: " + format + "\n"
 	args = append([]interface{}{p.fileName, p.lineNum}, args...)
-	panic(value.Errorf(format, args...))
+	value.Errorf(format, args...)
 }
 
 // Line:

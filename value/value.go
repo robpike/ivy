@@ -31,14 +31,16 @@ type Value interface {
 	ToType(valueType) Value
 }
 
+// Error is the type we recognize as a recoverable run-time error.
 type Error string
 
 func (err Error) Error() string {
 	return string(err)
 }
 
-func Errorf(format string, args ...interface{}) Error {
-	return Error(fmt.Sprintf(format, args...))
+// Errorf panics with the formatted string, with type Error.
+func Errorf(format string, args ...interface{}) {
+	panic(Error(fmt.Sprintf(format, args...)))
 }
 
 type ParseState int
@@ -65,7 +67,7 @@ func ValueString(s string) (Value, error) {
 		// General mix-em-up.
 		rden := den.ToType(bigRatType)
 		if rden.(BigRat).Sign() == 0 {
-			panic(Error("zero denominator in rational"))
+			Errorf("zero denominator in rational")
 		}
 		return binaryBigRatOp(num.ToType(bigRatType), (*big.Rat).Quo, rden), nil
 	}
@@ -96,7 +98,7 @@ func bigRatInt64(x int64) BigRat {
 
 func bigRatTwoInt64s(x, y int64) BigRat {
 	if y == 0 {
-		panic(Error("zero denominator in rational"))
+		Errorf("zero denominator in rational")
 	}
 	return BigRat{big.NewRat(x, y)}
 }
