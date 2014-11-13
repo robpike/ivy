@@ -7,7 +7,6 @@ package parse // import "robpike.io/ivy/parse"
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 
@@ -110,15 +109,12 @@ func (p *Parser) runFromFile(name string) {
 	}
 	defer func() {
 		runDepth--
-		if p.config.Debug("panic") {
-			return
-		}
 		err := recover()
 		if err == nil {
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			log.Print(err)
+			fmt.Fprintf(os.Stderr, "%s: %s\n", p.Loc(), err)
 			return
 		}
 		panic(err)

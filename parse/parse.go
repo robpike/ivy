@@ -78,7 +78,6 @@ func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner) *Par
 		scanner:  scanner,
 		config:   conf,
 		fileName: fileName,
-		lineNum:  1,
 		vars:     make(map[string]value.Value),
 	}
 }
@@ -91,6 +90,10 @@ func (p *Parser) Next() scan.Token {
 		tok = <-p.scanner.Tokens
 	}
 	p.curTok = tok
+	if tok.Type != scan.Newline {
+		// Show the line number before we hit the newline.
+		p.lineNum = tok.Line
+	}
 	return tok
 }
 
@@ -107,15 +110,16 @@ func (p *Parser) Peek() scan.Token {
 	return p.peekTok
 }
 
+func (p *Parser) Loc() string {
+	return fmt.Sprintf("%s:%d", p.fileName, p.lineNum)
+}
+
 func (p *Parser) errorf(format string, args ...interface{}) {
 	// Flush to newline.
 	for p.curTok.Type != scan.Newline && p.curTok.Type != scan.EOF {
 		p.Next()
 	}
 	p.peekTok = scan.Token{Type: scan.EOF}
-	// Put file and line information on head of message.
-	format = "%s:%d: " + format + "\n"
-	args = append([]interface{}{p.fileName, p.lineNum}, args...)
 	value.Errorf(format, args...)
 }
 

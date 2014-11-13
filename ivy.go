@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -33,14 +32,12 @@ func init() {
 var conf config.Config
 
 func main() {
-	log.SetFlags(0)
-	log.SetPrefix("ivy: ")
-
 	flag.Usage = usage
 	flag.Parse()
 
 	if *origin != 0 && *origin != 1 {
-		log.Fatalf("ivy: illegal origin value %d", *origin)
+		fmt.Fprintf(os.Stderr, "ivy: illegal origin value %d", *origin)
+		os.Exit(2)
 	}
 
 	conf.SetFormat(*format)
@@ -68,7 +65,8 @@ func main() {
 				fd, err = os.Open(name)
 			}
 			if err != nil {
-				log.Fatalf("ivy: %s", err)
+				fmt.Fprintf(os.Stderr, "ivy: %s", err)
+				os.Exit(1)
 			}
 			scanner := scan.New(&conf, name, bufio.NewReader(fd))
 			parser := parse.NewParser(&conf, name, scanner)
@@ -79,15 +77,15 @@ func main() {
 		return
 	}
 
-	scanner := scan.New(&conf, "", bufio.NewReader(os.Stdin))
-	parser := parse.NewParser(&conf, "", scanner)
+	scanner := scan.New(&conf, "<stdin>", bufio.NewReader(os.Stdin))
+	parser := parse.NewParser(&conf, "<stdin>", scanner)
 	for !run(parser, os.Stdout, true) {
 	}
 }
 
 func runArgs() {
-	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(flag.Args(), " ")))
-	parser := parse.NewParser(&conf, "", scanner)
+	scanner := scan.New(&conf, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
+	parser := parse.NewParser(&conf, "<args>", scanner)
 	run(parser, os.Stdout, false)
 }
 
@@ -102,7 +100,7 @@ func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			log.Print(err)
+			fmt.Fprintf(os.Stderr, "%s: %s\n", p.Loc(), err)
 			success = false
 			return
 		}

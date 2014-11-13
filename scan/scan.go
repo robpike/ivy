@@ -17,12 +17,10 @@ import (
 	"unicode/utf8"
 )
 
-type Pos int // Byte position.
-
 // Token represents a token or text string returned from the scanner.
 type Token struct {
 	Type Type   // The type of this item.
-	Pos  Pos    // The starting position, in bytes, of this item in the input. // TODO WRONG
+	Line int    // The line number on which this token appears
 	Text string // The text of this item.
 }
 
@@ -139,9 +137,10 @@ type Scanner struct {
 	leftDelim  string  // start of action
 	rightDelim string  // end of action
 	state      stateFn // the next lexing function to enter
-	pos        Pos     // current position in the input
-	start      Pos     // start position of this item
-	width      Pos     // width of last rune read from input
+	line       int     // line number in input
+	pos        int     // current position in the input
+	start      int     // start position of this item
+	width      int     // width of last rune read from input
 }
 
 // loadLine reads the next line of input and stores it in (appends it to) the input.
@@ -169,11 +168,11 @@ func (l *Scanner) next() rune {
 	if !l.done && int(l.pos) == len(l.input) {
 		l.loadLine()
 	}
-	if Pos(len(l.input)) == l.start {
+	if len(l.input) == l.start {
 		return eof
 	}
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-	l.width = Pos(w)
+	l.width = w
 	l.pos += l.width
 	return r
 }
@@ -192,11 +191,14 @@ func (l *Scanner) backup() {
 
 //  passes an item back to the client.
 func (l *Scanner) emit(t Type) {
+	if t == Newline {
+		l.line++
+	}
 	s := l.input[l.start:l.pos]
 	if l.config.Debug("tokens") {
-		fmt.Printf("emit %s\n", Token{t, l.start, s})
+		fmt.Printf("%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, s})
 	}
-	l.Tokens <- Token{t, l.start, s}
+	l.Tokens <- Token{t, l.line, s}
 	l.start = l.pos
 	l.width = 0
 }
@@ -234,6 +236,7 @@ func New(conf *config.Config, name string, r io.ByteReader) *Scanner {
 		r:      r,
 		config: conf,
 		name:   name,
+		line:   1,
 		Tokens: make(chan Token),
 	}
 	go l.run()
@@ -259,8 +262,9 @@ func lexComment(l *Scanner) stateFn {
 		}
 	}
 	if len(l.input) > 0 {
-		l.pos = Pos(len(l.input))
+		l.pos = len(l.input)
 		l.start = l.pos - 1
+		// Emitting newline also advances l.line.
 		l.emit(Newline) // TODO: pass comments up?
 	}
 	return lexSpace
