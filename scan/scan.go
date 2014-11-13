@@ -198,6 +198,7 @@ func (l *Scanner) emit(t Type) {
 	}
 	l.Tokens <- Token{t, l.start, s}
 	l.start = l.pos
+	l.width = 0
 }
 
 // ignore skips over the pending input before this point.
