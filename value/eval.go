@@ -146,15 +146,42 @@ func innerProduct(u Value, opName string, v Value) Value {
 }
 
 func Reduce(opName string, v Value) Value {
-	vec, ok := v.(Vector)
-	if !ok {
-		panic(Error("reduction operand is not a vector"))
+	switch v := v.(type) {
+	default:
+		panic(Error("bad type for reduce"))
+	case Int, BigInt, BigRat:
+		return v
+	case Vector:
+		acc := v[0]
+		for i := 1; i < v.Len(); i++ {
+			acc = Binary(acc, opName, v[i])
+		}
+		return acc
+	case Matrix:
+		if len(v.shape) < 2 {
+			panic(Errorf("shape for matrix is degenerate: %s", v.shape))
+		}
+		stride := int(v.shape[len(v.shape)-1].(Int))
+		shape := v.shape[:len(v.shape)-1]
+		data := make(Vector, size(shape))
+		index := 0
+		for i := range data {
+			acc := v.data[index]
+			index++
+			for i := 1; i < stride; i++ {
+				acc = Binary(acc, opName, v.data[index])
+				index++
+			}
+			data[i] = acc
+		}
+		if len(shape) == 1 { // TODO: Matrix.shrink()?
+			return ValueSlice(data)
+		}
+		return Matrix{
+			shape: shape,
+			data:  data,
+		}
 	}
-	acc := vec[0]
-	for i := 1; i < vec.Len(); i++ {
-		acc = Binary(acc, opName, vec[i]) // TODO!
-	}
-	return acc
 }
 
 // unaryVectorOp applies op elementwise to i.

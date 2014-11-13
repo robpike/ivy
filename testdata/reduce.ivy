@@ -1,0 +1,54 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Reduction
+
+# Scalars
+
+*/2
+	2
+
++/1e10
+	10000000000
+
+*/ 3/2
+	3/2
+
+# Vectors
+
+*/iota 10
+	3628800
+
++/3 4 rho iota 100
+	10 26 42
+
+# Matrices
+
++/3 4 5 rho iota 100
+	 15  40  65  90
+	115 140 165 190
+	215 240 265 290
+
++/3 4 5 6 rho iota 100
+	 21  57  93 129 165
+	201 237 273 309 345
+	381 417 453 489 525
+	561 397  33  69 105
+	
+	141 177 213 249 285
+	321 357 393 429 465
+	501 537 573 209  45
+	 81 117 153 189 225
+	
+	261 297 333 369 405
+	441 477 513 549 585
+	 21  57  93 129 165
+	201 237 273 309 345
+
+
+# Some fun from tryapl.org
+)seed 0
+throws = ? 10000 rho 6
++/(iota 6) o.== throws
+	1584 1704 1669 1699 1700 1644
