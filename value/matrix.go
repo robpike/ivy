@@ -23,6 +23,35 @@ type Matrix struct {
 	data  Vector
 }
 
+// write2d prints the 2d matrix m into the buffer.
+// value is a slice of already-printed values.
+// The receiver provides only the shape of the matrix.
+func (m Matrix) write2d(b *bytes.Buffer, value []string, width int) {
+	nrows := int(m.shape[0].(Int))
+	ncols := int(m.shape[1].(Int))
+	for row := 0; row < nrows; row++ {
+		if row > 0 {
+			b.WriteByte('\n')
+		}
+		index := row * ncols
+		for col := 0; col < ncols; col++ {
+			if col > 0 {
+				b.WriteByte(' ')
+			}
+			s := value[index]
+			pad := width - len(s)
+			for ; pad >= 10; pad -= 10 {
+				b.WriteString("          ")
+			}
+			for ; pad > 0; pad-- {
+				b.WriteString(" ")
+			}
+			b.WriteString(s)
+			index++
+		}
+	}
+}
+
 func (m Matrix) String() string {
 	var b bytes.Buffer
 	switch len(m.shape) {
@@ -48,32 +77,21 @@ func (m Matrix) String() string {
 				wid = len(s)
 			}
 		}
-		for row := 0; row < nrows; row++ {
-			if row > 0 {
-				b.WriteByte('\n')
-			}
-			index := row * ncols
-			for col := 0; col < ncols; col++ {
-				if col > 0 {
-					b.WriteByte(' ')
-				}
-				s := strs[index]
-				pad := wid - len(s)
-				for ; pad >= 10; pad -= 10 {
-					b.WriteString("          ")
-				}
-				for ; pad > 0; pad-- {
-					b.WriteString(" ")
-				}
-				b.WriteString(s)
-				index++
+		m.write2d(&b, strs, wid)
+	case 3:
+		// As for 2d: print the vector elements, compute the
+		// global width, and use that to print each 2d submatrix.
+		strs := strings.Split(m.data.String(), " ")
+		wid := 1
+		for _, s := range strs {
+			if wid < len(s) {
+				wid = len(s)
 			}
 		}
-	case 3:
-		n := int(m.shape[0].(Int))
-		size := m.elemSize()
+		n2d := int(m.shape[0].(Int)) // number of 2d submatrices.
+		size := m.elemSize()         // number of elems in each submatrix.
 		start := 0
-		for i := 0; i < n; i++ {
+		for i := 0; i < n2d; i++ {
 			if i > 0 {
 				b.WriteString("\n\n")
 			}
@@ -81,7 +99,7 @@ func (m Matrix) String() string {
 				shape: m.shape[1:],
 				data:  m.data[start : start+size],
 			}
-			b.WriteString(m.String())
+			m.write2d(&b, strs[start:start+size], wid)
 			start += size
 		}
 	default:
