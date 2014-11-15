@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// TODO: a preamble to set up variables?
-
 package main
 
 import (
@@ -95,10 +93,12 @@ func equal(a, b []string) bool {
 		a = a[:len(a)-1]
 	}
 	if len(a) != len(b) {
+		println("LEN", len(a), len(b))
 		return false
 	}
 	for i, s := range a {
 		if strings.TrimSpace(s) != strings.TrimSpace(b[i]) {
+			println("BAD", i, s, b[i])
 			return false
 		}
 	}

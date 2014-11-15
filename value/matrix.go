@@ -103,10 +103,60 @@ func (m Matrix) String() string {
 			start += size
 		}
 	default:
-		// TODO STUPID
-		fmt.Printf("shape: %s; elems: %s\n", m.shape, m.data)
+		return m.higherDim("[", 0)
 	}
 	return b.String()
+}
+
+func (m Matrix) higherDim(prefix string, indentation int) string {
+	if len(m.shape) <= 3 {
+		return indent(indentation, m.String())
+	}
+	dim := int(m.shape[0].(Int))
+	rest := strings.Repeat(" *", len(m.shape)-1)[1:]
+	var b bytes.Buffer
+	for i := 0; i < dim; i++ {
+		inner := Matrix{
+			shape: m.shape[1:],
+			data:  m.data[i*m.elemSize():],
+		}
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		innerPrefix := fmt.Sprintf("%s%d ", prefix, i+conf.Origin())
+		b.WriteString(indent(indentation, "%s%s]:\n", innerPrefix, rest))
+		b.WriteString(inner.higherDim(innerPrefix, indentation+1))
+	}
+	return b.String()
+}
+
+// indent prints the args, indenting each line by the specified amount.
+func indent(indentation int, format string, args ...interface{}) string {
+	s := fmt.Sprintf(format, args...)
+	if indentation == 0 {
+		return s
+	}
+	var b bytes.Buffer
+	lines := strings.Split(s, "\n")
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+	for _, line := range lines {
+		if len(line) > 0 {
+			b.WriteString(spaces(indentation))
+		}
+		b.WriteString(line)
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
+
+// sapces returns 2*n space characters.
+func spaces(n int) string {
+	if n > 10 {
+		n = 10
+	}
+	return "                    "[:2*n]
 }
 
 // elemSize returns number of elements of the submatrix forming the elements of the matrix.
