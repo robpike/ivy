@@ -47,13 +47,9 @@ func (v Vector) ToType(which valueType) Value {
 	panic("Vector.ToType")
 }
 
-func (v Vector) Len() int {
-	return len(v)
-}
-
 func (v Vector) sameLength(x Vector) {
-	if v.Len() != x.Len() {
-		Errorf("length mismatch: %d %d", v.Len(), x.Len())
+	if len(v) != len(x) {
+		Errorf("length mismatch: %d %d", len(v), len(x))
 	}
 }
 

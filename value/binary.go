@@ -580,7 +580,7 @@ func init() {
 						Errorf("index must be integer")
 					}
 					x -= origin
-					if x < 0 || Int(A.Len()) <= x {
+					if x < 0 || Int(len(A)) <= x {
 						Errorf("index %d out of range", x+origin)
 					}
 					values[i] = A[x]
@@ -590,8 +590,8 @@ func init() {
 			matrixType: func(u, v Value) Value {
 				// A[B]: The successive elements of A with indexes given by elements of B.
 				A, mB := u.(Matrix), v.(Matrix)
-				if mB.shape.Len() != 1 {
-					Errorf("bad index rank %d", mB.shape.Len())
+				if len(mB.shape) != 1 {
+					Errorf("bad index rank %d", len(mB.shape))
 				}
 				B := mB.data
 				elemSize := Int(A.elemSize())

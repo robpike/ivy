@@ -151,7 +151,7 @@ func indent(indentation int, format string, args ...interface{}) string {
 	return b.String()
 }
 
-// sapces returns 2*n space characters.
+// spaces returns 2*n space characters.
 func spaces(n int) string {
 	if n > 10 {
 		n = 10

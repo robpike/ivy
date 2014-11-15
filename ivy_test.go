@@ -98,7 +98,6 @@ func equal(a, b []string) bool {
 	}
 	for i, s := range a {
 		if strings.TrimSpace(s) != strings.TrimSpace(b[i]) {
-			println("BAD", i, s, b[i])
 			return false
 		}
 	}

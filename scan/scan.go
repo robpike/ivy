@@ -385,6 +385,9 @@ func lexOperator(l *Scanner) stateFn {
 		case '/':
 			// Reduction.
 			l.next()
+		case '\\':
+			// Scan.
+			l.next()
 		case '.':
 			// Inner or outer product
 			l.next() // Accept the '.'.

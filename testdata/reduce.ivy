@@ -20,10 +20,10 @@
 */iota 10
 	3628800
 
+# Matrices
+
 +/3 4 rho iota 100
 	10 26 42
-
-# Matrices
 
 +/3 4 5 rho iota 100
 	 15  40  65  90

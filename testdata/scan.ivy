@@ -1,0 +1,44 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Reduction
+
+# Scalars
+
+*\2
+	2
+
++\1e10
+	10000000000
+
+*\ 3/2
+	3/2
+
+# Vectors
+
++\iota 10
+	1 3 6 10 15 21 28 36 45 55
+
+# Matrices
+
++\3 4 rho iota 100
+	1  3  6 10
+	5 11 18 26
+	9 19 30 42
+
++\3 4 5 rho iota 100
+	 1   3   6  10  15
+	 6  13  21  30  40
+	11  23  36  50  65
+	16  33  51  70  90
+	                  
+	21  43  66  90 115
+	26  53  81 110 140
+	31  63  96 130 165
+	36  73 111 150 190
+	                  
+	41  83 126 170 215
+	46  93 141 190 240
+	51 103 156 210 265
+	56 113 171 230 290

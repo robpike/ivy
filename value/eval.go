@@ -31,8 +31,13 @@ type unaryOp struct {
 }
 
 func Unary(opName string, v Value) Value {
-	if len(opName) > 1 && strings.HasSuffix(opName, `/`) {
-		return reduce(opName[:len(opName)-1], v)
+	if len(opName) > 1 {
+		if strings.HasSuffix(opName, `/`) {
+			return reduce(opName[:len(opName)-1], v)
+		}
+		if strings.HasSuffix(opName, `\`) {
+			return scan(opName[:len(opName)-1], v)
+		}
 	}
 	op := unaryOps[opName]
 	if op == nil {
@@ -200,7 +205,7 @@ func reduce(opName string, v Value) Value {
 		return v
 	case Vector:
 		acc := v[0]
-		for i := 1; i < v.Len(); i++ {
+		for i := 1; i < len(v); i++ {
 			acc = Binary(acc, opName, v[i])
 		}
 		return acc
@@ -233,10 +238,57 @@ func reduce(opName string, v Value) Value {
 	panic("not reached")
 }
 
+func scan(opName string, v Value) Value {
+	switch v := v.(type) {
+	case Int, BigInt, BigRat:
+		return v
+	case Vector:
+		if len(v) == 0 {
+			return v
+		}
+		values := make(Vector, len(v))
+		acc := v[0]
+		values[0] = acc
+		for i := 1; i < len(v); i++ {
+			acc = Binary(acc, opName, v[i])
+			values[i] = acc
+		}
+		return ValueSlice(values)
+	case Matrix:
+		if len(v.shape) < 2 {
+			Errorf("shape for matrix is degenerate: %s", v.shape)
+		}
+		stride := int(v.shape[len(v.shape)-1].(Int))
+		data := make(Vector, len(v.data))
+		index := 0
+		nrows := 1
+		for i := 0; i < len(v.shape)-1; i++ {
+			// TODO: Overflow?
+			nrows *= int(v.shape[i].(Int))
+		}
+		for i := 0; i < nrows; i++ {
+			acc := v.data[index]
+			data[index] = acc
+			index++
+			for j := 1; j < stride; j++ {
+				acc = Binary(acc, opName, v.data[index])
+				data[index] = acc
+				index++
+			}
+		}
+		return Matrix{
+			shape: v.shape,
+			data:  data,
+		}
+	}
+	Errorf("can't do scan on %s", whichType(v))
+	panic("not reached")
+}
+
 // unaryVectorOp applies op elementwise to i.
 func unaryVectorOp(op string, i Value) Value {
 	u := i.(Vector)
-	n := make([]Value, u.Len())
+	n := make([]Value, len(u))
 	for k := range u {
 		n[k] = Unary(op, u[k])
 	}
@@ -246,7 +298,7 @@ func unaryVectorOp(op string, i Value) Value {
 // unaryMatrixOp applies op elementwise to i.
 func unaryMatrixOp(op string, i Value) Value {
 	u := i.(Matrix)
-	n := make([]Value, u.data.Len())
+	n := make([]Value, len(u.data))
 	for k := range u.data {
 		n[k] = Unary(op, u.data[k])
 	}
@@ -260,21 +312,21 @@ func unaryMatrixOp(op string, i Value) Value {
 func binaryVectorOp(i Value, op string, j Value) Value {
 	u, v := i.(Vector), j.(Vector)
 	if len(u) == 1 {
-		n := make([]Value, v.Len())
+		n := make([]Value, len(v))
 		for k := range v {
 			n[k] = Binary(u[0], op, v[k])
 		}
 		return ValueSlice(n)
 	}
 	if len(v) == 1 {
-		n := make([]Value, u.Len())
+		n := make([]Value, len(u))
 		for k := range u {
 			n[k] = Binary(u[k], op, v[0])
 		}
 		return ValueSlice(n)
 	}
 	u.sameLength(v)
-	n := make([]Value, u.Len())
+	n := make([]Value, len(u))
 	for k := range u {
 		n[k] = Binary(u[k], op, v[k])
 	}
@@ -291,20 +343,20 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 	case isScalar(u):
 		// Scalar op Matrix.
 		shape = v.shape
-		n = make([]Value, v.data.Len())
+		n = make([]Value, len(v.data))
 		for k := range v.data {
 			n[k] = Binary(u.data[0], op, v.data[k])
 		}
 	case isScalar(v):
 		// Matrix op Scalar.
-		n = make([]Value, u.data.Len())
+		n = make([]Value, len(u.data))
 		for k := range u.data {
 			n[k] = Binary(u.data[k], op, v.data[0])
 		}
 	case isVector(u, v.shape):
 		// Vector op Matrix.
 		shape = v.shape
-		n = make([]Value, v.data.Len())
+		n = make([]Value, len(v.data))
 		dim := int(u.shape[0].(Int))
 		index := 0
 		for k := range v.data {
@@ -316,7 +368,7 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 		}
 	case isVector(v, u.shape):
 		// Vector op Matrix.
-		n = make([]Value, u.data.Len())
+		n = make([]Value, len(u.data))
 		dim := int(v.shape[0].(Int))
 		index := 0
 		for k := range u.data {
@@ -329,7 +381,7 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 	default:
 		// Matrix op Matrix.
 		u.sameShape(v)
-		n = make([]Value, u.data.Len())
+		n = make([]Value, len(u.data))
 		for k := range u.data {
 			n[k] = Binary(u.data[k], op, v.data[k])
 		}
