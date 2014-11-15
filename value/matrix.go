@@ -179,7 +179,30 @@ func size(shape []Value) int {
 	return size
 }
 
+// ValueMatrix makes a new matrix. The nmber of elems
+// must fit in an Int.
 func ValueMatrix(shape, data []Value) Matrix {
+	// Check consistency and sanity.
+	nelems := 0
+	if len(shape) > 0 {
+		for i := 0; i < len(shape); i++ {
+			_, ok := shape[0].(Int)
+			if !ok {
+				Errorf("non-integral shape for new matrix")
+			}
+		}
+		n := shape[0].(Int)
+		for i := 1; i < len(shape); i++ {
+			n *= shape[i].(Int)
+			if n > maxInt {
+				Errorf("matrix too large")
+			}
+		}
+		nelems = int(n)
+	}
+	if nelems != len(data) {
+		Errorf("inconsistent shape and data size for new matrix")
+	}
 	return Matrix{
 		shape: shape,
 		data:  data,

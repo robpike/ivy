@@ -168,10 +168,7 @@ func innerProduct(u Value, left, right string, v Value) Value {
 				col = 0
 			}
 		}
-		return Matrix{
-			shape: shape,
-			data:  data,
-		}
+		return ValueMatrix(shape, data)
 	}
 	Errorf("can't do inner product on %s", whichType(u))
 	panic("not reached")
@@ -219,6 +216,9 @@ func reduce(opName string, v Value) Value {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
 		stride := int(v.shape[len(v.shape)-1].(Int))
+		if stride == 0 {
+			Errorf("shape for matrix is degenerate: %s", v.shape)
+		}
 		shape := v.shape[:len(v.shape)-1]
 		data := make(Vector, size(shape))
 		index := 0
@@ -236,10 +236,7 @@ func reduce(opName string, v Value) Value {
 		if len(shape) == 1 { // TODO: Matrix.shrink()?
 			return ValueSlice(data)
 		}
-		return Matrix{
-			shape: shape,
-			data:  data,
-		}
+		return ValueMatrix(shape, data)
 	}
 	Errorf("can't do reduce on %s", whichType(v))
 	panic("not reached")
@@ -268,11 +265,14 @@ func scan(opName string, v Value) Value {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
 		stride := int(v.shape[len(v.shape)-1].(Int))
+		if stride == 0 {
+			Errorf("shape for matrix is degenerate: %s", v.shape)
+		}
 		data := make(Vector, len(v.data))
 		index := 0
 		nrows := 1
 		for i := 0; i < len(v.shape)-1; i++ {
-			// TODO: Overflow?
+			// Guaranteed by ValueMatrix not to overflow.
 			nrows *= int(v.shape[i].(Int))
 		}
 		for i := 0; i < nrows; i++ {
@@ -284,10 +284,7 @@ func scan(opName string, v Value) Value {
 			}
 			index += stride
 		}
-		return Matrix{
-			shape: v.shape,
-			data:  data,
-		}
+		return ValueMatrix(v.shape, data)
 	}
 	Errorf("can't do scan on %s", whichType(v))
 	panic("not reached")
@@ -310,10 +307,7 @@ func unaryMatrixOp(op string, i Value) Value {
 	for k := range u.data {
 		n[k] = Unary(op, u.data[k])
 	}
-	return Matrix{
-		shape: u.shape,
-		data:  ValueSlice(n),
-	}
+	return ValueMatrix(u.shape, ValueSlice(n))
 }
 
 // binaryVectorOp applies op elementwise to i and j.
@@ -394,10 +388,7 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 			n[k] = Binary(u.data[k], op, v.data[k])
 		}
 	}
-	return Matrix{
-		shape,
-		ValueSlice(n),
-	}
+	return ValueMatrix(shape, ValueSlice(n))
 }
 
 // isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.

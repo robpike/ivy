@@ -619,18 +619,12 @@ func init() {
 					// Matrix of one less degree.
 					newShape := make(Vector, len(A.shape)-1)
 					copy(newShape, A.shape[1:])
-					return Matrix{
-						shape: newShape,
-						data:  values,
-					}
+					return ValueMatrix(newShape, values)
 				}
 				newShape := make(Vector, len(A.shape))
 				copy(newShape, A.shape)
 				newShape[0] = Int(len(B))
-				return Matrix{
-					shape: newShape,
-					data:  values,
-				}
+				return ValueMatrix(newShape, values)
 			},
 		},
 	}
@@ -658,10 +652,7 @@ func init() {
 			matrixType: func(u, v Value) Value {
 				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
 				A, B := u.(Matrix), v.(Matrix)
-				return Matrix{
-					shape: B.shape,
-					data:  Binary(A.data, "iota", B.data).(Vector),
-				}
+				return ValueMatrix(B.shape, Binary(A.data, "iota", B.data).(Vector))
 			},
 		},
 	}
@@ -750,7 +741,7 @@ func init() {
 					Errorf("empty matrix for ,")
 				}
 				if len(A.shape) != len(B.shape)+1 || A.elemSize() != B.size() {
-					Errorf("ravel rank mismatch: %s != %s", A.shape[1:], B.shape)
+					Errorf("catenate rank mismatch: %s != %s", A.shape[1:], B.shape)
 				}
 				elemSize := A.elemSize()
 				newShape := make(Vector, len(A.shape))
@@ -759,10 +750,7 @@ func init() {
 				copy(newData, A.data)
 				newData = append(newData, B.data...)
 				newShape[0] = newShape[0].(Int) + 1
-				return Matrix{
-					shape: newShape,
-					data:  newData,
-				}
+				return ValueMatrix(newShape, newData)
 			},
 		},
 	}
