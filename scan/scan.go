@@ -457,8 +457,14 @@ Loop:
 func lexNumber(l *Scanner) stateFn {
 	// Optional leading sign.
 	if l.accept("-") {
-		// Might not be a number
+		// Might not be a number.
 		r := l.peek()
+		// Might be a scan or reduction.
+		if r == '/' || r == '\\' {
+			l.next()
+			l.emit(Operator)
+			return lexAny
+		}
 		if r != '.' && !unicode.IsDigit(r) {
 			l.emit(Operator)
 			return lexAny

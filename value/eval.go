@@ -199,14 +199,19 @@ func outerProduct(u Value, opName string, v Value) Value {
 	panic("not reached")
 }
 
+// We must be right associative; that is the grammar.
+// -/1 2 3 == 1-2-3 is 1-(2-3) not (1-2)-3. Answer: 2.
 func reduce(opName string, v Value) Value {
 	switch v := v.(type) {
 	case Int, BigInt, BigRat:
 		return v
 	case Vector:
-		acc := v[0]
-		for i := 1; i < len(v); i++ {
-			acc = Binary(acc, opName, v[i])
+		if len(v) == 0 {
+			return v
+		}
+		acc := v[len(v)-1]
+		for i := len(v) - 2; i >= 0; i-- {
+			acc = Binary(v[i], opName, acc)
 		}
 		return acc
 	case Matrix:
@@ -218,13 +223,15 @@ func reduce(opName string, v Value) Value {
 		data := make(Vector, size(shape))
 		index := 0
 		for i := range data {
-			acc := v.data[index]
-			index++
+			pos := index + stride - 1
+			acc := v.data[pos]
+			pos--
 			for i := 1; i < stride; i++ {
-				acc = Binary(acc, opName, v.data[index])
-				index++
+				acc = Binary(v.data[pos], opName, acc)
+				pos--
 			}
 			data[i] = acc
+			index += stride
 		}
 		if len(shape) == 1 { // TODO: Matrix.shrink()?
 			return ValueSlice(data)
@@ -238,6 +245,8 @@ func reduce(opName string, v Value) Value {
 	panic("not reached")
 }
 
+// scan gives the successive values of reducing op through v.
+// We must be right associative; that is the grammar.
 func scan(opName string, v Value) Value {
 	switch v := v.(type) {
 	case Int, BigInt, BigRat:
@@ -249,9 +258,9 @@ func scan(opName string, v Value) Value {
 		values := make(Vector, len(v))
 		acc := v[0]
 		values[0] = acc
+		// TODO: This is n^2.
 		for i := 1; i < len(v); i++ {
-			acc = Binary(acc, opName, v[i])
-			values[i] = acc
+			values[i] = reduce(opName, v[:i+1])
 		}
 		return ValueSlice(values)
 	case Matrix:
@@ -269,12 +278,11 @@ func scan(opName string, v Value) Value {
 		for i := 0; i < nrows; i++ {
 			acc := v.data[index]
 			data[index] = acc
-			index++
+			// TODO: This is n^2.
 			for j := 1; j < stride; j++ {
-				acc = Binary(acc, opName, v.data[index])
-				data[index] = acc
-				index++
+				data[index+j] = reduce(opName, v.data[index:index+j+1])
 			}
+			index += stride
 		}
 		return Matrix{
 			shape: v.shape,
