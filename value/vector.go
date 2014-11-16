@@ -23,7 +23,7 @@ func (v Vector) String() string {
 	return b.String()
 }
 
-func ValueSlice(elem []Value) Vector {
+func NewVector(elem []Value) Vector {
 	return Vector(elem)
 }
 
@@ -31,7 +31,7 @@ func (v Vector) Eval() Value {
 	return v
 }
 
-func (v Vector) ToType(which valueType) Value {
+func (v Vector) toType(which valueType) Value {
 	switch which {
 	case intType:
 		panic("bigint to int")
@@ -42,9 +42,9 @@ func (v Vector) ToType(which valueType) Value {
 	case vectorType:
 		return v
 	case matrixType:
-		return ValueMatrix([]Value{Int(len(v))}, v)
+		return newMatrix([]Value{Int(len(v))}, v)
 	}
-	panic("Vector.ToType")
+	panic("Vector.toType")
 }
 
 func (v Vector) sameLength(x Vector) {
@@ -70,7 +70,7 @@ func (v Vector) grade() Vector {
 			result[i] = Int(n)
 		}
 	}
-	return ValueSlice(result)
+	return NewVector(result)
 }
 
 type gradeIndex struct {

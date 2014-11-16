@@ -14,7 +14,7 @@ type BigRat struct {
 	*big.Rat
 }
 
-func SetBigRatString(s string) (BigRat, error) {
+func setBigRatString(s string) (BigRat, error) {
 	r, ok := big.NewRat(0, 1).SetString(s)
 	if !ok {
 		return BigRat{}, errors.New("rational number syntax")
@@ -30,7 +30,7 @@ func (r BigRat) Eval() Value {
 	return r
 }
 
-func (r BigRat) ToType(which valueType) Value {
+func (r BigRat) toType(which valueType) Value {
 	switch which {
 	case intType:
 		panic("big rat to int")
@@ -39,11 +39,11 @@ func (r BigRat) ToType(which valueType) Value {
 	case bigRatType:
 		return r
 	case vectorType:
-		return ValueSlice([]Value{r})
+		return NewVector([]Value{r})
 	case matrixType:
-		return ValueMatrix([]Value{one, one}, []Value{r})
+		return newMatrix([]Value{one, one}, []Value{r})
 	}
-	panic("BigRat.ToType")
+	panic("BigRat.toType")
 }
 
 // shrink pulls, if possible, a BigRat down to a BigInt or Int.

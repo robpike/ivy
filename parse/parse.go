@@ -12,33 +12,34 @@ import (
 	"robpike.io/ivy/value"
 )
 
-type Unary struct {
+type unary struct {
 	op    string
 	right value.Expr
 }
 
-func (u *Unary) String() string {
+func (u *unary) String() string {
 	return u.op + " " + u.right.String()
 }
 
-func (u *Unary) Eval() value.Value {
+func (u *unary) Eval() value.Value {
 	return value.Unary(u.op, u.right.Eval())
 }
 
-type Binary struct {
+type binary struct {
 	op    string
 	left  value.Expr
 	right value.Expr
 }
 
-func (b *Binary) String() string {
+func (b *binary) String() string {
 	return b.left.String() + " " + b.op + " " + b.right.String()
 }
 
-func (b *Binary) Eval() value.Value {
+func (b *binary) Eval() value.Value {
 	return value.Binary(b.left.Eval(), b.op, b.right.Eval())
 }
 
+// Tree prints a representation of the expression tree e.
 func Tree(e value.Expr) string {
 	switch e := e.(type) {
 	case nil:
@@ -51,9 +52,9 @@ func Tree(e value.Expr) string {
 		return fmt.Sprintf("<%s>", e)
 	case value.Vector:
 		return fmt.Sprintf("<vec %s>", e)
-	case *Unary:
+	case *unary:
 		return fmt.Sprintf("(%s %s)", e.op, Tree(e.right))
-	case *Binary:
+	case *binary:
 		return fmt.Sprintf("(%s %s %s)", Tree(e.left), e.op, Tree(e.right))
 	default:
 		return fmt.Sprintf("%T", e)
@@ -71,7 +72,7 @@ type Parser struct {
 	curTok     scan.Token // most recent token from scanner
 }
 
-var zero, _ = value.ValueString("0")
+var zero, _ = value.Parse("0")
 
 func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner) *Parser {
 	return &Parser{
@@ -82,7 +83,7 @@ func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner) *Par
 	}
 }
 
-func (p *Parser) Next() scan.Token {
+func (p *Parser) next() scan.Token {
 	tok := p.peekTok
 	if tok.Type != scan.EOF {
 		p.peekTok = scan.Token{Type: scan.EOF}
@@ -97,11 +98,7 @@ func (p *Parser) Next() scan.Token {
 	return tok
 }
 
-func (p *Parser) Back(tok scan.Token) {
-	p.peekTok = tok
-}
-
-func (p *Parser) Peek() scan.Token {
+func (p *Parser) peek() scan.Token {
 	tok := p.peekTok
 	if tok.Type != scan.EOF {
 		return tok
@@ -110,6 +107,7 @@ func (p *Parser) Peek() scan.Token {
 	return p.peekTok
 }
 
+// Loc returns the current location in the form name:line
 func (p *Parser) Loc() string {
 	return fmt.Sprintf("%s:%d", p.fileName, p.lineNum)
 }
@@ -117,7 +115,7 @@ func (p *Parser) Loc() string {
 func (p *Parser) errorf(format string, args ...interface{}) {
 	// Flush to newline.
 	for p.curTok.Type != scan.Newline && p.curTok.Type != scan.EOF {
-		p.Next()
+		p.next()
 	}
 	p.peekTok = scan.Token{Type: scan.EOF}
 	value.Errorf(format, args...)
@@ -129,7 +127,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 //	statementList '\n'
 // The boolean reports whether the line is valid.
 func (p *Parser) Line() ([]value.Value, bool) {
-	tok := p.Next()
+	tok := p.next()
 	switch tok.Type {
 	case scan.Error:
 		p.errorf("%q", tok)
@@ -141,11 +139,11 @@ func (p *Parser) Line() ([]value.Value, bool) {
 		p.special()
 		return nil, true
 	}
-	values, ok := p.StatementList(tok)
+	values, ok := p.statementList(tok)
 	if !ok {
 		return values, false
 	}
-	tok = p.Next()
+	tok = p.next()
 	switch tok.Type {
 	case scan.Error:
 		p.errorf("%q", tok)
@@ -157,15 +155,15 @@ func (p *Parser) Line() ([]value.Value, bool) {
 }
 
 //
-// StatementList:
+// statementList:
 //	statement
 //	statement ';' statement
 //
-// Statement:
+// statement:
 //	var ':=' Expr
 //	Expr
-func (p *Parser) StatementList(tok scan.Token) ([]value.Value, bool) {
-	v, ok := p.Statement(tok)
+func (p *Parser) statementList(tok scan.Token) ([]value.Value, bool) {
+	v, ok := p.statement(tok)
 	if !ok {
 		return nil, false
 	}
@@ -173,9 +171,9 @@ func (p *Parser) StatementList(tok scan.Token) ([]value.Value, bool) {
 	if v != nil {
 		values = []value.Value{v}
 	}
-	if p.Peek().Type == scan.Semicolon {
-		p.Next()
-		more, ok := p.StatementList(p.Next())
+	if p.peek().Type == scan.Semicolon {
+		p.next()
+		more, ok := p.statementList(p.next())
 		if ok {
 			values = append(values, more...)
 		}
@@ -183,20 +181,20 @@ func (p *Parser) StatementList(tok scan.Token) ([]value.Value, bool) {
 	return values, true
 }
 
-// Statement:
+// statement:
 //	var ':=' Expr
 //	Expr
-func (p *Parser) Statement(tok scan.Token) (value.Value, bool) {
+func (p *Parser) statement(tok scan.Token) (value.Value, bool) {
 	variableName := ""
 	if tok.Type == scan.Identifier {
-		next := p.Peek()
+		next := p.peek()
 		if next.Type == scan.Assign {
-			p.Next()
+			p.next()
 			variableName = tok.Text
-			tok = p.Next()
+			tok = p.next()
 		}
 	}
-	x := p.Expr(tok)
+	x := p.expr(tok)
 	if x == nil {
 		return nil, true
 	}
@@ -212,54 +210,54 @@ func (p *Parser) Statement(tok scan.Token) (value.Value, bool) {
 	return expr, true
 }
 
-// Expr
-//	Operand
-//	Operand binop Expr
-func (p *Parser) Expr(tok scan.Token) value.Expr {
-	expr := p.Operand(tok)
-	switch p.Peek().Type {
+// expr
+//	operand
+//	operand binop expr
+func (p *Parser) expr(tok scan.Token) value.Expr {
+	expr := p.operand(tok)
+	switch p.peek().Type {
 	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
 		return expr
 	case scan.Operator:
 		// Binary.
-		tok = p.Next()
-		return &Binary{
+		tok = p.next()
+		return &binary{
 			left:  expr,
 			op:    tok.Text,
-			right: p.Expr(p.Next()),
+			right: p.expr(p.next()),
 		}
 	}
-	p.errorf("after expression: unexpected %s", p.Peek())
+	p.errorf("after expression: unexpected %s", p.peek())
 	return nil
 }
 
-// Operand
+// operand
 //	( Expr )
 //	( Expr ) [ Expr ]...
-//	Operand
-//	Number
-//	Rational
-//	Vector
+//	operand
+//	number
+//	rational
+//	vector
 //	variable
-//	Operand [ Expr ]...
+//	operand [ Expr ]...
 //	unop Expr
-func (p *Parser) Operand(tok scan.Token) value.Expr {
+func (p *Parser) operand(tok scan.Token) value.Expr {
 	var expr value.Expr
 	switch tok.Type {
 	case scan.Operator:
 		// Unary.
-		expr = &Unary{
+		expr = &unary{
 			op:    tok.Text,
-			right: p.Expr(p.Next()),
+			right: p.expr(p.next()),
 		}
 	case scan.LeftParen:
-		expr = p.Expr(p.Next())
-		tok := p.Next()
+		expr = p.expr(p.next())
+		tok := p.next()
 		if tok.Type != scan.RightParen {
 			p.errorf("expected right paren, found %s", tok)
 		}
 	case scan.Number, scan.Rational:
-		expr = p.NumberOrVector(tok)
+		expr = p.numberOrVector(tok)
 	case scan.Identifier:
 		expr = p.vars[tok.Text]
 		if expr == nil {
@@ -271,19 +269,19 @@ func (p *Parser) Operand(tok scan.Token) value.Expr {
 	return p.index(expr)
 }
 
-// Indexing
+// index
 //	expr
 //	expr [ expr ]
 //	expr [ expr ] [ expr ] ....
 func (p *Parser) index(expr value.Expr) value.Expr {
-	for p.Peek().Type == scan.LeftBrack {
-		p.Next()
-		index := p.Expr(p.Next())
-		tok := p.Next()
+	for p.peek().Type == scan.LeftBrack {
+		p.next()
+		index := p.expr(p.next())
+		tok := p.next()
 		if tok.Type != scan.RightBrack {
 			p.errorf("expected right bracket, found %s", tok)
 		}
-		expr = &Binary{
+		expr = &binary{
 			op:    "[]",
 			left:  expr,
 			right: index,
@@ -292,26 +290,26 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 	return expr
 }
 
-// Number turns the token into a singleton numeric Value.
-func (p *Parser) Number(tok scan.Token) value.Value {
-	x, err := value.ValueString(tok.Text)
+// number turns the token into a singleton numeric Value.
+func (p *Parser) number(tok scan.Token) value.Value {
+	x, err := value.Parse(tok.Text)
 	if err != nil {
 		p.errorf("%s: %s", tok.Text, err)
 	}
 	return x
 }
 
-// NumberOrVector turns the token and what follows into a numeric Value, possibly a vector.
-func (p *Parser) NumberOrVector(tok scan.Token) value.Value {
-	x := p.Number(tok)
-	typ := p.Peek().Type
+// numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
+func (p *Parser) numberOrVector(tok scan.Token) value.Value {
+	x := p.number(tok)
+	typ := p.peek().Type
 	if typ != scan.Number && typ != scan.Rational {
 		return x
 	}
 	v := []value.Value{x}
 	for typ == scan.Number || typ == scan.Rational {
-		v = append(v, p.Number(p.Next()))
-		typ = p.Peek().Type
+		v = append(v, p.number(p.next()))
+		typ = p.peek().Type
 	}
-	return value.ValueSlice(v)
+	return value.NewVector(v)
 }

@@ -22,7 +22,7 @@ type BigInt struct {
 // This is ugly but very simple and cheap.
 func (i BigInt) Format() {}
 
-func SetBigIntString(s string) (BigInt, error) {
+func setBigIntString(s string) (BigInt, error) {
 	i, ok := big.NewInt(0).SetString(s, 0)
 	if !ok {
 		return BigInt{}, errors.New("integer parse error")
@@ -38,7 +38,7 @@ func (i BigInt) Eval() Value {
 	return i
 }
 
-func (i BigInt) ToType(which valueType) Value {
+func (i BigInt) toType(which valueType) Value {
 	switch which {
 	case intType:
 		panic("bigint to int")
@@ -48,11 +48,11 @@ func (i BigInt) ToType(which valueType) Value {
 		r := big.NewRat(0, 1).SetInt(i.Int)
 		return BigRat{r}
 	case vectorType:
-		return ValueSlice([]Value{i})
+		return NewVector([]Value{i})
 	case matrixType:
-		return ValueMatrix([]Value{one}, []Value{i})
+		return newMatrix([]Value{one}, []Value{i})
 	}
-	panic("BigInt.ToType")
+	panic("BigInt.toType")
 }
 
 // shrink shrinks, if possible, a BigInt down to an Int.

@@ -22,7 +22,7 @@ var debugFlags = []string{
 }
 
 func (p *Parser) need(want ...scan.Type) scan.Token {
-	tok := p.Next()
+	tok := p.next()
 	for _, w := range want {
 		if tok.Type == w {
 			return tok
@@ -32,13 +32,20 @@ func (p *Parser) need(want ...scan.Type) scan.Token {
 	panic("not reached")
 }
 
+func truth(x bool) int {
+	if x {
+		return 1
+	}
+	return 0
+}
+
 func (p *Parser) special() {
 Switch:
 	switch text := p.need(scan.Identifier).Text; text {
 	case "debug":
-		if p.Peek().Type == scan.Newline {
+		if p.peek().Type == scan.Newline {
 			for _, f := range debugFlags {
-				fmt.Println(f)
+				fmt.Printf("%s\t%d\n", f, truth(p.config.Debug(f)))
 			}
 			break Switch
 		}
@@ -54,7 +61,7 @@ Switch:
 			fmt.Println("no such debug flag:", name)
 			break Switch
 		}
-		if p.Peek().Type != scan.Number {
+		if p.peek().Type != scan.Number {
 			// Toggle the value
 			p.config.SetDebug(name, !p.config.Debug(name))
 			if p.config.Debug(name) {
@@ -64,14 +71,14 @@ Switch:
 			}
 			break
 		}
-		number, err := value.ValueString(p.need(scan.Number).Text)
+		number, err := value.Parse(p.need(scan.Number).Text)
 		if err != nil {
 			p.errorf("%s", err)
 		}
 		v, ok := number.(value.Int)
 		p.config.SetDebug(name, ok && v.ToBool())
 	case "format":
-		if p.Peek().Type == scan.Newline {
+		if p.peek().Type == scan.Newline {
 			fmt.Printf("%q\n", p.config.Format())
 			break
 		}
@@ -79,11 +86,11 @@ Switch:
 	case "get":
 		p.runFromFile(p.getString())
 	case "origin":
-		if p.Peek().Type != scan.Number {
+		if p.peek().Type != scan.Number {
 			fmt.Println(p.config.Origin())
 			break
 		}
-		origin, err := strconv.Atoi(p.Next().Text)
+		origin, err := strconv.Atoi(p.next().Text)
 		if err != nil {
 			p.errorf("%s", err)
 		}
@@ -92,17 +99,17 @@ Switch:
 		}
 		p.config.SetOrigin(origin)
 	case "prompt":
-		if p.Peek().Type == scan.Newline {
+		if p.peek().Type == scan.Newline {
 			fmt.Printf("%q\n", p.config.Format())
 			break
 		}
 		p.config.SetPrompt(p.getString())
 	case "seed":
-		if p.Peek().Type != scan.Number {
+		if p.peek().Type != scan.Number {
 			fmt.Println(p.config.Origin())
 			break
 		}
-		seed, err := strconv.Atoi(p.Next().Text)
+		seed, err := strconv.Atoi(p.next().Text)
 		if err != nil {
 			p.errorf("%s", err)
 		}

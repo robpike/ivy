@@ -16,6 +16,9 @@ Only a subset of APL's functionality is implemented, but the intention is to
 have most numerical operations supported eventually. To achieve this, some form of
 high-precision floating-point arithmetic may appear.
 
+Semicolons separate multiple statements on a line. Variables are alphanumeric and are
+assigned with the = operator.
+
 The APL operators, adapted from http://en.wikipedia.org/wiki/APL_syntax_and_symbols,
 and their correpondence are listed here. The correspondence is incomplete and inexact.
 
@@ -119,7 +122,8 @@ at the beginning of the line. Most report the current value if a new value
 is not specified.
 
 	) debug name 0|1
-		Toggle or set the named debugging flag.
+		Toggle or set the named debugging flag. With no argument,
+		lists the settings.
 	) format "%v"
 		Set the format for printing values.
 	) get "file.ivy"

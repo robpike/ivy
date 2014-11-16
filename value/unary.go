@@ -266,7 +266,7 @@ func init() {
 				for k := range n {
 					n[k] = Int(k + conf.Origin())
 				}
-				return ValueSlice(n)
+				return NewVector(n)
 			},
 		},
 	}
@@ -294,13 +294,13 @@ func init() {
 	unaryRavel = &unaryOp{
 		fn: [numType]unaryFn{
 			intType: func(v Value) Value {
-				return ValueSlice([]Value{v})
+				return NewVector([]Value{v})
 			},
 			bigIntType: func(v Value) Value {
-				return ValueSlice([]Value{v})
+				return NewVector([]Value{v})
 			},
 			bigRatType: func(v Value) Value {
-				return ValueSlice([]Value{v})
+				return NewVector([]Value{v})
 			},
 			vectorType: func(v Value) Value {
 				return v

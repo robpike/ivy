@@ -92,8 +92,8 @@ func Binary(u Value, opName string, v Value) Value {
 		Errorf("binary %s not implemented", opName)
 	}
 	which := op.whichType(whichType(u), whichType(v))
-	u = u.ToType(which)
-	v = v.ToType(which)
+	u = u.toType(which)
+	v = v.toType(which)
 	fn := op.fn[which]
 	if fn == nil {
 		if op.elementwise {
@@ -114,8 +114,8 @@ func product(u Value, opName string, v Value) Value {
 	left := opName[:dot]
 	right := opName[dot+1:]
 	which := atLeastVectorType(whichType(u), whichType(v))
-	u = u.ToType(which)
-	v = v.ToType(which)
+	u = u.toType(which)
+	v = v.toType(which)
 	if left == "o" {
 		return outerProduct(u, right, v)
 	}
@@ -154,7 +154,7 @@ func innerProduct(u Value, left, right string, v Value) Value {
 			Errorf("shape mismatch for inner product %s times %s", u.shape, v.shape)
 		}
 		data := make(Vector, urows*urows)
-		shape := ValueSlice([]Value{u.shape[0], u.shape[0]})
+		shape := NewVector([]Value{u.shape[0], u.shape[0]})
 		row, col := 0, 0
 		for i := range data {
 			acc := Binary(u.data[row*ucols], right, v.data[col])
@@ -168,7 +168,7 @@ func innerProduct(u Value, left, right string, v Value) Value {
 				col = 0
 			}
 		}
-		return ValueMatrix(shape, data)
+		return newMatrix(shape, data)
 	}
 	Errorf("can't do inner product on %s", whichType(u))
 	panic("not reached")
@@ -180,8 +180,8 @@ func outerProduct(u Value, opName string, v Value) Value {
 	case Vector:
 		v := v.(Vector)
 		m := Matrix{
-			shape: ValueSlice([]Value{Int(len(u)), Int(len(v))}),
-			data:  ValueSlice(make(Vector, len(u)*len(v))),
+			shape: NewVector([]Value{Int(len(u)), Int(len(v))}),
+			data:  NewVector(make(Vector, len(u)*len(v))),
 		}
 		index := 0
 		for _, vu := range u {
@@ -234,9 +234,9 @@ func reduce(opName string, v Value) Value {
 			index += stride
 		}
 		if len(shape) == 1 { // TODO: Matrix.shrink()?
-			return ValueSlice(data)
+			return NewVector(data)
 		}
-		return ValueMatrix(shape, data)
+		return newMatrix(shape, data)
 	}
 	Errorf("can't do reduce on %s", whichType(v))
 	panic("not reached")
@@ -259,7 +259,7 @@ func scan(opName string, v Value) Value {
 		for i := 1; i < len(v); i++ {
 			values[i] = reduce(opName, v[:i+1])
 		}
-		return ValueSlice(values)
+		return NewVector(values)
 	case Matrix:
 		if len(v.shape) < 2 {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
@@ -272,7 +272,7 @@ func scan(opName string, v Value) Value {
 		index := 0
 		nrows := 1
 		for i := 0; i < len(v.shape)-1; i++ {
-			// Guaranteed by ValueMatrix not to overflow.
+			// Guaranteed by newMatrix not to overflow.
 			nrows *= int(v.shape[i].(Int))
 		}
 		for i := 0; i < nrows; i++ {
@@ -284,7 +284,7 @@ func scan(opName string, v Value) Value {
 			}
 			index += stride
 		}
-		return ValueMatrix(v.shape, data)
+		return newMatrix(v.shape, data)
 	}
 	Errorf("can't do scan on %s", whichType(v))
 	panic("not reached")
@@ -297,7 +297,7 @@ func unaryVectorOp(op string, i Value) Value {
 	for k := range u {
 		n[k] = Unary(op, u[k])
 	}
-	return ValueSlice(n)
+	return NewVector(n)
 }
 
 // unaryMatrixOp applies op elementwise to i.
@@ -307,7 +307,7 @@ func unaryMatrixOp(op string, i Value) Value {
 	for k := range u.data {
 		n[k] = Unary(op, u.data[k])
 	}
-	return ValueMatrix(u.shape, ValueSlice(n))
+	return newMatrix(u.shape, NewVector(n))
 }
 
 // binaryVectorOp applies op elementwise to i and j.
@@ -318,21 +318,21 @@ func binaryVectorOp(i Value, op string, j Value) Value {
 		for k := range v {
 			n[k] = Binary(u[0], op, v[k])
 		}
-		return ValueSlice(n)
+		return NewVector(n)
 	}
 	if len(v) == 1 {
 		n := make([]Value, len(u))
 		for k := range u {
 			n[k] = Binary(u[k], op, v[0])
 		}
-		return ValueSlice(n)
+		return NewVector(n)
 	}
 	u.sameLength(v)
 	n := make([]Value, len(u))
 	for k := range u {
 		n[k] = Binary(u[k], op, v[k])
 	}
-	return ValueSlice(n)
+	return NewVector(n)
 }
 
 // binaryMatrixOp applies op elementwise to i and j.
@@ -388,7 +388,7 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 			n[k] = Binary(u.data[k], op, v.data[k])
 		}
 	}
-	return ValueMatrix(shape, ValueSlice(n))
+	return newMatrix(shape, NewVector(n))
 }
 
 // isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.

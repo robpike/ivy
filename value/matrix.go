@@ -179,9 +179,9 @@ func size(shape []Value) int {
 	return size
 }
 
-// ValueMatrix makes a new matrix. The nmber of elems
+// newMatrix makes a new matrix. The number of elems
 // must fit in an Int.
-func ValueMatrix(shape, data []Value) Matrix {
+func newMatrix(shape, data []Value) Matrix {
 	// Check consistency and sanity.
 	nelems := 0
 	if len(shape) > 0 {
@@ -213,7 +213,7 @@ func (m Matrix) Eval() Value {
 	return m
 }
 
-func (m Matrix) ToType(which valueType) Value {
+func (m Matrix) toType(which valueType) Value {
 	switch which {
 	case intType:
 		panic("matrix to int")
@@ -226,7 +226,7 @@ func (m Matrix) ToType(which valueType) Value {
 	case matrixType:
 		return m
 	}
-	panic("BigInt.ToType")
+	panic("BigInt.toType")
 }
 
 func (m Matrix) Shape() Vector {
@@ -274,7 +274,7 @@ func reshape(A, B Vector) Value {
 		j++
 	}
 	if len(A) == 1 {
-		return ValueSlice(values)
+		return NewVector(values)
 	}
-	return ValueMatrix(A, ValueSlice(values))
+	return newMatrix(A, NewVector(values))
 }

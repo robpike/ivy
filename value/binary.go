@@ -274,7 +274,7 @@ func init() {
 					if u.(BigInt).Sign() == 0 {
 						Errorf("negative exponent of zero")
 					}
-					v = Unary("abs", v).ToType(bigIntType)
+					v = Unary("abs", v).toType(bigIntType)
 					return Unary("/", binaryBigIntOp(u, bigIntExp, v))
 				}
 				return binaryBigIntOp(u, bigIntExp, v)
@@ -291,7 +291,7 @@ func init() {
 						Errorf("negative exponent of zero")
 					}
 					positive = false
-					rexp = Unary("-", v).ToType(bigRatType).(BigRat)
+					rexp = Unary("-", v).toType(bigRatType).(BigRat)
 				}
 				if !rexp.IsInt() {
 					Errorf("fractional exponent not implemented")
@@ -585,7 +585,7 @@ func init() {
 					}
 					values[i] = A[x]
 				}
-				return ValueSlice(values)
+				return NewVector(values)
 			},
 			matrixType: func(u, v Value) Value {
 				// A[B]: The successive elements of A with indexes given by elements of B.
@@ -619,12 +619,12 @@ func init() {
 					// Matrix of one less degree.
 					newShape := make(Vector, len(A.shape)-1)
 					copy(newShape, A.shape[1:])
-					return ValueMatrix(newShape, values)
+					return newMatrix(newShape, values)
 				}
 				newShape := make(Vector, len(A.shape))
 				copy(newShape, A.shape)
 				newShape[0] = Int(len(B))
-				return ValueMatrix(newShape, values)
+				return newMatrix(newShape, values)
 			},
 		},
 	}
@@ -647,12 +647,12 @@ func init() {
 					}
 					indices[i] = zero
 				}
-				return ValueSlice(indices)
+				return NewVector(indices)
 			},
 			matrixType: func(u, v Value) Value {
 				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
 				A, B := u.(Matrix), v.(Matrix)
-				return ValueMatrix(B.shape, Binary(A.data, "iota", B.data).(Vector))
+				return newMatrix(B.shape, Binary(A.data, "iota", B.data).(Vector))
 			},
 		},
 	}
@@ -750,7 +750,7 @@ func init() {
 				copy(newData, A.data)
 				newData = append(newData, B.data...)
 				newShape[0] = newShape[0].(Int) + 1
-				return ValueMatrix(newShape, newData)
+				return newMatrix(newShape, newData)
 			},
 		},
 	}
@@ -777,7 +777,7 @@ func init() {
 					}
 					i = i[len+n : len]
 				case n == 0:
-					return ValueSlice(nil)
+					return NewVector(nil)
 				case n > 0:
 					if n > len {
 						panic(bad)

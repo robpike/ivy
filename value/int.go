@@ -20,7 +20,7 @@ const (
 	maxInt  = 1<<(intBits-1) - 1
 )
 
-func SetIntString(s string) (Int, error) {
+func setIntString(s string) (Int, error) {
 	i, err := strconv.ParseInt(s, 0, intBits)
 	return Int(i), err
 }
@@ -35,7 +35,7 @@ func (i Int) Eval() Value {
 	return i
 }
 
-func (i Int) ToType(which valueType) Value {
+func (i Int) toType(which valueType) Value {
 	switch which {
 	case intType:
 		return i
@@ -44,11 +44,11 @@ func (i Int) ToType(which valueType) Value {
 	case bigRatType:
 		return bigRatInt64(int64(i))
 	case vectorType:
-		return ValueSlice([]Value{i})
+		return NewVector([]Value{i})
 	case matrixType:
-		return ValueMatrix([]Value{one}, []Value{i})
+		return newMatrix([]Value{one}, []Value{i})
 	}
-	panic("Int.ToType")
+	panic("Int.toType")
 }
 
 func (i Int) ToBool() bool {

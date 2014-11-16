@@ -28,7 +28,7 @@ type Value interface {
 	String() string
 	Eval() Value
 
-	ToType(valueType) Value
+	toType(valueType) Value
 }
 
 // Error is the type we recognize as a recoverable run-time error.
@@ -43,20 +43,18 @@ func Errorf(format string, args ...interface{}) {
 	panic(Error(fmt.Sprintf(format, args...)))
 }
 
-type ParseState int
-
-func ValueString(s string) (Value, error) {
+func Parse(s string) (Value, error) {
 	// Is it a rational? If so, it's tricky.
 	if strings.ContainsRune(s, '/') {
 		elems := strings.Split(s, "/")
 		if len(elems) != 2 {
 			panic("bad rat")
 		}
-		num, err := ValueString(elems[0])
+		num, err := Parse(elems[0])
 		if err != nil {
 			return nil, err
 		}
-		den, err := ValueString(elems[1])
+		den, err := Parse(elems[1])
 		if err != nil {
 			return nil, err
 		}
@@ -65,23 +63,23 @@ func ValueString(s string) (Value, error) {
 			return bigRatTwoInt64s(int64(num.(Int)), int64(den.(Int))).shrink(), nil
 		}
 		// General mix-em-up.
-		rden := den.ToType(bigRatType)
+		rden := den.toType(bigRatType)
 		if rden.(BigRat).Sign() == 0 {
 			Errorf("zero denominator in rational")
 		}
-		return binaryBigRatOp(num.ToType(bigRatType), (*big.Rat).Quo, rden), nil
+		return binaryBigRatOp(num.toType(bigRatType), (*big.Rat).Quo, rden), nil
 	}
 	// Not a rational, but might be something like 1.3e-2 and therefore
 	// become a rational.
-	i, err := SetIntString(s)
+	i, err := setIntString(s)
 	if err == nil {
 		return i, nil
 	}
-	b, err := SetBigIntString(s)
+	b, err := setBigIntString(s)
 	if err == nil {
 		return b.shrink(), nil
 	}
-	r, err := SetBigRatString(s)
+	r, err := setBigRatString(s)
 	if err == nil {
 		return r.shrink(), nil
 	}
