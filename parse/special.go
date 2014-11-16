@@ -16,6 +16,7 @@ import (
 
 var debugFlags = []string{
 	"panic",
+	"parse",
 	"tokens",
 	"types",
 }

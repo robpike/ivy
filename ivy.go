@@ -110,12 +110,24 @@ func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
 		if interactive {
 			fmt.Fprint(writer, conf.Prompt())
 		}
-		value, ok := p.Line()
-		if value != nil {
+		values, ok := p.Line()
+		if values != nil {
 			if conf.Debug("types") {
-				fmt.Fprintf(writer, "%T:\n", value)
+				for i, v := range values {
+					if i > 0 {
+						fmt.Fprint(writer, ",")
+					}
+					fmt.Fprintf(writer, "%T", v)
+				}
 			}
-			fmt.Fprintln(writer, value)
+			for i, v := range values {
+				s := v.String()
+				if i > 0 && len(s) > 0 && s[len(s)-1] != '\n' {
+					fmt.Fprint(writer, " ")
+				}
+				fmt.Fprint(writer, v)
+			}
+			fmt.Fprintln(writer)
 		}
 		if !ok {
 			return true

@@ -124,11 +124,19 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 }
 
 // Line:
-//	EOF
 //	'\n'
+//	statementList '\n'
+//
+// statementList:
+//	statement
+//	statement ';' statementList
+//
+// statement:
 //	var ':=' Expr
-//	Expr '\n'
-func (p *Parser) Line() (value.Value, bool) {
+//	Expr
+//
+// The boolean reports whether the line is valid.
+func (p *Parser) Line() ([]value.Value, bool) {
 	tok := p.Next()
 	variable := ""
 	isAssignment := false
@@ -158,21 +166,28 @@ func (p *Parser) Line() (value.Value, bool) {
 			return nil, true
 		}
 		tok = p.Next()
-		if tok.Type != scan.Newline && tok.Type != scan.EOF {
+		if tok.Type != scan.Newline && tok.Type != scan.EOF && tok.Type != scan.Semicolon {
 			p.errorf("unexpected %q", tok)
 		}
 		if p.config.Debug("parse") {
 			fmt.Println(Tree(x))
 		}
 		expr := x.Eval()
-		p.vars["_"] = expr
+		p.vars["_"] = expr // Will be last expression on line.
 		if variable != "" {
 			p.vars[variable] = expr
 		}
+		values := []value.Value{expr}
 		if isAssignment {
-			return nil, true // Don't print
+			values = nil // Don't return a value; suppresses printing.
 		}
-		return expr, true
+		if tok.Type == scan.Semicolon {
+			more, ok := p.Line()
+			if ok {
+				values = append(values, more...)
+			}
+		}
+		return values, true
 	}
 }
 
@@ -182,7 +197,7 @@ func (p *Parser) Line() (value.Value, bool) {
 func (p *Parser) Expr(tok scan.Token) value.Expr {
 	expr := p.Operand(tok)
 	switch p.Peek().Type {
-	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack:
+	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
 		return expr
 	case scan.Operator:
 		// Binary.

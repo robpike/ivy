@@ -45,6 +45,7 @@ const (
 	RawString      // raw quoted string (includes quotes)
 	RightBrack     // ']'
 	RightParen     // ')'
+	Semicolon      // ';'
 	Space          // run of spaces separating
 	String         // quoted string (includes quotes)
 )
@@ -277,6 +278,9 @@ func lexAny(l *Scanner) stateFn {
 		return nil
 	case r == '\n': // TODO: \r
 		l.emit(Newline)
+		return lexAny
+	case r == ';':
+		l.emit(Semicolon)
 		return lexAny
 	case r == '#':
 		return lexComment
