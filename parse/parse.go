@@ -125,70 +125,91 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 
 // Line:
 //	'\n'
+//	) special command '\n'
 //	statementList '\n'
-//
-// statementList:
-//	statement
-//	statement ';' statementList
-//
-// statement:
-//	var ':=' Expr
-//	Expr
-//
 // The boolean reports whether the line is valid.
 func (p *Parser) Line() ([]value.Value, bool) {
 	tok := p.Next()
-	variable := ""
-	isAssignment := false
 	switch tok.Type {
-	case scan.EOF:
-		return nil, false
 	case scan.Error:
 		p.errorf("%q", tok)
+	case scan.EOF:
 		return nil, false
+	case scan.Newline:
+		return nil, true
 	case scan.RightParen:
 		p.special()
 		return nil, true
-	case scan.Newline:
-		return nil, true
-	case scan.Identifier:
+	}
+	values, ok := p.StatementList(tok)
+	if !ok {
+		return values, false
+	}
+	tok = p.Next()
+	switch tok.Type {
+	case scan.Error:
+		p.errorf("%q", tok)
+	case scan.EOF, scan.Newline:
+	default:
+		p.errorf("unexpected %q", tok)
+	}
+	return values, ok
+}
+
+//
+// StatementList:
+//	statement
+//	statement ';' statement
+//
+// Statement:
+//	var ':=' Expr
+//	Expr
+func (p *Parser) StatementList(tok scan.Token) ([]value.Value, bool) {
+	v, ok := p.Statement(tok)
+	if !ok {
+		return nil, false
+	}
+	var values []value.Value
+	if v != nil {
+		values = []value.Value{v}
+	}
+	if p.Peek().Type == scan.Semicolon {
+		p.Next()
+		more, ok := p.StatementList(p.Next())
+		if ok {
+			values = append(values, more...)
+		}
+	}
+	return values, true
+}
+
+// Statement:
+//	var ':=' Expr
+//	Expr
+func (p *Parser) Statement(tok scan.Token) (value.Value, bool) {
+	variableName := ""
+	if tok.Type == scan.Identifier {
 		next := p.Peek()
 		if next.Type == scan.Assign {
-			isAssignment = true
 			p.Next()
-			variable = tok.Text
+			variableName = tok.Text
 			tok = p.Next()
 		}
-		fallthrough
-	default:
-		x := p.Expr(tok)
-		if x == nil {
-			return nil, true
-		}
-		tok = p.Next()
-		if tok.Type != scan.Newline && tok.Type != scan.EOF && tok.Type != scan.Semicolon {
-			p.errorf("unexpected %q", tok)
-		}
-		if p.config.Debug("parse") {
-			fmt.Println(Tree(x))
-		}
-		expr := x.Eval()
-		p.vars["_"] = expr // Will be last expression on line.
-		if variable != "" {
-			p.vars[variable] = expr
-		}
-		values := []value.Value{expr}
-		if isAssignment {
-			values = nil // Don't return a value; suppresses printing.
-		}
-		if tok.Type == scan.Semicolon {
-			more, ok := p.Line()
-			if ok {
-				values = append(values, more...)
-			}
-		}
-		return values, true
 	}
+	x := p.Expr(tok)
+	if x == nil {
+		return nil, true
+	}
+	if p.config.Debug("parse") {
+		fmt.Println(Tree(x))
+	}
+	expr := x.Eval()
+	p.vars["_"] = expr // Will end up assigned to last expression on line.
+	if variableName != "" {
+		p.vars[variableName] = expr
+		return nil, true // No value returned.
+	}
+	return expr, true
 }
 
 // Expr
