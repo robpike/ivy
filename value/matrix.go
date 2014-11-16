@@ -247,21 +247,21 @@ func (x Matrix) sameShape(y Matrix) {
 // reshape implements unary rho
 // A⍴B: Array of shape A with data B
 func reshape(A, B Vector) Value {
-	if len(A) == 0 {
-		Errorf("bad index")
-	}
 	if len(B) == 0 {
 		Errorf("reshape of empty vector")
+	}
+	if len(A) == 0 {
+		return Vector{}
 	}
 	nelems := Int(1)
 	for i := range A {
 		n, ok := A[i].(Int)
-		if !ok || n <= 0 || maxInt < n { // TODO: 0 should be ok.
-			Errorf("bad index")
+		if !ok || n < 0 || maxInt < n {
+			Errorf("bad shape")
 		}
 		nelems *= n
-		if maxInt < nelems {
-			Errorf("too big")
+		if nelems > maxInt {
+			Errorf("too many elements")
 		}
 	}
 	values := make([]Value, nelems)

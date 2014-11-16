@@ -712,7 +712,7 @@ func init() {
 	}
 
 	binaryRho = &binaryOp{
-		whichType: atLeastVectorType, // TODO: correct?
+		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
 				return reshape(u.(Vector), v.(Vector))
@@ -729,7 +729,7 @@ func init() {
 	}
 
 	binaryCatenate = &binaryOp{
-		whichType: atLeastVectorType, // TODO: correct?
+		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
 				return append(u.(Vector), v.(Vector)...)
@@ -756,7 +756,7 @@ func init() {
 	}
 
 	take = &binaryOp{
-		whichType: atLeastVectorType, // TODO: correct?
+		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
 				const bad = Error("bad count for take")
@@ -790,7 +790,7 @@ func init() {
 	}
 
 	drop = &binaryOp{
-		whichType: atLeastVectorType, // TODO: correct?
+		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
 				const bad = Error("bad count for drop")

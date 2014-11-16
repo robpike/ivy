@@ -112,7 +112,7 @@ func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
 		}
 		value, ok := p.Line()
 		if value != nil {
-			if conf.Debug("type") {
+			if conf.Debug("types") {
 				fmt.Fprintf(writer, "%T:\n", value)
 			}
 			fmt.Fprintln(writer, value)

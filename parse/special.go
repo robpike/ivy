@@ -14,6 +14,12 @@ import (
 	"robpike.io/ivy/value"
 )
 
+var debugFlags = []string{
+	"panic",
+	"tokens",
+	"types",
+}
+
 func (p *Parser) need(want ...scan.Type) scan.Token {
 	tok := p.Next()
 	for _, w := range want {
@@ -26,9 +32,27 @@ func (p *Parser) need(want ...scan.Type) scan.Token {
 }
 
 func (p *Parser) special() {
+Switch:
 	switch text := p.need(scan.Identifier).Text; text {
 	case "debug":
+		if p.Peek().Type == scan.Newline {
+			for _, f := range debugFlags {
+				fmt.Println(f)
+			}
+			break Switch
+		}
 		name := p.need(scan.Identifier).Text
+		found := false
+		for _, f := range debugFlags {
+			if f == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Println("no such debug flag:", name)
+			break Switch
+		}
 		if p.Peek().Type != scan.Number {
 			// Toggle the value
 			p.config.SetDebug(name, !p.config.Debug(name))
