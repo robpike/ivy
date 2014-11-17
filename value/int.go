@@ -21,12 +21,20 @@ const (
 )
 
 func setIntString(s string) (Int, error) {
-	i, err := strconv.ParseInt(s, 0, intBits)
+	i, err := strconv.ParseInt(s, conf.InputBase(), intBits)
 	return Int(i), err
 }
 
 func (i Int) String() string {
-	return fmt.Sprintf(conf.Format(), int64(i))
+	format := conf.Format()
+	if format != "" {
+		return fmt.Sprintf(format, int64(i))
+	}
+	base := conf.OutputBase()
+	if base == 0 {
+		base = 10
+	}
+	return strconv.FormatInt(int64(i), base)
 }
 
 var buf []byte

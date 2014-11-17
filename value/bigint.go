@@ -23,6 +23,17 @@ type BigInt struct {
 func (i BigInt) Format() {}
 
 func setBigIntString(s string) (BigInt, error) {
+	base := conf.InputBase()
+	// Tricky but good enough for now.
+	switch base {
+	case 0, 10: // Fine as is.
+	case 8:
+		s = "0" + s
+	case 16:
+		s = "0x" + s
+	default:
+		Errorf("can't handle base %d parsing big int %s", base, s)
+	}
 	i, ok := big.NewInt(0).SetString(s, 0)
 	if !ok {
 		return BigInt{}, errors.New("integer parse error")
@@ -31,7 +42,26 @@ func setBigIntString(s string) (BigInt, error) {
 }
 
 func (i BigInt) String() string {
-	return fmt.Sprintf(conf.Format(), i.Int)
+	format := conf.Format()
+	if format != "" {
+		return fmt.Sprintf(format, i.Int)
+	}
+	// Is this from a rational and we could use an int?
+	if i.BitLen() < intBits {
+		return Int(i.Int64()).String()
+	}
+	switch conf.OutputBase() {
+	case 0, 10:
+		return fmt.Sprintf("%d", i.Int)
+	case 2:
+		return fmt.Sprintf("%b", i.Int)
+	case 8:
+		return fmt.Sprintf("%o", i.Int)
+	case 16:
+		return fmt.Sprintf("%x", i.Int)
+	}
+	Errorf("can't print number in base %d (yet)", conf.OutputBase())
+	return ""
 }
 
 func (i BigInt) Eval() Value {

@@ -119,13 +119,25 @@ Special commands
 
 Ivy accepts a number of special commands, introduced by a right paren
 at the beginning of the line. Most report the current value if a new value
-is not specified.
+is not specified. For these commands, numbers are always base 10.
 
+	) base 0
+		Set the number base for input and output. The commands
+		ibase and obase control setting of the base for input
+		and output alone, respectively.
+		Base 0 allows C-style input: decimal, with 037 being octal
+		and 0x10 being hexadecimal.
+		If the base is greater than 10, any identifier formed from
+		valid numerals in the base system, such as abe for base 16,
+		is taken to be a number.
+		TODO: To input rationals and bigs, base must be one of 0 8 10 16.
 	) debug name 0|1
 		Toggle or set the named debugging flag. With no argument,
 		lists the settings.
-	) format "%v"
-		Set the format for printing values.
+	) format ""
+		Set the format for printing values. If empty, the output
+		is printed using the output base. If non-empty, the
+		format determines the base used in printing.
 	) get "file.ivy"
 		Read commands from the named file; return to
 		interactive execution afterwards.

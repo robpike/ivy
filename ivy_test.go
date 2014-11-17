@@ -17,10 +17,15 @@ import (
 	"robpike.io/ivy/value"
 )
 
-func TestAll(t *testing.T) {
-	conf.SetFormat("%v")
+func initConf() {
+	conf.SetFormat("")
 	conf.SetOrigin(1)
 	conf.SetPrompt("")
+	conf.SetBase(0, 0)
+}
+
+func TestAll(t *testing.T) {
+	initConf()
 	value.SetConfig(&conf)
 
 	var err error
@@ -70,6 +75,7 @@ func TestAll(t *testing.T) {
 var testBuf bytes.Buffer
 
 func runTest(t *testing.T, name string, lineNum int, input, output []string) bool {
+	initConf()
 	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")))
 	parser := parse.NewParser(&conf, name, scanner)
 	testBuf.Reset()

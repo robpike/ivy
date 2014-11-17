@@ -352,6 +352,8 @@ func lexSpace(l *Scanner) stateFn {
 }
 
 // lexIdentifier scans an alphanumeric.
+// If the input base is greater than 10, some identifiers
+// are actually numbers. We handle this here.
 func lexIdentifier(l *Scanner) stateFn {
 Loop:
 	for {
@@ -370,6 +372,8 @@ Loop:
 			}
 			if operatorWord[word] {
 				return lexOperator
+			} else if l.config.InputBase() > 10 && isAllDigits(word, l.config.InputBase()) {
+				l.emit(Number)
 			} else {
 				l.emit(Identifier)
 			}
@@ -500,10 +504,16 @@ func lexNumber(l *Scanner) stateFn {
 }
 
 func (l *Scanner) scanNumber() bool {
-	// Is it hex?
-	digits := "0123456789"
-	if l.accept("0") && l.accept("xX") {
-		digits = "0123456789abcdefABCDEF"
+	base := l.config.InputBase()
+	digits := digitsForBase(base)
+	// If base 0, acccept octal for 0 or hex for 0x or 0X.
+	if base == 0 {
+		if l.accept("0") {
+			digits = digitsForBase(8)
+			if l.accept("xX") {
+				digits = digitsForBase(16)
+			}
+		}
 	}
 	l.acceptRun(digits)
 	if l.accept(".") {
@@ -519,6 +529,31 @@ func (l *Scanner) scanNumber() bool {
 		return false
 	}
 	return true
+}
+
+var digits [36 + 1]string // base 36 is OK.
+
+const (
+	decimal = "0123456789"
+	lower   = "abcdefghijklmnopqrstuvwxyz"
+	upper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+)
+
+// digitsForBase returns the digit set for numbers in the specified base.
+func digitsForBase(base int) string {
+	if base == 0 {
+		base = 10
+	}
+	d := digits[base]
+	if d == "" {
+		if base <= 10 {
+			d = decimal[:base]
+		} else {
+			d = decimal + lower[:base-10] + upper[:base-10]
+		}
+		digits[base] = d
+	}
+	return d
 }
 
 // lexQuote scans a quoted string.
@@ -569,6 +604,24 @@ func isEndOfLine(r rune) bool {
 // isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+// isAllDigits reports whether s consists of digits in the specified base.
+func isAllDigits(s string, base int) bool {
+	top := rune(base - 10)
+	for _, c := range s {
+		if '0' <= c && c <= '9' {
+			continue
+		}
+		if 'a' <= c && c <= 'a'+top {
+			continue
+		}
+		if 'A' <= c && c <= 'A'+top {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 // isOperator reports whether r is an operator. It may advance the lexer one character
