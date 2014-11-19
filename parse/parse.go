@@ -61,6 +61,7 @@ func Tree(e value.Expr) string {
 	}
 }
 
+// Parser stores the state for the ivy parser.
 type Parser struct {
 	scanner    *scan.Scanner
 	config     *config.Config
@@ -74,6 +75,7 @@ type Parser struct {
 
 var zero, _ = value.Parse("0")
 
+// NewParser returns a new parser that will read from the scanner.
 func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner) *Parser {
 	return &Parser{
 		scanner:  scanner,
@@ -107,7 +109,7 @@ func (p *Parser) peek() scan.Token {
 	return p.peekTok
 }
 
-// Loc returns the current location in the form name:line
+// Loc returns the current input location in the form name:line.
 func (p *Parser) Loc() string {
 	return fmt.Sprintf("%s:%d", p.fileName, p.lineNum)
 }
@@ -121,11 +123,14 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 	value.Errorf(format, args...)
 }
 
+// Line reads a line of input and returns the values it evaluates.
+// A nil returned slice means there were no values.
+// The boolean reports whether the line is valid.
+//
 // Line:
 //	'\n'
 //	) special command '\n'
 //	statementList '\n'
-// The boolean reports whether the line is valid.
 func (p *Parser) Line() ([]value.Value, bool) {
 	tok := p.next()
 	switch tok.Type {
@@ -154,7 +159,6 @@ func (p *Parser) Line() ([]value.Value, bool) {
 	return values, ok
 }
 
-//
 // statementList:
 //	statement
 //	statement ';' statement
