@@ -1,0 +1,524 @@
+Implementing a bignum calculator
+
+Sydney Go meetup
+19 Nov 2014
+
+Rob Pike
+Google
+
+http://golang.org/
+
+
+* History
+
+* The Unix Programming Environment
+
+Published in 1984, 30 years ago.
+
+.image images/upe.gif
+
+.link http://www.cs.bell-labs.com/cm/cs/upe/index.html
+
+* The Unix Programming Environment in Australia
+
+.image images/wallaby.jpg
+
+* hoc
+
+Demo
+
+* Weaknesses
+
+Developed for pedagogy, not power.
+
+Floating point only.
+
+Decimal only.
+
+Simplistic.
+
+Want something that can handle arbitrary precision in arbitrary bases.
+
+* A commonality
+
+Robert Griesemer, Rob Pike, Ken Thompson have something in common.
+
+* APL (A Programming Language)
+
+Developed in 1950s and 1960s by Ken Iverson (who won a Turing award for it).
+Nicest interactive environment on IBM OS/360 (APL\360).
+
+Simple kernel (linear algebra), powerful primitives.
+Used a special character set (plus overstriking—this was the paper era).
+
+.image images/aplkbd.jpg _ 512
+
+Quirky, expressive, powerful, but write-only.
+
+	life ← { ⊃ 1 ω ∨ . ∧ 3 4 = +/ +⌿ 1 0 ‾1 ∘.θ 1 - ‾1 Φ″ ⊂ ω }
+
+Fun to play with and fun to write.
+
+* Ivy
+
+* Status
+
+It implements only a subset of APL, although it covers most of the numeric work.
+Missing at the moment:
+
+- functions
+- character data
+- some matrix operations
+
+Ivy uses exact arithmetic, so no irrationals (square root, sign, etc.).
+
+Efficiency is not a goal. Having fun and learning are.
+
+But unlike APL:
+
+- exact arithmetic
+- big integers
+- rationals
+- useful as a hexadecimal calculator, for example.
+
+* Hold on, this is a Go meetup!
+
+Ivy is implemented in Go.
+
+The implementation has some interesting details.
+
+* Overview
+
+Scanning
+
+Parsing
+
+Evaluation
+
+Printing (not discussed today)
+
+* Scanning
+
+Gave a presentation at a previous Sydney meetup:
+
+.link https://www.youtube.com/watch?v=HxaD_trXwRE
+
+Slightly out of date (the part about no goroutines during `init`).
+
+Assumes input is all in memory; not true for interactive calculator.
+Easy to adapt.
+
+* Tokens
+
+Tokens are pairs (type, `string` value) delivered on a channel:
+
+	tok = <-scanner.Tokens
+
+`tok.Text` is the string representation
+
+	"abc" "23" "1/3" "\n"
+
+`tok.Type` is the type
+
+	scanner.Identifier scanner.Number scan.Rational scanner.Newline
+
+* EOF
+
+What happens at EOF?
+Input is done, so scanner closes the `Tokens` channel.
+Then parser can check whether channel is closed, to mark end of input.
+
+Nice wrinkle: Make `EOF` the zero value for type.
+
+	const (
+		EOF   Type = iota // zero value so closed channel delivers EOF
+		Error             // error occurred; value is text of error
+		...
+	)
+	....
+		if atEOF() {
+			close(scanner.Tokens)
+		}
+
+Then at end of file, `<-scanner.Tokens` returns a value with _type_ `scanner.EOF`.
+No special handling required.
+
+* Parsing
+
+APL grammar is simple:
+
+- unary operators apply to rest of line
+- binary operators apply to operand on left, rest of line on right
+
+Basically, associative to the right:
+
+	) debug parse # Shows parse tree, fully parenthesized.
+	2*iota 2 + 3
+
+Output:
+
+	(<2> * (iota (<2> + <3>)))
+	2 4 6 8 10
+
+No precedence hierachy. Easy to parse.
+
+In ivy, at least for now, parsing also evaluates.
+
+* Grammar
+
+Write the grammar (as comments), then write the code.
+Bottom up is easy to grasp.
+	
+	// operand
+	//	( Expr )
+	//	( Expr ) [ Expr ]...
+	//	operand
+	//	number
+	//	rational
+	//	vector
+	//	variable
+	//	operand [ Expr ]...
+	//	unop Expr
+
+	// expr
+	//	operand
+	//	operand binop expr
+
+* Grammar continued
+
+	// statementList:
+	//	statement
+	//	statement ';' statement
+
+	// statement:
+	//	var ':=' Expr
+	//	Expr
+
+Now for each grammatical item, write the obvious function.
+
+* Expr
+
+	// expr
+	//	operand
+	//	operand binop expr
+	func (p *Parser) expr(tok scan.Token) value.Expr {
+		expr := p.operand(tok)    // Next slide.
+		switch p.peek().Type {
+		case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
+			return expr
+		case scan.Operator:
+			// Binary.
+			tok = p.next()
+			return &binary{
+				left:  expr,
+				op:    tok.Text,
+				right: p.expr(p.next()),   // Recursion.
+			}
+		}
+		p.errorf("after expression: unexpected %s", p.peek())
+		return nil
+	}
+
+* Operand
+
+	func (p *Parser) operand(tok scan.Token) value.Expr {
+		var expr value.Expr
+		switch tok.Type {
+		case scan.Operator:
+			expr = &unary{ op: tok.Text, right: p.expr(p.next())} // Mutual recursion.
+		case scan.LeftParen:
+			expr = p.expr(p.next()) // Mutual recursion.
+			tok := p.next()
+			if tok.Type != scan.RightParen {
+				p.errorf("expected right paren, found %s", tok)
+			}
+		case scan.Number, scan.Rational:
+			expr = p.numberOrVector(tok) // Next slide
+		case scan.Identifier:
+			expr = p.vars[tok.Text]
+			if expr == nil {
+				p.errorf("%s undefined", tok.Text)
+			}
+		default:
+			p.errorf("unexpected %s", tok)
+		}
+		return p.index(expr) // Handled separately two slides from now.
+	}
+
+* Number or vector
+	
+	// numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
+	func (p *Parser) numberOrVector(tok scan.Token) value.Value {
+		x := p.number(tok)
+		typ := p.peek().Type
+		if typ != scan.Number && typ != scan.Rational {
+			return x
+		}
+		v := []value.Value{x}
+		for typ == scan.Number || typ == scan.Rational {
+			v = append(v, p.number(p.next()))
+			typ = p.peek().Type
+		}
+		return value.NewVector(v)
+	}
+
+	// number turns the token into a singleton numeric Value.
+	func (p *Parser) number(tok scan.Token) value.Value {
+		x, err := value.Parse(tok.Text)
+		if err != nil {
+			p.errorf("%s: %s", tok.Text, err)
+		}
+		return x
+	}
+
+* Index
+	
+	// index
+	//	expr
+	//	expr [ expr ]
+	//	expr [ expr ] [ expr ] ....
+	func (p *Parser) index(expr value.Expr) value.Expr {
+		for p.peek().Type == scan.LeftBrack {
+			p.next()
+			index := p.expr(p.next()) // Mutual recursion.
+			tok := p.next()
+			if tok.Type != scan.RightBrack {
+				p.errorf("expected right bracket, found %s", tok)
+			}
+			expr = &binary{
+				op:    "[]",
+				left:  expr,
+				right: index,
+			}
+		}
+		return expr
+	}
+
+* Evaluation
+
+Values (type `Value`) can hold:
+
+	int
+	"math/big".Int
+	"math/big".Rat
+	Vector
+	Matrix
+
+* Types
+
+	type Int int64 // If bigger than 32 bits, promote to BigInt.
+	
+	type BigInt struct {
+		*big.Int
+	}
+	
+	type BigRat struct {
+		*big.Rat
+	}
+	
+	type Vector []Value
+	
+	type Matrix {
+		shape Vector // Always Ints inside.
+		data Vector
+	}
+
+What should `Value` be? An interface, sure, but what are its methods?
+
+* Usual approach
+
+	type Value interface {
+		String() string
+		// Unary operators
+		Neg() Value
+		Abs() Value
+		...
+		// Binary operators
+		Add(Value) Value
+		Sub(Value) Value
+		...
+	}
+
+Started with this and didn't like what happened when it was time to add `Matrix`.
+Too much code had to change.
+
+* Mixed expressions
+
+In each of these expressions, the left hand side (LHS) is an `Int` of value 3.
+That is the receiver of the method. There are several types on the RHS:
+
+	3 + 3
+	3 + 1234123412341234
+	3 + 1/4
+	3 + 1 2 3 4
+	3 + 3 4 rho iota 12
+
+Each method for each type requires 5 implementations based on argument type.
+
+Requires _mn²_ pieces of code where _m_ is number of operators and _n_ is the number of types.
+
+I don't like _n²_.
+I _really_ don't like having to write _n²_ pieces of code.
+
+Need a different approach.
+
+* The Value interface
+
+The actual full interface in the current implementation:
+
+	type Value interface {
+		String() string // For printing.
+		Eval() Value    // For evaluation (trivial for now, but will grow.)
+		// toType returns the value of the receiver as an item of the specified type.
+		toType(valueType) Value
+	}
+	
+	type valueType int
+	
+	const (
+		intType valueType = iota
+		bigIntType
+		bigRatType
+		vectorType
+		matrixType
+		numType
+	)
+
+The `toType` method is the trick; lets us reduce from _mn²_ to _mn_.
+
+* Promotion and toType
+
+Given
+
+	3 + 12134123412341234
+
+we ask, what is the "bigger" type. The answer is on the RHS: `BigInt`.
+So we promote `3` to `BigInt` type, still with value 3.
+Then addition for `BigInt` knows its arguments are both `BigInts`:
+
+	return binaryBigIntOp(u, (*big.Int).Add, v)
+
+The helper function `binaryBigIntOp` does the `math/big.Int` dance.
+We need to write it only _once_.
+
+	func binaryBigIntOp(u Value, op func(*big.Int, *big.Int, *big.Int) *big.Int, v Value) Value {
+		i, j := u.(BigInt), v.(BigInt)
+		z := bigInt64(0)
+		op(z.Int, i.Int, j.Int)
+		return z.shrink()
+	}
+
+* binaryOp
+
+To generalize this to any operation, define the `binaryOp` type.
+
+	type binaryOp struct {
+		elementwise bool // whether the operation applies elementwise to vectors and matrices
+		whichType   func(a, b valueType) valueType
+		fn          [numType]binaryFn
+	}
+
+The function `whichType` chooses the type to promote to given the arguments.
+Given two types, it says which to promote to.
+
+The function `fn[whichType(a`, `b)]` does the real work.
+
+* Add
+
+Here is the full implementation of add (binary `+`):
+
+	add = &binaryOp{
+		elementwise: true,
+		whichType:   binaryArithType,
+		fn: [numType]binaryFn{
+			intType: func(u, v Value) Value {
+				return (u.(Int) + v.(Int)).maybeBig() // Overflow check.
+			},
+			bigIntType: func(u, v Value) Value {
+				return binaryBigIntOp(u, (*big.Int).Add, v)
+			},
+			bigRatType: func(u, v Value) Value {
+				return binaryBigRatOp(u, (*big.Rat).Add, v)
+			},
+		},
+	}
+
+The `elementwise` flag means the operator works elementwise on vectors and matrices, avoiding the need to write out the loop over elements for every operator.
+
+* General binary operator
+
+	func Binary(u Value, opName string, v Value) Value {
+		if strings.Contains(opName, ".") {
+			return product(u, opName, v) // Inner and outer products.
+		}
+		op := binaryOps[opName] // Map from operator ("+", "iota", ...) to binaryOp.
+		if op == nil {
+			Errorf("binary %s not implemented", opName)
+		}
+		which := op.whichType(whichType(u), whichType(v))
+		u = u.toType(which)  // Promote if necessary.
+		v = v.toType(which)  // Promote if necessary.
+		fn := op.fn[which]
+		if fn == nil {
+			if op.elementwise { // One place to implement all the easy ones.
+				switch which {
+				case vectorType: return binaryVectorOp(u, opName, v)
+				case matrixType: return binaryMatrixOp(u, opName, v)
+				}
+			}
+			Errorf("binary %s not implemented on type %s", opName, which)
+		}
+		return fn(u, v)
+	}
+
+* Outer product
+
+	// u and v are known to be at least Vectors.
+	func outerProduct(u Value, opName string, v Value) Value {
+		switch u := u.(type) {
+		case Vector:
+			v := v.(Vector)
+			m := Matrix{
+				shape: NewVector([]Value{Int(len(u)), Int(len(v))}),
+				data:  NewVector(make(Vector, len(u)*len(v))),
+			}
+			index := 0
+			for _, vu := range u {
+				for _, vv := range v {
+					m.data[index] = Binary(vu, opName, vv) // Recursion again!
+					index++
+				}
+			}
+			return m
+		}
+		Errorf("can't do outer product on %s", whichType(u))
+		panic("not reached")
+	}
+
+* Summary
+
+Sometimes the obvious type structure isn't the right one.
+
+Simple interfaces are often the right design.
+Encourage generality and lead to simple structures built by composition.
+
+Core operations on `Matrix` values took less than hour to add to the system once the new design was in place.
+
+The program actually got shorter compared to the pre-matrix, method-heavy version.
+
+* Conclusion
+
+APL is a fun plaything.
+Not necessarily a good production language, although it has its aficionados.
+Clever implementations can be very fast.
+
+Ivy is not full APL, not clever, and not fast.
+But it was fun to write.
+Clean interfaces and a lot of recursion.
+
+Still a work in progress, still some gaps.
+
+.link http://robpike.io/ivy
+
+Try implementing an APL-like language yourself.
+The basics take just a day or two. You'll learn a lot.
