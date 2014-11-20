@@ -23,18 +23,7 @@ type BigInt struct {
 func (i BigInt) Format() {}
 
 func setBigIntString(s string) (BigInt, error) {
-	base := conf.InputBase()
-	// Tricky but good enough for now.
-	switch base {
-	case 0, 10: // Fine as is.
-	case 8:
-		s = "0" + s
-	case 16:
-		s = "0x" + s
-	default:
-		Errorf("can't handle base %d parsing big int %s", base, s)
-	}
-	i, ok := big.NewInt(0).SetString(s, 0)
+	i, ok := big.NewInt(0).SetString(s, conf.InputBase())
 	if !ok {
 		return BigInt{}, errors.New("integer parse error")
 	}

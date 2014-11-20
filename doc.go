@@ -130,7 +130,7 @@ is not specified. For these commands, numbers are always base 10.
 		If the base is greater than 10, any identifier formed from
 		valid numerals in the base system, such as abe for base 16,
 		is taken to be a number.
-		TODO: To input rationals and bigs, base must be one of 0 8 10 16.
+		TODO: To output rationals and bigs, obase must be one of 0 2 8 10 16.
 	) debug name 0|1
 		Toggle or set the named debugging flag. With no argument,
 		lists the settings.

@@ -15,28 +15,31 @@ type BigRat struct {
 	*big.Rat
 }
 
-func setBigRatString(s string) (BigRat, error) {
+func setBigRatString(s string) (br BigRat, err error) {
 	base := conf.InputBase()
-	switch base {
-	case 0, 10: // Fine as is.
-	case 8:
-		slash := strings.IndexByte(s, '/')
-		if slash >= 0 {
-			s = "0" + s[:slash] + "/0" + s[slash+1:]
-		} else {
-			Errorf("can't handle base 8 parsing rational %s", s)
+	r := big.NewRat(0, 1)
+	var ok bool
+	slash := strings.IndexByte(s, '/')
+	if slash < 0 {
+		r, ok = r.SetString(s)
+	} else {
+		switch base {
+		case 0, 10: // Fine as is.
+			r, ok = r.SetString(s)
+		default:
+			// big.Rat doesn't handle arbitrary bases, but big.Int does,
+			// so do the numerator and denominator separately.
+			var num, denom BigInt
+			num, err = setBigIntString(s[:slash])
+			if err == nil {
+				denom, err = setBigIntString(s[slash+1:])
+			}
+			if err != nil {
+				return
+			}
+			return BigRat{r.SetFrac(num.Int, denom.Int)}, nil
 		}
-	case 16:
-		slash := strings.IndexByte(s, '/')
-		if slash >= 0 {
-			s = "0x" + s[:slash] + "/0x" + s[slash+1:]
-		} else {
-			Errorf("can't handle base 16 parsing rational %s", s)
-		}
-	default:
-		Errorf("can't handle base %d parsing rational %s", base, s)
 	}
-	r, ok := big.NewRat(0, 1).SetString(s)
 	if !ok {
 		return BigRat{}, errors.New("rational number syntax")
 	}
