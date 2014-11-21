@@ -79,3 +79,21 @@ up 6 5 8 10 4 1 2 5 4 7
 
 down 6 5 8 10 4 1 2 5 4 7
 	4 3 10 1 8 2 5 9 7 6
+
+rev iota 0
+	
+
+rev iota 1
+	1
+
+rev iota 10
+	10 9 8 7 6 5 4 3 2 1
+
+flip iota 0
+	
+
+flip iota 1
+	1
+
+flip iota 10
+	10 9 8 7 6 5 4 3 2 1

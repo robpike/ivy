@@ -42,7 +42,9 @@ Unary functions.
 	Pi times          ○B            Multiply by π
 	Logarithm         ⍟B            Natural logarithm of B
 	Reversal          ⌽B            Reverse elements of B along last axis
+	                        rev
 	Reversal          ⊖B            Reverse elements of B along first axis
+	                        flip
 	Grade up          ⍋B    up      Indices of B which will arrange B in ascending order
 	Grade down        ⍒B    down    Indices of B which will arrange B in descending order
 	Execute           ⍎B            Execute an APL expression

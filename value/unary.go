@@ -34,6 +34,7 @@ var (
 	unaryBitwiseNot, unaryLogicalNot  *unaryOp
 	unaryIota, unaryRho, unaryRavel   *unaryOp
 	gradeUp, gradeDown                *unaryOp
+	reverse, flip                     *unaryOp
 	floor, ceil                       *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
@@ -42,6 +43,10 @@ var (
 func bigIntRand(a, b *big.Int) *big.Int {
 	a.Rand(conf.Random(), b)
 	return a.Add(a, conf.BigOrigin())
+}
+
+func self(v Value) Value {
+	return v
 }
 
 func init() {
@@ -66,11 +71,11 @@ func init() {
 
 	unaryPlus = &unaryOp{
 		fn: [numType]unaryFn{
-			intType:    func(v Value) Value { return v },
-			bigIntType: func(v Value) Value { return v },
-			bigRatType: func(v Value) Value { return v },
-			vectorType: func(v Value) Value { return v },
-			matrixType: func(v Value) Value { return v },
+			intType:    self,
+			bigIntType: self,
+			bigRatType: self,
+			vectorType: self,
+			matrixType: self,
 		},
 	}
 
@@ -302,9 +307,7 @@ func init() {
 			bigRatType: func(v Value) Value {
 				return NewVector([]Value{v})
 			},
-			vectorType: func(v Value) Value {
-				return v
-			},
+			vectorType: self,
 			matrixType: func(v Value) Value {
 				return v.(Matrix).data
 			},
@@ -313,6 +316,9 @@ func init() {
 
 	gradeUp = &unaryOp{
 		fn: [numType]unaryFn{
+			intType:    self,
+			bigIntType: self,
+			bigRatType: self,
 			vectorType: func(v Value) Value {
 				return v.(Vector).grade()
 			},
@@ -321,6 +327,9 @@ func init() {
 
 	gradeDown = &unaryOp{
 		fn: [numType]unaryFn{
+			intType:    self,
+			bigIntType: self,
+			bigRatType: self,
 			vectorType: func(v Value) Value {
 				x := v.(Vector).grade()
 				for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
@@ -331,21 +340,89 @@ func init() {
 		},
 	}
 
+	reverse = &unaryOp{
+		fn: [numType]unaryFn{
+			intType:    self,
+			bigIntType: self,
+			bigRatType: self,
+			vectorType: func(v Value) Value {
+				x := v.(Vector)
+				for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
+					x[i], x[j] = x[j], x[i]
+				}
+				return x
+			},
+			matrixType: func(v Value) Value {
+				m := v.(Matrix)
+				if len(m.shape) == 0 {
+					return m
+				}
+				if len(m.shape) == 1 {
+					Errorf("rev: matrix is vector")
+				}
+				size := m.size()
+				ncols := int(m.shape[len(m.shape)-1].(Int))
+				x := m.data
+				for index := 0; index <= size-ncols; index += ncols {
+					for i, j := 0, ncols-1; i < j; i, j = i+1, j-1 {
+						x[index+i], x[index+j] = x[index+j], x[index+i]
+					}
+				}
+				return m
+			},
+		},
+	}
+
+	flip = &unaryOp{
+		fn: [numType]unaryFn{
+			intType:    self,
+			bigIntType: self,
+			bigRatType: self,
+			vectorType: func(v Value) Value {
+				return Unary("rev", v)
+			},
+			matrixType: func(v Value) Value {
+				m := v.(Matrix)
+				if len(m.shape) == 0 {
+					return m
+				}
+				if len(m.shape) == 1 {
+					Errorf("flip: matrix is vector")
+				}
+				elemSize := m.elemSize()
+				size := m.size()
+				x := m.data
+				lo := 0
+				hi := size - elemSize
+				for lo < hi {
+					for i := 0; i < elemSize; i++ {
+						x[lo+i], x[hi+i] = x[hi+i], x[lo+i]
+					}
+					lo += elemSize
+					hi -= elemSize
+				}
+				return m
+			},
+		},
+	}
+
 	unaryOps = map[string]*unaryOp{
-		"?":     unaryRoll,
 		"+":     unaryPlus,
+		",":     unaryRavel,
 		"-":     unaryMinus,
 		"/":     unaryRecip,
-		"sgn":   unarySignum,
+		"?":     unaryRoll,
 		"^":     unaryBitwiseNot,
-		"~":     unaryLogicalNot,
 		"abs":   unaryAbs,
 		"ceil":  ceil,
+		"down":  gradeDown,
+		"flip":  flip,
 		"floor": floor,
 		"iota":  unaryIota,
+		"rev":   reverse,
 		"rho":   unaryRho,
-		",":     unaryRavel,
+		"sgn":   unarySignum,
 		"up":    gradeUp,
-		"down":  gradeDown,
+		"~":     unaryLogicalNot,
 	}
 }
