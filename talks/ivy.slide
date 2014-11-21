@@ -191,7 +191,7 @@ Bottom up is easy to grasp.
 	//	statement ';' statement
 
 	// statement:
-	//	var ':=' Expr
+	//	var '=' Expr
 	//	Expr
 
 Now for each grammatical item, write the obvious function.

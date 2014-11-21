@@ -186,7 +186,7 @@ func (p *Parser) statementList(tok scan.Token) ([]value.Value, bool) {
 }
 
 // statement:
-//	var ':=' Expr
+//	var '=' Expr
 //	Expr
 func (p *Parser) statement(tok scan.Token) (value.Value, bool) {
 	variableName := ""
