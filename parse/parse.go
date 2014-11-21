@@ -218,7 +218,7 @@ func (p *Parser) statement(tok scan.Token) (value.Value, bool) {
 //	operand
 //	operand binop expr
 func (p *Parser) expr(tok scan.Token) value.Expr {
-	expr := p.operand(tok)
+	expr := p.operand(tok, true)
 	switch p.peek().Type {
 	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
 		return expr
@@ -236,16 +236,11 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 }
 
 // operand
-//	( Expr )
-//	( Expr ) [ Expr ]...
-//	operand
 //	number
-//	rational
 //	vector
-//	variable
 //	operand [ Expr ]...
 //	unop Expr
-func (p *Parser) operand(tok scan.Token) value.Expr {
+func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 	var expr value.Expr
 	switch tok.Type {
 	case scan.Operator:
@@ -254,23 +249,15 @@ func (p *Parser) operand(tok scan.Token) value.Expr {
 			op:    tok.Text,
 			right: p.expr(p.next()),
 		}
-	case scan.LeftParen:
-		expr = p.expr(p.next())
-		tok := p.next()
-		if tok.Type != scan.RightParen {
-			p.errorf("expected right paren, found %s", tok)
-		}
-	case scan.Number, scan.Rational:
+	case scan.Number, scan.Rational, scan.Identifier, scan.LeftParen:
 		expr = p.numberOrVector(tok)
-	case scan.Identifier:
-		expr = p.vars[tok.Text]
-		if expr == nil {
-			p.errorf("%s undefined", tok.Text)
-		}
 	default:
 		p.errorf("unexpected %s", tok)
 	}
-	return p.index(expr)
+	if indexOK {
+		expr = p.index(expr)
+	}
+	return expr
 }
 
 // index
@@ -294,26 +281,80 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 	return expr
 }
 
-// number turns the token into a singleton numeric Value.
+// number
+//	integer
+//	rational
+//	variable
+//	'(' Expr ')'
 func (p *Parser) number(tok scan.Token) value.Value {
-	x, err := value.Parse(tok.Text)
-	if err != nil {
-		p.errorf("%s: %s", tok.Text, err)
+	var v value.Value
+	text := tok.Text
+	switch tok.Type {
+	case scan.Identifier:
+		v = p.variable(text)
+	case scan.Number, scan.Rational:
+		var err error
+		v, err = value.Parse(text)
+		if err != nil {
+			p.errorf("%s: %s", text, err)
+		}
+	case scan.LeftParen:
+		expr := p.expr(p.next())
+		tok := p.next()
+		if tok.Type != scan.RightParen {
+			p.errorf("expected right paren, found %s", tok)
+		}
+		v = expr.Eval()
 	}
-	return x
+	return v
 }
 
 // numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
+// numberOrVector
+//	number ...
 func (p *Parser) numberOrVector(tok scan.Token) value.Value {
-	x := p.number(tok)
-	typ := p.peek().Type
-	if typ != scan.Number && typ != scan.Rational {
-		return x
+	v := p.number(tok)
+	switch p.peek().Type {
+	case scan.Number, scan.Rational, scan.Identifier, scan.LeftParen:
+		// Further vector elements follow.
+	default:
+		return v
 	}
-	v := []value.Value{x}
-	for typ == scan.Number || typ == scan.Rational {
-		v = append(v, p.number(p.next()))
-		typ = p.peek().Type
+	if !isScalar(v) {
+		p.errorf("%s must be scalar to be vector element", tok.Text)
 	}
-	return value.NewVector(v)
+	slice := []value.Value{v}
+	for {
+		tok = p.peek()
+		text := tok.Text
+		switch tok.Type {
+		case scan.LeftParen:
+			text = "parenthesized expression"
+			fallthrough
+		case scan.Number, scan.Rational, scan.Identifier:
+			v = p.number(p.next())
+		default:
+			return value.NewVector(slice)
+		}
+		if !isScalar(v) {
+			p.errorf("%s must be scalar to be vector element", text)
+		}
+		slice = append(slice, v)
+	}
+}
+
+func isScalar(v value.Value) bool {
+	switch v.(type) {
+	case value.Int, value.BigInt, value.BigRat:
+		return true
+	}
+	return false
+}
+
+func (p *Parser) variable(name string) value.Value {
+	v := p.vars[name]
+	if v == nil {
+		p.errorf("%s undefined", name)
+	}
+	return v
 }
