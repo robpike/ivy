@@ -18,12 +18,6 @@ func SetConfig(c *config.Config) {
 	conf = c
 }
 
-type Expr interface {
-	String() string
-
-	Eval() Value
-}
-
 type Value interface {
 	String() string
 	Eval() Value

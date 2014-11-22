@@ -55,6 +55,7 @@ func truth(x bool) int {
 }
 
 func (p *Parser) special() {
+	p.need(scan.RightParen)
 Switch:
 	switch text := p.need(scan.Identifier).Text; text {
 	case "base", "ibase", "obase":

@@ -12,8 +12,28 @@ import (
 	"robpike.io/ivy/value"
 )
 
+type Expr interface {
+	String() string
+
+	Eval() value.Value
+}
+
+type assignment struct {
+	variable *variableExpr
+	expr     Expr
+}
+
+func (a *assignment) Eval() value.Value {
+	a.variable.symtab[a.variable.name] = a.expr.Eval()
+	return nil
+}
+
+func (a *assignment) String() string {
+	return "assignment" // Never called; handled by Tree.
+}
+
 // sliceExpr holds a syntactic vector to be verified and evaluated.
-type sliceExpr []value.Expr
+type sliceExpr []Expr
 
 func (s sliceExpr) Eval() value.Value {
 	v := make([]value.Value, len(s))
@@ -35,7 +55,7 @@ func (s sliceExpr) String() string {
 // variableExpr holds a variable to be looked up and evaluated.
 type variableExpr struct {
 	name   string
-	symtab map[string]value.Value
+	symtab map[string]value.Value // TODO: should be a more general execution context.
 }
 
 func (e *variableExpr) Eval() value.Value {
@@ -52,7 +72,7 @@ func (e *variableExpr) String() string {
 
 type unary struct {
 	op    string
-	right value.Expr
+	right Expr
 }
 
 func (u *unary) String() string {
@@ -65,8 +85,8 @@ func (u *unary) Eval() value.Value {
 
 type binary struct {
 	op    string
-	left  value.Expr
-	right value.Expr
+	left  Expr
+	right Expr
 }
 
 func (b *binary) String() string {
@@ -78,7 +98,7 @@ func (b *binary) Eval() value.Value {
 }
 
 // Tree prints a representation of the expression tree e.
-func Tree(e value.Expr) string {
+func Tree(e Expr) string {
 	switch e := e.(type) {
 	case nil:
 		return ""
@@ -105,6 +125,8 @@ func Tree(e value.Expr) string {
 		return str + ">"
 	case *variableExpr:
 		return fmt.Sprintf("<var %s>", e)
+	case *assignment:
+		return fmt.Sprintf("<%s = %s>", e.variable.name, Tree(e.expr))
 	default:
 		return fmt.Sprintf("%T", e)
 	}
@@ -176,11 +198,33 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 // A nil returned slice means there were no values.
 // The boolean reports whether the line is valid.
 //
-// Line:
-//	'\n'
+// Line
 //	) special command '\n'
-//	statementList '\n'
+//	expressionList '\n'
 func (p *Parser) Line() ([]value.Value, bool) {
+	if p.peek().Type == scan.RightParen {
+		p.special()
+		return nil, true
+	}
+	exprs, ok := p.expressionList()
+	if !ok {
+		return nil, false
+	}
+	var values []value.Value
+	for _, expr := range exprs {
+		v := expr.Eval()
+		if v != nil {
+			p.vars["_"] = v // Will end up assigned to last expression on line.
+			values = append(values, v)
+		}
+	}
+	return values, true
+}
+
+// expressionList:
+//	'\n'
+//	statementList '\n'
+func (p *Parser) expressionList() ([]Expr, bool) {
 	tok := p.next()
 	switch tok.Type {
 	case scan.Error:
@@ -189,13 +233,10 @@ func (p *Parser) Line() ([]value.Value, bool) {
 		return nil, false
 	case scan.Newline:
 		return nil, true
-	case scan.RightParen:
-		p.special()
-		return nil, true
 	}
-	values, ok := p.statementList(tok)
+	exprs, ok := p.statementList(tok)
 	if !ok {
-		return values, false
+		return nil, false
 	}
 	tok = p.next()
 	switch tok.Type {
@@ -205,7 +246,7 @@ func (p *Parser) Line() ([]value.Value, bool) {
 	default:
 		p.errorf("unexpected %q", tok)
 	}
-	return values, ok
+	return exprs, ok
 }
 
 // statementList:
@@ -215,50 +256,49 @@ func (p *Parser) Line() ([]value.Value, bool) {
 // statement:
 //	var ':=' Expr
 //	Expr
-func (p *Parser) statementList(tok scan.Token) ([]value.Value, bool) {
-	v, ok := p.statement(tok)
+func (p *Parser) statementList(tok scan.Token) ([]Expr, bool) {
+	expr, ok := p.statement(tok)
 	if !ok {
 		return nil, false
 	}
-	var values []value.Value
-	if v != nil {
-		values = []value.Value{v}
+	var exprs []Expr
+	if expr != nil {
+		exprs = []Expr{expr}
 	}
 	if p.peek().Type == scan.Semicolon {
 		p.next()
 		more, ok := p.statementList(p.next())
 		if ok {
-			values = append(values, more...)
+			exprs = append(exprs, more...)
 		}
 	}
-	return values, true
+	return exprs, true
 }
 
 // statement:
 //	var '=' Expr
 //	Expr
-func (p *Parser) statement(tok scan.Token) (value.Value, bool) {
+func (p *Parser) statement(tok scan.Token) (Expr, bool) {
 	variableName := ""
 	if tok.Type == scan.Identifier {
-		next := p.peek()
-		if next.Type == scan.Assign {
+		if p.peek().Type == scan.Assign {
 			p.next()
 			variableName = tok.Text
 			tok = p.next()
 		}
 	}
-	x := p.expr(tok)
-	if x == nil {
+	expr := p.expr(tok)
+	if expr == nil {
 		return nil, true
 	}
-	if p.config.Debug("parse") {
-		fmt.Println(Tree(x))
-	}
-	expr := x.Eval()
-	p.vars["_"] = expr // Will end up assigned to last expression on line.
 	if variableName != "" {
-		p.vars[variableName] = expr
-		return nil, true // No value returned.
+		expr = &assignment{
+			variable: p.variable(variableName),
+			expr:     expr,
+		}
+	}
+	if p.config.Debug("parse") {
+		fmt.Println(Tree(expr))
 	}
 	return expr, true
 }
@@ -266,7 +306,7 @@ func (p *Parser) statement(tok scan.Token) (value.Value, bool) {
 // expr
 //	operand
 //	operand binop expr
-func (p *Parser) expr(tok scan.Token) value.Expr {
+func (p *Parser) expr(tok scan.Token) Expr {
 	expr := p.operand(tok, true)
 	switch p.peek().Type {
 	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
@@ -289,8 +329,8 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 //	vector
 //	operand [ Expr ]...
 //	unop Expr
-func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
-	var expr value.Expr
+func (p *Parser) operand(tok scan.Token, indexOK bool) Expr {
+	var expr Expr
 	switch tok.Type {
 	case scan.Operator:
 		// Unary.
@@ -313,7 +353,7 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 //	expr
 //	expr [ expr ]
 //	expr [ expr ] [ expr ] ....
-func (p *Parser) index(expr value.Expr) value.Expr {
+func (p *Parser) index(expr Expr) Expr {
 	for p.peek().Type == scan.LeftBrack {
 		p.next()
 		index := p.expr(p.next())
@@ -335,8 +375,8 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 //	rational
 //	variable
 //	'(' Expr ')'
-func (p *Parser) number(tok scan.Token) value.Expr {
-	var expr value.Expr
+func (p *Parser) number(tok scan.Token) Expr {
+	var expr Expr
 	text := tok.Text
 	switch tok.Type {
 	case scan.Identifier:
@@ -360,7 +400,7 @@ func (p *Parser) number(tok scan.Token) value.Expr {
 // numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
 // numberOrVector
 //	number ...
-func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
+func (p *Parser) numberOrVector(tok scan.Token) Expr {
 	expr := p.number(tok)
 	switch p.peek().Type {
 	case scan.Number, scan.Rational, scan.Identifier, scan.LeftParen:
@@ -391,7 +431,7 @@ func isScalar(v value.Value) bool {
 	return false
 }
 
-func (p *Parser) variable(name string) value.Expr {
+func (p *Parser) variable(name string) *variableExpr {
 	return &variableExpr{
 		name:   name,
 		symtab: p.vars,
