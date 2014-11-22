@@ -32,9 +32,10 @@ const (
 	Error             // error occurred; value is text of error
 	Newline
 	// Interesting things
+	Assign         // '='
 	Char           // printable ASCII character; grab bag for comma etc.
 	CharConstant   // character constant
-	Assign         // '='
+	Def            // "def", function definition keyword
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
 	LeftBrack      // '['
@@ -369,14 +370,16 @@ Loop:
 			}
 			// Some identifiers are operators.
 			word := l.input[l.start:l.pos]
-			if word == "o" && l.peek() == '.' {
+			switch {
+			case word == "o" && l.peek() == '.':
 				return lexOperator
-			}
-			if operatorWord[word] {
+			case operatorWord[word]:
 				return lexOperator
-			} else if l.config.InputBase() > 10 && isAllDigits(word, l.config.InputBase()) {
+			case word == "def":
+				l.emit(Def)
+			case l.config.InputBase() > 10 && isAllDigits(word, l.config.InputBase()):
 				l.emit(Number)
-			} else {
+			default:
 				l.emit(Identifier)
 			}
 			break Loop

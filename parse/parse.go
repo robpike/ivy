@@ -13,7 +13,7 @@ import (
 )
 
 type Expr interface {
-	String() string
+	String() string // TODO: Delete this method
 
 	Eval() value.Value
 }
@@ -29,7 +29,7 @@ func (a *assignment) Eval() value.Value {
 }
 
 func (a *assignment) String() string {
-	return "assignment" // Never called; handled by Tree.
+	return "assignment" // Never called; handled by Tree. TODO CLEAN THIS UP
 }
 
 // sliceExpr holds a syntactic vector to be verified and evaluated.
@@ -142,6 +142,8 @@ type Parser struct {
 	peekTok    scan.Token
 	vars       map[string]value.Value
 	curTok     scan.Token // most recent token from scanner
+	unaryFn    map[string]*function
+	binaryFn   map[string]*function
 }
 
 var zero, _ = value.Parse("0")
@@ -153,6 +155,8 @@ func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner) *Par
 		config:   conf,
 		fileName: fileName,
 		vars:     make(map[string]value.Value),
+		unaryFn:  make(map[string]*function),
+		binaryFn: make(map[string]*function),
 	}
 }
 
@@ -200,10 +204,16 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 //
 // Line
 //	) special command '\n'
+//	def function defintion
 //	expressionList '\n'
 func (p *Parser) Line() ([]value.Value, bool) {
-	if p.peek().Type == scan.RightParen {
+	tok := p.peek()
+	switch tok.Type {
+	case scan.RightParen:
 		p.special()
+		return nil, true
+	case scan.Def:
+		p.functionDefn()
 		return nil, true
 	}
 	exprs, ok := p.expressionList()
@@ -308,12 +318,24 @@ func (p *Parser) statement(tok scan.Token) (Expr, bool) {
 //	operand binop expr
 func (p *Parser) expr(tok scan.Token) Expr {
 	expr := p.operand(tok, true)
-	switch p.peek().Type {
+	tok = p.peek()
+	switch tok.Type {
 	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
 		return expr
+	case scan.Identifier:
+		function := p.binaryFn[tok.Text]
+		if function != nil {
+			p.next()
+			// User-defined binary.
+			return &binaryCall{
+				fn:    function,
+				left:  expr,
+				right: p.expr(p.next()),
+			}
+		}
 	case scan.Operator:
 		// Binary.
-		tok = p.next()
+		p.next()
 		return &binary{
 			left:  expr,
 			op:    tok.Text,
@@ -338,7 +360,18 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) Expr {
 			op:    tok.Text,
 			right: p.expr(p.next()),
 		}
-	case scan.Number, scan.Rational, scan.Identifier, scan.LeftParen:
+	case scan.Identifier:
+		function := p.unaryFn[tok.Text]
+		if function != nil {
+			// User-defined unary.
+			expr = &unaryCall{
+				fn:  function,
+				arg: p.expr(p.next()),
+			}
+			break
+		}
+		fallthrough
+	case scan.Number, scan.Rational, scan.LeftParen:
 		expr = p.numberOrVector(tok)
 	default:
 		p.errorf("unexpected %s", tok)
@@ -414,7 +447,12 @@ func (p *Parser) numberOrVector(tok scan.Token) Expr {
 		switch tok.Type {
 		case scan.LeftParen:
 			fallthrough
-		case scan.Number, scan.Rational, scan.Identifier:
+		case scan.Identifier:
+			if p.unaryFn[tok.Text] != nil || p.binaryFn[tok.Text] != nil {
+				return slice
+			}
+			fallthrough
+		case scan.Number, scan.Rational:
 			expr = p.number(p.next())
 		default:
 			return slice

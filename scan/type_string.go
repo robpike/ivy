@@ -4,9 +4,9 @@ package scan
 
 import "fmt"
 
-const _Type_name = "EOFErrorNewlineCharCharConstantAssignGreaterOrEqualIdentifierLeftBrackLeftParenNumberOperatorRationalRawStringRightBrackRightParenSemicolonSpaceString"
+const _Type_name = "EOFErrorNewlineAssignCharCharConstantDefGreaterOrEqualIdentifierLeftBrackLeftParenNumberOperatorRationalRawStringRightBrackRightParenSemicolonSpaceString"
 
-var _Type_index = [...]uint8{3, 8, 15, 19, 31, 37, 51, 61, 70, 79, 85, 93, 101, 110, 120, 130, 139, 144, 150}
+var _Type_index = [...]uint8{3, 8, 15, 21, 25, 37, 40, 54, 64, 73, 82, 88, 96, 104, 113, 123, 133, 142, 147, 153}
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_Type_index)) {
