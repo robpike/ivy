@@ -12,6 +12,44 @@ import (
 	"robpike.io/ivy/value"
 )
 
+// sliceExpr holds a syntactic vector to be verified and evaluated.
+type sliceExpr []value.Expr
+
+func (s sliceExpr) Eval() value.Value {
+	v := make([]value.Value, len(s))
+	for i, x := range s {
+		elem := x.Eval()
+		// Each element must be a singleton.
+		if !isScalar(elem) {
+			value.Errorf("vector element must be scalar; have %s", elem)
+		}
+		v[i] = elem
+	}
+	return value.NewVector(v)
+}
+
+func (s sliceExpr) String() string {
+	return "slice" // Never called; handled by Tree.
+}
+
+// variableExpr holds a variable to be looked up and evaluated.
+type variableExpr struct {
+	name   string
+	symtab map[string]value.Value
+}
+
+func (e *variableExpr) Eval() value.Value {
+	v := e.symtab[e.name]
+	if v == nil {
+		value.Errorf("undefined variable %q", e.name)
+	}
+	return v
+}
+
+func (e *variableExpr) String() string {
+	return e.name // Never called; handled by Tree.
+}
+
 type unary struct {
 	op    string
 	right value.Expr
@@ -56,6 +94,17 @@ func Tree(e value.Expr) string {
 		return fmt.Sprintf("(%s %s)", e.op, Tree(e.right))
 	case *binary:
 		return fmt.Sprintf("(%s %s %s)", Tree(e.left), e.op, Tree(e.right))
+	case sliceExpr:
+		str := "<"
+		for i, v := range e {
+			if i > 0 {
+				str += " "
+			}
+			str += Tree(v)
+		}
+		return str + ">"
+	case *variableExpr:
+		return fmt.Sprintf("<var %s>", e)
 	default:
 		return fmt.Sprintf("%T", e)
 	}
@@ -286,60 +335,51 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 //	rational
 //	variable
 //	'(' Expr ')'
-func (p *Parser) number(tok scan.Token) value.Value {
-	var v value.Value
+func (p *Parser) number(tok scan.Token) value.Expr {
+	var expr value.Expr
 	text := tok.Text
 	switch tok.Type {
 	case scan.Identifier:
-		v = p.variable(text)
+		expr = p.variable(text)
 	case scan.Number, scan.Rational:
 		var err error
-		v, err = value.Parse(text)
+		expr, err = value.Parse(text)
 		if err != nil {
 			p.errorf("%s: %s", text, err)
 		}
 	case scan.LeftParen:
-		expr := p.expr(p.next())
+		expr = p.expr(p.next())
 		tok := p.next()
 		if tok.Type != scan.RightParen {
 			p.errorf("expected right paren, found %s", tok)
 		}
-		v = expr.Eval()
 	}
-	return v
+	return expr
 }
 
 // numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
 // numberOrVector
 //	number ...
-func (p *Parser) numberOrVector(tok scan.Token) value.Value {
-	v := p.number(tok)
+func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
+	expr := p.number(tok)
 	switch p.peek().Type {
 	case scan.Number, scan.Rational, scan.Identifier, scan.LeftParen:
 		// Further vector elements follow.
 	default:
-		return v
+		return expr
 	}
-	if !isScalar(v) {
-		p.errorf("%s must be scalar to be vector element", tok.Text)
-	}
-	slice := []value.Value{v}
+	slice := sliceExpr{expr}
 	for {
 		tok = p.peek()
-		text := tok.Text
 		switch tok.Type {
 		case scan.LeftParen:
-			text = "parenthesized expression"
 			fallthrough
 		case scan.Number, scan.Rational, scan.Identifier:
-			v = p.number(p.next())
+			expr = p.number(p.next())
 		default:
-			return value.NewVector(slice)
+			return slice
 		}
-		if !isScalar(v) {
-			p.errorf("%s must be scalar to be vector element", text)
-		}
-		slice = append(slice, v)
+		slice = append(slice, expr)
 	}
 }
 
@@ -351,10 +391,9 @@ func isScalar(v value.Value) bool {
 	return false
 }
 
-func (p *Parser) variable(name string) value.Value {
-	v := p.vars[name]
-	if v == nil {
-		p.errorf("%s undefined", name)
+func (p *Parser) variable(name string) value.Expr {
+	return &variableExpr{
+		name:   name,
+		symtab: p.vars,
 	}
-	return v
 }

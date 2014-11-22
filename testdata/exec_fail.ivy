@@ -1,0 +1,29 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Things that should cause failures.
+# Comment line is error we expect (not verified by tests - TODO).
+
+# zero denominator in rational
+1/0
+	X
+
+# vector element must be scalar
+x = 1 2 3
+x 1
+	X
+
+# vector element must be scalar
+x = 1 2 3
+1 x
+	X
+
+# vector element must be scalar
+x = 1 2 3
+1 x 1
+	X
+
+# undefined variable "x"
+x
+	X

@@ -75,13 +75,21 @@ func TestAll(t *testing.T) {
 var testBuf bytes.Buffer
 
 func runTest(t *testing.T, name string, lineNum int, input, output []string) bool {
+	shouldFail := strings.HasSuffix(name, "_fail.ivy")
 	initConf()
 	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")))
 	parser := parse.NewParser(&conf, name, scanner)
 	testBuf.Reset()
-	if !run(parser, &testBuf, false) {
-		t.Fatalf("\nexecution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
+	if !run(parser, &testBuf, false) != shouldFail {
+		if shouldFail {
+			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
+		} else {
+			t.Fatalf("\nexecution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
+		}
 		return false
+	}
+	if shouldFail {
+		return true
 	}
 	result := testBuf.String()
 	if !equal(strings.Split(result, "\n"), output) {
@@ -99,7 +107,6 @@ func equal(a, b []string) bool {
 		a = a[:len(a)-1]
 	}
 	if len(a) != len(b) {
-		println("LEN", len(a), len(b))
 		return false
 	}
 	for i, s := range a {
