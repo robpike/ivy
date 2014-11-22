@@ -13,7 +13,7 @@ import (
 )
 
 type Expr interface {
-	String() string // TODO: Delete this method
+	String() string
 
 	Eval() value.Value
 }
@@ -29,7 +29,7 @@ func (a *assignment) Eval() value.Value {
 }
 
 func (a *assignment) String() string {
-	return "assignment" // Never called; handled by Tree. TODO CLEAN THIS UP
+	return fmt.Sprintf("<%s = %s>", a.variable.name, a.expr)
 }
 
 // sliceExpr holds a syntactic vector to be verified and evaluated.
@@ -49,7 +49,14 @@ func (s sliceExpr) Eval() value.Value {
 }
 
 func (s sliceExpr) String() string {
-	return "slice" // Never called; handled by Tree.
+	str := "<"
+	for i, v := range s {
+		if i > 0 {
+			str += " "
+		}
+		str += v.String()
+	}
+	return str + ">"
 }
 
 // variableExpr holds a variable to be looked up and evaluated.
@@ -67,7 +74,7 @@ func (e *variableExpr) Eval() value.Value {
 }
 
 func (e *variableExpr) String() string {
-	return e.name // Never called; handled by Tree.
+	return fmt.Sprintf("<var %s>", e.name)
 }
 
 type unary struct {
@@ -76,7 +83,7 @@ type unary struct {
 }
 
 func (u *unary) String() string {
-	return u.op + " " + u.right.String()
+	return fmt.Sprintf("(%s %s)", u.op, u.right)
 }
 
 func (u *unary) Eval() value.Value {
@@ -90,46 +97,11 @@ type binary struct {
 }
 
 func (b *binary) String() string {
-	return b.left.String() + " " + b.op + " " + b.right.String()
+	return fmt.Sprintf("(%s %s %s)", b.left, b.op, b.right)
 }
 
 func (b *binary) Eval() value.Value {
 	return value.Binary(b.left.Eval(), b.op, b.right.Eval())
-}
-
-// Tree prints a representation of the expression tree e.
-func Tree(e Expr) string {
-	switch e := e.(type) {
-	case nil:
-		return ""
-	case value.BigInt:
-		return fmt.Sprintf("<big %s>", e)
-	case value.BigRat:
-		return fmt.Sprintf("<rat %s>", e)
-	case value.Int:
-		return fmt.Sprintf("<%s>", e)
-	case value.Vector:
-		return fmt.Sprintf("<vec %s>", e)
-	case *unary:
-		return fmt.Sprintf("(%s %s)", e.op, Tree(e.right))
-	case *binary:
-		return fmt.Sprintf("(%s %s %s)", Tree(e.left), e.op, Tree(e.right))
-	case sliceExpr:
-		str := "<"
-		for i, v := range e {
-			if i > 0 {
-				str += " "
-			}
-			str += Tree(v)
-		}
-		return str + ">"
-	case *variableExpr:
-		return fmt.Sprintf("<var %s>", e)
-	case *assignment:
-		return fmt.Sprintf("<%s = %s>", e.variable.name, Tree(e.expr))
-	default:
-		return fmt.Sprintf("%T", e)
-	}
 }
 
 // Parser stores the state for the ivy parser.
@@ -308,7 +280,7 @@ func (p *Parser) statement(tok scan.Token) (Expr, bool) {
 		}
 	}
 	if p.config.Debug("parse") {
-		fmt.Println(Tree(expr))
+		fmt.Println(expr)
 	}
 	return expr, true
 }
@@ -442,6 +414,7 @@ func (p *Parser) numberOrVector(tok scan.Token) Expr {
 		return expr
 	}
 	slice := sliceExpr{expr}
+Loop:
 	for {
 		tok = p.peek()
 		switch tok.Type {
@@ -449,16 +422,20 @@ func (p *Parser) numberOrVector(tok scan.Token) Expr {
 			fallthrough
 		case scan.Identifier:
 			if p.unaryFn[tok.Text] != nil || p.binaryFn[tok.Text] != nil {
-				return slice
+				break Loop
 			}
 			fallthrough
 		case scan.Number, scan.Rational:
 			expr = p.number(p.next())
 		default:
-			return slice
+			break Loop
 		}
 		slice = append(slice, expr)
 	}
+	if len(slice) == 1 {
+		return slice[0] // Just a singleton.
+	}
+	return slice
 }
 
 func isScalar(v value.Value) bool {

@@ -21,8 +21,8 @@ type function struct {
 
 // function definition
 //
-//	"def" name arg '=' expressionlist '\n'
-//	"def" arg name arg '=' expressionilst '\n'
+//	"def" name arg '=' expressionList '\n'
+//	"def" arg name arg '=' expressionList '\n'
 func (p *Parser) functionDefn() {
 	p.need(scan.Def)
 	fn := new(function)
@@ -75,7 +75,7 @@ func (u *unaryCall) Eval() value.Value {
 }
 
 func (u *unaryCall) String() string {
-	return "unary call" // Never called; handled by Tree.
+	return fmt.Sprintf("(%s %s)", u.fn.name, u.arg)
 }
 
 type binaryCall struct {
@@ -99,5 +99,5 @@ func (b *binaryCall) Eval() value.Value {
 }
 
 func (b *binaryCall) String() string {
-	return "biary call" // Never called; handled by Tree.
+	return fmt.Sprintf("(%s %s %s)", b.left, b.fn.name, b.right)
 }
