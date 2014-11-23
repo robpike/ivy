@@ -80,7 +80,7 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")))
 	parser := parse.NewParser(&conf, name, scanner)
 	testBuf.Reset()
-	if !run(parser, &testBuf, false) != shouldFail {
+	if !run(parser, &testBuf, value.NewContext(), false) != shouldFail {
 		if shouldFail {
 			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
 		} else {

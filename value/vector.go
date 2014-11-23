@@ -27,7 +27,7 @@ func NewVector(elem []Value) Vector {
 	return Vector(elem)
 }
 
-func (v Vector) Eval() Value {
+func (v Vector) Eval(*Context) Value {
 	return v
 }
 

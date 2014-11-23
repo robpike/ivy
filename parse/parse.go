@@ -12,19 +12,13 @@ import (
 	"robpike.io/ivy/value"
 )
 
-type Expr interface {
-	String() string
-
-	Eval() value.Value
-}
-
 type assignment struct {
-	variable *variableExpr
-	expr     Expr
+	variable variableExpr
+	expr     value.Expr
 }
 
-func (a *assignment) Eval() value.Value {
-	a.variable.symtab[a.variable.name] = a.expr.Eval()
+func (a *assignment) Eval(context *value.Context) value.Value {
+	context.Assign(a.variable.name, a.expr.Eval(context))
 	return nil
 }
 
@@ -33,12 +27,12 @@ func (a *assignment) String() string {
 }
 
 // sliceExpr holds a syntactic vector to be verified and evaluated.
-type sliceExpr []Expr
+type sliceExpr []value.Expr
 
-func (s sliceExpr) Eval() value.Value {
+func (s sliceExpr) Eval(context *value.Context) value.Value {
 	v := make([]value.Value, len(s))
 	for i, x := range s {
-		elem := x.Eval()
+		elem := x.Eval(context)
 		// Each element must be a singleton.
 		if !isScalar(elem) {
 			value.Errorf("vector element must be scalar; have %s", elem)
@@ -59,49 +53,48 @@ func (s sliceExpr) String() string {
 	return str + ">"
 }
 
-// variableExpr holds a variable to be looked up and evaluated.
+// variableExpr identifies a variable to be looked up and evaluated.
 type variableExpr struct {
-	name   string
-	symtab map[string]value.Value // TODO: should be a more general execution context.
+	name string
 }
 
-func (e *variableExpr) Eval() value.Value {
-	v := e.symtab[e.name]
+func (e variableExpr) Eval(context *value.Context) value.Value {
+	v := context.Lookup(e.name)
 	if v == nil {
 		value.Errorf("undefined variable %q", e.name)
 	}
 	return v
 }
 
-func (e *variableExpr) String() string {
+func (e variableExpr) String() string {
 	return fmt.Sprintf("<var %s>", e.name)
 }
 
 type unary struct {
 	op    string
-	right Expr
+	right value.Expr
 }
 
 func (u *unary) String() string {
 	return fmt.Sprintf("(%s %s)", u.op, u.right)
 }
 
-func (u *unary) Eval() value.Value {
-	return value.Unary(u.op, u.right.Eval())
+func (u *unary) Eval(context *value.Context) value.Value {
+	return value.Unary(u.op, u.right.Eval(context))
 }
 
 type binary struct {
 	op    string
-	left  Expr
-	right Expr
+	left  value.Expr
+	right value.Expr
 }
 
 func (b *binary) String() string {
 	return fmt.Sprintf("(%s %s %s)", b.left, b.op, b.right)
 }
 
-func (b *binary) Eval() value.Value {
-	return value.Binary(b.left.Eval(), b.op, b.right.Eval())
+func (b *binary) Eval(context *value.Context) value.Value {
+	return value.Binary(b.left.Eval(context), b.op, b.right.Eval(context))
 }
 
 // Parser stores the state for the ivy parser.
@@ -178,7 +171,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 //	) special command '\n'
 //	def function defintion
 //	expressionList '\n'
-func (p *Parser) Line() ([]value.Value, bool) {
+func (p *Parser) Line() ([]value.Expr, bool) {
 	tok := p.peek()
 	switch tok.Type {
 	case scan.RightParen:
@@ -192,21 +185,13 @@ func (p *Parser) Line() ([]value.Value, bool) {
 	if !ok {
 		return nil, false
 	}
-	var values []value.Value
-	for _, expr := range exprs {
-		v := expr.Eval()
-		if v != nil {
-			p.vars["_"] = v // Will end up assigned to last expression on line.
-			values = append(values, v)
-		}
-	}
-	return values, true
+	return exprs, true
 }
 
 // expressionList:
 //	'\n'
 //	statementList '\n'
-func (p *Parser) expressionList() ([]Expr, bool) {
+func (p *Parser) expressionList() ([]value.Expr, bool) {
 	tok := p.next()
 	switch tok.Type {
 	case scan.Error:
@@ -238,14 +223,14 @@ func (p *Parser) expressionList() ([]Expr, bool) {
 // statement:
 //	var ':=' Expr
 //	Expr
-func (p *Parser) statementList(tok scan.Token) ([]Expr, bool) {
+func (p *Parser) statementList(tok scan.Token) ([]value.Expr, bool) {
 	expr, ok := p.statement(tok)
 	if !ok {
 		return nil, false
 	}
-	var exprs []Expr
+	var exprs []value.Expr
 	if expr != nil {
-		exprs = []Expr{expr}
+		exprs = []value.Expr{expr}
 	}
 	if p.peek().Type == scan.Semicolon {
 		p.next()
@@ -260,7 +245,7 @@ func (p *Parser) statementList(tok scan.Token) ([]Expr, bool) {
 // statement:
 //	var '=' Expr
 //	Expr
-func (p *Parser) statement(tok scan.Token) (Expr, bool) {
+func (p *Parser) statement(tok scan.Token) (value.Expr, bool) {
 	variableName := ""
 	if tok.Type == scan.Identifier {
 		if p.peek().Type == scan.Assign {
@@ -288,7 +273,7 @@ func (p *Parser) statement(tok scan.Token) (Expr, bool) {
 // expr
 //	operand
 //	operand binop expr
-func (p *Parser) expr(tok scan.Token) Expr {
+func (p *Parser) expr(tok scan.Token) value.Expr {
 	expr := p.operand(tok, true)
 	tok = p.peek()
 	switch tok.Type {
@@ -323,8 +308,8 @@ func (p *Parser) expr(tok scan.Token) Expr {
 //	vector
 //	operand [ Expr ]...
 //	unop Expr
-func (p *Parser) operand(tok scan.Token, indexOK bool) Expr {
-	var expr Expr
+func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
+	var expr value.Expr
 	switch tok.Type {
 	case scan.Operator:
 		// Unary.
@@ -358,7 +343,7 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) Expr {
 //	expr
 //	expr [ expr ]
 //	expr [ expr ] [ expr ] ....
-func (p *Parser) index(expr Expr) Expr {
+func (p *Parser) index(expr value.Expr) value.Expr {
 	for p.peek().Type == scan.LeftBrack {
 		p.next()
 		index := p.expr(p.next())
@@ -380,8 +365,8 @@ func (p *Parser) index(expr Expr) Expr {
 //	rational
 //	variable
 //	'(' Expr ')'
-func (p *Parser) number(tok scan.Token) Expr {
-	var expr Expr
+func (p *Parser) number(tok scan.Token) value.Expr {
+	var expr value.Expr
 	text := tok.Text
 	switch tok.Type {
 	case scan.Identifier:
@@ -405,7 +390,7 @@ func (p *Parser) number(tok scan.Token) Expr {
 // numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
 // numberOrVector
 //	number ...
-func (p *Parser) numberOrVector(tok scan.Token) Expr {
+func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 	expr := p.number(tok)
 	switch p.peek().Type {
 	case scan.Number, scan.Rational, scan.Identifier, scan.LeftParen:
@@ -446,9 +431,8 @@ func isScalar(v value.Value) bool {
 	return false
 }
 
-func (p *Parser) variable(name string) *variableExpr {
-	return &variableExpr{
-		name:   name,
-		symtab: p.vars,
+func (p *Parser) variable(name string) variableExpr {
+	return variableExpr{
+		name: name,
 	}
 }

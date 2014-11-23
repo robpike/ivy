@@ -46,8 +46,10 @@ func main() {
 
 	value.SetConfig(&conf)
 
+	context := value.NewContext()
+
 	if *execute {
-		runArgs()
+		runArgs(context)
 		return
 	}
 
@@ -70,7 +72,7 @@ func main() {
 			}
 			scanner := scan.New(&conf, name, bufio.NewReader(fd))
 			parser := parse.NewParser(&conf, name, scanner)
-			if !run(parser, os.Stdout, interactive) {
+			if !run(parser, os.Stdout, context, interactive) {
 				break
 			}
 		}
@@ -79,18 +81,18 @@ func main() {
 
 	scanner := scan.New(&conf, "<stdin>", bufio.NewReader(os.Stdin))
 	parser := parse.NewParser(&conf, "<stdin>", scanner)
-	for !run(parser, os.Stdout, true) {
+	for !run(parser, os.Stdout, context, true) {
 	}
 }
 
-func runArgs() {
+func runArgs(context *value.Context) {
 	scanner := scan.New(&conf, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
 	parser := parse.NewParser(&conf, "<args>", scanner)
-	run(parser, os.Stdout, false)
+	run(parser, os.Stdout, context, false)
 }
 
 // run runs until EOF or error. The return value says whether we completed without error.
-func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
+func run(p *parse.Parser, writer io.Writer, context *value.Context, interactive bool) (success bool) {
 	defer func() {
 		if conf.Debug("panic") {
 			return
@@ -110,7 +112,11 @@ func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
 		if interactive {
 			fmt.Fprint(writer, conf.Prompt())
 		}
-		values, ok := p.Line()
+		exprs, ok := p.Line()
+		var values []value.Value
+		if exprs != nil {
+			values = context.Eval(exprs)
+		}
 		if values != nil {
 			if conf.Debug("types") {
 				for i, v := range values {
@@ -128,6 +134,7 @@ func run(p *parse.Parser, writer io.Writer, interactive bool) (success bool) {
 				fmt.Fprint(writer, v)
 			}
 			fmt.Fprintln(writer)
+			context.Assign("_", values[len(values)-1])
 		}
 		if !ok {
 			return true

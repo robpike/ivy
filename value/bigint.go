@@ -53,7 +53,7 @@ func (i BigInt) String() string {
 	return ""
 }
 
-func (i BigInt) Eval() Value {
+func (i BigInt) Eval(*Context) Value {
 	return i
 }
 

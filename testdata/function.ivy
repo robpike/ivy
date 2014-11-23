@@ -1,0 +1,29 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# User-defined functions.
+
+def i x = iota x
+i 5
+	1 2 3 4 5
+
+def avg x = (+/x)/rho x
+avg iota 11
+	6
+
+def n largest x = n take x[down x]
+3 largest 7 1 3 24 1 5 12 5 51
+	51 24 12
+
+# Args are not globals
+x = 100
+def i x = iota x
+i 3; x
+	1 2 3 100
+
+# Locals are not globals
+x = 100
+def double u = x = u; x*2
+double 3; 100
+	6 100

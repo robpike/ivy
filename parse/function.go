@@ -14,9 +14,9 @@ import (
 type function struct {
 	isBinary bool
 	name     string
-	left     *variableExpr
-	right    *variableExpr
-	body     []Expr
+	left     variableExpr
+	right    variableExpr
+	body     []value.Expr
 }
 
 // function definition
@@ -48,7 +48,6 @@ func (p *Parser) functionDefn() {
 		p.errorf("missing function body")
 	}
 	fn.body = body
-	fmt.Printf("define (%s %s %s) = %s\n", fn.left, fn.name, fn.right, body)
 	if fn.isBinary {
 		p.binaryFn[fn.name] = fn
 	} else {
@@ -58,15 +57,17 @@ func (p *Parser) functionDefn() {
 
 type unaryCall struct {
 	fn  *function
-	arg Expr
+	arg value.Expr
 }
 
-func (u *unaryCall) Eval() value.Value {
-	// TODO: BAD: arg is a global!
-	u.fn.right.symtab[u.fn.right.name] = u.arg.Eval()
+func (u *unaryCall) Eval(context *value.Context) value.Value {
+	arg := u.arg.Eval(context)
+	context.Push()
+	defer context.Pop()
+	context.AssignLocal(u.fn.right.name, arg)
 	var v value.Value
 	for _, e := range u.fn.body {
-		v = e.Eval()
+		v = e.Eval(context)
 	}
 	if v == nil {
 		value.Errorf("no value returned by %q", u.fn.name)
@@ -80,17 +81,20 @@ func (u *unaryCall) String() string {
 
 type binaryCall struct {
 	fn    *function
-	left  Expr
-	right Expr
+	left  value.Expr
+	right value.Expr
 }
 
-func (b *binaryCall) Eval() value.Value {
-	// TODO: BAD: arg is a global!
-	b.fn.left.symtab[b.fn.left.name] = b.left.Eval()
-	b.fn.right.symtab[b.fn.right.name] = b.right.Eval()
+func (b *binaryCall) Eval(context *value.Context) value.Value {
+	left := b.left.Eval(context)
+	right := b.right.Eval(context)
+	context.Push()
+	defer context.Pop()
+	context.AssignLocal(b.fn.left.name, left)
+	context.AssignLocal(b.fn.right.name, right)
 	var v value.Value
 	for _, e := range b.fn.body {
-		v = e.Eval()
+		v = e.Eval(context)
 	}
 	if v == nil {
 		value.Errorf("no value returned by %q", b.fn.name)

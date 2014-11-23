@@ -114,6 +114,28 @@ Operators and axis indicator
 	Inner product       .    .    A+.×B        A +.* B      Matrix product of A and B
 	Outer product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B
                                                             (lower case o; may need preceding space)
+User-defined operators
+
+Users can define unary and binary operators, which then behave just like built-in
+operators. The syntax of a definition is the 'def' keyword, the operator and
+formal arguments, an equals sign, and then the body. The name must be an identifier.
+The final expression of the body is the return value.
+
+Example: average of a vector (unary):
+	def avg x = (+/x)/rho x
+	avg iota 11
+	result: 6
+
+Example: n largest entries in a vector (binary):
+	def n largest x = n take x[down x]
+	3 largest 7 1 3 24 1 5 12 5 51
+	result: 51 24 12
+
+Within a user-defined operator, identifiers are local to the invocation unless
+they are undefined in the operator but defined globally, in which case they refer to
+the global variable. A mechanism to declare locals may come later.
+
+At the moment the body must be a single line but expressions can be separated by semicolons.
 
 Special commands
 

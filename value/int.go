@@ -39,7 +39,7 @@ func (i Int) String() string {
 
 var buf []byte
 
-func (i Int) Eval() Value {
+func (i Int) Eval(*Context) Value {
 	return i
 }
 

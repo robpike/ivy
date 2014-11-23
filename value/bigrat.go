@@ -56,7 +56,7 @@ func (r BigRat) String() string {
 	return fmt.Sprintf("%s/%s", num, den)
 }
 
-func (r BigRat) Eval() Value {
+func (r BigRat) Eval(*Context) Value {
 	return r
 }
 
