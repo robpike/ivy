@@ -20,7 +20,7 @@ func SetConfig(c *config.Config) {
 
 type Value interface {
 	String() string
-	Eval(*Context) Value
+	Eval(Context) Value
 
 	toType(valueType) Value
 }

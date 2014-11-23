@@ -27,3 +27,17 @@ x = 100
 def double u = x = u; x*2
 double 3; 100
 	6 100
+
+# Declare unary before use
+def foo x
+def bar x = foo x
+def foo x = -x
+bar 3
+		-3
+
+# Declare binary before use
+def x foo y
+def x bar y = -x foo y
+def x foo y = x + y
+3 bar 4
+		-7

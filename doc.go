@@ -119,7 +119,8 @@ User-defined operators
 Users can define unary and binary operators, which then behave just like built-in
 operators. The syntax of a definition is the 'def' keyword, the operator and
 formal arguments, an equals sign, and then the body. The name must be an identifier.
-The final expression of the body is the return value.
+The final expression of the body is the return value. The same name may be defined
+both as a unary and as a binary.
 
 Example: average of a vector (unary):
 	def avg x = (+/x)/rho x
@@ -130,6 +131,13 @@ Example: n largest entries in a vector (binary):
 	def n largest x = n take x[down x]
 	3 largest 7 1 3 24 1 5 12 5 51
 	result: 51 24 12
+
+To declare an operator but not define it, omit the equals sign and what follows.
+	def foo x
+	def bar x = foo x
+	def foo x = -x
+	bar 3
+		-3
 
 Within a user-defined operator, identifiers are local to the invocation unless
 they are undefined in the operator but defined globally, in which case they refer to

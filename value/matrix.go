@@ -209,7 +209,7 @@ func newMatrix(shape, data []Value) Matrix {
 	}
 }
 
-func (m Matrix) Eval(*Context) Value {
+func (m Matrix) Eval(Context) Value {
 	return m
 }
 

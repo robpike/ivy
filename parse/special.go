@@ -119,11 +119,11 @@ Switch:
 		p.runFromFile(p.getString())
 	case "op":
 		name := p.need(scan.Identifier).Text
-		fn := p.unaryFn[name]
+		fn := p.context.unaryFn[name]
 		if fn != nil {
 			fmt.Println(fn)
 		}
-		fn = p.binaryFn[name]
+		fn = p.context.binaryFn[name]
 		if fn != nil {
 			fmt.Println(fn)
 		}
@@ -192,7 +192,7 @@ func (p *Parser) runFromFile(name string) {
 		p.errorf("%s", err)
 	}
 	scanner := scan.New(p.config, name, bufio.NewReader(fd))
-	parser := NewParser(p.config, name, scanner)
+	parser := NewParser(p.config, name, scanner, p.context)
 	for {
 		value, ok := parser.Line()
 		if value != nil {

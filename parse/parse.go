@@ -38,11 +38,15 @@ func tree(e interface{}) string {
 	case *unary:
 		return fmt.Sprintf("(%s %s)", e.op, tree(e.right))
 	case *binary:
+		// Special case for [].
+		if e.op == "[]" {
+			return fmt.Sprintf("(%s[%s])", tree(e.left), tree(e.right))
+		}
 		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.op, tree(e.right))
 	case *unaryCall:
-		return fmt.Sprintf("(%s %s)", e.fn.name, tree(e.arg))
+		return fmt.Sprintf("(%s %s)", e.name, tree(e.arg))
 	case *binaryCall:
-		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.fn.name, tree(e.right))
+		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.name, tree(e.right))
 	case []value.Expr:
 		if len(e) == 1 {
 			return tree(e[0])
@@ -66,7 +70,7 @@ type assignment struct {
 	expr     value.Expr
 }
 
-func (a *assignment) Eval(context *value.Context) value.Value {
+func (a *assignment) Eval(context value.Context) value.Value {
 	context.Assign(a.variable.name, a.expr.Eval(context))
 	return nil
 }
@@ -78,7 +82,7 @@ func (a *assignment) String() string {
 // sliceExpr holds a syntactic vector to be verified and evaluated.
 type sliceExpr []value.Expr
 
-func (s sliceExpr) Eval(context *value.Context) value.Value {
+func (s sliceExpr) Eval(context value.Context) value.Value {
 	v := make([]value.Value, len(s))
 	for i, x := range s {
 		elem := x.Eval(context)
@@ -107,7 +111,7 @@ type variableExpr struct {
 	name string
 }
 
-func (e variableExpr) Eval(context *value.Context) value.Value {
+func (e variableExpr) Eval(context value.Context) value.Value {
 	v := context.Lookup(e.name)
 	if v == nil {
 		value.Errorf("undefined variable %q", e.name)
@@ -128,7 +132,7 @@ func (u *unary) String() string {
 	return fmt.Sprintf("%s %s", u.op, u.right)
 }
 
-func (u *unary) Eval(context *value.Context) value.Value {
+func (u *unary) Eval(context value.Context) value.Value {
 	return value.Unary(u.op, u.right.Eval(context))
 }
 
@@ -139,10 +143,14 @@ type binary struct {
 }
 
 func (b *binary) String() string {
+	// Special case for indexing.
+	if b.op == "[]" {
+		return fmt.Sprintf("%s[%s]", b.left, b.right)
+	}
 	return fmt.Sprintf("%s %s %s", b.left, b.op, b.right)
 }
 
-func (b *binary) Eval(context *value.Context) value.Value {
+func (b *binary) Eval(context value.Context) value.Value {
 	return value.Binary(b.left.Eval(context), b.op, b.right.Eval(context))
 }
 
@@ -154,23 +162,20 @@ type Parser struct {
 	lineNum    int
 	errorCount int // Number of errors.
 	peekTok    scan.Token
-	vars       map[string]value.Value
 	curTok     scan.Token // most recent token from scanner
-	unaryFn    map[string]*function
-	binaryFn   map[string]*function
+	context    *execContext
 }
 
 var zero, _ = value.Parse("0")
 
 // NewParser returns a new parser that will read from the scanner.
-func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner) *Parser {
+// The context must have have been created by this package's NewContext function.
+func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner, context value.Context) *Parser {
 	return &Parser{
 		scanner:  scanner,
 		config:   conf,
 		fileName: fileName,
-		vars:     make(map[string]value.Value),
-		unaryFn:  make(map[string]*function),
-		binaryFn: make(map[string]*function),
+		context:  context.(*execContext),
 	}
 }
 
@@ -329,12 +334,12 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
 		return expr
 	case scan.Identifier:
-		function := p.binaryFn[tok.Text]
+		function := p.context.binaryFn[tok.Text]
 		if function != nil {
 			p.next()
 			// User-defined binary.
 			return &binaryCall{
-				fn:    function,
+				name:  tok.Text,
 				left:  expr,
 				right: p.expr(p.next()),
 			}
@@ -367,12 +372,12 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 			right: p.expr(p.next()),
 		}
 	case scan.Identifier:
-		function := p.unaryFn[tok.Text]
+		function := p.context.unaryFn[tok.Text]
 		if function != nil {
 			// User-defined unary.
 			expr = &unaryCall{
-				fn:  function,
-				arg: p.expr(p.next()),
+				name: tok.Text,
+				arg:  p.expr(p.next()),
 			}
 			break
 		}
@@ -455,7 +460,7 @@ Loop:
 		case scan.LeftParen:
 			fallthrough
 		case scan.Identifier:
-			if p.unaryFn[tok.Text] != nil || p.binaryFn[tok.Text] != nil {
+			if p.context.unaryFn[tok.Text] != nil || p.context.binaryFn[tok.Text] != nil {
 				break Loop
 			}
 			fallthrough

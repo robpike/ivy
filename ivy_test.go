@@ -78,9 +78,10 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 	shouldFail := strings.HasSuffix(name, "_fail.ivy")
 	initConf()
 	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")))
-	parser := parse.NewParser(&conf, name, scanner)
+	context := parse.NewContext()
+	parser := parse.NewParser(&conf, name, scanner, context)
 	testBuf.Reset()
-	if !run(parser, &testBuf, value.NewContext(), false) != shouldFail {
+	if !run(parser, &testBuf, context, false) != shouldFail {
 		if shouldFail {
 			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
 		} else {
