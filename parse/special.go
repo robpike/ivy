@@ -117,6 +117,16 @@ Switch:
 		p.config.SetFormat(p.getString())
 	case "get":
 		p.runFromFile(p.getString())
+	case "op":
+		name := p.need(scan.Identifier).Text
+		fn := p.unaryFn[name]
+		if fn != nil {
+			fmt.Println(fn)
+		}
+		fn = p.binaryFn[name]
+		if fn != nil {
+			fmt.Println(fn)
+		}
 	case "origin":
 		if p.peek().Type == scan.Newline {
 			fmt.Println(p.config.Origin())

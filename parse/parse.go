@@ -12,6 +12,55 @@ import (
 	"robpike.io/ivy/value"
 )
 
+// tree formats an expression in an unambiguous form for debugging.
+func tree(e interface{}) string {
+	switch e := e.(type) {
+	case value.Int:
+		return fmt.Sprintf("<int %s>", e)
+	case value.BigInt:
+		return fmt.Sprintf("<bigint %s>", e)
+	case value.BigRat:
+		return fmt.Sprintf("<rat %s>", e)
+	case sliceExpr:
+		s := "<"
+		for i, x := range e {
+			if i > 0 {
+				s += " "
+			}
+			s += x.String()
+		}
+		s += ">"
+		return s
+	case variableExpr:
+		return fmt.Sprintf("<var %s>", e.name)
+	case *assignment:
+		return fmt.Sprintf("(%s = %s)", e.variable.name, tree(e.expr))
+	case *unary:
+		return fmt.Sprintf("(%s %s)", e.op, tree(e.right))
+	case *binary:
+		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.op, tree(e.right))
+	case *unaryCall:
+		return fmt.Sprintf("(%s %s)", e.fn.name, tree(e.arg))
+	case *binaryCall:
+		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.fn.name, tree(e.right))
+	case []value.Expr:
+		if len(e) == 1 {
+			return tree(e[0])
+		}
+		s := "<"
+		for i, expr := range e {
+			if i > 0 {
+				s += "; "
+			}
+			s += tree(expr)
+		}
+		s += ">"
+		return s
+	default:
+		return fmt.Sprintf("%T", e)
+	}
+}
+
 type assignment struct {
 	variable variableExpr
 	expr     value.Expr
@@ -23,7 +72,7 @@ func (a *assignment) Eval(context *value.Context) value.Value {
 }
 
 func (a *assignment) String() string {
-	return fmt.Sprintf("<%s = %s>", a.variable.name, a.expr)
+	return fmt.Sprintf("%s = %s", a.variable.name, a.expr)
 }
 
 // sliceExpr holds a syntactic vector to be verified and evaluated.
@@ -43,14 +92,14 @@ func (s sliceExpr) Eval(context *value.Context) value.Value {
 }
 
 func (s sliceExpr) String() string {
-	str := "<"
+	str := ""
 	for i, v := range s {
 		if i > 0 {
 			str += " "
 		}
 		str += v.String()
 	}
-	return str + ">"
+	return str
 }
 
 // variableExpr identifies a variable to be looked up and evaluated.
@@ -67,7 +116,7 @@ func (e variableExpr) Eval(context *value.Context) value.Value {
 }
 
 func (e variableExpr) String() string {
-	return fmt.Sprintf("<var %s>", e.name)
+	return e.name
 }
 
 type unary struct {
@@ -76,7 +125,7 @@ type unary struct {
 }
 
 func (u *unary) String() string {
-	return fmt.Sprintf("(%s %s)", u.op, u.right)
+	return fmt.Sprintf("%s %s", u.op, u.right)
 }
 
 func (u *unary) Eval(context *value.Context) value.Value {
@@ -90,7 +139,7 @@ type binary struct {
 }
 
 func (b *binary) String() string {
-	return fmt.Sprintf("(%s %s %s)", b.left, b.op, b.right)
+	return fmt.Sprintf("%s %s %s", b.left, b.op, b.right)
 }
 
 func (b *binary) Eval(context *value.Context) value.Value {
@@ -213,6 +262,9 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 	default:
 		p.errorf("unexpected %q", tok)
 	}
+	if len(exprs) > 0 && p.config.Debug("parse") {
+		fmt.Println(tree(exprs))
+	}
 	return exprs, ok
 }
 
@@ -263,9 +315,6 @@ func (p *Parser) statement(tok scan.Token) (value.Expr, bool) {
 			variable: p.variable(variableName),
 			expr:     expr,
 		}
-	}
-	if p.config.Debug("parse") {
-		fmt.Println(expr)
 	}
 	return expr, true
 }

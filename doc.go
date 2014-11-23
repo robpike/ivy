@@ -163,6 +163,8 @@ is not specified. For these commands, numbers are always base 10.
 	) get "file.ivy"
 		Read commands from the named file; return to
 		interactive execution afterwards.
+	) op X
+		Show the definition of the user-defined operator op.
 	) origin 1
 		Set the origin for indexing a vector or matrix.
 	) prompt ""

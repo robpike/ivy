@@ -19,6 +19,17 @@ type function struct {
 	body     []value.Expr
 }
 
+func (fn *function) String() string {
+	s := fmt.Sprintf("def %s %s %s = ", fn.left.name, fn.name, fn.right.name)
+	for i, stmt := range fn.body {
+		if i > 0 {
+			s += "; "
+		}
+		s += stmt.String()
+	}
+	return s
+}
+
 // function definition
 //
 //	"def" name arg '=' expressionList '\n'
@@ -40,6 +51,9 @@ func (p *Parser) functionDefn() {
 		fn.right = p.variable(tok.Text)
 		p.need(scan.Assign)
 	}
+	if fn.name == fn.left.name || fn.name == fn.right.name {
+		p.errorf("argument name is function name %q", fn.name)
+	}
 	body, ok := p.expressionList()
 	if !ok {
 		p.errorf("invalid function definition")
@@ -52,6 +66,9 @@ func (p *Parser) functionDefn() {
 		p.binaryFn[fn.name] = fn
 	} else {
 		p.unaryFn[fn.name] = fn
+	}
+	if p.config.Debug("parse") {
+		fmt.Printf("def %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
 	}
 }
 
