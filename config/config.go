@@ -7,6 +7,8 @@ package config // import "robpike.io/ivy/config"
 import (
 	"math/big"
 	"math/rand"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -14,14 +16,17 @@ import (
 // The zero value of a Config, or a nil Config pointer, represents the default
 // values for all settings.
 type Config struct {
-	prompt    string
-	format    string
-	ratFormat string
-	origin    int
-	bigOrigin *big.Int
-	debug     map[string]bool
-	source    rand.Source
-	random    *rand.Rand
+	prompt      string
+	format      string
+	ratFormat   string
+	formatVerb  byte // The verb if format is floating-point.
+	formatPrec  int  // The precision if format is floating-point.
+	formatFloat bool // Whether format is floating-point.
+	origin      int
+	bigOrigin   *big.Int
+	debug       map[string]bool
+	source      rand.Source
+	random      *rand.Rand
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
 	outputBase int
@@ -54,12 +59,39 @@ func (c *Config) RatFormat() string {
 // SetFormat sets the formatting string. Rational formatting
 // is just this format applied twice with a / in between.
 func (c *Config) SetFormat(s string) {
+	c.formatVerb = 0
+	c.formatPrec = 0
+	c.formatFloat = false
 	c.format = s
 	if s == "" {
 		c.ratFormat = "%v/%v"
-	} else {
-		c.ratFormat = s + "/" + s
+		return
 	}
+	c.ratFormat = s + "/" + s
+	// Is it a floating-point format?
+	switch s[len(s)-1] {
+	case 'f', 'F', 'g', 'G', 'e', 'E':
+		// Yes
+	default:
+		return
+	}
+	c.formatFloat = true
+	c.formatVerb = s[len(s)-1]
+	c.formatPrec = 6 // The default
+	point := strings.LastIndex(s, ".")
+	if point > 0 {
+		prec, err := strconv.ParseInt(s[point+1:len(s)-1], 10, 32)
+		if err == nil && prec >= 0 {
+			c.formatPrec = int(prec)
+		}
+
+	}
+}
+
+// FloatFormat returns the parsed information about the format,
+// if it's a floating-point format.
+func (c *Config) FloatFormat() (verb byte, prec int, ok bool) {
+	return c.formatVerb, c.formatPrec, c.formatFloat
 }
 
 // Debug returns the value of the specified boolean debugging flag.

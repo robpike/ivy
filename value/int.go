@@ -28,6 +28,10 @@ func setIntString(s string) (Int, error) {
 func (i Int) String() string {
 	format := conf.Format()
 	if format != "" {
+		verb, prec, ok := conf.FloatFormat()
+		if ok {
+			return i.floatString(verb, prec)
+		}
 		return fmt.Sprintf(format, int64(i))
 	}
 	base := conf.OutputBase()
@@ -35,6 +39,29 @@ func (i Int) String() string {
 		base = 10
 	}
 	return strconv.FormatInt(int64(i), base)
+}
+
+func (i Int) floatString(verb byte, prec int) string {
+	switch verb {
+	case 'f', 'F':
+		str := strconv.FormatInt(int64(i), 10)
+		if prec > 0 {
+			str += "." + zeros(prec)
+		}
+		return str
+	default:
+		Errorf("can't handle verb %c for int", verb)
+	}
+	return ""
+}
+
+var manyZeros = "0000000000"
+
+func zeros(prec int) string {
+	for len(manyZeros) < prec {
+		manyZeros += manyZeros
+	}
+	return manyZeros[:prec]
 }
 
 var buf []byte

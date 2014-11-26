@@ -33,6 +33,10 @@ func setBigIntString(s string) (BigInt, error) {
 func (i BigInt) String() string {
 	format := conf.Format()
 	if format != "" {
+		verb, prec, ok := conf.FloatFormat()
+		if ok {
+			return i.floatString(verb, prec)
+		}
 		return fmt.Sprintf(format, i.Int)
 	}
 	// Is this from a rational and we could use an int?
@@ -50,6 +54,20 @@ func (i BigInt) String() string {
 		return fmt.Sprintf("%x", i.Int)
 	}
 	Errorf("can't print number in base %d (yet)", conf.OutputBase())
+	return ""
+}
+
+func (i BigInt) floatString(verb byte, prec int) string {
+	switch verb {
+	case 'f', 'F':
+		str := fmt.Sprintf("%d", i.Int)
+		if prec > 0 {
+			str += "." + zeros(prec)
+		}
+		return str
+	default:
+		Errorf("can't handle verb %c for big int", verb)
+	}
 	return ""
 }
 

@@ -49,11 +49,25 @@ func setBigRatString(s string) (br BigRat, err error) {
 func (r BigRat) String() string {
 	format := conf.Format()
 	if format != "" {
+		verb, prec, ok := conf.FloatFormat()
+		if ok {
+			return r.floatString(verb, prec)
+		}
 		return fmt.Sprintf(conf.RatFormat(), r.Num(), r.Denom())
 	}
 	num := BigInt{r.Num()}
 	den := BigInt{r.Denom()}
 	return fmt.Sprintf("%s/%s", num, den)
+}
+
+func (r BigRat) floatString(verb byte, prec int) string {
+	switch verb {
+	case 'f', 'F':
+		return r.Rat.FloatString(prec)
+	default:
+		Errorf("can't handle verb %c for rational", verb)
+	}
+	return ""
 }
 
 func (r BigRat) Eval(Context) Value {
