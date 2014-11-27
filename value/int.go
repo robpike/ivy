@@ -49,10 +49,42 @@ func (i Int) floatString(verb byte, prec int) string {
 			str += "." + zeros(prec)
 		}
 		return str
+	case 'e', 'E':
+		sign := ""
+		if i < 0 {
+			sign = "-"
+			i = -i
+		}
+		// The exponent will alway be >= 0.
+		exp := 0
+		x := i
+		for x >= 10 {
+			exp++
+			x /= 10
+		}
+		return eFormat(verb, prec, sign, strconv.FormatInt(int64(i), 10), exp)
 	default:
 		Errorf("can't handle verb %c for int", verb)
 	}
 	return ""
+}
+
+// eFormat returns the %e/%E form of the number represented by the
+// string str, which is a decimal integer, scaled by 10**exp.
+func eFormat(verb byte, prec int, sign, str string, exp int) string {
+	if len(str)-1 < prec {
+		// Zero pad.
+		str += zeros(prec - len(str) + 1)
+	} else {
+		// Truncate.
+		// TODO: rounding
+		str = str[:1+prec]
+	}
+	period := "."
+	if prec == 0 {
+		period = ""
+	}
+	return fmt.Sprintf("%s%s%s%s%c%+.2d", sign, str[0:1], period, str[1:], verb, exp)
 }
 
 var manyZeros = "0000000000"

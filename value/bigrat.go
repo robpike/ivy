@@ -64,10 +64,74 @@ func (r BigRat) floatString(verb byte, prec int) string {
 	switch verb {
 	case 'f', 'F':
 		return r.Rat.FloatString(prec)
+	case 'e', 'E':
+		// The exponent will alway be >= 0.
+		sign := ""
+		var x, t big.Rat
+		x.Set(r.Rat)
+		if x.Sign() < 0 {
+			sign = "-"
+			x.Neg(&x)
+		}
+		t.Set(&x)
+		exp := ratExponent(&x)
+		ratScale(&t, exp)
+		str := t.FloatString(prec + 1) // +1 because first digit might be zero.
+		// Drop the decimal.
+		if str[0] == '0' {
+			str = str[2:]
+			exp--
+		} else if len(str) > 1 && str[1] == '.' {
+			str = str[0:1] + str[2:]
+		}
+		return eFormat(verb, prec, sign, str, exp)
 	default:
 		Errorf("can't handle verb %c for rational", verb)
 	}
 	return ""
+}
+
+var bigRatTen = big.NewRat(10, 1)
+var bigRatBillion = big.NewRat(1e9, 1)
+
+// ratExponent returns the power of ten that x would display in scientific notation.
+func ratExponent(x *big.Rat) int {
+	invert := false
+	if x.Num().Cmp(x.Denom()) < 0 {
+		invert = true
+		x.Inv(x)
+	}
+	e := 0
+	for x.Cmp(bigRatBillion) >= 0 {
+		e += 9
+		x.Quo(x, bigRatBillion)
+	}
+	for x.Cmp(bigRatTen) >= 0 {
+		e++
+		x.Quo(x, bigRatTen)
+	}
+	if invert {
+		return -e
+	}
+	return e
+}
+
+// ratScale multiplies x by 10**exp.
+func ratScale(x *big.Rat, exp int) {
+	if exp < 0 {
+		x.Inv(x)
+		ratScale(x, -exp)
+		x.Inv(x)
+		return
+	}
+	for exp >= 9 {
+		x.Quo(x, bigRatBillion)
+		exp -= 9
+	}
+	for exp >= 1 {
+		x.Quo(x, bigRatTen)
+		exp--
+	}
 }
 
 func (r BigRat) Eval(Context) Value {

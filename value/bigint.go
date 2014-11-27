@@ -65,10 +65,36 @@ func (i BigInt) floatString(verb byte, prec int) string {
 			str += "." + zeros(prec)
 		}
 		return str
+	case 'e', 'E':
+		// The exponent will alway be >= 0.
+		sign := ""
+		var x big.Int
+		x.Set(i.Int)
+		if x.Sign() < 0 {
+			sign = "-"
+			x.Neg(&x)
+		}
+		return eFormat(verb, prec, sign, x.String(), exponent(&x))
 	default:
 		Errorf("can't handle verb %c for big int", verb)
 	}
 	return ""
+}
+
+var bigIntTen = big.NewInt(10)
+var bigIntBillion = big.NewInt(1e9)
+
+func exponent(x *big.Int) int {
+	e := 0
+	for x.Cmp(bigIntBillion) >= 0 {
+		e += 9
+		x.Quo(x, bigIntBillion)
+	}
+	for x.Cmp(bigIntTen) >= 0 {
+		e++
+		x.Quo(x, bigIntTen)
+	}
+	return e
 }
 
 func (i BigInt) Eval(Context) Value {
