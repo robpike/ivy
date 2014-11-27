@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 type BigInt struct {
@@ -81,7 +82,8 @@ func (i BigInt) floatString(verb byte, prec int) string {
 		x.Set(i.Int)
 		if eExponent(&x) >= prec {
 			// Use e format.
-			return i.floatString(verb-2, prec-1)
+			verb -= 2 // g becomes e.
+			return trimEZeros(verb, i.floatString(verb, prec-1))
 		}
 		// Use f format, but this is just an integer.
 		return fmt.Sprintf("%d", i.Int)
@@ -130,6 +132,23 @@ func (i BigInt) toType(which valueType) Value {
 		return newMatrix([]Value{one}, []Value{i})
 	}
 	panic("BigInt.toType")
+}
+
+// trimEZeros takes an e or E format string and deletes
+// trailing zeros and maybe the decimal from the string.
+func trimEZeros(e byte, s string) string {
+	eLoc := strings.IndexByte(s, e)
+	if eLoc < 0 {
+		return s
+	}
+	n := eLoc
+	for s[n-1] == '0' {
+		n--
+	}
+	if s[n-1] == '.' {
+		n--
+	}
+	return s[:n] + s[eLoc:]
 }
 
 // shrink shrinks, if possible, a BigInt down to an Int.

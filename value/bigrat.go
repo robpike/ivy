@@ -92,13 +92,27 @@ func (r BigRat) floatString(verb byte, prec int) string {
 		// Exponent could be positive or negative
 		if exp < -4 || prec <= exp {
 			// Use e format.
-			return r.floatString(verb-2, prec-1)
+			verb -= 2 // g becomes e.
+			return trimEZeros(verb, r.floatString(verb, prec-1))
 		}
 		// Use f format.
 		// If it's got zeros right of the decimal, they count as digits in the precision.
 		// If it's got digits left of the decimal, they count as digits in the precision.
 		// Both are handled by adjusting prec by exp.
-		return r.floatString(verb-1, prec-exp-1) // -1 for the one digit left of the decimal.
+		str := r.floatString(verb-1, prec-exp-1) // -1 for the one digit left of the decimal.
+		// Trim trailing decimals.
+		point := strings.IndexByte(str, '.')
+		if point > 0 {
+			n := len(str)
+			for str[n-1] == '0' {
+				n--
+			}
+			str = str[:n]
+			if str[n-1] == '.' {
+				str = str[:n-1]
+			}
+		}
+		return str
 	default:
 		Errorf("can't handle verb %c for rational", verb)
 	}

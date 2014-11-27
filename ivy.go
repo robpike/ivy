@@ -125,6 +125,7 @@ func run(p *parse.Parser, writer io.Writer, context value.Context, interactive b
 					}
 					fmt.Fprintf(writer, "%T", v)
 				}
+				fmt.Fprintln(writer)
 			}
 			for i, v := range values {
 				s := v.String()
