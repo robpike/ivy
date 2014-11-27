@@ -55,18 +55,34 @@ func (i Int) floatString(verb byte, prec int) string {
 			sign = "-"
 			i = -i
 		}
-		// The exponent will alway be >= 0.
-		exp := 0
-		x := i
-		for x >= 10 {
-			exp++
-			x /= 10
+		return eFormat(verb, prec, sign, strconv.FormatInt(int64(i), 10), i.eExponent())
+	case 'g', 'G':
+		// Exponent is always positive so it's easy.
+		if i.eExponent() >= prec {
+			// Use e format:
+			return i.floatString(verb-2, prec-1)
 		}
-		return eFormat(verb, prec, sign, strconv.FormatInt(int64(i), 10), exp)
+		// use f format, but this is just an integer,
+		return fmt.Sprintf("%d", int64(i))
 	default:
 		Errorf("can't handle verb %c for int", verb)
 	}
 	return ""
+}
+
+// eExponent returns the exponent to use to display i in 1.23e+04 format.
+func (i Int) eExponent() int {
+	if i < 0 {
+		i = -i
+	}
+	// The exponent will alway be >= 0.
+	exp := 0
+	x := i
+	for x >= 10 {
+		exp++
+		x /= 10
+	}
+	return exp
 }
 
 // eFormat returns the %e/%E form of the number represented by the

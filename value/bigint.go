@@ -74,7 +74,17 @@ func (i BigInt) floatString(verb byte, prec int) string {
 			sign = "-"
 			x.Neg(&x)
 		}
-		return eFormat(verb, prec, sign, x.String(), exponent(&x))
+		return eFormat(verb, prec, sign, x.String(), eExponent(&x))
+	case 'g', 'G':
+		// Exponent is always positive so it's easy.
+		var x big.Int
+		x.Set(i.Int)
+		if eExponent(&x) >= prec {
+			// Use e format:
+			return i.floatString(verb-2, prec-1)
+		}
+		// use f format, but this is just an integer,
+		return fmt.Sprintf("%d", i.Int)
 	default:
 		Errorf("can't handle verb %c for big int", verb)
 	}
@@ -84,7 +94,11 @@ func (i BigInt) floatString(verb byte, prec int) string {
 var bigIntTen = big.NewInt(10)
 var bigIntBillion = big.NewInt(1e9)
 
-func exponent(x *big.Int) int {
+// eExponent returns the exponent to use to display i in 1.23e+04 format.
+func eExponent(x *big.Int) int {
+	if x.Sign() < 0 {
+		x.Neg(x)
+	}
 	e := 0
 	for x.Cmp(bigIntBillion) >= 0 {
 		e += 9
