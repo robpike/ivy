@@ -139,7 +139,7 @@ func ratExponent(x *big.Rat) int {
 		e += 9
 		x.Quo(x, bigRatBillion)
 	}
-	for x.Cmp(bigRatTen) >= 0 {
+	for x.Cmp(bigRatTen) > 0 {
 		e++
 		x.Quo(x, bigRatTen)
 	}
