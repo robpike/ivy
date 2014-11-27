@@ -168,6 +168,7 @@ is not specified. For these commands, numbers are always base 10.
 		Set the format for printing values. If empty, the output
 		is printed using the output base. If non-empty, the
 		format determines the base used in printing.
+		The format is in the style of golang.org/pkg/fmt.
 		For floating-point formats, flags and width are ignored.
 	) get "file.ivy"
 		Read commands from the named file; return to
