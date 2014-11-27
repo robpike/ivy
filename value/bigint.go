@@ -80,10 +80,10 @@ func (i BigInt) floatString(verb byte, prec int) string {
 		var x big.Int
 		x.Set(i.Int)
 		if eExponent(&x) >= prec {
-			// Use e format:
+			// Use e format.
 			return i.floatString(verb-2, prec-1)
 		}
-		// use f format, but this is just an integer,
+		// Use f format, but this is just an integer.
 		return fmt.Sprintf("%d", i.Int)
 	default:
 		Errorf("can't handle verb %c for big int", verb)

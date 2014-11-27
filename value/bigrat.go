@@ -85,23 +85,42 @@ func (r BigRat) floatString(verb byte, prec int) string {
 			str = str[0:1] + str[2:]
 		}
 		return eFormat(verb, prec, sign, str, exp)
+	case 'g', 'G':
+		var x big.Rat
+		x.Set(r.Rat)
+		exp := ratExponent(&x)
+		// Exponent could be positive or negative
+		if exp < -4 || prec <= exp {
+			// Use e format.
+			return r.floatString(verb-2, prec-1)
+		}
+		// Use f format.
+		// If it's got zeros right of the decimal, they count as digits in the precision.
+		// If it's got digits left of the decimal, they count as digits in the precision.
+		// Both are handled by adjusting prec by exp.
+		return r.floatString(verb-1, prec-exp-1) // -1 for the one digit left of the decimal.
 	default:
 		Errorf("can't handle verb %c for rational", verb)
 	}
 	return ""
 }
 
+var bigRatOne = big.NewRat(1, 1)
 var bigRatTen = big.NewRat(10, 1)
 var bigRatBillion = big.NewRat(1e9, 1)
 
 // ratExponent returns the power of ten that x would display in scientific notation.
 func ratExponent(x *big.Rat) int {
+	if x.Sign() < 0 {
+		x.Neg(x)
+	}
+	e := 0
 	invert := false
 	if x.Num().Cmp(x.Denom()) < 0 {
 		invert = true
 		x.Inv(x)
+		e++
 	}
-	e := 0
 	for x.Cmp(bigRatBillion) >= 0 {
 		e += 9
 		x.Quo(x, bigRatBillion)

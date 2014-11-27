@@ -169,12 +169,11 @@ is not specified. For these commands, numbers are always base 10.
 		is printed using the output base. If non-empty, the
 		format determines the base used in printing.
 		For floating-point formats, flags and width are ignored.
-		(TODO: %e and %g are unimplemented.)
 	) get "file.ivy"
 		Read commands from the named file; return to
 		interactive execution afterwards.
 	) op X
-		Show the definition of the user-defined operator op.
+		Show the definition of the user-defined operator X.
 	) origin 1
 		Set the origin for indexing a vector or matrix.
 	) prompt ""
