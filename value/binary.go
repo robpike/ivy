@@ -298,8 +298,8 @@ func init() {
 				}
 				exp := rexp.Num()
 				rat := u.(BigRat)
-				num := rat.Num()
-				den := rat.Denom()
+				num := new(big.Int).Set(rat.Num())
+				den := new(big.Int).Set(rat.Denom())
 				num.Exp(num, exp, nil)
 				den.Exp(den, exp, nil)
 				z := bigRatInt64(0)
