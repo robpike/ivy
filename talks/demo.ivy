@@ -1,0 +1,82 @@
+#This is ivy. Each step in the demo is one line of input followed by some output.
+# Arithmetic
+23
+23 + 45
+# Rationals
+1/3
+1/3 + 4/5
+1.2
+# Big numbers
+1e10       # Still an integer.
+1e100      # Still an integer.
+2**64
+2**640
+2**6400
+# Vectors
+1 2 3
+1 2 3 + 4 5 6
+23 + 1 2 3
+1 << 1 2 3 4 5
+iota 10
+2 ** iota 100
+(2 ** iota 100) == (1<<iota 100)
+# Reduction
+iota 15
+1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 +14 + 15
++/iota 15
+1 * 2 * 3 * 4 * 5 * 6 * 7 * 8 * 9 * 10
+*/iota 10
+*/iota 100
+# Type this: */iota 10000
+max/2 34 42 233 2 2 521 14 1 4 1 55 133 
+# Shapes
+5 rho 1
+5 5 rho 1
+5 5 rho 25
+5 5 rho iota 25
+3 5 5 rho iota 125
+x = 5 5 rho iota 75
+x
+x/2
+x**2
+x**3
+x**10
+# Inner product
+x = 2**iota 5; x
+y = 3**iota 5; y
+x +.* y
+# Outer product
+x o.* y
+x o.== x
+# Random numbers
+?100
+?100
+?10 rho 100
+x = ?10 rho 100
+x
+# Indexing
+x[1]
+x[1 9 3]
+up x
+x[up x]
+x[down x]
+# Rolls of a die
+?6
+10 rho 6
+?10 rho 6
+x = ?10 rho 6; x
+(iota 6) o.== x
++/(iota 6) o.== x
++/(iota 6) o.== ?60000 rho 6
+# A big number calculator
+*/iota 100
+2**64
+2**iota 64
+-1+2**63
+)base 16
+_
+1<<iota 10
+(2**40)-1
+)obase 10
+_
+# And lots more...
