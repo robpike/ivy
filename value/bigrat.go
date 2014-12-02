@@ -15,33 +15,18 @@ type BigRat struct {
 	*big.Rat
 }
 
-func setBigRatString(s string) (br BigRat, err error) {
-	base := conf.InputBase()
-	r := big.NewRat(0, 1)
-	var ok bool
-	slash := strings.IndexByte(s, '/')
-	if slash < 0 {
-		r, ok = r.SetString(s)
-	} else {
-		switch base {
-		case 0, 10: // Fine as is.
-			r, ok = r.SetString(s)
-		default:
-			// big.Rat doesn't handle arbitrary bases, but big.Int does,
-			// so do the numerator and denominator separately.
-			var num, denom BigInt
-			num, err = setBigIntString(s[:slash])
-			if err == nil {
-				denom, err = setBigIntString(s[slash+1:])
-			}
-			if err != nil {
-				return
-			}
-			return BigRat{r.SetFrac(num.Int, denom.Int)}, nil
-		}
+// The input is known to be in floating-point syntax.
+// If there's a slash, the parsing is done in Parse().
+func setBigRatFromFloatString(s string) (br BigRat, err error) {
+	// Be safe: Verify that it is floating-point, because otherwise
+	// we need to honor ibase.
+	if !strings.ContainsAny(s, ".eE") {
+		Errorf("can't happen: setBigRatFromFloatString not float")
 	}
+	var ok bool
+	r, ok := big.NewRat(0, 1).SetString(s)
 	if !ok {
-		return BigRat{}, errors.New("rational number syntax")
+		return BigRat{}, errors.New("floating-point number syntax")
 	}
 	return BigRat{r}, nil
 }

@@ -25,10 +25,6 @@ var (
 	prompt  = flag.String("prompt", "", "command prompt")
 )
 
-func init() {
-	flag.Var(&iFlag, "I", "include directory; can be set multiple times")
-}
-
 var conf config.Config
 
 func main() {
@@ -36,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	if *origin != 0 && *origin != 1 {
-		fmt.Fprintf(os.Stderr, "ivy: illegal origin value %d", *origin)
+		fmt.Fprintf(os.Stderr, "ivy: illegal origin value %d\n", *origin)
 		os.Exit(2)
 	}
 
@@ -67,7 +63,7 @@ func main() {
 				fd, err = os.Open(name)
 			}
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ivy: %s", err)
+				fmt.Fprintf(os.Stderr, "ivy: %s\n", err)
 				os.Exit(1)
 			}
 			scanner := scan.New(&conf, name, bufio.NewReader(fd))
@@ -144,22 +140,6 @@ func run(p *parse.Parser, writer io.Writer, context value.Context, interactive b
 			fmt.Fprintln(writer)
 		}
 	}
-}
-
-var (
-	iFlag multiFlag
-)
-
-// multiFlag allows setting a value multiple times to collect a list, as in -I=dir1 -I=dir2.
-type multiFlag []string
-
-func (m *multiFlag) String() string {
-	return fmt.Sprint(*m)
-}
-
-func (m *multiFlag) Set(val string) error {
-	(*m) = append(*m, val)
-	return nil
 }
 
 func usage() {

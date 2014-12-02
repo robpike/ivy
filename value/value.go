@@ -73,7 +73,7 @@ func Parse(s string) (Value, error) {
 	if err == nil {
 		return b.shrink(), nil
 	}
-	r, err := setBigRatString(s)
+	r, err := setBigRatFromFloatString(s) // We know there is no slash.
 	if err == nil {
 		return r.shrink(), nil
 	}
