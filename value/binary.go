@@ -649,11 +649,6 @@ func init() {
 				}
 				return NewVector(indices)
 			},
-			matrixType: func(u, v Value) Value {
-				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
-				A, B := u.(Matrix), v.(Matrix)
-				return newMatrix(B.shape, Binary(A.data, "iota", B.data).(Vector))
-			},
 		},
 	}
 

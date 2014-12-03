@@ -56,9 +56,9 @@ func (m Matrix) String() string {
 	var b bytes.Buffer
 	switch len(m.shape) {
 	case 0:
-		Errorf("matrix is scalar")
+		return ""
 	case 1:
-		Errorf("matrix is vector")
+		return m.data.String()
 	case 2:
 		nrows := int(m.shape[0].(Int))
 		ncols := int(m.shape[1].(Int))
