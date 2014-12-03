@@ -209,12 +209,15 @@ func (p *Parser) Loc() string {
 }
 
 func (p *Parser) errorf(format string, args ...interface{}) {
-	// Flush to newline.
+	p.peekTok = scan.Token{Type: scan.EOF}
+	value.Errorf(format, args...)
+}
+
+// FlushToNewline any remaining characters on the current input line.
+func (p *Parser) FlushToNewline() {
 	for p.curTok.Type != scan.Newline && p.curTok.Type != scan.EOF {
 		p.next()
 	}
-	p.peekTok = scan.Token{Type: scan.EOF}
-	value.Errorf(format, args...)
 }
 
 // Line reads a line of input and returns the values it evaluates.

@@ -97,8 +97,12 @@ func run(p *parse.Parser, writer io.Writer, context value.Context, interactive b
 		if err == nil {
 			return
 		}
+		p.FlushToNewline()
 		if err, ok := err.(value.Error); ok {
 			fmt.Fprintf(os.Stderr, "%s: %s\n", p.Loc(), err)
+			if interactive {
+				fmt.Fprintln(writer)
+			}
 			success = false
 			return
 		}
