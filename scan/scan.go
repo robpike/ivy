@@ -280,12 +280,11 @@ func lexAny(l *Scanner) stateFn {
 	case r == eof:
 		return nil
 	case r == '\r':
-		// will also consume a following \n rune
+		// Handle \r\n
 		if l.peek() == '\n' {
 			l.next()
 		}
-		l.emit(Newline)
-		return lexAny
+		fallthrough
 	case r == '\n':
 		l.emit(Newline)
 		return lexAny
