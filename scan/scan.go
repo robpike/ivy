@@ -279,7 +279,13 @@ func lexAny(l *Scanner) stateFn {
 	switch r := l.next(); {
 	case r == eof:
 		return nil
-	case r == '\n': // TODO: \r
+	case r == '\r':
+		// Handle \r\n
+		if l.peek() == '\n' {
+			l.next()
+		}
+		fallthrough
+	case r == '\n':
 		l.emit(Newline)
 		return lexAny
 	case r == ';':
