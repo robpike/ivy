@@ -149,6 +149,7 @@ type Scanner struct {
 
 // loadLine reads the next line of input and stores it in (appends it to) the input.
 // (l.input may have data left over when we are called.)
+// It strips carriage returns to make subsequent processing simpler.
 func (l *Scanner) loadLine() {
 	l.buf = l.buf[:0]
 	for {
@@ -157,7 +158,9 @@ func (l *Scanner) loadLine() {
 			l.done = true
 			break
 		}
-		l.buf = append(l.buf, c)
+		if c != '\r' {
+			l.buf = append(l.buf, c)
+		}
 		if c == '\n' {
 			break
 		}
