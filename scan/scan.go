@@ -175,7 +175,9 @@ func (l *Scanner) next() rune {
 	if !l.done && int(l.pos) == len(l.input) {
 		l.loadLine()
 	}
-	if len(l.input) == l.start {
+	if l.pos >= len(l.input) {
+		l.width = 1
+		l.pos += 1
 		return eof
 	}
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
@@ -433,7 +435,7 @@ func lexOperator(l *Scanner) stateFn {
 // appear after an identifier.
 func (l *Scanner) atTerminator() bool {
 	r := l.peek()
-	if isSpace(r) || isEndOfLine(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
+	if isSpace(r) || isEndOfLine(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) || r == eof {
 		return true
 	}
 	// Does r start the delimiter? This can be ambiguous (with delim=="//", $x/2 will
