@@ -21,7 +21,7 @@ import (
 var (
 	execute = flag.Bool("e", false, "execute arguments as a single expression")
 	format  = flag.String("format", "", "format string for printing numbers; empty sets default format")
-	gformat  = flag.Bool("g", false, `shorthand for -format="%g"`)
+	gformat = flag.Bool("g", false, `shorthand for -format="%g"`)
 	origin  = flag.Int("origin", 1, "index origin (must be 0 or 1)")
 	prompt  = flag.String("prompt", "", "command prompt")
 )
