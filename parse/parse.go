@@ -186,6 +186,9 @@ func (p *Parser) next() scan.Token {
 	} else {
 		tok = <-p.scanner.Tokens
 	}
+	if tok.Type == scan.Error {
+		p.errorf("%q", tok)
+	}
 	p.curTok = tok
 	if tok.Type != scan.Newline {
 		// Show the line number before we hit the newline.
@@ -251,8 +254,6 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 func (p *Parser) expressionList() ([]value.Expr, bool) {
 	tok := p.next()
 	switch tok.Type {
-	case scan.Error:
-		p.errorf("%q", tok)
 	case scan.EOF:
 		return nil, false
 	case scan.Newline:
@@ -264,8 +265,6 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 	}
 	tok = p.next()
 	switch tok.Type {
-	case scan.Error:
-		p.errorf("%q", tok)
 	case scan.EOF, scan.Newline:
 	default:
 		p.errorf("unexpected %q", tok)
