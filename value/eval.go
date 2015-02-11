@@ -12,12 +12,13 @@ const (
 	intType valueType = iota
 	bigIntType
 	bigRatType
+	bigFloatType
 	vectorType
 	matrixType
 	numType
 )
 
-var typeName = [...]string{"int", "big int", "rational", "vector", "matrix"}
+var typeName = [...]string{"int", "big int", "rational", "float", "vector", "matrix"}
 
 func (t valueType) String() string {
 	return typeName[t]
@@ -75,6 +76,8 @@ func whichType(v Value) valueType {
 		return bigIntType
 	case BigRat:
 		return bigRatType
+	case BigFloat:
+		return bigFloatType
 	case Vector:
 		return vectorType
 	case Matrix:

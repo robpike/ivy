@@ -1,0 +1,81 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Unary operations on floats. The simplest but hacky way to get a float is to
+# take a square root.
+
+)format "%.16g"
+sqrt 2
+	1.414213562373095
+
+)format "%.16g"
+(sqrt 2) / (sqrt 3)
+	0.816496580927726
+
+)format "%.16g"
++sqrt(2)
+	1.414213562373095
+
+)format "%.16g"
+-sqrt(2)
+	-1.414213562373095
+
+)format "%.16g"
+/sqrt(2)
+	0.7071067811865475
+
+)format "%.16g"
+/-sqrt(2)
+	-0.7071067811865475
+
+sgn -sqrt(2)
+	-1
+
+sgn sqrt(2)
+	1
+
+)format "%.16g"
+abs -sqrt(2)
+	1.414213562373095
+
+
+)format "%.16g"
+abs sqrt(2)
+	1.414213562373095
+
+)format "%.16g"
+floor -sqrt(2)
+	-2
+
+)format "%.16g"
+floor sqrt(2)
+	1
+
+)format "%.16g"
+ceil -sqrt(2)
+	-1
+
+)format "%.16g"
+ceil sqrt(2)
+	2
+
+)format "%.16g"
+rho sqrt(2)
+	
+
+)format "%.16g"
+,sqrt(2)
+	1.414213562373095
+
+# Results should be integers (the cutover is defined in BigFloat.shrink and is arbitrary).
+sqrt 1e10 1e20 1e40 1e60
+	100000 10000000000 100000000000000000000 1000000000000000000000000000000 
+
+# Results should be floats.
+sqrt 1e80 1e100
+	1e+40 1e+50
+
+# Results should always be floats.
+sqrt 2e10 2e20 2e40 2e60
+	141421 1.41421e+10 1.41421e+20 1.41421e+30

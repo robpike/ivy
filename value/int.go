@@ -126,6 +126,8 @@ func (i Int) toType(which valueType) Value {
 		return bigInt64(int64(i))
 	case bigRatType:
 		return bigRatInt64(int64(i))
+	case bigFloatType:
+		return bigFloatInt64(int64(i))
 	case vectorType:
 		return NewVector([]Value{i})
 	case matrixType:

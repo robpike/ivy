@@ -15,13 +15,22 @@ type execContext struct {
 	binaryFn map[string]*function
 }
 
-// NewexecContext returns a new context.
+// NewContext returns a new execution context: the stack and variables.
 func NewContext() value.Context {
-	return &execContext{
+	c := &execContext{
 		stack:    []symtab{make(symtab)},
 		unaryFn:  make(map[string]*function),
 		binaryFn: make(map[string]*function),
 	}
+	c.SetConstants()
+	return c
+}
+
+// SetConstants re-assigns the fundamental constant values using the current
+// setting of floating-point precision.
+func (c *execContext) SetConstants() {
+	syms := c.stack[0]
+	syms["e"], syms["pi"] = value.Consts()
 }
 
 // Lookup returns the value of a symbol.

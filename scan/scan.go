@@ -74,6 +74,7 @@ var operatorWord = map[string]bool{
 	"rev":   true,
 	"rho":   true,
 	"sgn":   true,
+	"sqrt":  true,
 	"take":  true,
 	"up":    true,
 	"xor":   true,
@@ -303,8 +304,8 @@ func lexAny(l *Scanner) stateFn {
 		// an identifier, an indexed expression, or a parenthesized expression.
 		// Otherwise it could be a signed number.
 		if l.start > 0 {
-			r, _ := utf8.DecodeLastRuneInString(l.input[:l.start])
-			if isAlphaNumeric(r) || r == ')' || r == ']' {
+			rr, _ := utf8.DecodeLastRuneInString(l.input[:l.start])
+			if isAlphaNumeric(rr) || rr == ')' || rr == ']' {
 				l.emit(Operator)
 				return lexAny
 			}
@@ -487,7 +488,7 @@ func lexNumber(l *Scanner) stateFn {
 		}
 	}
 	if !l.scanNumber() {
-		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
+		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
 	}
 	if l.peek() != '/' {
 		l.emit(Number)
@@ -505,7 +506,7 @@ func lexNumber(l *Scanner) stateFn {
 		return lexAny
 	}
 	if !l.scanNumber() {
-		return l.errorf("bad number syntax: %q", l.input[l.start:l.pos])
+		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
 	}
 	l.emit(Rational)
 	return lexAny

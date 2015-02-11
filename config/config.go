@@ -27,6 +27,7 @@ type Config struct {
 	debug       map[string]bool
 	source      rand.Source
 	random      *rand.Rand
+	floatPrec   uint // Length of mantissa of a BigFloat.
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
 	outputBase int
@@ -36,6 +37,7 @@ func (c *Config) init() {
 	if c.random == nil {
 		c.source = rand.NewSource(time.Now().Unix())
 		c.random = rand.New(c.source)
+		c.floatPrec = 256
 	}
 }
 
@@ -84,7 +86,6 @@ func (c *Config) SetFormat(s string) {
 		if err == nil && prec >= 0 {
 			c.formatPrec = int(prec)
 		}
-
 	}
 }
 
@@ -155,6 +156,21 @@ func (c *Config) Random() *rand.Rand {
 func (c *Config) RandomSeed(seed int64) {
 	c.init()
 	c.source.Seed(seed)
+}
+
+// FloatPrec returns the floating-point precision in bits.
+// The exponent size is fixed by math/big.
+func (c *Config) FloatPrec() uint {
+	c.init()
+	return c.floatPrec
+}
+
+// SetFloatPrec sets the floating-point precision in bits.
+func (c *Config) SetFloatPrec(prec uint) {
+	if prec == 0 {
+		panic("zero float precision")
+	}
+	c.floatPrec = prec
 }
 
 // Base returns the input and output bases.

@@ -164,6 +164,9 @@ func (r BigRat) toType(which valueType) Value {
 		panic("big rat to big int")
 	case bigRatType:
 		return r
+	case bigFloatType:
+		f := big.NewFloat(0, conf.FloatPrec(), big.ToNearestEven).SetRat(r.Rat)
+		return BigFloat{f}
 	case vectorType:
 		return NewVector([]Value{r})
 	case matrixType:

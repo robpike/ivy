@@ -126,6 +126,9 @@ func (i BigInt) toType(which valueType) Value {
 	case bigRatType:
 		r := big.NewRat(0, 1).SetInt(i.Int)
 		return BigRat{r}
+	case bigFloatType:
+		f := big.NewFloat(0, conf.FloatPrec(), big.ToNearestEven).SetInt(i.Int)
+		return BigFloat{f}
 	case vectorType:
 		return NewVector([]Value{i})
 	case matrixType:

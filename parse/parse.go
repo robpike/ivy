@@ -180,13 +180,19 @@ func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner, cont
 }
 
 func (p *Parser) next() scan.Token {
+	return p.nextErrorOut(true)
+}
+
+// nextErrorOut accepts a flag whether to trigger a panic on error.
+// The flag is set to false when we are draining input tokens in FlushToNewline.
+func (p *Parser) nextErrorOut(errorOut bool) scan.Token {
 	tok := p.peekTok
 	if tok.Type != scan.EOF {
 		p.peekTok = scan.Token{Type: scan.EOF}
 	} else {
 		tok = <-p.scanner.Tokens
 	}
-	if tok.Type == scan.Error {
+	if tok.Type == scan.Error && errorOut {
 		p.errorf("%q", tok)
 	}
 	p.curTok = tok
@@ -219,7 +225,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 // FlushToNewline any remaining characters on the current input line.
 func (p *Parser) FlushToNewline() {
 	for p.curTok.Type != scan.Newline && p.curTok.Type != scan.EOF {
-		p.next()
+		p.nextErrorOut(false)
 	}
 }
 
@@ -236,6 +242,7 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 	switch tok.Type {
 	case scan.RightParen:
 		p.special()
+		p.context.SetConstants()
 		return nil, true
 	case scan.Def:
 		p.functionDefn()
@@ -481,7 +488,7 @@ Loop:
 
 func isScalar(v value.Value) bool {
 	switch v.(type) {
-	case value.Int, value.BigInt, value.BigRat:
+	case value.Int, value.BigInt, value.BigRat, value.BigFloat:
 		return true
 	}
 	return false

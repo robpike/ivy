@@ -88,6 +88,10 @@ func bigRatInt64(x int64) BigRat {
 	return bigRatTwoInt64s(x, 1)
 }
 
+func bigFloatInt64(x int64) BigFloat {
+	return BigFloat{big.NewFloat(0, conf.FloatPrec(), big.ToNearestEven).SetInt64(x)}
+}
+
 func bigRatTwoInt64s(x, y int64) BigRat {
 	if y == 0 {
 		Errorf("zero denominator in rational")

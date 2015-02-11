@@ -27,6 +27,14 @@ func unaryBigRatOp(op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
 	return z.shrink()
 }
 
+// unaryBigFloatOp applies the op to a BigFloat.
+func unaryBigFloatOp(op func(*big.Float, *big.Float) *big.Float, v Value) Value {
+	i := v.(BigFloat)
+	z := bigFloatInt64(0)
+	op(z.Float, i.Float)
+	return z.shrink()
+}
+
 var (
 	unaryRoll                         *unaryOp
 	unaryPlus, unaryMinus, unaryRecip *unaryOp
@@ -36,6 +44,7 @@ var (
 	gradeUp, gradeDown                *unaryOp
 	reverse, flip                     *unaryOp
 	floor, ceil                       *unaryOp
+	unarySqrt                         *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
 
@@ -47,6 +56,25 @@ func bigIntRand(a, b *big.Int) *big.Int {
 
 func self(v Value) Value {
 	return v
+}
+
+func vectorSelf(v Value) Value {
+	return NewVector([]Value{v})
+}
+
+func floatSelf(v Value) Value {
+	switch v.(type) {
+	case Int:
+		return v.(Int).toType(bigFloatType)
+	case BigInt:
+		return v.(BigInt).toType(bigFloatType)
+	case BigRat:
+		return v.(BigRat).toType(bigFloatType)
+	case BigFloat:
+		return v
+	}
+	Errorf("floatSelf")
+	return nil
 }
 
 func init() {
@@ -71,11 +99,12 @@ func init() {
 
 	unaryPlus = &unaryOp{
 		fn: [numType]unaryFn{
-			intType:    self,
-			bigIntType: self,
-			bigRatType: self,
-			vectorType: self,
-			matrixType: self,
+			intType:      self,
+			bigIntType:   self,
+			bigRatType:   self,
+			bigFloatType: self,
+			vectorType:   self,
+			matrixType:   self,
 		},
 	}
 
@@ -90,6 +119,9 @@ func init() {
 			},
 			bigRatType: func(v Value) Value {
 				return unaryBigRatOp((*big.Rat).Neg, v)
+			},
+			bigFloatType: func(v Value) Value {
+				return unaryBigFloatOp((*big.Float).Neg, v)
 			},
 		},
 	}
@@ -119,6 +151,14 @@ func init() {
 					Rat: big.NewRat(0, 1).SetFrac(r.Denom(), r.Num()),
 				}.shrink()
 			},
+			bigFloatType: func(v Value) Value {
+				// Zero division cannot happen for unary.
+				f := v.(BigFloat)
+				one := big.NewFloat(0, conf.FloatPrec(), big.ToNearestEven).SetInt64(1)
+				return BigFloat{
+					Float: one.Quo(one, f.Float),
+				}.shrink()
+			},
 		},
 	}
 
@@ -140,6 +180,9 @@ func init() {
 			},
 			bigRatType: func(v Value) Value {
 				return Int(v.(BigRat).Sign())
+			},
+			bigFloatType: func(v Value) Value {
+				return Int(v.(BigFloat).Sign())
 			},
 		},
 	}
@@ -178,6 +221,12 @@ func init() {
 				}
 				return zero
 			},
+			bigFloatType: func(v Value) Value {
+				if v.(BigFloat).Sign() == 0 {
+					return one
+				}
+				return zero
+			},
 		},
 	}
 
@@ -196,6 +245,9 @@ func init() {
 			},
 			bigRatType: func(v Value) Value {
 				return unaryBigRatOp((*big.Rat).Abs, v)
+			},
+			bigFloatType: func(v Value) Value {
+				return unaryBigFloatOp((*big.Float).Abs, v)
 			},
 		},
 	}
@@ -225,6 +277,17 @@ func init() {
 				}
 				return z
 			},
+			bigFloatType: func(v Value) Value {
+				f := v.(BigFloat)
+				i, acc := f.Int()
+				switch acc {
+				case big.Exact, big.Below:
+					// Done.
+				case big.Above:
+					i.Sub(i, bigOne.Int)
+				}
+				return BigInt{i}.shrink()
+			},
 		},
 	}
 
@@ -253,6 +316,17 @@ func init() {
 					z.Neg(z.Int)
 				}
 				return z
+			},
+			bigFloatType: func(v Value) Value {
+				f := v.(BigFloat)
+				i, acc := f.Int()
+				switch acc {
+				case big.Exact, big.Above:
+					// Done
+				case big.Below:
+					i.Add(i, bigOne.Int)
+				}
+				return BigInt{i}.shrink()
 			},
 		},
 	}
@@ -287,6 +361,9 @@ func init() {
 			bigRatType: func(v Value) Value {
 				return Vector{}
 			},
+			bigFloatType: func(v Value) Value {
+				return Vector{}
+			},
 			vectorType: func(v Value) Value {
 				return Int(len(v.(Vector)))
 			},
@@ -298,16 +375,11 @@ func init() {
 
 	unaryRavel = &unaryOp{
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
-				return NewVector([]Value{v})
-			},
-			bigIntType: func(v Value) Value {
-				return NewVector([]Value{v})
-			},
-			bigRatType: func(v Value) Value {
-				return NewVector([]Value{v})
-			},
-			vectorType: self,
+			intType:      vectorSelf,
+			bigIntType:   vectorSelf,
+			bigRatType:   vectorSelf,
+			bigFloatType: vectorSelf,
+			vectorType:   self,
 			matrixType: func(v Value) Value {
 				return v.(Matrix).data
 			},
@@ -316,9 +388,10 @@ func init() {
 
 	gradeUp = &unaryOp{
 		fn: [numType]unaryFn{
-			intType:    self,
-			bigIntType: self,
-			bigRatType: self,
+			intType:      self,
+			bigIntType:   self,
+			bigRatType:   self,
+			bigFloatType: self,
 			vectorType: func(v Value) Value {
 				return v.(Vector).grade()
 			},
@@ -327,9 +400,10 @@ func init() {
 
 	gradeDown = &unaryOp{
 		fn: [numType]unaryFn{
-			intType:    self,
-			bigIntType: self,
-			bigRatType: self,
+			intType:      self,
+			bigIntType:   self,
+			bigRatType:   self,
+			bigFloatType: self,
 			vectorType: func(v Value) Value {
 				x := v.(Vector).grade()
 				for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
@@ -342,9 +416,10 @@ func init() {
 
 	reverse = &unaryOp{
 		fn: [numType]unaryFn{
-			intType:    self,
-			bigIntType: self,
-			bigRatType: self,
+			intType:      self,
+			bigIntType:   self,
+			bigRatType:   self,
+			bigFloatType: self,
 			vectorType: func(v Value) Value {
 				x := v.(Vector)
 				for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
@@ -375,9 +450,10 @@ func init() {
 
 	flip = &unaryOp{
 		fn: [numType]unaryFn{
-			intType:    self,
-			bigIntType: self,
-			bigRatType: self,
+			intType:      self,
+			bigIntType:   self,
+			bigRatType:   self,
+			bigFloatType: self,
 			vectorType: func(v Value) Value {
 				return Unary("rev", v)
 			},
@@ -406,6 +482,16 @@ func init() {
 		},
 	}
 
+	unarySqrt = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return sqrt(v) },
+			bigIntType:   func(v Value) Value { return sqrt(v) },
+			bigRatType:   func(v Value) Value { return sqrt(v) },
+			bigFloatType: func(v Value) Value { return sqrt(v) },
+		},
+	}
+
 	unaryOps = map[string]*unaryOp{
 		"+":     unaryPlus,
 		",":     unaryRavel,
@@ -422,6 +508,7 @@ func init() {
 		"rev":   reverse,
 		"rho":   unaryRho,
 		"sgn":   unarySignum,
+		"sqrt":  unarySqrt,
 		"up":    gradeUp,
 		"~":     unaryLogicalNot,
 	}

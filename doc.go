@@ -7,10 +7,16 @@
 Ivy is an interpreter for an APL-like language. It is a plaything and a work in
 progress.
 
-Unlike APL, the input is ASCII and the results are exact. It uses exact rational
-arithmetic so it can handle arbitrary precision but does not implement any
-irrational calculations. Values to be input may be integers (3, -1), rationals
-(1/3, -45/67) or floating point values (1e3, -1.5 (representing 1000 and -3/2)).
+Unlike APL, the input is ASCII and the results are exact (but see the next paragraph).
+It uses exact rational arithmetic so it can handle arbitrary precision but does
+not implement any irrational calculations. Values to be input may be integers (3,
+-1), rationals (1/3, -45/67) or floating point values (1e3, -1.5 (representing
+1000 and -3/2)).
+
+However, some functions such as sqrt are irrational. When ivy evaluates an irrational
+function, the result is stored in a high-precision floating-point number (default
+256 bits of mantissa). Thus when using irrational functions, the values have high
+precision but are not exact.
 
 Only a subset of APL's functionality is implemented, but the intention is to
 have most numerical operations supported eventually. To achieve this, some form of
@@ -50,6 +56,7 @@ Unary functions.
 	Monadic transpose ⍉B            Reverse the axes of B
 	Factorial         !B            Product of integers 1 to B
 	Bitwise not             ^       Bitwise complement of B (integer only)
+	Square root       B⋆.5  sqrt    Square root of B.
 
 Binary functions.
 
@@ -114,6 +121,13 @@ Operators and axis indicator
 	Inner product       .    .    A+.×B        A +.* B      Matrix product of A and B
 	Outer product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B
                                                             (lower case o; may need preceding space)
+
+Pre-defined constants
+
+The constants e (base of natural logarithms) and pi (𝛑) are pre-defined to high
+precision, about 1000 decimal digits truncated according to the floating point
+precision setting.
+
 User-defined operators
 
 Users can define unary and binary operators, which then behave just like built-in
@@ -177,6 +191,9 @@ is not specified. For these commands, numbers are always base 10.
 		Show the definition of the user-defined operator X.
 	) origin 1
 		Set the origin for indexing a vector or matrix.
+	) prec 256
+		Set the precision (mantissa length) for floating-point values.
+		The exponent always has 32 bits.
 	) prompt ""
 		Set the interactive prompt.
 	) seed 0

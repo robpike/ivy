@@ -79,6 +79,13 @@ func binaryBigRatOp(u Value, op func(*big.Rat, *big.Rat, *big.Rat) *big.Rat, v V
 	return z.shrink()
 }
 
+func binaryBigFloatOp(u Value, op func(*big.Float, *big.Float, *big.Float) *big.Float, v Value) Value {
+	i, j := u.(BigFloat), v.(BigFloat)
+	z := bigFloatInt64(0)
+	op(z.Float, i.Float, j.Float)
+	return z.shrink()
+}
+
 // bigIntExp is the "op" for exp on *big.Int. Different signature for Exp means we can't use *big.Exp directly.
 func bigIntExp(i, j, k *big.Int) *big.Int {
 	i.Exp(j, k, nil)
@@ -101,6 +108,8 @@ func toBool(t Value) bool {
 	case BigInt:
 		return t.Sign() != 0
 	case BigRat:
+		return t.Sign() != 0
+	case BigFloat:
 		return t.Sign() != 0
 	}
 	Errorf("cannot convert %T to bool", t)
@@ -146,6 +155,9 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Add, v)
 			},
+			bigFloatType: func(u, v Value) Value {
+				return binaryBigFloatOp(u, (*big.Float).Add, v)
+			},
 		},
 	}
 
@@ -161,6 +173,9 @@ func init() {
 			},
 			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Sub, v)
+			},
+			bigFloatType: func(u, v Value) Value {
+				return binaryBigFloatOp(u, (*big.Float).Sub, v)
 			},
 		},
 	}
@@ -178,6 +193,9 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Mul, v)
 			},
+			bigFloatType: func(u, v Value) Value {
+				return binaryBigFloatOp(u, (*big.Float).Mul, v)
+			},
 		},
 	}
 
@@ -190,6 +208,9 @@ func init() {
 					Errorf("division by zero")
 				}
 				return binaryBigRatOp(u, (*big.Rat).Quo, v) // True division.
+			},
+			bigFloatType: func(u, v Value) Value {
+				return binaryBigFloatOp(u, (*big.Float).Quo, v)
 			},
 		},
 	}
@@ -210,7 +231,8 @@ func init() {
 				}
 				return binaryBigIntOp(u, (*big.Int).Quo, v) // Go-like division.
 			},
-			bigRatType: nil, // Not defined for rationals. Use div.
+			bigRatType:   nil, // Not defined for rationals. Use div.
+			bigFloatType: nil,
 		},
 	}
 
@@ -230,7 +252,8 @@ func init() {
 				}
 				return binaryBigIntOp(u, (*big.Int).Rem, v) // Go-like modulo.
 			},
-			bigRatType: nil, // Not defined for rationals. Use mod.
+			bigRatType:   nil, // Not defined for rationals. Use mod.
+			bigFloatType: nil,
 		},
 	}
 
@@ -244,7 +267,8 @@ func init() {
 				}
 				return binaryBigIntOp(u, (*big.Int).Div, v) // Euclidean division.
 			},
-			bigRatType: nil, // Not defined for rationals. Use div.
+			bigRatType:   nil, // Not defined for rationals. Use div.
+			bigFloatType: nil,
 		},
 	}
 
@@ -258,7 +282,8 @@ func init() {
 				}
 				return binaryBigIntOp(u, (*big.Int).Mod, v) // Euclidan modulo.
 			},
-			bigRatType: nil, // Not defined for rationals. Use mod.
+			bigRatType:   nil, // Not defined for rationals. Use mod.
+			bigFloatType: nil,
 		},
 	}
 
@@ -310,6 +335,7 @@ func init() {
 				}
 				return z.shrink()
 			},
+			// TODO: exp for bigfloat
 		},
 	}
 
@@ -362,6 +388,7 @@ func init() {
 				z.Lsh(i.Int, shiftCount(j))
 				return z.shrink()
 			},
+			// TODO: lsh for bigfloat
 		},
 	}
 
@@ -375,6 +402,7 @@ func init() {
 				z.Rsh(i.Int, shiftCount(j))
 				return z.shrink()
 			},
+			// TODO: rsh for bigfloat
 		},
 	}
 
@@ -392,6 +420,10 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) == 0)
+			},
+			bigFloatType: func(u, v Value) Value {
+				i, j := u.(BigFloat), v.(BigFloat)
+				return toInt(i.Cmp(j.Float) == 0)
 			},
 		},
 	}
@@ -411,6 +443,10 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) != 0)
 			},
+			bigFloatType: func(u, v Value) Value {
+				i, j := u.(BigFloat), v.(BigFloat)
+				return toInt(i.Cmp(j.Float) != 0)
+			},
 		},
 	}
 
@@ -428,6 +464,10 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) < 0)
+			},
+			bigFloatType: func(u, v Value) Value {
+				i, j := u.(BigFloat), v.(BigFloat)
+				return toInt(i.Cmp(j.Float) < 0)
 			},
 		},
 	}
@@ -447,6 +487,10 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) <= 0)
 			},
+			bigFloatType: func(u, v Value) Value {
+				i, j := u.(BigFloat), v.(BigFloat)
+				return toInt(i.Cmp(j.Float) <= 0)
+			},
 		},
 	}
 
@@ -464,6 +508,10 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) > 0)
+			},
+			bigFloatType: func(u, v Value) Value {
+				i, j := u.(BigFloat), v.(BigFloat)
+				return toInt(i.Cmp(j.Float) > 0)
 			},
 		},
 	}
@@ -483,6 +531,10 @@ func init() {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) >= 0)
 			},
+			bigFloatType: func(u, v Value) Value {
+				i, j := u.(BigFloat), v.(BigFloat)
+				return toInt(i.Cmp(j.Float) >= 0)
+			},
 		},
 	}
 
@@ -497,6 +549,9 @@ func init() {
 				return toInt(toBool(u) && toBool(v))
 			},
 			bigRatType: func(u, v Value) Value {
+				return toInt(toBool(u) && toBool(v))
+			},
+			bigFloatType: func(u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
 			},
 		},
@@ -515,6 +570,9 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
 			},
+			bigFloatType: func(u, v Value) Value {
+				return toInt(toBool(u) || toBool(v))
+			},
 		},
 	}
 
@@ -529,6 +587,9 @@ func init() {
 				return toInt(toBool(u) != toBool(v))
 			},
 			bigRatType: func(u, v Value) Value {
+				return toInt(toBool(u) != toBool(v))
+			},
+			bigFloatType: func(u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
 			},
 		},
@@ -547,6 +608,9 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				return toInt(!(toBool(u) && toBool(v)))
 			},
+			bigFloatType: func(u, v Value) Value {
+				return toInt(!(toBool(u) && toBool(v)))
+			},
 		},
 	}
 
@@ -555,13 +619,16 @@ func init() {
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
-				return toInt(!toBool(u) && !toBool(v))
+				return toInt(!(toBool(u) || toBool(v)))
 			},
 			bigIntType: func(u, v Value) Value {
-				return toInt(!toBool(u) && !toBool(v))
+				return toInt(!(toBool(u) || toBool(v)))
 			},
 			bigRatType: func(u, v Value) Value {
-				return toInt(!toBool(u) && !toBool(v))
+				return toInt(!(toBool(u) || toBool(v)))
+			},
+			bigFloatType: func(u, v Value) Value {
+				return toInt(!(toBool(u) || toBool(v)))
 			},
 		},
 	}
@@ -584,6 +651,9 @@ func init() {
 						Errorf("index %d out of range", x+origin)
 					}
 					values[i] = A[x]
+				}
+				if len(values) == 1 {
+					return values[0]
 				}
 				return NewVector(values)
 			},
@@ -612,6 +682,7 @@ func init() {
 				if len(B) == 1 {
 					// Special considerations. The result might need type reduction.
 					// TODO: Should this be Matrix.shrink?
+					// TODO: In some cases, can get a scalar.
 					// Is the result a vector?
 					if len(A.shape) == 2 {
 						return values
@@ -676,6 +747,13 @@ func init() {
 				}
 				return j.shrink()
 			},
+			bigFloatType: func(u, v Value) Value {
+				i, j := u.(BigFloat), v.(BigFloat)
+				if i.Cmp(j.Float) < 0 {
+					return i.shrink()
+				}
+				return j.shrink()
+			},
 		},
 	}
 
@@ -699,6 +777,13 @@ func init() {
 			bigRatType: func(u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				if i.Cmp(j.Rat) > 0 {
+					return i.shrink()
+				}
+				return j.shrink()
+			},
+			bigFloatType: func(u, v Value) Value {
+				i, j := u.(BigFloat), v.(BigFloat)
+				if i.Cmp(j.Float) > 0 {
 					return i.shrink()
 				}
 				return j.shrink()

@@ -138,6 +138,16 @@ Switch:
 			p.errorf("illegal origin %d", origin)
 		}
 		p.config.SetOrigin(origin)
+	case "prec":
+		if p.peek().Type == scan.Newline {
+			fmt.Printf("%d\n", p.config.FloatPrec())
+			break Switch
+		}
+		prec := p.nextDecimalNumber()
+		if prec <= 0 || prec > 1e6 {
+			p.errorf("illegal prec %d", prec) // TODO: make 0 be disable?
+		}
+		p.config.SetFloatPrec(uint(prec))
 	case "prompt":
 		if p.peek().Type == scan.Newline {
 			fmt.Printf("%q\n", p.config.Format())
