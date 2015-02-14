@@ -71,6 +71,9 @@ Binary functions.
 	                            **      A raised to the B power; B must be an integer.
 	Circle                A○B           Trigonometric functions of B selected by A
 	                                    A=1: sin(B) A=2: cos(B) A=3: tan(B)
+	                            sin     sin(A); ivy uses traditional symbol.
+	                            cos     cos(B); ivy uses traditional symbol.
+	                            tan     tan(B); ivy uses traditional symbol.
 	Deal                  A?B           A distinct integers selected randomly from the first B integers
 	Membership            A∈B           1 for elements of A present in B; 0 where not.
 	Maximum               A⌈B   max     The greater value of A or B

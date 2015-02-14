@@ -165,7 +165,7 @@ func (r BigRat) toType(which valueType) Value {
 	case bigRatType:
 		return r
 	case bigFloatType:
-		f := big.NewFloat(0, conf.FloatPrec(), big.ToNearestEven).SetRat(r.Rat)
+		f := new(big.Float).SetPrec(conf.FloatPrec()).SetRat(r.Rat)
 		return BigFloat{f}
 	case vectorType:
 		return NewVector([]Value{r})

@@ -89,7 +89,7 @@ func bigRatInt64(x int64) BigRat {
 }
 
 func bigFloatInt64(x int64) BigFloat {
-	return BigFloat{big.NewFloat(0, conf.FloatPrec(), big.ToNearestEven).SetInt64(x)}
+	return BigFloat{new(big.Float).SetPrec(conf.FloatPrec()).SetInt64(x)}
 }
 
 func bigRatTwoInt64s(x, y int64) BigRat {

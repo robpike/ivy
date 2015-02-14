@@ -22,7 +22,7 @@ type BigFloat struct {
 func (i BigFloat) Format() {}
 
 func setBigFloatString(s string) (BigFloat, error) {
-	f, ok := big.NewFloat(0, conf.FloatPrec(), big.ToNearestEven).SetString(s)
+	f, ok := new(big.Float).SetPrec(conf.FloatPrec()).SetString(s)
 	if !ok {
 		return BigFloat{}, errors.New("float parse error")
 	}

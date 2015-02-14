@@ -1,0 +1,43 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Binary operations with big floats.
+
+)format "%.16g"
+1 + (sqrt 2)
+	2.414213562373095
+
+)format "%.16g"
+1 - (sqrt 2)
+	-0.414213562373095
+
+)format "%.16g"
+2 * (sqrt 2)
+	2.82842712474619
+
+)format "%.16g"
+1/sqrt 2
+	0.7071067811865475
+
+(sqrt 2) == (sqrt iota 3)
+	0 1 0
+
+(sqrt 2) != (sqrt iota 3)
+	1 0 1
+
+(sqrt 2) < (sqrt iota 3)
+	0 0 1
+
+(sqrt 2) <= (sqrt iota 3)
+	0 1 1
+
+(sqrt 2) > (sqrt iota 3)
+	1 0 0
+
+(sqrt 2) >= (sqrt iota 3)
+	1 1 0
+
+)format "%.16g"
+(sqrt 2) ** iota 10
+	1.414213562373095 2 2.82842712474619 4 5.65685424949238 8 11.31370849898476 16 22.62741699796952 32

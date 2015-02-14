@@ -44,6 +44,7 @@ var (
 	gradeUp, gradeDown                *unaryOp
 	reverse, flip                     *unaryOp
 	floor, ceil                       *unaryOp
+	unaryCos, unarySin, unaryTan      *unaryOp
 	unarySqrt                         *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
@@ -154,7 +155,7 @@ func init() {
 			bigFloatType: func(v Value) Value {
 				// Zero division cannot happen for unary.
 				f := v.(BigFloat)
-				one := big.NewFloat(0, conf.FloatPrec(), big.ToNearestEven).SetInt64(1)
+				one := new(big.Float).SetPrec(conf.FloatPrec()).SetInt64(1)
 				return BigFloat{
 					Float: one.Quo(one, f.Float),
 				}.shrink()
@@ -482,6 +483,36 @@ func init() {
 		},
 	}
 
+	unaryCos = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return cos(v) },
+			bigIntType:   func(v Value) Value { return cos(v) },
+			bigRatType:   func(v Value) Value { return cos(v) },
+			bigFloatType: func(v Value) Value { return cos(v) },
+		},
+	}
+
+	unarySin = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return sin(v) },
+			bigIntType:   func(v Value) Value { return sin(v) },
+			bigRatType:   func(v Value) Value { return sin(v) },
+			bigFloatType: func(v Value) Value { return sin(v) },
+		},
+	}
+
+	unaryTan = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return tan(v) },
+			bigIntType:   func(v Value) Value { return tan(v) },
+			bigRatType:   func(v Value) Value { return tan(v) },
+			bigFloatType: func(v Value) Value { return tan(v) },
+		},
+	}
+
 	unarySqrt = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
@@ -501,14 +532,17 @@ func init() {
 		"^":     unaryBitwiseNot,
 		"abs":   unaryAbs,
 		"ceil":  ceil,
+		"cos":   unaryCos,
 		"down":  gradeDown,
 		"flip":  flip,
 		"floor": floor,
 		"iota":  unaryIota,
 		"rev":   reverse,
 		"rho":   unaryRho,
+		"sin":   unarySin,
 		"sgn":   unarySignum,
 		"sqrt":  unarySqrt,
+		"tan":   unaryTan,
 		"up":    gradeUp,
 		"~":     unaryLogicalNot,
 	}

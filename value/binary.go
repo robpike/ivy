@@ -305,7 +305,8 @@ func init() {
 				return binaryBigIntOp(u, bigIntExp, v)
 			},
 			bigRatType: func(u, v Value) Value {
-				// We know v is integral. (n/d)**2 is n**2/d**2.
+				// Integral v only. TODO
+				// (n/d)**2 is n**2/d**2.
 				rexp := v.(BigRat)
 				positive := true
 				switch rexp.Sign() {
@@ -335,7 +336,47 @@ func init() {
 				}
 				return z.shrink()
 			},
-			// TODO: exp for bigfloat
+			bigFloatType: func(u, v Value) Value {
+				// Integral v only. TODO
+				fexp := v.(BigFloat)
+				positive := true
+				switch fexp.Sign() {
+				case 0:
+					return one
+				case -1:
+					if u.(BigFloat).Sign() == 0 {
+						Errorf("negative exponent of zero")
+					}
+					positive = false
+					fexp = Unary("-", v).toType(bigFloatType).(BigFloat)
+					Errorf("TODO: Negative exponents disabled due to bug in math/big.Float.Quo")
+				}
+				if !fexp.IsInt() {
+					Errorf("fractional exponent not implemented")
+				}
+				exp, acc := fexp.Int64() // No point in doing *big.Ints now. TODO.
+				if acc != big.Exact || exp > 1e6 {
+					Errorf("exponent too large (TODO)")
+				}
+				// We square the result until we're at the largest z that is x^(2^n).
+				// TODO: Find a better algorithm.
+				x := u.(BigFloat).Float
+				z := newF().Set(x)
+				soFar := int64(1)
+				for 2*soFar <= exp {
+					z.Mul(z, z)
+					soFar *= 2
+				}
+				for exp > soFar {
+					z.Mul(z, x)
+					exp--
+				}
+				if !positive {
+					one := newF().SetInt64(1)
+					z.Quo(one, z)
+				}
+				return BigFloat{z}.shrink()
+			},
 		},
 	}
 
