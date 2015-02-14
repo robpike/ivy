@@ -349,7 +349,6 @@ func init() {
 					}
 					positive = false
 					fexp = Unary("-", v).toType(bigFloatType).(BigFloat)
-					Errorf("TODO: Negative exponents disabled due to bug in math/big.Float.Quo")
 				}
 				if !fexp.IsInt() {
 					Errorf("fractional exponent not implemented")
