@@ -520,12 +520,11 @@ func (l *Scanner) scanNumber() bool {
 	digits := digitsForBase(base)
 	// If base 0, acccept octal for 0 or hex for 0x or 0X.
 	if base == 0 {
-		if l.accept("0") {
-			digits = digitsForBase(8)
-			if l.accept("xX") {
-				digits = digitsForBase(16)
-			}
+		if l.accept("0") && l.accept("xX") {
+			digits = digitsForBase(16)
 		}
+		// Otherwise leave it decimal (0); strconv.ParseInt will take care of it.
+		// We can't set it to 8 in case it's a leading-0 float like 0.69 or 09e4.
 	}
 	l.acceptRun(digits)
 	if l.accept(".") {
