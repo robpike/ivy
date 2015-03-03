@@ -28,7 +28,7 @@ func floatSqrt(bx BigFloat) Value {
 	// z holds the result so far. A good starting point is to halve the exponent.
 	// Experiments show we converge in only a handful of iterations.
 	z := newF()
-	fr, exp := x.MantExp()
+	fr, exp := x.MantExp(&floatTmp)
 	z.SetMantExp(fr, exp/2)
 
 	// These are used to terminate iteration.

@@ -280,7 +280,7 @@ func init() {
 			},
 			bigFloatType: func(v Value) Value {
 				f := v.(BigFloat)
-				i, acc := f.Int()
+				i, acc := f.Int(nil)
 				switch acc {
 				case big.Exact, big.Below:
 					// Done.
@@ -320,7 +320,7 @@ func init() {
 			},
 			bigFloatType: func(v Value) Value {
 				f := v.(BigFloat)
-				i, acc := f.Int()
+				i, acc := f.Int(nil)
 				switch acc {
 				case big.Exact, big.Above:
 					// Done
