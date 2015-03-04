@@ -45,7 +45,7 @@ var (
 	reverse, flip                     *unaryOp
 	floor, ceil                       *unaryOp
 	unaryCos, unarySin, unaryTan      *unaryOp
-	unarySqrt                         *unaryOp
+	unaryLog, unarySqrt               *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
 
@@ -493,6 +493,16 @@ func init() {
 		},
 	}
 
+	unaryLog = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return logn(v) },
+			bigIntType:   func(v Value) Value { return logn(v) },
+			bigRatType:   func(v Value) Value { return logn(v) },
+			bigFloatType: func(v Value) Value { return logn(v) },
+		},
+	}
+
 	unarySin = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
@@ -537,6 +547,7 @@ func init() {
 		"flip":  flip,
 		"floor": floor,
 		"iota":  unaryIota,
+		"log":   unaryLog,
 		"rev":   reverse,
 		"rho":   unaryRho,
 		"sin":   unarySin,

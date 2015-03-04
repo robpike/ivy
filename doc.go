@@ -8,19 +8,17 @@ Ivy is an interpreter for an APL-like language. It is a plaything and a work in
 progress.
 
 Unlike APL, the input is ASCII and the results are exact (but see the next paragraph).
-It uses exact rational arithmetic so it can handle arbitrary precision but does
-not implement any irrational calculations. Values to be input may be integers (3,
--1), rationals (1/3, -45/67) or floating point values (1e3, -1.5 (representing
-1000 and -3/2)).
+It uses exact rational arithmetic so it can handle arbitrary precision. Values to be
+input may be integers (3, -1), rationals (1/3, -45/67) or floating point values (1e3,
+-1.5 (representing 1000 and -3/2)).
 
-However, some functions such as sqrt are irrational. When ivy evaluates an irrational
+Some functions such as sqrt are irrational. When ivy evaluates an irrational
 function, the result is stored in a high-precision floating-point number (default
 256 bits of mantissa). Thus when using irrational functions, the values have high
 precision but are not exact.
 
 Only a subset of APL's functionality is implemented, but the intention is to
-have most numerical operations supported eventually. To achieve this, some form of
-high-precision floating-point arithmetic may appear.
+have most numerical operations supported eventually.
 
 Semicolons separate multiple statements on a line. Variables are alphanumeric and are
 assigned with the = operator.
@@ -46,7 +44,7 @@ Unary functions.
 	Ravel             ,B    ,       Reshapes B into a vector
 	Matrix inverse    ⌹B            Inverse of matrix B
 	Pi times          ○B            Multiply by π
-	Logarithm         ⍟B            Natural logarithm of B
+	Logarithm         ⍟B    log     Natural logarithm of B
 	Reversal          ⌽B    rev     Reverse elements of B along last axis
 	Reversal          ⊖B    flip    Reverse elements of B along first axis
 	Grade up          ⍋B    up      Indices of B which will arrange B in ascending order
@@ -57,6 +55,9 @@ Unary functions.
 	Factorial         !B            Product of integers 1 to B
 	Bitwise not             ^       Bitwise complement of B (integer only)
 	Square root       B⋆.5  sqrt    Square root of B.
+	Sine                    sin     sin(A); APL uses binary ○ (see below)
+	Cosine                  cos     cos(A); ditto
+	Tangent                 tan     tan(A); ditto
 
 Binary functions.
 
