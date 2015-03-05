@@ -29,7 +29,8 @@ func floatLog(x *big.Float) *big.Float {
 	// So log(x) is log(mantissa)+exp*log(2), and 1-x will be
 	// between 0 and 0.5, so the series for 1-x will converge well.
 	// (The series converges slowly in general.)
-	exp2 := x.MantExp(&floatTmp)
+	mantissa := newF()
+	exp2 := x.MantExp(mantissa)
 	exp := newF().SetInt64(int64(exp2))
 	exp.Mul(exp, floatLog2)
 	if invert {
@@ -38,7 +39,7 @@ func floatLog(x *big.Float) *big.Float {
 
 	// y = 1-x (whereupon x = 1-y and we use that in the series).
 	y := newF().SetInt64(1)
-	y.Sub(y, &floatTmp)
+	y.Sub(y, mantissa)
 
 	// The Maclaurin series for log(1-y) == log(x) is: -y - y²/2 - y³/3 ...
 

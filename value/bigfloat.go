@@ -62,7 +62,7 @@ func (f BigFloat) toType(which valueType) Value {
 	panic("BigFloat.toType")
 }
 
-var floatTmp big.Float // For use in MantExp. TODO: Delete this and use nil when possible.
+var floatTmp big.Float // For use in shrink only!. TODO: Delete this and use nil when possible.
 
 // shrink shrinks, if possible, a BigFloat down to an integer type.
 func (f BigFloat) shrink() Value {
