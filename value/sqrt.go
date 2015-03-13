@@ -15,8 +15,11 @@ func sqrt(v Value) Value {
 func floatSqrt(bx BigFloat) Value {
 	x := bx.Float
 	two := newF().SetInt64(2)
-	if x.Sign() < 0 {
+	if x.IsNeg() {
 		Errorf("square root of negative number")
+	}
+	if x.IsZero() {
+		return zero
 	}
 
 	// Each iteration computes
@@ -61,16 +64,18 @@ func floatSqrt(bx BigFloat) Value {
 
 func terminate(z, prevZ, delta, prevDelta *big.Float) bool {
 	delta.Sub(prevZ, z)
-	if delta.Sign() == 0 {
+	if delta.IsZero() {
 		return true
 	}
-	if delta.Sign() < 0 {
+	if delta.IsNeg() {
 		// Convergence can oscillate when the calculation is nearly
 		// done and we're running out of bits. This stops that.
 		// Happens for argument 1e1000 at almost any precision.
+		// TODO: This is a bad idea; delta can still be large. Test case: exponential(3).
+		// TODO: Must be fixed!
 		delta.Neg(delta)
 	}
-	if delta.Cmp(prevDelta) == 0 {
+	if delta.Cmp(prevDelta).Eql() {
 		// Convergence has stopped.
 		return true
 	}

@@ -97,3 +97,7 @@ sqrt 1e80 1e100
 # Results should always be floats.
 sqrt 2e10 2e20 2e40 2e60
 	141421 1.41421e+10 1.41421e+20 1.41421e+30
+
+# Was a bug.
+sqrt(0)
+	0

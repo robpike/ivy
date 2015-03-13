@@ -117,7 +117,7 @@ func toBool(t Value) bool {
 }
 
 var (
-	add, sub, mul, exp                *binaryOp
+	add, sub, mul, pow                *binaryOp
 	quo, idiv, imod, div, mod         *binaryOp
 	bitAnd, bitOr, bitXor             *binaryOp
 	lsh, rsh                          *binaryOp
@@ -287,7 +287,7 @@ func init() {
 		},
 	}
 
-	exp = &binaryOp{
+	pow = &binaryOp{
 		elementwise: true,
 		whichType:   divType,
 		fn: [numType]binaryFn{
@@ -305,7 +305,6 @@ func init() {
 				return binaryBigIntOp(u, bigIntExp, v)
 			},
 			bigRatType: func(u, v Value) Value {
-				// Integral v only. TODO
 				// (n/d)**2 is n**2/d**2.
 				rexp := v.(BigRat)
 				positive := true
@@ -320,7 +319,8 @@ func init() {
 					rexp = Unary("-", v).toType(bigRatType).(BigRat)
 				}
 				if !rexp.IsInt() {
-					Errorf("fractional exponent not implemented")
+					// Lift to float.
+					return Binary(floatSelf(u), "**", floatSelf(v))
 				}
 				exp := rexp.Num()
 				rat := u.(BigRat)
@@ -336,46 +336,7 @@ func init() {
 				}
 				return z.shrink()
 			},
-			bigFloatType: func(u, v Value) Value {
-				// Integral v only. TODO
-				fexp := v.(BigFloat)
-				positive := true
-				switch fexp.Sign() {
-				case 0:
-					return one
-				case -1:
-					if u.(BigFloat).Sign() == 0 {
-						Errorf("negative exponent of zero")
-					}
-					positive = false
-					fexp = Unary("-", v).toType(bigFloatType).(BigFloat)
-				}
-				if !fexp.IsInt() {
-					Errorf("fractional exponent not implemented")
-				}
-				exp, acc := fexp.Int64() // No point in doing *big.Ints now. TODO.
-				if acc != big.Exact || exp > 1e6 {
-					Errorf("exponent too large (TODO)")
-				}
-				// We square the result until we're at the largest z that is x^(2^n).
-				// TODO: Find a better algorithm.
-				x := u.(BigFloat).Float
-				z := newF().Set(x)
-				soFar := int64(1)
-				for 2*soFar <= exp {
-					z.Mul(z, z)
-					soFar *= 2
-				}
-				for exp > soFar {
-					z.Mul(z, x)
-					exp--
-				}
-				if !positive {
-					one := newF().SetInt64(1)
-					z.Quo(one, z)
-				}
-				return BigFloat{z}.shrink()
-			},
+			bigFloatType: func(u, v Value) Value { return power(u, v) },
 		},
 	}
 
@@ -463,7 +424,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float) == 0)
+				return toInt(i.Cmp(j.Float).Eql())
 			},
 		},
 	}
@@ -485,7 +446,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float) != 0)
+				return toInt(i.Cmp(j.Float).Neq())
 			},
 		},
 	}
@@ -507,7 +468,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float) < 0)
+				return toInt(i.Cmp(j.Float).Lss())
 			},
 		},
 	}
@@ -529,7 +490,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float) <= 0)
+				return toInt(i.Cmp(j.Float).Leq())
 			},
 		},
 	}
@@ -551,7 +512,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float) > 0)
+				return toInt(i.Cmp(j.Float).Gtr())
 			},
 		},
 	}
@@ -573,7 +534,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float) >= 0)
+				return toInt(i.Cmp(j.Float).Geq())
 			},
 		},
 	}
@@ -789,7 +750,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				if i.Cmp(j.Float) < 0 {
+				if i.Cmp(j.Float).Lss() {
 					return i.shrink()
 				}
 				return j.shrink()
@@ -823,7 +784,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				if i.Cmp(j.Float) > 0 {
+				if i.Cmp(j.Float).Gtr() {
 					return i.shrink()
 				}
 				return j.shrink()
@@ -951,7 +912,7 @@ func init() {
 		"imod": imod, // Go-like integer moduls.
 		"div":  div,  // Euclidean integer division.
 		"mod":  mod,  // Euclidean integer division.
-		"**":   exp,
+		"**":   pow,
 		"&":    bitAnd,
 		"|":    bitOr,
 		"^":    bitXor,

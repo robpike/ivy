@@ -68,8 +68,7 @@ Binary functions.
 	Divide                A÷B   /       A divided by B (exact rational division)
 	                            div     A divided by B (Euclidean)
 	                            idiv    A divided by B (Go)
-	Exponentiation        A⋆B           A raised to the B power
-	                            **      A raised to the B power; B must be an integer.
+	Exponentiation        A⋆B   **      A raised to the B power
 	Circle                A○B           Trigonometric functions of B selected by A
 	                                    A=1: sin(B) A=2: cos(B) A=3: tan(B)
 	                            sin     sin(A); ivy uses traditional symbol.

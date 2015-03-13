@@ -18,7 +18,7 @@ func floatLog(x *big.Float) *big.Float {
 	// The series wants x < 1, and log 1/x == -log x, so exploit that.
 	one := newF().SetInt64(1)
 	invert := false
-	if x.Cmp(one) > 0 {
+	if x.Cmp(one).Gtr() {
 		invert = true
 		xx := newF()
 		xx.Quo(one, x)
