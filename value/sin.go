@@ -41,7 +41,7 @@ func floatSin(x *big.Float) *big.Float {
 	exponent := newF().SetInt64(3)
 	factorial := newF().SetInt64(6)
 
-	result := sincos(3, x, newF().Set(x), exponent, factorial)
+	result := sincos("sin", 3, x, newF().Set(x), exponent, factorial)
 
 	if negate {
 		result.Neg(result)
@@ -60,26 +60,23 @@ func floatCos(x *big.Float) *big.Float {
 	exponent := newF().SetInt64(2)
 	factorial := newF().SetInt64(2)
 
-	return sincos(2, x, newF().SetInt64(1), exponent, factorial)
+	return sincos("cos", 2, x, newF().SetInt64(1), exponent, factorial)
 }
 
 // sincos iterates a sin or cos Taylor series.
-func sincos(index int, x, z, exponent, factorial *big.Float) *big.Float {
-	// These are used to terminate iteration.
-	prevZ := newF()        // Result from the previous iteration.
-	delta := newF().Set(x) // |Change| from previous iteration.
-	prevDelta := newF()    // Delta from the previous iteration.
+func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.Float {
 	one := newF().SetInt64(1)
 	plus := false
 	term := newF()
-	const maxIterations = 1000
 	term.Set(one)
 	for j := 0; j < index; j++ {
 		term.Mul(term, x)
 	}
 	xN := newF().Set(term)
 	x2 := newF().Mul(x, x)
-	for i := 0; ; i++ {
+
+	loop := newLoop(name, x, 1000)
+	for {
 		// Invariant: factorial holds exponent!.
 		term.Quo(term, factorial)
 		if plus {
@@ -89,11 +86,8 @@ func sincos(index int, x, z, exponent, factorial *big.Float) *big.Float {
 		}
 		plus = !plus
 
-		if terminate(z, prevZ, delta, prevDelta) {
+		if loop.terminate(z) {
 			break
-		}
-		if i == maxIterations {
-			Errorf("sin/cos %s did not converge after %d iterations; prev,last result %s,%s delta %s", BigFloat{x}, maxIterations, BigFloat{z}, BigFloat{prevZ}, BigFloat{delta})
 		}
 		// Advance x**index (multiply by x²).
 		term.Mul(xN, x2)

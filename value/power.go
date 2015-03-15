@@ -82,24 +82,16 @@ func exponential(x *big.Float) *big.Float {
 	nFactorial := newF().Set(one)
 	z := newF().SetInt64(1)
 
-	// These are used to terminate iteration.
-	prevZ := newF()        // Result from the previous iteration.
-	delta := newF().Set(x) // |Change| from previous iteration.
-	prevDelta := newF()    // Delta from the previous iteration.
-	const maxIterations = 1e3
-
-	for i := 0; ; i++ {
+	loop := newLoop("exponential", x, 1000)
+	for {
 		//fmt.Println(i, x, xN, n, term, z)
 		term.Set(xN)
 		term.Quo(term, nFactorial)
 		z.Add(z, term)
 		//fmt.Println("term", term, "z now", z)
 
-		if terminate(z, prevZ, delta, prevDelta) {
+		if loop.terminate(z) {
 			break
-		}
-		if i == maxIterations {
-			Errorf("log %s did not converge after %v iterations; prev,last result %s,%s delta %s", BigFloat{x}, maxIterations, BigFloat{z}, BigFloat{prevZ}, BigFloat{delta})
 		}
 		// Advance x**index (multiply by x).
 		xN.Mul(xN, x)

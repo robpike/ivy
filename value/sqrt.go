@@ -4,8 +4,6 @@
 
 package value
 
-import "math/big"
-
 func sqrt(v Value) Value {
 	return floatSqrt(floatSelf(v).(BigFloat))
 }
@@ -34,52 +32,21 @@ func floatSqrt(bx BigFloat) Value {
 	exp := x.MantExp(z)
 	z.SetMantExp(z, exp/2)
 
-	// These are used to terminate iteration.
-	prevZ := newF()        // Result from the previous iteration.
-	delta := newF().Set(x) // |Change| from previous iteration.
-	prevDelta := newF()    // Delta from the previous iteration.
-
 	// Intermediates, allocated once.
 	zSquared := newF()
 	num := newF()
 	den := newF()
 
-	var i = 0
-	const maxIterations = 100
-	for i = 0; ; i++ {
+	loop := newLoop("sqrt", x, 1)
+	for {
 		zSquared = zSquared.Mul(z, z)
 		num.Sub(zSquared, x)
 		den.Mul(two, z)
 		num.Quo(num, den)
 		z.Sub(z, num)
-		if terminate(z, prevZ, delta, prevDelta) {
+		if loop.terminate(z) {
 			break
-		}
-		if i == maxIterations {
-			Errorf("sqrt %s did not converge after %d iterations; prev,last result %s,%s delta %s", bx, maxIterations, BigFloat{z}, BigFloat{prevZ}, BigFloat{delta})
 		}
 	}
 	return BigFloat{z}.shrink()
-}
-
-func terminate(z, prevZ, delta, prevDelta *big.Float) bool {
-	delta.Sub(prevZ, z)
-	if delta.IsZero() {
-		return true
-	}
-	if delta.IsNeg() {
-		// Convergence can oscillate when the calculation is nearly
-		// done and we're running out of bits. This stops that.
-		// Happens for argument 1e1000 at almost any precision.
-		// TODO: This is a bad idea; delta can still be large. Test case: exponential(3).
-		// TODO: Must be fixed!
-		delta.Neg(delta)
-	}
-	if delta.Cmp(prevDelta).Eql() {
-		// Convergence has stopped.
-		return true
-	}
-	prevDelta.Set(delta)
-	prevZ.Set(z)
-	return false
 }

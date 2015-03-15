@@ -43,29 +43,21 @@ func floatLog(x *big.Float) *big.Float {
 
 	// The Maclaurin series for log(1-y) == log(x) is: -y - y²/2 - y³/3 ...
 
-	// These are used to terminate iteration.
-	prevZ := newF()        // Result from the previous iteration.
-	delta := newF().Set(y) // |Change| from previous iteration.
-	prevDelta := newF()    // Delta from the previous iteration.
-	const maxIterations = 1e3
-
 	yN := newF().Set(y)
 	term := newF()
 	n := newF().Set(one)
 	z := newF()
 
-	for i := 0; ; i++ {
+	loop := newLoop("log", y, 1000)
+	for {
 		//fmt.Println(i, y, yN, n, term)
 		term.Set(yN)
 		term.Quo(term, n)
 		z.Sub(z, term)
 		//fmt.Println("term", term, "z now", z)
 
-		if terminate(z, prevZ, delta, prevDelta) {
+		if loop.terminate(z) {
 			break
-		}
-		if i == maxIterations {
-			Errorf("log %s did not converge after %v iterations; prev,last result %s,%s delta %s", BigFloat{x}, maxIterations, BigFloat{z}, BigFloat{prevZ}, BigFloat{delta})
 		}
 		// Advance y**index (multiply by y).
 		yN.Mul(yN, y)
