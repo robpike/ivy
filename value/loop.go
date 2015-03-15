@@ -7,15 +7,19 @@ package value
 import "math/big"
 
 type loop struct {
-	name          string
-	i             int
-	maxIterations int
+	name          string     // The name of the function we are evaluating.
+	i             int        // Loop count.
+	maxIterations int        // When to give up.
+	stallCount    int        // Iterations since |delta| changed.
 	start         *big.Float // starting value.
 	prevZ         *big.Float // Result from the previous iteration.
 	delta         *big.Float // |Change| from previous iteration.
 	prevDelta     *big.Float // Delta from the previous iteration.
 }
 
+// newLoop returns a new loop checker. The arguments are the name
+// of the function being evaluated, the argument to the function, and
+// the maximum number of iterations to perform before giving up.
 func newLoop(name string, x *big.Float, maxIterations int) *loop {
 	return &loop{
 		name:          name,
@@ -27,6 +31,8 @@ func newLoop(name string, x *big.Float, maxIterations int) *loop {
 	}
 }
 
+// terminate reports whether the loop is done. If it does not converge
+// after the maximum number of iterations, it errors out.
 func (l *loop) terminate(z *big.Float) bool {
 	l.delta.Sub(l.prevZ, z)
 	if l.delta.IsZero() {
@@ -35,17 +41,26 @@ func (l *loop) terminate(z *big.Float) bool {
 	if l.delta.IsNeg() {
 		// Convergence can oscillate when the calculation is nearly
 		// done and we're running out of bits. This stops that.
-		// Happens for argument 1e1000 at almost any precision.
-		// TODO: This is a bad idea; delta can still be large. Test case: exponential(3).
-		// TODO: Must be fixed!
+		// See next comment.
 		l.delta.Neg(l.delta)
 	}
 	if l.delta.Cmp(l.prevDelta).Eql() {
-		// Convergence has stopped.
-		return true
+		// In freaky cases (like e**3) we can hit the same large positive
+		// and then  large negative value (4.5, -4.5) so we count a few times
+		// to see that it really has stalled. Avoids having to do hard math,
+		// but it means we may iterate a few extra times. Usually, though,
+		// iteration is stopped by the zero check above, so this is fine.
+		l.stallCount++
+		if l.stallCount > 3 {
+			// Convergence has stopped.
+			return true
+		}
+	} else {
+		l.stallCount = 0
 	}
 	l.i++
 	if l.i == l.maxIterations {
+		// Users should never see this.
 		Errorf("%s %s: did not converge after %d iterations; prev,last result %s,%s delta %s", l.name, l.start, l.maxIterations, BigFloat{z}, BigFloat{l.prevZ}, BigFloat{l.delta})
 	}
 	l.prevDelta.Set(l.delta)

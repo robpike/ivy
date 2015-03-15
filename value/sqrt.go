@@ -37,7 +37,7 @@ func floatSqrt(bx BigFloat) Value {
 	num := newF()
 	den := newF()
 
-	loop := newLoop("sqrt", x, 1)
+	loop := newLoop("sqrt", x, 1000)
 	for {
 		zSquared = zSquared.Mul(z, z)
 		num.Sub(zSquared, x)
