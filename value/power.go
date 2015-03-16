@@ -72,7 +72,6 @@ func floatPower(bx, bexp BigFloat) Value {
 // exponential computes exp(x) using the Taylor series. It converges quickly
 // since we call it with only small values of x.
 func exponential(x *big.Float) *big.Float {
-
 	// The Taylor series for e**x, exp(x), is 1 + x + x²/2! + x³/3! ...
 
 	one := newF().SetInt64(1)
@@ -84,11 +83,9 @@ func exponential(x *big.Float) *big.Float {
 
 	loop := newLoop("exponential", x, 1000)
 	for {
-		//fmt.Println(i, x, xN, n, term, z)
 		term.Set(xN)
 		term.Quo(term, nFactorial)
 		z.Add(z, term)
-		//fmt.Println("term", term, "z now", z)
 
 		if loop.terminate(z) {
 			break

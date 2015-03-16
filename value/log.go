@@ -50,12 +50,9 @@ func floatLog(x *big.Float) *big.Float {
 
 	loop := newLoop("log", y, 1000)
 	for {
-		//fmt.Println(i, y, yN, n, term)
 		term.Set(yN)
 		term.Quo(term, n)
 		z.Sub(z, term)
-		//fmt.Println("term", term, "z now", z)
-
 		if loop.terminate(z) {
 			break
 		}
