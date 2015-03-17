@@ -11,9 +11,17 @@
 
 package value
 
-import "math/big"
+import (
+	"fmt"
+	"math/big"
+	"os"
+)
 
-const constPrecision = 3400 // 1024*log(10)/log(2) == 3401.6
+const (
+	// 1024*log(10)/log(2) == 3401.6
+	constPrecisionInDigits = 1024
+	constPrecisionInBits   = 3400
+)
 
 var (
 	// set to constPrecision
@@ -33,8 +41,8 @@ func newF() *big.Float {
 }
 
 func Consts() (e, pi BigFloat) {
-	if conf.FloatPrec() > constPrecision {
-		Errorf("precision too high; only have %d bits of precision for e and pi", constPrecision)
+	if conf.FloatPrec() > constPrecisionInBits {
+		fmt.Fprintf(os.Stderr, "warning: precision too high; only have %d digits (%d bits) of precision for e and pi", constPrecisionInDigits, constPrecisionInBits)
 	}
 	var ok bool
 	floatE, ok = newF().SetString(strE)
