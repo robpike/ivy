@@ -95,7 +95,7 @@ Binary functions.
 	Rotation              A⊖B           The elements of B are rotated A positions along the first axis
 	Logarithm             A⍟B           Logarithm of B to base A
 	Dyadic format         A⍕B           Format B into a character matrix according to A
-		General transpose     A⍉B           The axes of B are ordered by A
+	General transpose     A⍉B           The axes of B are ordered by A
 	Combinations          A!B           Number of combinations of B taken A at a time
 	Less than             A<B   <       Comparison: 1 if true, 0 if false
 	Less than or equal    A≤B   <=      Comparison: 1 if true, 0 if false
@@ -128,7 +128,7 @@ Operators and axis indicator
 Pre-defined constants
 
 The constants e (base of natural logarithms) and pi (𝛑) are pre-defined to high
-precision, about 1000 decimal digits truncated according to the floating point
+precision, about 3000 decimal digits truncated according to the floating point
 precision setting.
 
 User-defined operators
