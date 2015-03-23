@@ -20,7 +20,7 @@ func floatPower(bx, bexp BigFloat) Value {
 		return one
 	case -1:
 		if x.Sign() == 0 {
-			Errorf("negative exponent of zero")
+			Errorf("negative exponent of zer")
 		}
 		positive = false
 		fexp = Unary("-", bexp).toType(bigFloatType).(BigFloat).Float
@@ -33,26 +33,9 @@ func floatPower(bx, bexp BigFloat) Value {
 	if acc != big.Exact {
 		isInt = false
 	}
-	// We square the result until we're at the largest z that is x^(2^n).
-	// TODO: Find a better algorithm.
-	z := newF()
-	if exp >= 1 {
-		z = newF().Set(x)
-		soFar := int64(1)
-		for 2*soFar <= exp {
-			z.Mul(z, z)
-			soFar *= 2
-		}
-		// Continue until what's left is the fractional exponent.
-		// We'll do the fractional part with the Taylor series for e**x,
-		// which converges fast when x < 1.
-		for exp > soFar {
-			z.Mul(z, x)
-			exp--
-		}
-	} else {
-		z.SetInt64(1)
-	}
+	// Integer part.
+	z := integerPower(x, exp)
+	// Fractional part..
 	if !isInt {
 		f64exp, _ := fexp.Float64()
 		frac := f64exp - float64(int64(f64exp))
@@ -99,4 +82,28 @@ func exponential(x *big.Float) *big.Float {
 
 	return z
 
+}
+
+// integerPower returns x**exp where exp is an int64 of size <= intBits.
+func integerPower(x *big.Float, exp int64) *big.Float {
+	factors := make([]*big.Float, 0, intBits)
+	// Copy x to avoid aliasing.
+	y := newF().Set(x)
+	// For each loop, we compute a x**n where n is a power of two.
+	for exp > 0 {
+		if exp&1 == 1 {
+			// This bit contributes. Save it.
+			t := newF().Set(y)
+			factors = append(factors, t)
+		}
+		y.Mul(y, y)
+		exp >>= 1
+	}
+	// Now multiply the factors together.
+	z := newF()
+	z.SetInt64(1)
+	for _, factor := range factors {
+		z.Mul(z, factor)
+	}
+	return z
 }
