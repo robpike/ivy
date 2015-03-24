@@ -129,7 +129,7 @@ type unary struct {
 }
 
 func (u *unary) String() string {
-	return fmt.Sprintf("%s %s", u.op, u.right)
+	return fmt.Sprintf("(%s %s)", u.op, u.right)
 }
 
 func (u *unary) Eval(context value.Context) value.Value {
@@ -147,7 +147,7 @@ func (b *binary) String() string {
 	if b.op == "[]" {
 		return fmt.Sprintf("%s[%s]", b.left, b.right)
 	}
-	return fmt.Sprintf("%s %s %s", b.left, b.op, b.right)
+	return fmt.Sprintf("(%s %s %s)", b.left, b.op, b.right)
 }
 
 func (b *binary) Eval(context value.Context) value.Value {

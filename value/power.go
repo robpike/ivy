@@ -86,8 +86,7 @@ func exponential(x *big.Float) *big.Float {
 
 // integerPower returns x**exp where exp is an int64 of size <= intBits.
 func integerPower(x *big.Float, exp int64) *big.Float {
-	z := newF()
-	z.SetInt64(1)
+	z := newF().SetInt64(1)
 	y := newF().Set(x)
 	// For each loop, we compute a x**n where n is a power of two.
 	for exp > 0 {
