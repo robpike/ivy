@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:generate sh -c "(echo '// echo GENERATED; DO NOT EDIT'; echo 'package parse; const specialHelpMessage=`'; sed -n '/^.) [a-z]/,/^$DOLLAR/s/^	//p' ../doc.go; echo '`') | gofmt >help.go"
+
 package parse // import "robpike.io/ivy/parse"
 
 import (
@@ -58,6 +60,9 @@ func (p *Parser) special() {
 	p.need(scan.RightParen)
 Switch:
 	switch text := p.need(scan.Identifier).Text; text {
+	case "help":
+		fmt.Println(specialHelpMessage)
+		fmt.Println("More at: http://godoc.org/robpike.io/ivy")
 	case "base", "ibase", "obase":
 		ibase, obase := p.config.Base()
 		if p.peek().Type == scan.Newline {

@@ -168,6 +168,8 @@ Ivy accepts a number of special commands, introduced by a right paren
 at the beginning of the line. Most report the current value if a new value
 is not specified. For these commands, numbers are always base 10.
 
+	) help
+		Print this list of special commands.
 	) base 0
 		Set the number base for input and output. The commands
 		ibase and obase control setting of the base for input
@@ -196,7 +198,7 @@ is not specified. For these commands, numbers are always base 10.
 		Set the origin for indexing a vector or matrix.
 	) prec 256
 		Set the precision (mantissa length) for floating-point values.
-		The exponent always has 32 bits.
+		The value is in bits. The exponent always has 32 bits.
 	) prompt ""
 		Set the interactive prompt.
 	) seed 0
