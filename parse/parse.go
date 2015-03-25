@@ -123,13 +123,26 @@ func (e variableExpr) String() string {
 	return e.name
 }
 
+// isCompound reports whether the item is a non-trivial expression tree, one that
+// may require parentheses around it when printed to maintain correct evaluation order.
+func isCompound(x interface{}) bool {
+	switch x.(type) {
+	case value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Vector, value.Matrix:
+		return false
+	case sliceExpr, variableExpr:
+		return false
+	default:
+		return true
+	}
+}
+
 type unary struct {
 	op    string
 	right value.Expr
 }
 
 func (u *unary) String() string {
-	return fmt.Sprintf("(%s %s)", u.op, u.right)
+	return fmt.Sprintf("%s %s", u.op, u.right)
 }
 
 func (u *unary) Eval(context value.Context) value.Value {
@@ -147,7 +160,11 @@ func (b *binary) String() string {
 	if b.op == "[]" {
 		return fmt.Sprintf("%s[%s]", b.left, b.right)
 	}
-	return fmt.Sprintf("(%s %s %s)", b.left, b.op, b.right)
+	if isCompound(b.left) {
+		return fmt.Sprintf("(%s) %s %s", b.left, b.op, b.right)
+	} else {
+		return fmt.Sprintf("%s %s %s", b.left, b.op, b.right)
+	}
 }
 
 func (b *binary) Eval(context value.Context) value.Value {
