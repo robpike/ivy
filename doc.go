@@ -24,7 +24,7 @@ Semicolons separate multiple statements on a line. Variables are alphanumeric an
 assigned with the = operator.
 
 The APL operators, adapted from http://en.wikipedia.org/wiki/APL_syntax_and_symbols,
-and their correpondence are listed here. The correspondence is incomplete and inexact.
+and their correspondence are listed here. The correspondence is incomplete and inexact.
 
 Unary functions.
 
@@ -133,11 +133,20 @@ precision setting.
 
 User-defined operators
 
-Users can define unary and binary operators, which then behave just like built-in
-operators. The syntax of a definition is the 'def' keyword, the operator and
-formal arguments, an equals sign, and then the body. The name must be an identifier.
-The final expression of the body is the return value. The same name may be defined
-both as a unary and as a binary.
+Users can define unary and binary operators, which then behave just like
+built-in operators. Both a unary and a binary operator may be defined for the
+same name.
+
+The syntax of a definition is the 'def' keyword, the operator and formal
+arguments, an equals sign, and then the body. The names of the operator and its
+arguments must be identifiers.  For unary operators, write "def name arg"; for
+binary write "def arg1 name arg2". The final expression of the body is the
+return value.
+
+The body may be a single line (possibly containing semicolons) on the same line
+as the 'def', or it can be multiple lines. For a multiline entry, there is a
+newline after the '=' and the definition ends at the first blank line (ignoring
+spaces).
 
 Example: average of a vector (unary):
 	def avg x = (+/x)/rho x
@@ -149,18 +158,24 @@ Example: n largest entries in a vector (binary):
 	3 largest 7 1 3 24 1 5 12 5 51
 	result: 51 24 12
 
+Example: multiline operator definition (binary):
+	def a sum b =
+		a = a+b
+		a
+
+	iota 3 sum 4
+	result: 1 2 3 4 5 6 7
+
 To declare an operator but not define it, omit the equals sign and what follows.
 	def foo x
 	def bar x = foo x
 	def foo x = -x
 	bar 3
-		-3
+	result: -3
 
 Within a user-defined operator, identifiers are local to the invocation unless
 they are undefined in the operator but defined globally, in which case they refer to
 the global variable. A mechanism to declare locals may come later.
-
-At the moment the body must be a single line but expressions can be separated by semicolons.
 
 Special commands
 

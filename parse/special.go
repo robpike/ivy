@@ -125,12 +125,18 @@ Switch:
 	case "op":
 		name := p.need(scan.Identifier).Text
 		fn := p.context.unaryFn[name]
+		found := false
 		if fn != nil {
 			fmt.Println(fn)
+			found = true
 		}
 		fn = p.context.binaryFn[name]
 		if fn != nil {
 			fmt.Println(fn)
+			found = true
+		}
+		if !found {
+			p.errorf("%q not defined", name)
 		}
 	case "origin":
 		if p.peek().Type == scan.Newline {

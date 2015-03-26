@@ -20,20 +20,31 @@ type function struct {
 }
 
 func (fn *function) String() string {
-	s := fmt.Sprintf("def %s %s %s = ", fn.left.name, fn.name, fn.right.name)
-	for i, stmt := range fn.body {
-		if i > 0 {
-			s += "; "
-		}
-		s += stmt.String()
+	left := ""
+	if fn.isBinary {
+		left = fn.left.name + " "
 	}
-	return s
+	s := fmt.Sprintf("def %s%s %s =", left, fn.name, fn.right.name)
+	if len(fn.body) == 1 {
+		s += " " + fn.body[0].String()
+	} else {
+		for _, stmt := range fn.body {
+			s += "\n\t" + stmt.String()
+		}
+	}
+	return s + "\n"
 }
 
 // function definition
 //
-//	"def" name arg '=' expressionList '\n'
-//	"def" arg name arg '=' expressionList '\n'
+//	"def" name arg '\n'
+//	"def" name arg '=' statements '\n'
+//	"def" arg name arg '=' statements '\n'
+//
+// statements:
+//	expressionList
+//	'\n' (expressionList '\n')+ '\n' # For multiline definition, ending with blank line.
+//
 func (p *Parser) functionDefn() {
 	p.need(scan.Def)
 	fn := new(function)
@@ -48,14 +59,35 @@ func (p *Parser) functionDefn() {
 	tok := p.next()
 	switch tok.Type {
 	case scan.Assign:
-		body, ok := p.expressionList()
-		if !ok {
-			p.errorf("invalid function definition")
+		// Either one line:
+		//	def x a = expression
+		// or multiple lines terminated by a blank line:
+		//	def x a =
+		//	expression
+		//	expression
+		//
+		if p.peek().Type == scan.Newline {
+			// Multiline.
+			p.next()
+			for p.peek().Type != scan.Newline {
+				x, ok := p.expressionList()
+				if !ok {
+					p.errorf("invalid function definition")
+				}
+				fn.body = append(fn.body, x...)
+			}
+			p.next() // Consume final newline.
+		} else {
+			// Single line.
+			var ok bool
+			fn.body, ok = p.expressionList()
+			if !ok {
+				p.errorf("invalid function definition")
+			}
 		}
-		if len(body) == 0 {
+		if len(fn.body) == 0 {
 			p.errorf("missing function body")
 		}
-		fn.body = body
 	case scan.Newline:
 	default:
 		p.errorf("expected newline after function declaration, found %s", tok)

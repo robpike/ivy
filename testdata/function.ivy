@@ -22,11 +22,11 @@ def i x = iota x
 i 3; x
 	1 2 3 100
 
-# Locals are not globals
+# Local non-args are globals
 x = 100
 def double u = x = u; x*2
-double 3; 100
-	6 100
+double 3; x
+	6 3
 
 # Declare unary before use
 def foo x
@@ -41,3 +41,13 @@ def x bar y = -x foo y
 def x foo y = x + y
 3 bar 4
 		-7
+
+# Multiline function definition
+def a x b =
+ y = a*b
+ y = y*y
+ y
+ 
+3 x 4
+	144
+
