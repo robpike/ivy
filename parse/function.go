@@ -37,27 +37,18 @@ func (fn *function) String() string {
 func (p *Parser) functionDefn() {
 	p.need(scan.Def)
 	fn := new(function)
-	id1 := p.need(scan.Identifier).Text
-	id2 := p.need(scan.Identifier).Text
-	tok := p.need(scan.Identifier, scan.Assign, scan.Newline)
-	needBody := true
-	switch tok.Type {
-	case scan.Newline:
-		needBody = false
-		fallthrough
-	case scan.Assign:
-		fn.isBinary = false
-		fn.name = id1
-		fn.right = p.variable(id2)
-	case scan.Identifier:
-		fn.isBinary = true
-		fn.left = p.variable(id1)
-		fn.name = id2
-		fn.right = p.variable(tok.Text)
-		needBody = p.need(scan.Newline, scan.Assign).Type == scan.Assign
+	// Two identifiers means: op arg.
+	// Three identifiers means: arg op arg.
+	idents := make([]string, 2, 3)
+	idents[0] = p.need(scan.Identifier).Text
+	idents[1] = p.need(scan.Identifier).Text
+	if p.peek().Type == scan.Identifier {
+		idents = append(idents, p.next().Text)
 	}
-	if fn.name == fn.left.name || fn.name == fn.right.name {
-		p.errorf("argument name is function name %q", fn.name)
+	needBody := false
+	if p.peek().Type == scan.Assign {
+		p.next()
+		needBody = true
 	}
 	if needBody {
 		body, ok := p.expressionList()
@@ -69,10 +60,19 @@ func (p *Parser) functionDefn() {
 		}
 		fn.body = body
 	}
-	if fn.isBinary {
+	if len(idents) == 3 {
+		fn.isBinary = true
+		fn.left = p.variable(idents[0])
+		fn.name = idents[1]
+		fn.right = p.variable(idents[2])
 		p.context.binaryFn[fn.name] = fn
 	} else {
+		fn.name = idents[0]
+		fn.right = p.variable(idents[1])
 		p.context.unaryFn[fn.name] = fn
+	}
+	if fn.name == fn.left.name || fn.name == fn.right.name {
+		p.errorf("argument name %q is function name", fn.name)
 	}
 	if p.config.Debug("parse") {
 		fmt.Printf("def %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
