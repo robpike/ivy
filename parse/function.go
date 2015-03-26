@@ -45,8 +45,9 @@ func (p *Parser) functionDefn() {
 	if p.peek().Type == scan.Identifier {
 		idents = append(idents, p.next().Text)
 	}
-	if p.peek().Type == scan.Assign {
-		p.next()
+	tok := p.next()
+	switch tok.Type {
+	case scan.Assign:
 		body, ok := p.expressionList()
 		if !ok {
 			p.errorf("invalid function definition")
@@ -55,6 +56,9 @@ func (p *Parser) functionDefn() {
 			p.errorf("missing function body")
 		}
 		fn.body = body
+	case scan.Newline:
+	default:
+		p.errorf("expected newline after function declaration, found %s", tok)
 	}
 	if len(idents) == 3 {
 		fn.isBinary = true
