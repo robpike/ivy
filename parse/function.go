@@ -45,12 +45,8 @@ func (p *Parser) functionDefn() {
 	if p.peek().Type == scan.Identifier {
 		idents = append(idents, p.next().Text)
 	}
-	needBody := false
 	if p.peek().Type == scan.Assign {
 		p.next()
-		needBody = true
-	}
-	if needBody {
 		body, ok := p.expressionList()
 		if !ok {
 			p.errorf("invalid function definition")
