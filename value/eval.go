@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value // import "robpike.io/ivy/value"
+package value
 
 import "strings"
 
@@ -10,6 +10,7 @@ type valueType int
 
 const (
 	intType valueType = iota
+	charType
 	bigIntType
 	bigRatType
 	bigFloatType
@@ -18,7 +19,7 @@ const (
 	numType
 )
 
-var typeName = [...]string{"int", "big int", "rational", "float", "vector", "matrix"}
+var typeName = [...]string{"int", "char", "big int", "rational", "float", "vector", "matrix"}
 
 func (t valueType) String() string {
 	return typeName[t]
@@ -72,6 +73,8 @@ func whichType(v Value) valueType {
 	switch v.(type) {
 	case Int:
 		return intType
+	case Char:
+		return charType
 	case BigInt:
 		return bigIntType
 	case BigRat:

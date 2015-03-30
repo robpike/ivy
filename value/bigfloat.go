@@ -46,12 +46,6 @@ func (f BigFloat) Eval(Context) Value {
 
 func (f BigFloat) toType(which valueType) Value {
 	switch which {
-	case intType:
-		panic("bigfloat to int")
-	case bigIntType:
-		panic("bigfloat to bigint")
-	case bigRatType:
-		panic("bigfloat to bigrat")
 	case bigFloatType:
 		return f
 	case vectorType:
@@ -59,7 +53,8 @@ func (f BigFloat) toType(which valueType) Value {
 	case matrixType:
 		return newMatrix([]Value{one}, []Value{f})
 	}
-	panic("BigFloat.toType")
+	Errorf("cannot convert float to %s", which)
+	return nil
 }
 
 var floatTmp big.Float // For use in shrink only!. TODO: Delete this and use nil when possible.

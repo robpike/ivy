@@ -385,6 +385,8 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 
 // operand
 //	number
+//	char constant
+//	string constant
 //	vector
 //	operand [ Expr ]...
 //	unop Expr
@@ -408,7 +410,7 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 			break
 		}
 		fallthrough
-	case scan.Number, scan.Rational, scan.LeftParen:
+	case scan.Number, scan.Rational, scan.String, scan.LeftParen:
 		expr = p.numberOrVector(tok)
 	default:
 		p.errorf("unexpected %s", tok)
@@ -443,20 +445,20 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 // number
 //	integer
 //	rational
+//	string
 //	variable
 //	'(' Expr ')'
-func (p *Parser) number(tok scan.Token) value.Expr {
-	var expr value.Expr
+// If the value is a string, value.Expr is nil.
+func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
+	var err error
 	text := tok.Text
 	switch tok.Type {
 	case scan.Identifier:
 		expr = p.variable(text)
+	case scan.String:
+		str = value.ParseString(text)
 	case scan.Number, scan.Rational:
-		var err error
 		expr, err = value.Parse(text)
-		if err != nil {
-			p.errorf("%s: %s", text, err)
-		}
 	case scan.LeftParen:
 		expr = p.expr(p.next())
 		tok := p.next()
@@ -464,38 +466,61 @@ func (p *Parser) number(tok scan.Token) value.Expr {
 			p.errorf("expected right paren, found %s", tok)
 		}
 	}
-	return expr
+	if err != nil {
+		p.errorf("%s: %s", text, err)
+	}
+	return expr, str
 }
 
 // numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
 // numberOrVector
-//	number ...
+//	number
+//	string
+//	numberOrVector...
 func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
-	expr := p.number(tok)
+	expr, str := p.number(tok)
+	done := true
 	switch p.peek().Type {
-	case scan.Number, scan.Rational, scan.Identifier, scan.LeftParen:
+	case scan.Number, scan.Rational, scan.String, scan.Identifier, scan.LeftParen:
 		// Further vector elements follow.
-	default:
-		return expr
+		done = false
 	}
-	slice := sliceExpr{expr}
-Loop:
-	for {
-		tok = p.peek()
-		switch tok.Type {
-		case scan.LeftParen:
-			fallthrough
-		case scan.Identifier:
-			if p.context.unaryFn[tok.Text] != nil || p.context.binaryFn[tok.Text] != nil {
+	var slice sliceExpr
+	if expr != nil {
+		slice = sliceExpr{expr}
+	} else {
+		// Must be a string.
+		exprs := evalString(str)
+		if len(exprs) == 1 {
+			slice = sliceExpr{exprs[0]}
+		} else {
+			slice = append(slice, exprs...)
+		}
+	}
+	if !done {
+	Loop:
+		for {
+			tok = p.peek()
+			switch tok.Type {
+			case scan.LeftParen:
+				fallthrough
+			case scan.Identifier:
+				if p.context.unaryFn[tok.Text] != nil || p.context.binaryFn[tok.Text] != nil {
+					break Loop
+				}
+				fallthrough
+			case scan.Number, scan.Rational, scan.String:
+				expr, str = p.number(p.next())
+				if expr == nil {
+					// Must be a string.
+					slice = append(slice, evalString(str)...)
+					continue
+				}
+			default:
 				break Loop
 			}
-			fallthrough
-		case scan.Number, scan.Rational:
-			expr = p.number(p.next())
-		default:
-			break Loop
+			slice = append(slice, expr)
 		}
-		slice = append(slice, expr)
 	}
 	if len(slice) == 1 {
 		return slice[0] // Just a singleton.
@@ -505,7 +530,7 @@ Loop:
 
 func isScalar(v value.Value) bool {
 	switch v.(type) {
-	case value.Int, value.BigInt, value.BigRat, value.BigFloat:
+	case value.Int, value.Char, value.BigInt, value.BigRat, value.BigFloat:
 		return true
 	}
 	return false
@@ -515,4 +540,15 @@ func (p *Parser) variable(name string) variableExpr {
 	return variableExpr{
 		name: name,
 	}
+}
+
+// evalString turns a parsed string constant into slice of
+// value.Exprs each of which is a value.Char.
+func evalString(str string) []value.Expr {
+	r := ([]rune)(str)
+	v := make([]value.Expr, len(r))
+	for i, c := range r {
+		v[i] = value.Char(c)
+	}
+	return v
 }

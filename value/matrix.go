@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value // import "robpike.io/ivy/value"
+package value
 
 import (
 	"bytes"
@@ -70,7 +70,7 @@ func (m Matrix) String() string {
 		// Will need some rethinking when decimal points
 		// can appear.
 		// Vector.String does what we want for the first part.
-		strs := strings.Split(m.data.String(), " ")
+		strs := strings.Split(m.data.makeString(true), " ")
 		wid := 1
 		for _, s := range strs {
 			if wid < len(s) {
@@ -215,18 +215,11 @@ func (m Matrix) Eval(Context) Value {
 
 func (m Matrix) toType(which valueType) Value {
 	switch which {
-	case intType:
-		panic("matrix to int")
-	case bigIntType:
-		panic("matrix to big int")
-	case bigRatType:
-		panic("matrix to big rat")
-	case vectorType:
-		panic("matrix to vector")
 	case matrixType:
 		return m
 	}
-	panic("BigInt.toType")
+	Errorf("cannot convert matrix to %s", which)
+	return nil
 }
 
 func (m Matrix) Shape() Vector {

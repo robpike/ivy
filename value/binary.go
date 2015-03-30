@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value // import "robpike.io/ivy/value"
+package value
 
 import "math/big"
 
@@ -104,6 +104,8 @@ func toInt(t bool) Value {
 func toBool(t Value) bool {
 	switch t := t.(type) {
 	case Int:
+		return t != 0
+	case Char:
 		return t != 0
 	case BigInt:
 		return t.Sign() != 0
@@ -414,6 +416,9 @@ func init() {
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) == v.(Int))
 			},
+			charType: func(u, v Value) Value {
+				return toInt(u.(Char) == v.(Char))
+			},
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) == 0)
@@ -435,6 +440,9 @@ func init() {
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) != v.(Int))
+			},
+			charType: func(u, v Value) Value {
+				return toInt(u.(Char) != v.(Char))
 			},
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
@@ -458,6 +466,9 @@ func init() {
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) < v.(Int))
 			},
+			charType: func(u, v Value) Value {
+				return toInt(u.(Char) < v.(Char))
+			},
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) < 0)
@@ -479,6 +490,9 @@ func init() {
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) <= v.(Int))
+			},
+			charType: func(u, v Value) Value {
+				return toInt(u.(Char) <= v.(Char))
 			},
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
@@ -502,6 +516,9 @@ func init() {
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) > v.(Int))
 			},
+			charType: func(u, v Value) Value {
+				return toInt(u.(Char) > v.(Char))
+			},
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) > 0)
@@ -523,6 +540,9 @@ func init() {
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				return toInt(u.(Int) >= v.(Int))
+			},
+			charType: func(u, v Value) Value {
+				return toInt(u.(Char) >= v.(Char))
 			},
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
@@ -546,6 +566,9 @@ func init() {
 			intType: func(u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
 			},
+			charType: func(u, v Value) Value {
+				return toInt(toBool(u) && toBool(v))
+			},
 			bigIntType: func(u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
 			},
@@ -563,6 +586,9 @@ func init() {
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
+				return toInt(toBool(u) || toBool(v))
+			},
+			charType: func(u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
 			},
 			bigIntType: func(u, v Value) Value {
@@ -584,6 +610,9 @@ func init() {
 			intType: func(u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
 			},
+			charType: func(u, v Value) Value {
+				return toInt(toBool(u) != toBool(v))
+			},
 			bigIntType: func(u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
 			},
@@ -603,6 +632,9 @@ func init() {
 			intType: func(u, v Value) Value {
 				return toInt(!(toBool(u) && toBool(v)))
 			},
+			charType: func(u, v Value) Value {
+				return toInt(!(toBool(u) && toBool(v)))
+			},
 			bigIntType: func(u, v Value) Value {
 				return toInt(!(toBool(u) && toBool(v)))
 			},
@@ -620,6 +652,9 @@ func init() {
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
+				return toInt(!(toBool(u) || toBool(v)))
+			},
+			charType: func(u, v Value) Value {
 				return toInt(!(toBool(u) || toBool(v)))
 			},
 			bigIntType: func(u, v Value) Value {
@@ -734,6 +769,12 @@ func init() {
 				}
 				return v
 			},
+			charType: func(u, v Value) Value {
+				if u.(Char) < v.(Char) {
+					return u
+				}
+				return v
+			},
 			bigIntType: func(u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				if i.Cmp(j.Int) < 0 {
@@ -764,6 +805,12 @@ func init() {
 		fn: [numType]binaryFn{
 			intType: func(u, v Value) Value {
 				if u.(Int) > v.(Int) {
+					return u
+				}
+				return v
+			},
+			charType: func(u, v Value) Value {
+				if u.(Char) > v.(Char) {
 					return u
 				}
 				return v

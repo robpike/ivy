@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value // import "robpike.io/ivy/value"
+package value
 
 import (
 	"errors"
@@ -119,8 +119,6 @@ func (i BigInt) Eval(Context) Value {
 
 func (i BigInt) toType(which valueType) Value {
 	switch which {
-	case intType:
-		panic("bigint to int")
 	case bigIntType:
 		return i
 	case bigRatType:
@@ -134,7 +132,8 @@ func (i BigInt) toType(which valueType) Value {
 	case matrixType:
 		return newMatrix([]Value{one}, []Value{i})
 	}
-	panic("BigInt.toType")
+	Errorf("cannot convert big int to %s", which)
+	return nil
 }
 
 // trimEZeros takes an e or E format string and deletes

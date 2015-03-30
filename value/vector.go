@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value // import "robpike.io/ivy/value"
+package value
 
 import (
 	"bytes"
@@ -13,14 +13,31 @@ import (
 type Vector []Value
 
 func (v Vector) String() string {
+	return v.makeString(!v.allChars())
+}
+
+// makeString is like String but takes a flag specifying
+// whether to put spaces between the elements. By
+// default (that is, by calling String) spaces are suppressed
+// if all the elements of the Vector are Chars.
+func (v Vector) makeString(spaces bool) string {
 	var b bytes.Buffer
 	for i, elem := range v {
-		if i > 0 {
+		if spaces && i > 0 {
 			fmt.Fprint(&b, " ")
 		}
 		fmt.Fprintf(&b, "%s", elem)
 	}
 	return b.String()
+}
+
+func (v Vector) allChars() bool {
+	for _, c := range v {
+		if _, ok := c.(Char); !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func NewVector(elem []Value) Vector {
@@ -33,18 +50,13 @@ func (v Vector) Eval(Context) Value {
 
 func (v Vector) toType(which valueType) Value {
 	switch which {
-	case intType:
-		panic("bigint to int")
-	case bigIntType:
-		panic("vector to big int")
-	case bigRatType:
-		panic("vector to big rat")
 	case vectorType:
 		return v
 	case matrixType:
 		return newMatrix([]Value{Int(len(v))}, v)
 	}
-	panic("Vector.toType")
+	Errorf("cannot convert vector to %s", which)
+	return nil
 }
 
 func (v Vector) sameLength(x Vector) {

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value // import "robpike.io/ivy/value"
+package value
 
 import (
 	"fmt"
@@ -133,7 +133,8 @@ func (i Int) toType(which valueType) Value {
 	case matrixType:
 		return newMatrix([]Value{one}, []Value{i})
 	}
-	panic("Int.toType")
+	Errorf("cannot convert int to %s", which)
+	return nil
 }
 
 func (i Int) ToBool() bool {

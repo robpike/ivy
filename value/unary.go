@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value // import "robpike.io/ivy/value"
+package value
 
 import "math/big"
 
@@ -46,6 +46,7 @@ var (
 	floor, ceil                       *unaryOp
 	unaryCos, unarySin, unaryTan      *unaryOp
 	unaryLog, unarySqrt               *unaryOp
+	unaryChar, unaryCode              *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
 
@@ -356,6 +357,9 @@ func init() {
 			intType: func(v Value) Value {
 				return Vector{}
 			},
+			charType: func(v Value) Value {
+				return Vector{}
+			},
 			bigIntType: func(v Value) Value {
 				return Vector{}
 			},
@@ -377,6 +381,7 @@ func init() {
 	unaryRavel = &unaryOp{
 		fn: [numType]unaryFn{
 			intType:      vectorSelf,
+			charType:     vectorSelf,
 			bigIntType:   vectorSelf,
 			bigRatType:   vectorSelf,
 			bigFloatType: vectorSelf,
@@ -390,6 +395,7 @@ func init() {
 	gradeUp = &unaryOp{
 		fn: [numType]unaryFn{
 			intType:      self,
+			charType:     self,
 			bigIntType:   self,
 			bigRatType:   self,
 			bigFloatType: self,
@@ -402,6 +408,7 @@ func init() {
 	gradeDown = &unaryOp{
 		fn: [numType]unaryFn{
 			intType:      self,
+			charType:     self,
 			bigIntType:   self,
 			bigRatType:   self,
 			bigFloatType: self,
@@ -418,6 +425,7 @@ func init() {
 	reverse = &unaryOp{
 		fn: [numType]unaryFn{
 			intType:      self,
+			charType:     self,
 			bigIntType:   self,
 			bigRatType:   self,
 			bigFloatType: self,
@@ -452,6 +460,7 @@ func init() {
 	flip = &unaryOp{
 		fn: [numType]unaryFn{
 			intType:      self,
+			charType:     self,
 			bigIntType:   self,
 			bigRatType:   self,
 			bigFloatType: self,
@@ -533,6 +542,20 @@ func init() {
 		},
 	}
 
+	unaryChar = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType: func(v Value) Value { return Char(v.(Int)).validate() },
+		},
+	}
+
+	unaryCode = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			charType: func(v Value) Value { return Int(v.(Char)) },
+		},
+	}
+
 	unaryOps = map[string]*unaryOp{
 		"+":     unaryPlus,
 		",":     unaryRavel,
@@ -542,6 +565,8 @@ func init() {
 		"^":     unaryBitwiseNot,
 		"abs":   unaryAbs,
 		"ceil":  ceil,
+		"char":  unaryChar,
+		"code":  unaryCode,
 		"cos":   unaryCos,
 		"down":  gradeDown,
 		"flip":  flip,

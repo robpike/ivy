@@ -10,7 +10,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
 
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
@@ -177,15 +176,9 @@ Switch:
 	p.need(scan.Newline)
 }
 
-// getString returns the value of the string or raw string
-// that must be next in the input.
+// getString returns the value of the string that must be next in the input.
 func (p *Parser) getString() string {
-	str := p.need(scan.String, scan.RawString).Text
-	str, err := strconv.Unquote(str)
-	if err != nil {
-		p.errorf("%s", err)
-	}
-	return str
+	return value.ParseString(p.need(scan.String).Text)
 }
 
 var runDepth = 0

@@ -34,7 +34,6 @@ const (
 	// Interesting things
 	Assign         // '='
 	Char           // printable ASCII character; grab bag for comma etc.
-	CharConstant   // character constant
 	Def            // "def", function definition keyword
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
@@ -43,7 +42,6 @@ const (
 	Number         // simple number
 	Operator       // known operator
 	Rational       // rational number like 2/3
-	RawString      // raw quoted string (includes quotes)
 	RightBrack     // ']'
 	RightParen     // ')'
 	Semicolon      // ';'
@@ -55,6 +53,8 @@ var operatorWord = map[string]bool{
 	"abs":   true,
 	"and":   true,
 	"ceil":  true,
+	"char":  true,
+	"code":  true,
 	"cos":   true,
 	"div":   true,
 	"down":  true,
@@ -467,7 +467,7 @@ Loop:
 			break Loop
 		}
 	}
-	l.emit(CharConstant)
+	l.emit(String)
 	return lexAny
 }
 
@@ -593,13 +593,13 @@ func lexRawQuote(l *Scanner) stateFn {
 Loop:
 	for {
 		switch l.next() {
-		case eof, '\n':
+		case eof:
 			return l.errorf("unterminated raw quoted string")
 		case '`':
 			break Loop
 		}
 	}
-	l.emit(RawString)
+	l.emit(String)
 	return lexAny
 }
 

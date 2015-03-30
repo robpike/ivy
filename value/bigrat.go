@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package value // import "robpike.io/ivy/value"
+package value
 
 import (
 	"errors"
@@ -158,10 +158,6 @@ func (r BigRat) Eval(Context) Value {
 
 func (r BigRat) toType(which valueType) Value {
 	switch which {
-	case intType:
-		panic("big rat to int")
-	case bigIntType:
-		panic("big rat to big int")
 	case bigRatType:
 		return r
 	case bigFloatType:
@@ -172,7 +168,8 @@ func (r BigRat) toType(which valueType) Value {
 	case matrixType:
 		return newMatrix([]Value{one, one}, []Value{r})
 	}
-	panic("BigRat.toType")
+	Errorf("cannot convert rational to %s", which)
+	return nil
 }
 
 // shrink pulls, if possible, a BigRat down to a BigInt or Int.

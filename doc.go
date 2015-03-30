@@ -125,11 +125,40 @@ Operators and axis indicator
 	Outer product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B
                                                             (lower case o; may need preceding space)
 
+Character-specific operations
+
+	Name                  Ivy      Meaning
+	Code                  code B   The integer Unicode value of char B
+	Char                  char B   The character with integer Unicode value B
+
 Pre-defined constants
 
 The constants e (base of natural logarithms) and pi (𝛑) are pre-defined to high
 precision, about 3000 decimal digits truncated according to the floating point
 precision setting.
+
+Character data
+
+Strings are vectors of "chars", which are Unicode code points (not bytes).
+Syntactically, string literals are very similar to those in Go, with back-quoted
+raw strings and double-quoted interpreted strings. Unlike Go, single-quoted strings
+are equivalent to double-quoted, a nod to APL syntax. A string with a single char
+is just a singleton char value; all others are vectors. Thus ``, "", and '' are
+empty vectors, `a`, "a", and 'a' are equivalent representations of a single char,
+and `ab`, `a` `b`, "ab", "a" "b", 'ab', and 'a' 'b' are equivalent representations
+of a two-char vector.
+
+Unlike in Go, a string in ivy comprises code points, not bytes; as such it can
+contain only valid Unicode values. Thus in ivy '\x80' is illegal, although it is
+a legal one-byte string in Go.
+
+Strings can be printed. If a vector contains only chars, it is printed without
+spaces between them.
+
+Chars have restricted operations. Printing, comparison, indexing and so on are
+legal but arithmetic is not, and chars cannot be converted automatically into other
+singleton values (ints, floats, and so on). The unary operators char and code
+enable transcoding between integer and char values.
 
 User-defined operators
 

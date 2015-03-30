@@ -1,0 +1,183 @@
+# Copyright 2015 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Textual data.
+
+# Textual literals.
+
+'x'
+	x
+
+'xyz'
+	xyz
+
+"x"
+	x
+
+"xyz"
+	xyz
+
+`x`
+	x
+
+`xyz`
+	xyz
+
+'\'\x62\u1234\U00001234\\\''
+	'bሴሴ\'
+
+"\"\x62\u1234\U00001234\\\""
+	"bሴሴ\"
+
+`a
+b
+c`
+	a
+	b
+	c
+
+''
+	
+
+""
+	
+
+``
+	
+
+# Comparison.
+
+'123456789' == '5'
+	0 0 0 0 1 0 0 0 0
+
+'123456789' != '5'
+	1 1 1 1 0 1 1 1 1
+
+'123456789' < '5'
+	1 1 1 1 0 0 0 0 0
+
+'123456789' <= '5'
+	1 1 1 1 1 0 0 0 0
+
+'123456789' > '5'
+	0 0 0 0 0 1 1 1 1
+
+'123456789' >= '5'
+	0 0 0 0 1 1 1 1 1
+
+'\x00\x01' or '\x00'
+	0 1
+
+'\x00\x01' or '\x01'
+	1 1
+
+'\x00\x01' and '\x00'
+	0 0
+
+'\x00\x01' and '\x01'
+	0 1
+
+'\x00\x01' nor '\x00'
+	1 0
+
+'\x00\x01' nor '\x01'
+	0 0
+
+'\x00\x01' nand '\x00'
+	1 1
+
+'\x00\x01' nand '\x01'
+	1 0
+
+'\x00\x01' xor '\x00'
+	0 1
+
+'\x00\x01' xor '\x01'
+	1 0
+
+# Min and max.
+
+'abcd' min 'c'
+	abcc
+
+'abcd' max 'c'
+	cccd
+
+# Vector and matrix ops.
+
+10 rho 'a'
+	aaaaaaaaaa
+
+10 rho 'a' 'b'
+	ababababab
+
+10 rho 'ab'
+	ababababab
+
+3 4 rho 'a'
+	a a a a
+	a a a a
+	a a a a
+
+3 4 rho 'abc'
+	a b c a
+	b c a b
+	c a b c
+
+'abc' , 'def'
+	abcdef
+
+rho ''
+	0
+
+rho 'a'
+	
+
+rho 'abc'
+	3
+
+# Sorting and indexing.
+
+x = 'now is the time'
+x[up x]
+	   eehiimnosttw
+
+
+x = 'now is the time'
+x[down x]
+	wttsonmiihee   
+
+x = 'now is the time'
+'e' iota x
+	0 0 0 0 0 0 0 0 0 1 0 0 0 0 1
+
+3 take 'abcdef'
+	abc
+
+3 drop 'abcdef'
+	def
+
+rev 'abcdef'
+	fedcba
+
+# Unicode, or conversion between int and char.
+
+code 'a'
+	97
+
+char 97
+	a
+
+)obase 16
+code 'ሴ'
+	1234
+
+char 0x1234
+	ሴ
+
+code 'abc'
+	97 98 99
+
+char 97 98 99
+	abc
