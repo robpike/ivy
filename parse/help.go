@@ -28,6 +28,8 @@ const specialHelpMessage = `
 	interactive execution afterwards.
 ) op X
 	Show the definition of the user-defined operator X.
+	Inside the definition, numbers are always shown base
+	10, ignoring the ibase and obase.
 ) origin 1
 	Set the origin for indexing a vector or matrix.
 ) prec 256
