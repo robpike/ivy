@@ -22,6 +22,11 @@ type Value interface {
 	String() string
 	Eval(Context) Value
 
+	// ProgString is like String, but suitable for program listing.
+	// For instance, it ignores the user format for numbers and
+	// puts quotes on chars, guaranteeing a correct representation.
+	ProgString() string
+
 	toType(valueType) Value
 }
 

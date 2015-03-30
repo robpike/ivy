@@ -51,3 +51,46 @@ def a x b =
 3 x 4
 	144
 
+# Program printing
+
+# Simple.
+def a x b = a + b
+)op x
+	def a x b = a + b
+
+# Character escapes and other formatting details.
+def x a = 
+ 'abc\u0001\U0010FFFF\\\'\a\b\f\n\r\t\v\n'
+ 'a'
+ 1.5
+ 1.5 'a'
+ 'a' 'b' 'c'
+ 
+)op x
+	def x a =
+		'abc\u0001\U0010ffff\\\'\a\b\f\n\r\t\v\n'
+		'a'
+		3/2
+		3/2 'a'
+		'abc'
+
+# Parentheses only when required.
+def x a = (3+2)*(3+2)
+)op x
+	def x a = (3 + 2) * 3 + 2
+
+def x a = abs (3+2)
+)op x
+	def x a = abs 3 + 2
+
+def x a = 3 + abs -2
+)op x
+	def x a = 3 + abs -2
+
+def x a = (sqrt 4)*a
+)op x
+	def x a = (sqrt 4) * a
+
+def x a = a*(sqrt 4)*(sqrt 4)
+)op x
+	def x a = a * (sqrt 4) * sqrt 4

@@ -108,6 +108,11 @@ func (m Matrix) String() string {
 	return b.String()
 }
 
+func (m Matrix) ProgString() string {
+	// There is no such thing as a matrix in program listings.
+	panic("matrix.ProgString - cannot happen")
+}
+
 func (m Matrix) higherDim(prefix string, indentation int) string {
 	if len(m.shape) <= 3 {
 		return indent(indentation, m.String())

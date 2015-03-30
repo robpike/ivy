@@ -17,7 +17,10 @@ import (
 	"robpike.io/ivy/value"
 )
 
+var testBuf bytes.Buffer
+
 func initConf() {
+	conf.SetOutput(&testBuf)
 	conf.SetFormat("")
 	conf.SetOrigin(1)
 	conf.SetPrompt("")
@@ -72,16 +75,14 @@ func TestAll(t *testing.T) {
 	}
 }
 
-var testBuf bytes.Buffer
-
 func runTest(t *testing.T, name string, lineNum int, input, output []string) bool {
 	shouldFail := strings.HasSuffix(name, "_fail.ivy")
 	initConf()
-	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")))
+	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")+"\n"))
 	context := parse.NewContext()
 	parser := parse.NewParser(&conf, name, scanner, context)
 	testBuf.Reset()
-	if !run(parser, &testBuf, context, false) != shouldFail {
+	if !run(parser, context, false) != shouldFail {
 		if shouldFail {
 			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
 		} else {

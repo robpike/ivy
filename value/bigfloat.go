@@ -40,6 +40,11 @@ func (f BigFloat) String() string {
 	return f.Float.Format('g', 6)
 }
 
+func (f BigFloat) ProgString() string {
+	// There is no such thing as a float literal in program listings.
+	panic("float.ProgString - cannot happen")
+}
+
 func (f BigFloat) Eval(Context) Value {
 	return f
 }

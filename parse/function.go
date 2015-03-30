@@ -26,13 +26,12 @@ func (fn *function) String() string {
 	}
 	s := fmt.Sprintf("def %s%s %s =", left, fn.name, fn.right.name)
 	if len(fn.body) == 1 {
-		s += " " + fn.body[0].String()
-	} else {
-		for _, stmt := range fn.body {
-			s += "\n\t" + stmt.String()
-		}
+		return s + " " + fn.body[0].ProgString()
 	}
-	return s + "\n"
+	for _, stmt := range fn.body {
+		s += "\n\t" + stmt.ProgString()
+	}
+	return s
 }
 
 // function definition
@@ -107,7 +106,7 @@ func (p *Parser) functionDefn() {
 		p.errorf("argument name %q is function name", fn.name)
 	}
 	if p.config.Debug("parse") {
-		fmt.Printf("def %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
+		p.Printf("def %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
 	}
 }
 
@@ -136,8 +135,8 @@ func (u *unaryCall) Eval(context value.Context) value.Value {
 	return v
 }
 
-func (u *unaryCall) String() string {
-	return fmt.Sprintf("(%s %s)", u.name, u.arg)
+func (u *unaryCall) ProgString() string {
+	return fmt.Sprintf("(%s %s)", u.name, u.arg.ProgString())
 }
 
 type binaryCall struct {
@@ -168,6 +167,6 @@ func (b *binaryCall) Eval(context value.Context) value.Value {
 	return v
 }
 
-func (b *binaryCall) String() string {
-	return fmt.Sprintf("(%s %s %s)", b.left, b.name, b.right)
+func (b *binaryCall) ProgString() string {
+	return fmt.Sprintf("(%s %s %s)", b.left.ProgString(), b.name, b.right.ProgString())
 }

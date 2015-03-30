@@ -45,6 +45,10 @@ func (r BigRat) String() string {
 	return fmt.Sprintf("%s/%s", num, den)
 }
 
+func (r BigRat) ProgString() string {
+	return fmt.Sprintf("%s/%s", r.Num(), r.Denom())
+}
+
 func (r BigRat) floatString(verb byte, prec int) string {
 	switch verb {
 	case 'f', 'F':

@@ -72,7 +72,7 @@ func main() {
 			}
 			scanner := scan.New(&conf, name, bufio.NewReader(fd))
 			parser := parse.NewParser(&conf, name, scanner, context)
-			if !run(parser, os.Stdout, context, interactive) {
+			if !run(parser, context, interactive) {
 				break
 			}
 		}
@@ -81,18 +81,19 @@ func main() {
 
 	scanner := scan.New(&conf, "<stdin>", bufio.NewReader(os.Stdin))
 	parser := parse.NewParser(&conf, "<stdin>", scanner, context)
-	for !run(parser, os.Stdout, context, true) {
+	for !run(parser, context, true) {
 	}
 }
 
 func runArgs(context value.Context) {
 	scanner := scan.New(&conf, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
 	parser := parse.NewParser(&conf, "<args>", scanner, context)
-	run(parser, os.Stdout, context, false)
+	run(parser, context, false)
 }
 
 // run runs until EOF or error. The return value says whether we completed without error.
-func run(p *parse.Parser, writer io.Writer, context value.Context, interactive bool) (success bool) {
+func run(p *parse.Parser, context value.Context, interactive bool) (success bool) {
+	writer := conf.Output()
 	defer func() {
 		if conf.Debug("panic") {
 			return

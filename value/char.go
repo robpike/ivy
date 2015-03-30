@@ -5,6 +5,7 @@
 package value
 
 import (
+	"fmt"
 	"strconv"
 	"unicode/utf8"
 )
@@ -20,6 +21,10 @@ func (c Char) String() string {
 	// We ignore the format - they are always textual.
 	// TODO: What about escapes?
 	return string(c)
+}
+
+func (c Char) ProgString() string {
+	return fmt.Sprintf("%q", rune(c))
 }
 
 func (c Char) Eval(Context) Value {

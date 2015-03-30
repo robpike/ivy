@@ -5,7 +5,9 @@
 package parse // import "robpike.io/ivy/parse"
 
 import (
+	"bytes"
 	"fmt"
+	"strconv"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/scan"
@@ -27,7 +29,7 @@ func tree(e interface{}) string {
 			if i > 0 {
 				s += " "
 			}
-			s += x.String()
+			s += x.ProgString()
 		}
 		s += ">"
 		return s
@@ -75,7 +77,7 @@ func (a *assignment) Eval(context value.Context) value.Value {
 	return nil
 }
 
-func (a *assignment) String() string {
+func (a *assignment) ProgString() string {
 	return fmt.Sprintf("%s = %s", a.variable.name, a.expr)
 }
 
@@ -95,15 +97,59 @@ func (s sliceExpr) Eval(context value.Context) value.Value {
 	return value.NewVector(v)
 }
 
-func (s sliceExpr) String() string {
-	str := ""
-	for i, v := range s {
-		if i > 0 {
-			str += " "
+var charEscape = map[rune]string{
+	'\\': "\\\\",
+	'\'': "\\'",
+	'\a': "\\a",
+	'\b': "\\b",
+	'\f': "\\f",
+	'\n': "\\n",
+	'\r': "\\r",
+	'\t': "\\t",
+	'\v': "\\v",
+}
+
+func (s sliceExpr) ProgString() string {
+	var b bytes.Buffer
+	// If it's all Char, we can do a prettier job.
+	if s.allChars() {
+		b.WriteRune('\'')
+		for _, v := range s {
+			c := rune(v.(value.Char))
+			esc := charEscape[c]
+			if esc != "" {
+				b.WriteString(esc)
+				continue
+			}
+			if !strconv.IsPrint(c) {
+				if c <= 0xFFFF {
+					fmt.Fprintf(&b, "\\u%04x", c)
+				} else {
+					fmt.Fprintf(&b, "\\U%08x", c)
+				}
+				continue
+			}
+			b.WriteRune(c)
 		}
-		str += v.String()
+		b.WriteRune('\'')
+	} else {
+		for i, v := range s {
+			if i > 0 {
+				b.WriteRune(' ')
+			}
+			b.WriteString(v.ProgString())
+		}
 	}
-	return str
+	return b.String()
+}
+
+func (s sliceExpr) allChars() bool {
+	for _, c := range s {
+		if _, ok := c.(value.Char); !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // variableExpr identifies a variable to be looked up and evaluated.
@@ -119,7 +165,7 @@ func (e variableExpr) Eval(context value.Context) value.Value {
 	return v
 }
 
-func (e variableExpr) String() string {
+func (e variableExpr) ProgString() string {
 	return e.name
 }
 
@@ -141,8 +187,8 @@ type unary struct {
 	right value.Expr
 }
 
-func (u *unary) String() string {
-	return fmt.Sprintf("%s %s", u.op, u.right)
+func (u *unary) ProgString() string {
+	return fmt.Sprintf("%s %s", u.op, u.right.ProgString())
 }
 
 func (u *unary) Eval(context value.Context) value.Value {
@@ -155,15 +201,15 @@ type binary struct {
 	right value.Expr
 }
 
-func (b *binary) String() string {
+func (b *binary) ProgString() string {
 	// Special case for indexing.
 	if b.op == "[]" {
-		return fmt.Sprintf("%s[%s]", b.left, b.right)
+		return fmt.Sprintf("%s[%s]", b.left.ProgString(), b.right.ProgString())
 	}
 	if isCompound(b.left) {
-		return fmt.Sprintf("(%s) %s %s", b.left, b.op, b.right)
+		return fmt.Sprintf("(%s) %s %s", b.left.ProgString(), b.op, b.right.ProgString())
 	} else {
-		return fmt.Sprintf("%s %s %s", b.left, b.op, b.right)
+		return fmt.Sprintf("%s %s %s", b.left.ProgString(), b.op, b.right.ProgString())
 	}
 }
 
@@ -194,6 +240,16 @@ func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner, cont
 		fileName: fileName,
 		context:  context.(*execContext),
 	}
+}
+
+// Printf formats the args and writes them to the configured output writer.
+func (p *Parser) Printf(format string, args ...interface{}) {
+	fmt.Fprintf(p.config.Output(), format, args...)
+}
+
+// Println prints the args and writes them to the configured output writer.
+func (p *Parser) Println(args ...interface{}) {
+	fmt.Fprintln(p.config.Output(), args...)
 }
 
 func (p *Parser) next() scan.Token {
@@ -294,7 +350,7 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 		p.errorf("unexpected %q", tok)
 	}
 	if len(exprs) > 0 && p.config.Debug("parse") {
-		fmt.Println(tree(exprs))
+		p.Println(tree(exprs))
 	}
 	return exprs, ok
 }

@@ -60,13 +60,13 @@ func (p *Parser) special() {
 Switch:
 	switch text := p.need(scan.Identifier).Text; text {
 	case "help":
-		fmt.Println(specialHelpMessage)
-		fmt.Println("More at: http://godoc.org/robpike.io/ivy")
+		p.Println(specialHelpMessage)
+		p.Println("More at: http://godoc.org/robpike.io/ivy")
 	case "base", "ibase", "obase":
 		ibase, obase := p.config.Base()
 		if p.peek().Type == scan.Newline {
-			fmt.Printf("ibase\t%d\n", ibase)
-			fmt.Printf("obase\t%d\n", obase)
+			p.Printf("ibase\t%d\n", ibase)
+			p.Printf("obase\t%d\n", obase)
 			break Switch
 		}
 		base := p.nextDecimalNumber()
@@ -85,7 +85,7 @@ Switch:
 	case "debug":
 		if p.peek().Type == scan.Newline {
 			for _, f := range debugFlags {
-				fmt.Printf("%s\t%d\n", f, truth(p.config.Debug(f)))
+				p.Printf("%s\t%d\n", f, truth(p.config.Debug(f)))
 			}
 			break Switch
 		}
@@ -98,16 +98,16 @@ Switch:
 			}
 		}
 		if !found {
-			fmt.Println("no such debug flag:", name)
+			p.Println("no such debug flag:", name)
 			break Switch
 		}
 		if p.peek().Type == scan.Newline {
 			// Toggle the value
 			p.config.SetDebug(name, !p.config.Debug(name))
 			if p.config.Debug(name) {
-				fmt.Println("1")
+				p.Println("1")
 			} else {
-				fmt.Println("0")
+				p.Println("0")
 			}
 			break
 		}
@@ -115,7 +115,7 @@ Switch:
 		p.config.SetDebug(name, number != 0)
 	case "format":
 		if p.peek().Type == scan.Newline {
-			fmt.Printf("%q\n", p.config.Format())
+			p.Printf("%q\n", p.config.Format())
 			break Switch
 		}
 		p.config.SetFormat(p.getString())
@@ -126,12 +126,12 @@ Switch:
 		fn := p.context.unaryFn[name]
 		found := false
 		if fn != nil {
-			fmt.Println(fn)
+			p.Println(fn)
 			found = true
 		}
 		fn = p.context.binaryFn[name]
 		if fn != nil {
-			fmt.Println(fn)
+			p.Println(fn)
 			found = true
 		}
 		if !found {
@@ -139,7 +139,7 @@ Switch:
 		}
 	case "origin":
 		if p.peek().Type == scan.Newline {
-			fmt.Println(p.config.Origin())
+			p.Println(p.config.Origin())
 			break Switch
 
 		}
@@ -150,7 +150,7 @@ Switch:
 		p.config.SetOrigin(origin)
 	case "prec":
 		if p.peek().Type == scan.Newline {
-			fmt.Printf("%d\n", p.config.FloatPrec())
+			p.Printf("%d\n", p.config.FloatPrec())
 			break Switch
 		}
 		prec := p.nextDecimalNumber()
@@ -160,13 +160,13 @@ Switch:
 		p.config.SetFloatPrec(uint(prec))
 	case "prompt":
 		if p.peek().Type == scan.Newline {
-			fmt.Printf("%q\n", p.config.Format())
+			p.Printf("%q\n", p.config.Format())
 			break Switch
 		}
 		p.config.SetPrompt(p.getString())
 	case "seed":
 		if p.peek().Type == scan.Newline {
-			fmt.Println(p.config.Origin())
+			p.Println(p.config.Origin())
 			break Switch
 		}
 		p.config.RandomSeed(int64(p.nextDecimalNumber()))

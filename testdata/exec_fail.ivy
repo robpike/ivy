@@ -27,3 +27,7 @@ x = 1 2 3
 # undefined variable "x"
 x
 	X
+
+# invalid code points in string
+'\x80'
+	X

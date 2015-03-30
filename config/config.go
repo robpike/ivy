@@ -5,8 +5,10 @@
 package config // import "robpike.io/ivy/config"
 
 import (
+	"io"
 	"math/big"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +19,7 @@ import (
 // values for all settings.
 type Config struct {
 	prompt      string
+	output      io.Writer
 	format      string
 	ratFormat   string
 	formatVerb  byte // The verb if format is floating-point.
@@ -34,11 +37,24 @@ type Config struct {
 }
 
 func (c *Config) init() {
-	if c.random == nil {
+	if c.output == nil {
+		c.output = os.Stdout
 		c.source = rand.NewSource(time.Now().Unix())
 		c.random = rand.New(c.source)
 		c.floatPrec = 256
 	}
+}
+
+// Output returns the writer to be used for program output.
+func (c *Config) Output() io.Writer {
+	c.init()
+	return c.output
+}
+
+// SetOutput sets the writer to which program output is printed; default is os.Stdout.
+func (c *Config) SetOutput(output io.Writer) {
+	c.init()
+	c.output = output
 }
 
 // Format returns the formatting string. If empty, the default

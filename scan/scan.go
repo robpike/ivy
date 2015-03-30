@@ -208,7 +208,7 @@ func (l *Scanner) emit(t Type) {
 	}
 	s := l.input[l.start:l.pos]
 	if l.config.Debug("tokens") {
-		fmt.Printf("%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, s})
+		fmt.Fprintf(l.config.Output(), "%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, s})
 	}
 	l.Tokens <- Token{t, l.line, s}
 	l.start = l.pos

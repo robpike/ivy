@@ -16,6 +16,12 @@ func (v Vector) String() string {
 	return v.makeString(!v.allChars())
 }
 
+func (v Vector) ProgString() string {
+	// There is no such thing as a vector in program listings; they
+	// are represented as a sliceExpr.
+	panic("vector.ProgString - cannot happen")
+}
+
 // makeString is like String but takes a flag specifying
 // whether to put spaces between the elements. By
 // default (that is, by calling String) spaces are suppressed

@@ -9,7 +9,7 @@ package value
 
 // Expr is the interface for a parsed expression.
 type Expr interface {
-	String() string
+	ProgString() string
 
 	Eval(Context) Value
 }

@@ -58,6 +58,10 @@ func (i BigInt) String() string {
 	return ""
 }
 
+func (i BigInt) ProgString() string {
+	return fmt.Sprintf("%d", i.Int)
+}
+
 func (i BigInt) floatString(verb byte, prec int) string {
 	switch verb {
 	case 'f', 'F':
