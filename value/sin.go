@@ -106,7 +106,7 @@ func twoPiReduce(x *big.Float) {
 	// Stupid algorithm. TODO.
 	twoPi := newF().SetInt64(2)
 	twoPi.Mul(twoPi, floatPi)
-	for x.Cmp(twoPi).Geq() {
+	for x.Cmp(twoPi) >= 0 {
 		x.Sub(x, twoPi)
 	}
 }

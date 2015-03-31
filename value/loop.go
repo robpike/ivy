@@ -35,16 +35,16 @@ func newLoop(name string, x *big.Float, maxIterations int) *loop {
 // after the maximum number of iterations, it errors out.
 func (l *loop) terminate(z *big.Float) bool {
 	l.delta.Sub(l.prevZ, z)
-	if l.delta.IsZero() {
+	if l.delta.Sign() == 0 {
 		return true
 	}
-	if l.delta.IsNeg() {
+	if l.delta.Sign() < 0 {
 		// Convergence can oscillate when the calculation is nearly
 		// done and we're running out of bits. This stops that.
 		// See next comment.
 		l.delta.Neg(l.delta)
 	}
-	if l.delta.Cmp(l.prevDelta).Eql() {
+	if l.delta.Cmp(l.prevDelta) == 0 {
 		// In freaky cases (like e**3) we can hit the same large positive
 		// and then  large negative value (4.5, -4.5) so we count a few times
 		// to see that it really has stalled. Avoids having to do hard math,

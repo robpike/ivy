@@ -13,10 +13,10 @@ func sqrt(v Value) Value {
 func floatSqrt(bx BigFloat) Value {
 	x := bx.Float
 	two := newF().SetInt64(2)
-	if x.IsNeg() {
+	switch x.Sign() {
+	case -1:
 		Errorf("square root of negative number")
-	}
-	if x.IsZero() {
+	case 0:
 		return zero
 	}
 

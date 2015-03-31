@@ -429,7 +429,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float).Eql())
+				return toInt(i.Cmp(j.Float) == 0)
 			},
 		},
 	}
@@ -454,7 +454,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float).Neq())
+				return toInt(i.Cmp(j.Float) != 0)
 			},
 		},
 	}
@@ -479,7 +479,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float).Lss())
+				return toInt(i.Cmp(j.Float) < 0)
 			},
 		},
 	}
@@ -504,7 +504,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float).Leq())
+				return toInt(i.Cmp(j.Float) <= 0)
 			},
 		},
 	}
@@ -529,7 +529,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float).Gtr())
+				return toInt(i.Cmp(j.Float) > 0)
 			},
 		},
 	}
@@ -554,7 +554,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				return toInt(i.Cmp(j.Float).Geq())
+				return toInt(i.Cmp(j.Float) >= 0)
 			},
 		},
 	}
@@ -791,7 +791,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				if i.Cmp(j.Float).Lss() {
+				if i.Cmp(j.Float) < 0 {
 					return i.shrink()
 				}
 				return j.shrink()
@@ -831,7 +831,7 @@ func init() {
 			},
 			bigFloatType: func(u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
-				if i.Cmp(j.Float).Gtr() {
+				if i.Cmp(j.Float) > 0 {
 					return i.shrink()
 				}
 				return j.shrink()
