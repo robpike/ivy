@@ -70,7 +70,7 @@ Binary functions.
 	                            idiv    A divided by B (Go)
 	Exponentiation        A⋆B   **      A raised to the B power
 	Circle                A○B           Trigonometric functions of B selected by A
-	                                    A=1: sin(B) A=2: cos(B) A=3: tan(B)
+	                                    A=1: sin(B) A=2: cos(B) A=3: tan(B); ¯A for inverse
 	                            sin     sin(A); ivy uses traditional name.
 	                            cos     cos(B); ivy uses traditional name.
 	                            tan     tan(B); ivy uses traditional name.
@@ -93,6 +93,7 @@ Binary functions.
 	Expansion             A\B           Insert zeros (or blanks) in B corresponding to zeros in A
 	Compression           A/B           Select elements in B corresponding to ones in A
 	Index of              A⍳B           The location (index) of B in A; 1+⌈/⍳⍴A if not found
+	                                    In ivy: origin-1 if not found (i.e. 0 if one-indexed)
 	Matrix divide         A⌹B           Solution to system of linear equations Ax = B
 	Rotation              A⌽B           The elements of B are rotated A positions
 	Rotation              A⊖B           The elements of B are rotated A positions along the first axis

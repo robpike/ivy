@@ -78,7 +78,7 @@ func (a *assignment) Eval(context value.Context) value.Value {
 }
 
 func (a *assignment) ProgString() string {
-	return fmt.Sprintf("%s = %s", a.variable.name, a.expr)
+	return fmt.Sprintf("%s = %s", a.variable.name, a.expr.ProgString())
 }
 
 // sliceExpr holds a syntactic vector to be verified and evaluated.
