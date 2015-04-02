@@ -347,7 +347,7 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 	switch tok.Type {
 	case scan.EOF, scan.Newline:
 	default:
-		p.errorf("unexpected %q", tok)
+		p.errorf("unexpected %s", tok)
 	}
 	if len(exprs) > 0 && p.config.Debug("parse") {
 		p.Println(tree(exprs))
