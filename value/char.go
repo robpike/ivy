@@ -46,7 +46,7 @@ func (c Char) toType(which valueType) Value {
 
 func (c Char) validate() Char {
 	if !utf8.ValidRune(rune(c)) {
-		Errorf("invalid char value %+U\n", c)
+		Errorf("invalid char value %U\n", c)
 	}
 	return c
 }

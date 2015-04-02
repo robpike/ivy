@@ -52,6 +52,9 @@ const (
 var operatorWord = map[string]bool{
 	"abs":   true,
 	"and":   true,
+	"acos":  true,
+	"asin":  true,
+	"atan":  true,
 	"ceil":  true,
 	"char":  true,
 	"code":  true,

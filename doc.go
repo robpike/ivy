@@ -71,9 +71,12 @@ Binary functions.
 	Exponentiation        A⋆B   **      A raised to the B power
 	Circle                A○B           Trigonometric functions of B selected by A
 	                                    A=1: sin(B) A=2: cos(B) A=3: tan(B)
-	                            sin     sin(A); ivy uses traditional symbol.
-	                            cos     cos(B); ivy uses traditional symbol.
-	                            tan     tan(B); ivy uses traditional symbol.
+	                            sin     sin(A); ivy uses traditional name.
+	                            cos     cos(B); ivy uses traditional name.
+	                            tan     tan(B); ivy uses traditional name.
+	                            asin    arcsin(A); ivy uses traditional name.
+	                            acos    arccos(B); ivy uses traditional name.
+	                            atan    arctan(B); ivy uses traditional name.
 	Deal                  A?B           A distinct integers selected randomly from the first B integers
 	Membership            A∈B           1 for elements of A present in B; 0 where not.
 	Maximum               A⌈B   max     The greater value of A or B

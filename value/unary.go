@@ -45,6 +45,7 @@ var (
 	reverse, flip                     *unaryOp
 	floor, ceil                       *unaryOp
 	unaryCos, unarySin, unaryTan      *unaryOp
+	unaryAcos, unaryAsin, unaryAtan   *unaryOp
 	unaryLog, unarySqrt               *unaryOp
 	unaryChar, unaryCode              *unaryOp
 	unaryOps                          map[string]*unaryOp
@@ -532,6 +533,36 @@ func init() {
 		},
 	}
 
+	unaryAsin = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return asin(v) },
+			bigIntType:   func(v Value) Value { return asin(v) },
+			bigRatType:   func(v Value) Value { return asin(v) },
+			bigFloatType: func(v Value) Value { return asin(v) },
+		},
+	}
+
+	unaryAcos = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return acos(v) },
+			bigIntType:   func(v Value) Value { return acos(v) },
+			bigRatType:   func(v Value) Value { return acos(v) },
+			bigFloatType: func(v Value) Value { return acos(v) },
+		},
+	}
+
+	unaryAtan = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return atan(v) },
+			bigIntType:   func(v Value) Value { return atan(v) },
+			bigRatType:   func(v Value) Value { return atan(v) },
+			bigFloatType: func(v Value) Value { return atan(v) },
+		},
+	}
+
 	unarySqrt = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
@@ -564,6 +595,9 @@ func init() {
 		"?":     unaryRoll,
 		"^":     unaryBitwiseNot,
 		"abs":   unaryAbs,
+		"acos":  unaryAcos,
+		"asin":  unaryAsin,
+		"atan":  unaryAtan,
 		"ceil":  ceil,
 		"char":  unaryChar,
 		"code":  unaryCode,

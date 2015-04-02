@@ -27,7 +27,6 @@ func tan(v Value) Value {
 }
 
 // floatSin computes sin(x) using argument reduction and a Taylor series.
-// TODO: Use a better algorithm?
 func floatSin(x *big.Float) *big.Float {
 	negate := false
 	if x.Sign() < 0 {
@@ -51,7 +50,6 @@ func floatSin(x *big.Float) *big.Float {
 }
 
 // floatCos computes sin(x) using argument reduction and a Taylor series.
-// TODO: Use a better algorithm?
 func floatCos(x *big.Float) *big.Float {
 	twoPiReduce(x)
 
@@ -67,8 +65,7 @@ func floatCos(x *big.Float) *big.Float {
 func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.Float {
 	one := newF().SetInt64(1)
 	plus := false
-	term := newF()
-	term.Set(one)
+	term := newF().Set(one)
 	for j := 0; j < index; j++ {
 		term.Mul(term, x)
 	}
