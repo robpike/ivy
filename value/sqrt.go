@@ -4,20 +4,21 @@
 
 package value
 
+import "math/big"
+
 func sqrt(v Value) Value {
-	return floatSqrt(floatSelf(v).(BigFloat))
+	return BigFloat{floatSqrt(floatSelf(v).(BigFloat).Float)}.shrink()
 }
 
 // floatSqrt computes the square root of x using Newton's method.
 // TODO: Use a better algorithm such as the one from math/sqrt.go.
-func floatSqrt(bx BigFloat) Value {
-	x := bx.Float
+func floatSqrt(x *big.Float) *big.Float {
 	two := newF().SetInt64(2)
 	switch x.Sign() {
 	case -1:
 		Errorf("square root of negative number")
 	case 0:
-		return zero
+		return newF()
 	}
 
 	// Each iteration computes
@@ -48,5 +49,5 @@ func floatSqrt(bx BigFloat) Value {
 			break
 		}
 	}
-	return BigFloat{z}.shrink()
+	return z
 }

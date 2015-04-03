@@ -85,22 +85,50 @@ func floatAcos(x *big.Float) *big.Float {
 // floatAtan computes atan(x) using a Taylor series. There are two series,
 // one for |x| < 1 and one for larger values.
 func floatAtan(x *big.Float) *big.Float {
-	one := newF().SetInt64(1)
-	minusOne := newF().SetInt64(-1)
-	if x.Cmp(minusOne) < 0 || 0 < x.Cmp(one) {
-		return floatAtanLarge(x)
-	}
-	// The series converge very slowly near 1. atan 1.00001 takes over a million
-	// iterations. At least we can pick off 1 and -1 since they're values that are
-	// likely to be tried by an interactive user.
-	if x.Cmp(one) == 0 {
-		z := newF().Set(floatPi)
-		return z.Quo(z, newF().SetInt64(4))
-	}
-	if x.Cmp(minusOne) == 0 {
-		z := newF().Set(floatPi)
-		z.Quo(z, newF().SetInt64(4))
+	// atan(-x) == -atan(x). Do this up top to simplify the calculation coming up.
+	if x.Sign() < 0 {
+		z := newF().Set(x)
+		z = floatAtan(z.Neg(z))
 		return z.Neg(z)
+	}
+
+	one := newF().SetInt64(1)
+
+	// The series converge very slowly near 1. atan 1.00001 takes over a million
+	// iterations at the default precision. But there is hope, an Euler identity:
+	//	atan(a) = atan(b) + atan((a-b)/(1+ab))
+	// Note that b is a free variable. If x is near 1, we can use this formula
+	// to push the computation to values that converge faster. Because
+	//	tan(π/8) = √2 - 1, or equivalently atan(√2 - 1) == π/8
+	// we choose b = π/8 and then we only need to calculate one atan:
+	//	y = √2 - 1
+	//	atan(x) = π/8 + atan((x-y)/(1+xy))
+	// Where do we cross over? This version converges significantly faster
+	// even at 0.5, but we must be careful that (x-y)/(1+xy) never approaches 1.
+	// At x = 0.5, (x-y)/(1+xy) is 0.07; at x=1 it is 0.414214; at x=1.5 it is
+	// 0.66, which is as big as we dare go. With 256 bits of precision and a
+	// crossover at 0.5, here are the number of iterations done by
+	//	atan .1*iota 20
+	// 0.1 39, 0.2 55, 0.3 73, 0.4 96, 0.5 126, 0.6 47, 0.7 59, 0.8 71, 0.9 85, 1.0 99, 1.1 116, 1.2 38, 1.3 44, 1.4 50, 1.5 213, 1.6 183, 1.7 163, 1.8 147, 1.9 135, 2.0 125
+	tmp := newF().Set(one)
+	tmp.Sub(tmp, x)
+	tmp.Abs(tmp)
+	if tmp.Cmp(newF().SetFloat64(0.5)) < 0 {
+		z := newF().Set(floatPi)
+		z.Quo(z, newF().SetInt64(8))
+		y := floatSqrt(newF().SetInt64(2))
+		y.Sub(y, one)
+		num := newF().Set(x)
+		num.Sub(num, y)
+		den := newF().Set(x)
+		den = den.Mul(den, y)
+		den = den.Add(den, one)
+		z = z.Add(z, floatAtan(num.Quo(num, den)))
+		return z
+	}
+
+	if x.Cmp(one) > 0 {
+		return floatAtanLarge(x)
 	}
 
 	// This is the series for small values |x| <  1.
