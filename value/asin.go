@@ -169,10 +169,10 @@ func floatAtan(x *big.Float) *big.Float {
 }
 
 // floatAtan computes atan(x)  for large x using a Taylor series.
+// x is known to be > 1.
 func floatAtanLarge(x *big.Float) *big.Float {
 	// This is the series for larger values |x| >=  1.
 	// For x > 0, atan(x) = +π/2 - 1/x + 1/3x³ -1/5x⁵ + 1/7x⁷ - ...
-	// For x < 0, atan(x) = -π/2 - 1/x + 1/3x³ -1/5x⁵ + 1/7x⁷ - ...
 	// First term to compute in loop will be -1/x
 
 	one := newF().SetInt64(1)
@@ -184,9 +184,6 @@ func floatAtanLarge(x *big.Float) *big.Float {
 	xSquared.Mul(x, x)
 	z := newF().Set(floatPi)
 	z.Quo(z, newF().SetInt64(2))
-	if x.Sign() < 0 {
-		z.Neg(z)
-	}
 	plus := false
 
 	loop := newLoop("atan", x, 1e6)
