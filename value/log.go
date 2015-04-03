@@ -49,7 +49,7 @@ func floatLog(x *big.Float) *big.Float {
 
 	// This is the slowest-converging series, so we add a factor of ten to the cutoff.
 	// Only necessary when FloatPrec is at or beyond constPrecisionInBits.
-	loop := newLoop("log", y, 10000)
+	loop := newLoop("log", y, 40)
 	for {
 		term.Set(yN)
 		term.Quo(term, n)

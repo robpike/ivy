@@ -71,7 +71,7 @@ func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.F
 	xN := newF().Set(term)
 	x2 := newF().Mul(x, x)
 
-	loop := newLoop(name, x, 1000)
+	loop := newLoop(name, x, 4)
 	for {
 		// Invariant: factorial holds exponent!.
 		term.Quo(term, factorial)

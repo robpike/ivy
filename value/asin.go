@@ -48,7 +48,7 @@ func floatAsin(name string, x *big.Float) *big.Float {
 	xSquared.Mul(x, x)
 	z := newF()
 
-	loop := newLoop(name, x, 10000)
+	loop := newLoop(name, x, 40)
 	// n goes up by two each loop.
 	for {
 		term.Set(coef)
@@ -140,7 +140,7 @@ func floatAtan(x *big.Float) *big.Float {
 	z := newF()
 	plus := true
 
-	loop := newLoop("atan", x, 10000)
+	loop := newLoop("atan", x, 4)
 	// n goes up by two each loop.
 	for {
 		term.Set(xN)
@@ -181,7 +181,7 @@ func floatAtanLarge(x *big.Float) *big.Float {
 	z.Quo(z, newF().SetInt64(2))
 	plus := false
 
-	loop := newLoop("atan", x, 1e6)
+	loop := newLoop("atan", x, 4)
 	// n goes up by two each loop.
 	for {
 		term.Set(xN)

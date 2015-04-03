@@ -8,8 +8,8 @@ import "math/big"
 
 type loop struct {
 	name          string     // The name of the function we are evaluating.
-	i             int        // Loop count.
-	maxIterations int        // When to give up.
+	i             uint       // Loop count.
+	maxIterations uint       // When to give up.
 	stallCount    int        // Iterations since |delta| changed.
 	start         *big.Float // starting value.
 	prevZ         *big.Float // Result from the previous iteration.
@@ -20,11 +20,13 @@ type loop struct {
 // newLoop returns a new loop checker. The arguments are the name
 // of the function being evaluated, the argument to the function, and
 // the maximum number of iterations to perform before giving up.
-func newLoop(name string, x *big.Float, maxIterations int) *loop {
+// The last number in terms of iterations per bit, so the caller can
+// ignore the precision setting.
+func newLoop(name string, x *big.Float, itersPerBit uint) *loop {
 	return &loop{
 		name:          name,
 		start:         newF().Set(x),
-		maxIterations: maxIterations,
+		maxIterations: 10 + itersPerBit*conf.FloatPrec(),
 		prevZ:         newF(),
 		delta:         newF().Set(x),
 		prevDelta:     newF(),

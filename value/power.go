@@ -63,7 +63,7 @@ func exponential(x *big.Float) *big.Float {
 	nFactorial := newF().Set(floatOne)
 	z := newF().SetInt64(1)
 
-	loop := newLoop("exponential", x, 1000)
+	loop := newLoop("exponential", x, 4)
 	for {
 		term.Set(xN)
 		term.Quo(term, nFactorial)
