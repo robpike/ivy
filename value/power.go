@@ -7,17 +7,18 @@ package value
 import "math/big"
 
 func power(u, v Value) Value {
-	return floatPower(floatSelf(u).(BigFloat), floatSelf(v).(BigFloat))
+	z := floatPower(floatSelf(u).(BigFloat), floatSelf(v).(BigFloat))
+	return floatToValue(z)
 }
 
 // floatPower computes bx to the power of bexp.
-func floatPower(bx, bexp BigFloat) Value {
+func floatPower(bx, bexp BigFloat) *big.Float {
 	x := bx.Float
 	fexp := bexp.Float
 	positive := true
 	switch fexp.Sign() {
 	case 0:
-		return one
+		return newF().SetInt64(1)
 	case -1:
 		if x.Sign() == 0 {
 			Errorf("negative exponent of zer")
@@ -46,10 +47,9 @@ func floatPower(bx, bexp BigFloat) Value {
 		z.Mul(z, exponential(y))
 	}
 	if !positive {
-		one := newF().SetInt64(1)
-		z.Quo(one, z)
+		z.Quo(floatOne, z)
 	}
-	return BigFloat{z}.shrink()
+	return z
 }
 
 // exponential computes exp(x) using the Taylor series. It converges quickly
@@ -57,11 +57,10 @@ func floatPower(bx, bexp BigFloat) Value {
 func exponential(x *big.Float) *big.Float {
 	// The Taylor series for e**x, exp(x), is 1 + x + x²/2! + x³/3! ...
 
-	one := newF().SetInt64(1)
 	xN := newF().Set(x)
 	term := newF()
-	n := newF().Set(one)
-	nFactorial := newF().Set(one)
+	n := newF().Set(floatOne)
+	nFactorial := newF().Set(floatOne)
 	z := newF().SetInt64(1)
 
 	loop := newLoop("exponential", x, 1000)
@@ -76,7 +75,7 @@ func exponential(x *big.Float) *big.Float {
 		// Advance x**index (multiply by x).
 		xN.Mul(xN, x)
 		// Advance n, n!.
-		n.Add(n, one)
+		n.Add(n, floatOne)
 		nFactorial.Mul(nFactorial, n)
 	}
 

@@ -7,33 +7,31 @@ package value
 import "math/big"
 
 func asin(v Value) Value {
-	return BigFloat{floatAsin("asin", floatSelf(v).(BigFloat).Float)}.shrink()
+	return floatToValue(floatAsin("asin", floatSelf(v).(BigFloat).Float))
 }
 
 func acos(v Value) Value {
-	return BigFloat{floatAcos(floatSelf(v).(BigFloat).Float)}.shrink()
+	return evalFloatFunc(v, floatAcos)
 }
 
 func atan(v Value) Value {
-	return BigFloat{floatAtan(floatSelf(v).(BigFloat).Float)}.shrink()
+	return evalFloatFunc(v, floatAtan)
 }
 
 // floatAsin computes asin(x) using a Taylor series.
 func floatAsin(name string, x *big.Float) *big.Float {
 	// Must be in range.
-	one := newF().SetInt64(1)
-	minusOne := newF().SetInt64(-1)
-	if x.Cmp(minusOne) < 0 || 0 < x.Cmp(one) {
+	if x.Cmp(floatMinusOne) < 0 || 0 < x.Cmp(floatOne) {
 		Errorf("asin argument out of range")
 	}
 	// The series converges very slowly near 1.
 	// At least we can pick off 1 and -1 since they're values that are
 	// likely to be tried by an interactive user.
-	if x.Cmp(one) == 0 {
+	if x.Cmp(floatOne) == 0 {
 		z := newF().Set(floatPi)
 		return z.Quo(z, newF().SetInt64(2))
 	}
-	if x.Cmp(minusOne) == 0 {
+	if x.Cmp(floatMinusOne) == 0 {
 		z := newF().Set(floatPi)
 		z.Quo(z, newF().SetInt64(2))
 		return z.Neg(z)
@@ -42,9 +40,9 @@ func floatAsin(name string, x *big.Float) *big.Float {
 	// asin(x) = x + (1/2) x³/3 + (1*3/2*4) x⁵/5 + (1*3*5/2*4*6) x⁷/7 + ...
 	// First term to compute in loop will be x
 
-	n := newF().Set(one)
+	n := newF().Set(floatOne)
 	term := newF()
-	coef := newF().Set(one)
+	coef := newF().Set(floatOne)
 	xN := newF().Set(x)
 	xSquared := newF().Set(x)
 	xSquared.Mul(x, x)
@@ -64,9 +62,9 @@ func floatAsin(name string, x *big.Float) *big.Float {
 		// Advance.
 		// coef *= n/(n+1)
 		coef.Mul(coef, n)
-		n.Add(n, one)
+		n.Add(n, floatOne)
 		coef.Quo(coef, n)
-		n.Add(n, one)
+		n.Add(n, floatOne)
 		// xN *= x², becoming x**n.
 		xN.Mul(xN, xSquared)
 	}
@@ -92,8 +90,6 @@ func floatAtan(x *big.Float) *big.Float {
 		return z.Neg(z)
 	}
 
-	one := newF().SetInt64(1)
-
 	// The series converge very slowly near 1. atan 1.00001 takes over a million
 	// iterations at the default precision. But there is hope, an Euler identity:
 	//	atan(a) = atan(b) + atan((a-b)/(1+ab))
@@ -110,24 +106,24 @@ func floatAtan(x *big.Float) *big.Float {
 	// crossover at 0.5, here are the number of iterations done by
 	//	atan .1*iota 20
 	// 0.1 39, 0.2 55, 0.3 73, 0.4 96, 0.5 126, 0.6 47, 0.7 59, 0.8 71, 0.9 85, 1.0 99, 1.1 116, 1.2 38, 1.3 44, 1.4 50, 1.5 213, 1.6 183, 1.7 163, 1.8 147, 1.9 135, 2.0 125
-	tmp := newF().Set(one)
+	tmp := newF().Set(floatOne)
 	tmp.Sub(tmp, x)
 	tmp.Abs(tmp)
 	if tmp.Cmp(newF().SetFloat64(0.5)) < 0 {
 		z := newF().Set(floatPi)
 		z.Quo(z, newF().SetInt64(8))
 		y := floatSqrt(newF().SetInt64(2))
-		y.Sub(y, one)
+		y.Sub(y, floatOne)
 		num := newF().Set(x)
 		num.Sub(num, y)
 		den := newF().Set(x)
 		den = den.Mul(den, y)
-		den = den.Add(den, one)
+		den = den.Add(den, floatOne)
 		z = z.Add(z, floatAtan(num.Quo(num, den)))
 		return z
 	}
 
-	if x.Cmp(one) > 0 {
+	if x.Cmp(floatOne) > 0 {
 		return floatAtanLarge(x)
 	}
 
@@ -135,7 +131,7 @@ func floatAtan(x *big.Float) *big.Float {
 	// asin(x) = x - x³/3 + x⁵/5 - x⁷/7 + ...
 	// First term to compute in loop will be x
 
-	n := newF().Set(one)
+	n := newF().Set(floatOne)
 	two := newF().SetInt64(2)
 	term := newF()
 	xN := newF().Set(x)
@@ -175,8 +171,7 @@ func floatAtanLarge(x *big.Float) *big.Float {
 	// For x > 0, atan(x) = +π/2 - 1/x + 1/3x³ -1/5x⁵ + 1/7x⁷ - ...
 	// First term to compute in loop will be -1/x
 
-	one := newF().SetInt64(1)
-	n := newF().Set(one)
+	n := newF().Set(floatOne)
 	two := newF().SetInt64(2)
 	term := newF()
 	xN := newF().Set(x)
@@ -191,7 +186,7 @@ func floatAtanLarge(x *big.Float) *big.Float {
 	for {
 		term.Set(xN)
 		term.Mul(term, n)
-		term.Quo(one, term)
+		term.Quo(floatOne, term)
 		if plus {
 			z.Add(z, term)
 		} else {

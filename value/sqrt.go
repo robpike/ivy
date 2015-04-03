@@ -7,7 +7,15 @@ package value
 import "math/big"
 
 func sqrt(v Value) Value {
-	return BigFloat{floatSqrt(floatSelf(v).(BigFloat).Float)}.shrink()
+	return evalFloatFunc(v, floatSqrt)
+}
+
+func floatToValue(f *big.Float) Value {
+	return BigFloat{f}.shrink()
+}
+
+func evalFloatFunc(v Value, fn func(*big.Float) *big.Float) Value {
+	return BigFloat{(fn(floatSelf(v).(BigFloat).Float))}.shrink()
 }
 
 // floatSqrt computes the square root of x using Newton's method.

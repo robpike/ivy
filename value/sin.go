@@ -7,11 +7,11 @@ package value
 import "math/big"
 
 func sin(v Value) Value {
-	return BigFloat{floatSin(floatSelf(v).(BigFloat).Float)}.shrink()
+	return evalFloatFunc(v, floatSin)
 }
 
 func cos(v Value) Value {
-	return BigFloat{floatCos(floatSelf(v).(BigFloat).Float)}.shrink()
+	return evalFloatFunc(v, floatCos)
 }
 
 func tan(v Value) Value {
@@ -63,9 +63,8 @@ func floatCos(x *big.Float) *big.Float {
 
 // sincos iterates a sin or cos Taylor series.
 func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.Float {
-	one := newF().SetInt64(1)
 	plus := false
-	term := newF().Set(one)
+	term := newF().Set(floatOne)
 	for j := 0; j < index; j++ {
 		term.Mul(term, x)
 	}
@@ -90,9 +89,9 @@ func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.F
 		term.Mul(xN, x2)
 		xN.Set(term)
 		// Advance exponent and factorial.
-		exponent.Add(exponent, one)
+		exponent.Add(exponent, floatOne)
 		factorial.Mul(factorial, exponent)
-		exponent.Add(exponent, one)
+		exponent.Add(exponent, floatOne)
 		factorial.Mul(factorial, exponent)
 	}
 	return z

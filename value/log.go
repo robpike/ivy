@@ -7,7 +7,7 @@ package value
 import "math/big"
 
 func logn(v Value) Value {
-	return BigFloat{floatLog(floatSelf(v).(BigFloat).Float)}.shrink()
+	return evalFloatFunc(v, floatLog)
 }
 
 // floatLog computes natural log(x) using the Maclaurin series for log(1-x).
@@ -16,12 +16,11 @@ func floatLog(x *big.Float) *big.Float {
 		Errorf("log of non-positive value")
 	}
 	// The series wants x < 1, and log 1/x == -log x, so exploit that.
-	one := newF().SetInt64(1)
 	invert := false
-	if x.Cmp(one) > 0 {
+	if x.Cmp(floatOne) > 0 {
 		invert = true
 		xx := newF()
-		xx.Quo(one, x)
+		xx.Quo(floatOne, x)
 		x = xx
 	}
 
@@ -45,7 +44,7 @@ func floatLog(x *big.Float) *big.Float {
 
 	yN := newF().Set(y)
 	term := newF()
-	n := newF().Set(one)
+	n := newF().Set(floatOne)
 	z := newF()
 
 	// This is the slowest-converging series, so we add a factor of ten to the cutoff.
@@ -60,7 +59,7 @@ func floatLog(x *big.Float) *big.Float {
 		}
 		// Advance y**index (multiply by y).
 		yN.Mul(yN, y)
-		n.Add(n, one)
+		n.Add(n, floatOne)
 	}
 
 	if invert {
