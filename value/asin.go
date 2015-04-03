@@ -83,7 +83,7 @@ func floatAcos(x *big.Float) *big.Float {
 // floatAtan computes atan(x) using a Taylor series. There are two series,
 // one for |x| < 1 and one for larger values.
 func floatAtan(x *big.Float) *big.Float {
-	// atan(-x) == -atan(x). Do this up top to simplify the calculation coming up.
+	// atan(-x) == -atan(x). Do this up top to simplify the Euler crossover calculation.
 	if x.Sign() < 0 {
 		z := newF().Set(x)
 		z = floatAtan(z.Neg(z))
@@ -92,12 +92,11 @@ func floatAtan(x *big.Float) *big.Float {
 
 	// The series converge very slowly near 1. atan 1.00001 takes over a million
 	// iterations at the default precision. But there is hope, an Euler identity:
-	//	atan(a) = atan(b) + atan((a-b)/(1+ab))
-	// Note that b is a free variable. If x is near 1, we can use this formula
+	//	atan(x) = atan(y) + atan((x-y)/(1+xy))
+	// Note that y is a free variable. If x is near 1, we can use this formula
 	// to push the computation to values that converge faster. Because
 	//	tan(π/8) = √2 - 1, or equivalently atan(√2 - 1) == π/8
-	// we choose b = π/8 and then we only need to calculate one atan:
-	//	y = √2 - 1
+	// we choose y = √2 - 1 and then we only need to calculate one atan:
 	//	atan(x) = π/8 + atan((x-y)/(1+xy))
 	// Where do we cross over? This version converges significantly faster
 	// even at 0.5, but we must be careful that (x-y)/(1+xy) never approaches 1.
