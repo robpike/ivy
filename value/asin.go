@@ -1,4 +1,4 @@
-// Copyright 2014 The Go Authors. All rights reserved.
+// Copyright 2015 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,7 +7,7 @@ package value
 import "math/big"
 
 func asin(v Value) Value {
-	return floatToValue(floatAsin("asin", floatSelf(v).(BigFloat).Float))
+	return evalFloatFunc(v, floatAsin)
 }
 
 func acos(v Value) Value {
@@ -18,66 +18,34 @@ func atan(v Value) Value {
 	return evalFloatFunc(v, floatAtan)
 }
 
-// floatAsin computes asin(x) using a Taylor series.
-func floatAsin(name string, x *big.Float) *big.Float {
-	// Must be in range.
-	if x.Cmp(floatMinusOne) < 0 || 0 < x.Cmp(floatOne) {
-		Errorf("asin argument out of range")
-	}
-	// The series converges very slowly near 1.
-	// At least we can pick off 1 and -1 since they're values that are
-	// likely to be tried by an interactive user.
+// floatAsin computes asin(x) using the formula asin(x) = atan(x/sqrt(1-x²)).
+func floatAsin(x *big.Float) *big.Float {
+	// The asin Taylor series converges very slowly near ±1, but our
+	// atan implementation converges well for all values, so we use
+	// the formula above to compute asin. But be careful when |x|=1.
 	if x.Cmp(floatOne) == 0 {
 		z := newF().Set(floatPi)
-		return z.Quo(z, newF().SetInt64(2))
+		return z.Quo(z, floatTwo)
 	}
 	if x.Cmp(floatMinusOne) == 0 {
 		z := newF().Set(floatPi)
-		z.Quo(z, newF().SetInt64(2))
+		z.Quo(z, floatTwo)
 		return z.Neg(z)
 	}
-
-	// asin(x) = x + (1/2) x³/3 + (1*3/2*4) x⁵/5 + (1*3*5/2*4*6) x⁷/7 + ...
-	// First term to compute in loop will be x
-
-	n := newF().Set(floatOne)
-	term := newF()
-	coef := newF().Set(floatOne)
-	xN := newF().Set(x)
-	xSquared := newF().Set(x)
-	xSquared.Mul(x, x)
 	z := newF()
-
-	loop := newLoop(name, x, 40)
-	// n goes up by two each loop.
-	for {
-		term.Set(coef)
-		term.Mul(term, xN)
-		term.Quo(term, n)
-		z.Add(z, term)
-
-		if loop.terminate(z) {
-			break
-		}
-		// Advance.
-		// coef *= n/(n+1)
-		coef.Mul(coef, n)
-		n.Add(n, floatOne)
-		coef.Quo(coef, n)
-		n.Add(n, floatOne)
-		// xN *= x², becoming x**n.
-		xN.Mul(xN, xSquared)
-	}
-
-	return z
+	z.Mul(x, x)
+	z.Sub(floatOne, z)
+	z = floatSqrt(z)
+	z.Quo(x, z)
+	return floatAtan(z)
 }
 
-// floatAcos computes acos(x) using a Taylor series.
+// floatAcos computes acos(x) as π/2 - asin(x).
 func floatAcos(x *big.Float) *big.Float {
 	// acos(x) = π/2 - asin(x)
 	z := newF().Set(floatPi)
 	z.Quo(z, newF().SetInt64(2))
-	return z.Sub(z, floatAsin("acos", x))
+	return z.Sub(z, floatAsin(x))
 }
 
 // floatAtan computes atan(x) using a Taylor series. There are two series,
@@ -111,7 +79,7 @@ func floatAtan(x *big.Float) *big.Float {
 	if tmp.Cmp(newF().SetFloat64(0.5)) < 0 {
 		z := newF().Set(floatPi)
 		z.Quo(z, newF().SetInt64(8))
-		y := floatSqrt(newF().SetInt64(2))
+		y := floatSqrt(floatTwo)
 		y.Sub(y, floatOne)
 		num := newF().Set(x)
 		num.Sub(num, y)
@@ -171,13 +139,12 @@ func floatAtanLarge(x *big.Float) *big.Float {
 	// First term to compute in loop will be -1/x
 
 	n := newF().Set(floatOne)
-	two := newF().SetInt64(2)
 	term := newF()
 	xN := newF().Set(x)
 	xSquared := newF().Set(x)
 	xSquared.Mul(x, x)
 	z := newF().Set(floatPi)
-	z.Quo(z, newF().SetInt64(2))
+	z.Quo(z, floatTwo)
 	plus := false
 
 	loop := newLoop("atan", x, 4)
@@ -197,7 +164,7 @@ func floatAtanLarge(x *big.Float) *big.Float {
 			break
 		}
 		// Advance.
-		n.Add(n, two)
+		n.Add(n, floatTwo)
 		// xN *= x², becoming x**(n+2).
 		xN.Mul(xN, xSquared)
 	}

@@ -8,7 +8,7 @@ import "math/big"
 
 func power(u, v Value) Value {
 	z := floatPower(floatSelf(u).(BigFloat), floatSelf(v).(BigFloat))
-	return floatToValue(z)
+	return BigFloat{z}.shrink()
 }
 
 // floatPower computes bx to the power of bexp.

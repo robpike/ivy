@@ -55,8 +55,8 @@ func floatCos(x *big.Float) *big.Float {
 
 	// cos(x) = 1 - x²/2! + x⁴/4! - ...
 	// First term to compute in loop will be -x²/2!.
-	exponent := newF().SetInt64(2)
-	factorial := newF().SetInt64(2)
+	exponent := newF().Set(floatTwo)
+	factorial := newF().Set(floatTwo)
 
 	return sincos("cos", 2, x, newF().SetInt64(1), exponent, factorial)
 }
@@ -100,7 +100,7 @@ func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.F
 // twoPiReduce guarantees x < 2𝛑; x is known to be >= coming in.
 func twoPiReduce(x *big.Float) {
 	// Stupid algorithm. TODO.
-	twoPi := newF().SetInt64(2)
+	twoPi := newF().Set(floatTwo)
 	twoPi.Mul(twoPi, floatPi)
 	for x.Cmp(twoPi) >= 0 {
 		x.Sub(x, twoPi)

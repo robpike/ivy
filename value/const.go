@@ -29,6 +29,7 @@ var (
 	floatPi       *big.Float
 	floatLog2     *big.Float
 	floatOne      *big.Float
+	floatTwo      *big.Float
 	floatMinusOne *big.Float
 )
 
@@ -47,6 +48,7 @@ func Consts() (e, pi BigFloat) {
 		fmt.Fprintf(os.Stderr, "warning: precision too high; only have %d digits (%d bits) of precision for e and pi", constPrecisionInDigits, constPrecisionInBits)
 	}
 	floatOne = newF().SetInt64(1)
+	floatTwo = newF().SetInt64(2)
 	floatMinusOne = newF().SetInt64(-1)
 	var ok bool
 	floatE, ok = newF().SetString(strE)

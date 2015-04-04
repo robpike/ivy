@@ -10,10 +10,6 @@ func sqrt(v Value) Value {
 	return evalFloatFunc(v, floatSqrt)
 }
 
-func floatToValue(f *big.Float) Value {
-	return BigFloat{f}.shrink()
-}
-
 func evalFloatFunc(v Value, fn func(*big.Float) *big.Float) Value {
 	return BigFloat{(fn(floatSelf(v).(BigFloat).Float))}.shrink()
 }
@@ -21,7 +17,6 @@ func evalFloatFunc(v Value, fn func(*big.Float) *big.Float) Value {
 // floatSqrt computes the square root of x using Newton's method.
 // TODO: Use a better algorithm such as the one from math/sqrt.go.
 func floatSqrt(x *big.Float) *big.Float {
-	two := newF().SetInt64(2)
 	switch x.Sign() {
 	case -1:
 		Errorf("square root of negative number")
@@ -50,7 +45,7 @@ func floatSqrt(x *big.Float) *big.Float {
 	for {
 		zSquared.Mul(z, z)
 		num.Sub(zSquared, x)
-		den.Mul(two, z)
+		den.Mul(floatTwo, z)
 		num.Quo(num, den)
 		z.Sub(z, num)
 		if loop.terminate(z) {
