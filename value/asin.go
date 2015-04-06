@@ -131,7 +131,7 @@ func floatAtan(x *big.Float) *big.Float {
 	return z
 }
 
-// floatAtan computes atan(x)  for large x using a Taylor series.
+// floatAtanLarge computes atan(x)  for large x using a Taylor series.
 // x is known to be > 1.
 func floatAtanLarge(x *big.Float) *big.Float {
 	// This is the series for larger values |x| >=  1.
