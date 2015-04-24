@@ -16,6 +16,11 @@ func cos(v Value) Value {
 
 func tan(v Value) Value {
 	x := floatSelf(v).(BigFloat).Float
+	negate := false
+	if x.Sign() < 0 {
+		x.Neg(x)
+		negate = true
+	}
 	twoPiReduce(x)
 	num := floatSin(x)
 	den := floatCos(x)
@@ -23,6 +28,9 @@ func tan(v Value) Value {
 		Errorf("tangent is infinite")
 	}
 	num.Quo(num, den)
+	if negate {
+		num.Neg(num)
+	}
 	return BigFloat{num}.shrink()
 }
 
@@ -97,11 +105,31 @@ func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.F
 	return z
 }
 
-// twoPiReduce guarantees x < 2𝛑; x is known to be >= coming in.
+// twoPiReduce guarantees x < 2𝛑; x is known to be >= 0 coming in.
 func twoPiReduce(x *big.Float) {
-	// Stupid algorithm. TODO.
+	// TODO: Is there an easy better algorithm?
 	twoPi := newF().Set(floatTwo)
 	twoPi.Mul(twoPi, floatPi)
+	// Do something clever(er) if it's large.
+	if x.Cmp(newF().SetInt64(1000)) > 0 {
+		multiples := make([]*big.Float, 0, 100)
+		ten := newF().SetInt64(10)
+		multiple := newF().Set(twoPi)
+		for {
+			multiple.Mul(multiple, ten)
+			if x.Cmp(multiple) < 0 {
+				break
+			}
+			multiples = append(multiples, newF().Set(multiple))
+		}
+		// From the right, subtract big multiples.
+		for i := len(multiples) - 1; i >= 0; i-- {
+			multiple := multiples[i]
+			for x.Cmp(multiple) >= 0 {
+				x.Sub(x, multiple)
+			}
+		}
+	}
 	for x.Cmp(twoPi) >= 0 {
 		x.Sub(x, twoPi)
 	}
