@@ -113,10 +113,10 @@ func twoPiReduce(x *big.Float) {
 	// Do something clever(er) if it's large.
 	if x.Cmp(newF().SetInt64(1000)) > 0 {
 		multiples := make([]*big.Float, 0, 100)
-		ten := newF().SetInt64(10)
+		sixteen := newF().SetInt64(16)
 		multiple := newF().Set(twoPi)
 		for {
-			multiple.Mul(multiple, ten)
+			multiple.Mul(multiple, sixteen)
 			if x.Cmp(multiple) < 0 {
 				break
 			}
