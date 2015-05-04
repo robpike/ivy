@@ -10,6 +10,10 @@ func logn(v Value) Value {
 	return evalFloatFunc(v, floatLog)
 }
 
+func logBaseU(u, v Value) Value {
+	return Binary(logn(v), "/", logn(u))
+}
+
 // floatLog computes natural log(x) using the Maclaurin series for log(1-x).
 func floatLog(x *big.Float) *big.Float {
 	if x.Sign() <= 0 {

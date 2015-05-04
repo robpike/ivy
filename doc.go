@@ -97,7 +97,7 @@ Binary functions.
 	Matrix divide         A⌹B           Solution to system of linear equations Ax = B
 	Rotation              A⌽B           The elements of B are rotated A positions
 	Rotation              A⊖B           The elements of B are rotated A positions along the first axis
-	Logarithm             A⍟B           Logarithm of B to base A
+	Logarithm             A⍟B   log     Logarithm of B to base A
 	Dyadic format         A⍕B           Format B into a character matrix according to A
 	General transpose     A⍉B           The axes of B are ordered by A
 	Combinations          A!B           Number of combinations of B taken A at a time

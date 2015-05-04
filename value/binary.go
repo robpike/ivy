@@ -121,6 +121,7 @@ func toBool(t Value) bool {
 var (
 	add, sub, mul, pow                *binaryOp
 	quo, idiv, imod, div, mod         *binaryOp
+	binaryLog                         *binaryOp
 	bitAnd, bitOr, bitXor             *binaryOp
 	lsh, rsh                          *binaryOp
 	eq, ne, lt, le, gt, ge            *binaryOp
@@ -339,6 +340,17 @@ func init() {
 				return z.shrink()
 			},
 			bigFloatType: func(u, v Value) Value { return power(u, v) },
+		},
+	}
+
+	binaryLog = &binaryOp{
+		elementwise: true,
+		whichType:   binaryArithType,
+		fn: [numType]binaryFn{
+			intType:      logBaseU,
+			bigIntType:   logBaseU,
+			bigRatType:   logBaseU,
+			bigFloatType: logBaseU,
 		},
 	}
 
@@ -960,6 +972,7 @@ func init() {
 		"div":  div,  // Euclidean integer division.
 		"mod":  mod,  // Euclidean integer division.
 		"**":   pow,
+		"log":  binaryLog,
 		"&":    bitAnd,
 		"|":    bitOr,
 		"^":    bitXor,
