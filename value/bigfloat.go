@@ -37,7 +37,7 @@ func (f BigFloat) String() string {
 			return f.Float.Format(verb, prec)
 		}
 	}
-	return f.Float.Format('g', 6)
+	return f.Float.Format('g', 12)
 }
 
 func (f BigFloat) ProgString() string {
