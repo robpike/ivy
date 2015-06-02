@@ -34,7 +34,7 @@ func (f BigFloat) String() string {
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
 		if ok {
-			return f.Float.Text(verb, prec) // TODO: Use big.Float.Format
+			return f.Float.Text(verb, prec)
 		}
 	}
 	return f.Float.Text('g', 12)
