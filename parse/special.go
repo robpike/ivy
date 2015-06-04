@@ -11,16 +11,10 @@ import (
 	"fmt"
 	"os"
 
+	"robpike.io/ivy/config"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
-
-var debugFlags = []string{
-	"panic",
-	"parse",
-	"tokens",
-	"types",
-}
 
 func (p *Parser) need(want ...scan.Type) scan.Token {
 	tok := p.next()
@@ -84,26 +78,17 @@ Switch:
 		p.config.SetBase(ibase, obase)
 	case "debug":
 		if p.peek().Type == scan.Newline {
-			for _, f := range debugFlags {
+			for _, f := range config.DebugFlags {
 				p.Printf("%s\t%d\n", f, truth(p.config.Debug(f)))
 			}
 			break Switch
 		}
 		name := p.need(scan.Identifier).Text
-		found := false
-		for _, f := range debugFlags {
-			if f == name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			p.Println("no such debug flag:", name)
-			break Switch
-		}
 		if p.peek().Type == scan.Newline {
 			// Toggle the value
-			p.config.SetDebug(name, !p.config.Debug(name))
+			if !p.config.SetDebug(name, !p.config.Debug(name)) {
+				p.Println("no such debug flag:", name)
+			}
 			if p.config.Debug(name) {
 				p.Println("1")
 			} else {
@@ -112,7 +97,9 @@ Switch:
 			break
 		}
 		number := p.nextDecimalNumber()
-		p.config.SetDebug(name, number != 0)
+		if !p.config.SetDebug(name, number != 0) {
+			p.Println("no such debug flag:", name)
+		}
 	case "format":
 		if p.peek().Type == scan.Newline {
 			p.Printf("%q\n", p.config.Format())

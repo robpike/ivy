@@ -14,6 +14,13 @@ import (
 	"time"
 )
 
+var DebugFlags = []string{
+	"panic",
+	"parse",
+	"tokens",
+	"types",
+}
+
 // A Config holds information about the configuration of the system.
 // The zero value of a Config, or a nil Config pointer, represents the default
 // values for all settings.
@@ -120,11 +127,23 @@ func (c *Config) Debug(flag string) bool {
 }
 
 // SetDebug sets the value of the specified boolean debugging flag.
-func (c *Config) SetDebug(flag string, state bool) {
+// It returns false if the flag is unknown.
+func (c *Config) SetDebug(flag string, state bool) bool {
+	found := false
+	for _, f := range DebugFlags {
+		if f == flag {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return false
+	}
 	if c.debug == nil {
 		c.debug = make(map[string]bool)
 	}
 	c.debug[flag] = state
+	return true
 }
 
 // Origin returns the index origin, default 1.

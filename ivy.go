@@ -19,11 +19,12 @@ import (
 )
 
 var (
-	execute = flag.Bool("e", false, "execute arguments as a single expression")
-	format  = flag.String("format", "", "format string for printing numbers; empty sets default format")
-	gformat = flag.Bool("g", false, `shorthand for -format="%g"`)
-	origin  = flag.Int("origin", 1, "index origin (must be 0 or 1)")
-	prompt  = flag.String("prompt", "", "command prompt")
+	execute   = flag.Bool("e", false, "execute arguments as a single expression")
+	format    = flag.String("format", "", "use `fmt` as format for printing numbers; empty sets default format")
+	gformat   = flag.Bool("g", false, `shorthand for -format="%.12g"`)
+	origin    = flag.Int("origin", 1, "set index origin to `n` (must be 0 or 1)")
+	prompt    = flag.String("prompt", "", "command `prompt`")
+	debugFlag = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
 )
 
 var conf config.Config
@@ -38,11 +39,19 @@ func main() {
 	}
 
 	if *gformat {
-		*format = "%g"
+		*format = "%.12g"
 	}
 	conf.SetFormat(*format)
 	conf.SetOrigin(*origin)
 	conf.SetPrompt(*prompt)
+	if len(*debugFlag) > 0 {
+		for _, debug := range strings.Split(*debugFlag, ",") {
+			if !conf.SetDebug(debug, true) {
+				fmt.Fprintf(os.Stderr, "ivy: unknown debug flag", debug)
+				os.Exit(2)
+			}
+		}
+	}
 
 	value.SetConfig(&conf)
 

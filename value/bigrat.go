@@ -21,7 +21,8 @@ func setBigRatFromFloatString(s string) (br BigRat, err error) {
 	// Be safe: Verify that it is floating-point, because otherwise
 	// we need to honor ibase.
 	if !strings.ContainsAny(s, ".eE") {
-		Errorf("can't happen: setBigRatFromFloatString not float")
+		// Most likely a number like "08".
+		Errorf("bad number syntax: %s", s)
 	}
 	var ok bool
 	r, ok := big.NewRat(0, 1).SetString(s)

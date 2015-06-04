@@ -28,7 +28,7 @@ func floatPower(bx, bexp BigFloat) *big.Float {
 	}
 	isInt := true
 	exp, acc := fexp.Int64() // No point in doing *big.Ints now. TODO?
-	if acc == big.Above || exp > 1e6 {
+	if acc == big.Above || exp > 1e9 {
 		Errorf("exponent too large")
 	}
 	if acc != big.Exact {
