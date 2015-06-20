@@ -63,6 +63,7 @@ var operatorWord = map[string]bool{
 	"down":  true,
 	"drop":  true,
 	"flip":  true,
+	"float": true,
 	"floor": true,
 	"grade": true,
 	"idiv":  true,

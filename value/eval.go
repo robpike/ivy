@@ -7,9 +7,7 @@ package value
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 )
 
 type valueType int
@@ -29,7 +27,7 @@ var sigChan chan os.Signal
 
 func init() {
 	sigChan = make(chan os.Signal, 100)
-	signal.Notify(sigChan, syscall.SIGINT)
+	// signal.Notify(sigChan, syscall.SIGINT) // TODO: Find a finer-grained way to handle this.
 }
 
 func CheckInterrupt() {

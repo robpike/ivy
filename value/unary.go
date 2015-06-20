@@ -48,6 +48,7 @@ var (
 	unaryAcos, unaryAsin, unaryAtan   *unaryOp
 	unaryLog, unarySqrt               *unaryOp
 	unaryChar, unaryCode              *unaryOp
+	unaryFloat                        *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
 
@@ -587,6 +588,16 @@ func init() {
 		},
 	}
 
+	unaryFloat = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      floatSelf,
+			bigIntType:   floatSelf,
+			bigRatType:   floatSelf,
+			bigFloatType: floatSelf,
+		},
+	}
+
 	unaryOps = map[string]*unaryOp{
 		"+":     unaryPlus,
 		",":     unaryRavel,
@@ -604,6 +615,7 @@ func init() {
 		"cos":   unaryCos,
 		"down":  gradeDown,
 		"flip":  flip,
+		"float": unaryFloat,
 		"floor": floor,
 		"iota":  unaryIota,
 		"log":   unaryLog,

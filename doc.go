@@ -129,11 +129,12 @@ Operators and axis indicator
 	Outer product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B
                                                             (lower case o; may need preceding space)
 
-Character-specific operations
+Type-converting operations
 
 	Name                  Ivy      Meaning
 	Code                  code B   The integer Unicode value of char B
 	Char                  char B   The character with integer Unicode value B
+	Float                 float B  The floating-point represntation of B
 
 Pre-defined constants
 
