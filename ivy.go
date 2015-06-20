@@ -22,6 +22,7 @@ var (
 	execute   = flag.Bool("e", false, "execute arguments as a single expression")
 	format    = flag.String("format", "", "use `fmt` as format for printing numbers; empty sets default format")
 	gformat   = flag.Bool("g", false, `shorthand for -format="%.12g"`)
+	maxdigits = flag.Uint("maxdigits", 1e4, "above this many `digits`, integers print as floating point; 0 disables")
 	origin    = flag.Int("origin", 1, "set index origin to `n` (must be 0 or 1)")
 	prompt    = flag.String("prompt", "", "command `prompt`")
 	debugFlag = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
@@ -42,6 +43,7 @@ func main() {
 		*format = "%.12g"
 	}
 	conf.SetFormat(*format)
+	conf.SetMaxDigits(*maxdigits)
 	conf.SetOrigin(*origin)
 	conf.SetPrompt(*prompt)
 	if len(*debugFlag) > 0 {
@@ -147,7 +149,7 @@ func run(p *parse.Parser, context value.Context, interactive bool) (success bool
 				if i > 0 && len(s) > 0 && s[len(s)-1] != '\n' {
 					fmt.Fprint(writer, " ")
 				}
-				fmt.Fprint(writer, v)
+				fmt.Fprint(writer, s)
 			}
 			fmt.Fprintln(writer)
 			context.Assign("_", values[len(values)-1])

@@ -37,6 +37,7 @@ type Config struct {
 	debug       map[string]bool
 	source      rand.Source
 	random      *rand.Rand
+	maxDigits   uint // Above this size, ints print in floating format.
 	floatPrec   uint // Length of mantissa of a BigFloat.
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
@@ -48,6 +49,7 @@ func (c *Config) init() {
 		c.output = os.Stdout
 		c.source = rand.NewSource(time.Now().Unix())
 		c.random = rand.New(c.source)
+		c.maxDigits = 1e4
 		c.floatPrec = 256
 	}
 }
@@ -84,6 +86,7 @@ func (c *Config) RatFormat() string {
 // SetFormat sets the formatting string. Rational formatting
 // is just this format applied twice with a / in between.
 func (c *Config) SetFormat(s string) {
+	c.init()
 	c.formatVerb = 0
 	c.formatPrec = 0
 	c.formatFloat = false
@@ -129,6 +132,7 @@ func (c *Config) Debug(flag string) bool {
 // SetDebug sets the value of the specified boolean debugging flag.
 // It returns false if the flag is unknown.
 func (c *Config) SetDebug(flag string, state bool) bool {
+	c.init()
 	found := false
 	for _, f := range DebugFlags {
 		if f == flag {
@@ -164,6 +168,7 @@ func (c *Config) BigOrigin() *big.Int {
 
 // SetOrigin sets the index origin.
 func (c *Config) SetOrigin(origin int) {
+	c.init()
 	c.origin = origin
 	c.bigOrigin = big.NewInt(int64(origin))
 }
@@ -178,6 +183,7 @@ func (c *Config) Prompt() string {
 
 // SetPrompt sets the interactive prompt.
 func (c *Config) SetPrompt(prompt string) {
+	c.init()
 	c.prompt = prompt
 }
 
@@ -193,6 +199,18 @@ func (c *Config) RandomSeed(seed int64) {
 	c.source.Seed(seed)
 }
 
+// MaxBits returns the maximum integer size to print as integer, in digits.
+func (c *Config) MaxDigits() uint {
+	c.init()
+	return c.maxDigits
+}
+
+// SetMaxDigits returns the maximum integer size to print as integer, in digits.
+func (c *Config) SetMaxDigits(digits uint) {
+	c.init()
+	c.maxDigits = digits
+}
+
 // FloatPrec returns the floating-point precision in bits.
 // The exponent size is fixed by math/big.
 func (c *Config) FloatPrec() uint {
@@ -202,6 +220,7 @@ func (c *Config) FloatPrec() uint {
 
 // SetFloatPrec sets the floating-point precision in bits.
 func (c *Config) SetFloatPrec(prec uint) {
+	c.init()
 	if prec == 0 {
 		panic("zero float precision")
 	}
@@ -234,6 +253,7 @@ func (c *Config) OutputBase() int {
 
 // SetBase sets the input and output bases.
 func (c *Config) SetBase(inputBase, outputBase int) {
+	c.init()
 	c.inputBase = inputBase
 	c.outputBase = outputBase
 }

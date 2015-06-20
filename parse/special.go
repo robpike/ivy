@@ -108,6 +108,16 @@ Switch:
 		p.config.SetFormat(p.getString())
 	case "get":
 		p.runFromFile(p.getString())
+	case "maxdigits":
+		if p.peek().Type == scan.Newline {
+			p.Printf("%d\n", p.config.MaxDigits())
+			break Switch
+		}
+		max := p.nextDecimalNumber()
+		if max > 1e9 {
+			p.errorf("illegal max digits %d", max)
+		}
+		p.config.SetMaxDigits(uint(max))
 	case "op":
 		name := p.need(scan.Identifier).Text
 		fn := p.context.unaryFn[name]

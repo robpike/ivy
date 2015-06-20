@@ -240,6 +240,10 @@ is not specified. For these commands, numbers are always base 10.
 	) get "file.ivy"
 		Read commands from the named file; return to
 		interactive execution afterwards.
+	) maxdigits 10000
+		To avoid overwhelming amounts of output, if an integer has more
+		than this many digits, print it using the defined floating-point
+		format. If maxdigits is 0, integers are always printed as integers.
 	) op X
 		Show the definition of the user-defined operator X.
 		Inside the definition, numbers are always shown base

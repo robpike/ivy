@@ -32,7 +32,18 @@ func setBigIntString(s string) (BigInt, error) {
 }
 
 func (i BigInt) String() string {
+	bitLen := i.BitLen()
 	format := conf.Format()
+	var maxBits = (uint64(conf.MaxDigits()) * 33222) / 10000 // log 10 / log 2 is 3.32192809489
+	if uint64(bitLen) > maxBits && maxBits != 0 {
+		// Print in floating point.
+		verb, prec, ok := conf.FloatFormat()
+		if !ok {
+			verb = 'g'
+			prec = 12
+		}
+		return i.floatString(verb, prec)
+	}
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
 		if ok {
@@ -97,8 +108,11 @@ func (i BigInt) floatString(verb byte, prec int) string {
 	return ""
 }
 
-var bigIntTen = big.NewInt(10)
-var bigIntBillion = big.NewInt(1e9)
+var (
+	bigIntTen     = big.NewInt(10)
+	bigIntMillion = big.NewInt(1e6)
+	bigIntBillion = big.NewInt(1e9)
+)
 
 // eExponent returns the exponent to use to display i in 1.23e+04 format.
 func eExponent(x *big.Int) int {
