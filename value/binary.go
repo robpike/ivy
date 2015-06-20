@@ -309,6 +309,10 @@ func init() {
 					v = Unary("abs", v).toType(bigIntType)
 					return Unary("/", binaryBigIntOp(u, bigIntExp, v))
 				}
+				x := u.(BigInt).Int
+				if x.Cmp(bigOne.Int) == 0 || x.Sign() == 0 {
+					return u
+				}
 				return binaryBigIntOp(u, bigIntExp, v)
 			},
 			bigRatType: func(u, v Value) Value {

@@ -26,6 +26,9 @@ func floatPower(bx, bexp BigFloat) *big.Float {
 		positive = false
 		fexp = Unary("-", bexp).toType(bigFloatType).(BigFloat).Float
 	}
+	if x.Cmp(floatOne) == 0 || x.Sign() == 0 {
+		return x
+	}
 	isInt := true
 	exp, acc := fexp.Int64() // No point in doing *big.Ints now. TODO?
 	if acc == big.Above || exp > 1e9 {
