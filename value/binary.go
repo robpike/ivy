@@ -88,6 +88,9 @@ func binaryBigFloatOp(u Value, op func(*big.Float, *big.Float, *big.Float) *big.
 
 // bigIntExp is the "op" for exp on *big.Int. Different signature for Exp means we can't use *big.Exp directly.
 func bigIntExp(i, j, k *big.Int) *big.Int {
+	if k.Cmp(bigBillion.Int) > 0 && j.Cmp(bigOne.Int) != 0 {
+		Errorf("%s**%s: exponent too large", j, k) // Can be crazy expensive.
+	}
 	i.Exp(j, k, nil)
 	return i
 }
@@ -142,6 +145,7 @@ var (
 	bigZero     = bigInt64(0)
 	bigOne      = bigInt64(1)
 	bigMinusOne = bigInt64(-1)
+	bigBillion  = bigInt64(1e9)
 )
 
 func init() {

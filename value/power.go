@@ -21,7 +21,7 @@ func floatPower(bx, bexp BigFloat) *big.Float {
 		return newF().SetInt64(1)
 	case -1:
 		if x.Sign() == 0 {
-			Errorf("negative exponent of zer")
+			Errorf("negative exponent of zero")
 		}
 		positive = false
 		fexp = Unary("-", bexp).toType(bigFloatType).(BigFloat).Float
@@ -29,7 +29,7 @@ func floatPower(bx, bexp BigFloat) *big.Float {
 	isInt := true
 	exp, acc := fexp.Int64() // No point in doing *big.Ints now. TODO?
 	if acc == big.Above || exp > 1e9 {
-		Errorf("exponent too large")
+		Errorf("%v**%d: exponent too large", x, exp) // Can be crazy expensive.
 	}
 	if acc != big.Exact {
 		isInt = false

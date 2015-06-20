@@ -253,6 +253,7 @@ func (p *Parser) Println(args ...interface{}) {
 }
 
 func (p *Parser) next() scan.Token {
+	value.CheckInterrupt()
 	return p.nextErrorOut(true)
 }
 

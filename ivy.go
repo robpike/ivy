@@ -122,6 +122,7 @@ func run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		}
 		panic(err)
 	}()
+	value.DrainInterrupt()
 	for {
 		if interactive {
 			fmt.Fprint(writer, conf.Prompt())
@@ -152,11 +153,13 @@ func run(p *parse.Parser, context value.Context, interactive bool) (success bool
 			context.Assign("_", values[len(values)-1])
 		}
 		if !ok {
+			value.DrainInterrupt()
 			return true
 		}
 		if interactive {
 			fmt.Fprintln(writer)
 		}
+		value.DrainInterrupt()
 	}
 }
 
