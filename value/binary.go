@@ -87,9 +87,34 @@ func binaryBigFloatOp(u Value, op func(*big.Float, *big.Float, *big.Float) *big.
 }
 
 // bigIntExp is the "op" for exp on *big.Int. Different signature for Exp means we can't use *big.Exp directly.
+// We know this is not 0**negative.
 func bigIntExp(i, j, k *big.Int) *big.Int {
-	if k.Cmp(bigBillion.Int) > 0 && j.Cmp(bigOne.Int) != 0 {
-		Errorf("%s**%s: exponent too large", j, k) // Can be crazy expensive.
+	if j.Cmp(bigOne.Int) == 0 || j.Sign() == 0 {
+		return i.Set(j)
+	}
+	// -1**n is just parity.
+	if j.Cmp(bigMinusOne.Int) == 0 {
+		if k.And(k, bigOne.Int).Int64() == 0 {
+			return i.Neg(j)
+		}
+		return i.Set(j)
+	}
+	// Large exponents can be very expensive.
+	// First, it must fit in an int64.
+	if k.BitLen() > 63 {
+		Errorf("%s**%s: exponent too large", j, k)
+	}
+	exp := k.Int64()
+	if exp < 0 {
+		exp = -exp
+	}
+	// The expected result mustn't be too big.
+	if int64(j.BitLen())*exp > 1e6 { // A million bits of data is enough. TODO: parameterize?
+		Errorf("%s**%s: result too large", j, k)
+	}
+	// Unlikely unless user has set it very low.
+	if exp > conf.MaxExp() {
+		Errorf("%s**%s: exponent too large", j, k)
 	}
 	i.Exp(j, k, nil)
 	return i
@@ -145,7 +170,6 @@ var (
 	bigZero     = bigInt64(0)
 	bigOne      = bigInt64(1)
 	bigMinusOne = bigInt64(-1)
-	bigBillion  = bigInt64(1e9)
 )
 
 func init() {
@@ -337,8 +361,8 @@ func init() {
 				rat := u.(BigRat)
 				num := new(big.Int).Set(rat.Num())
 				den := new(big.Int).Set(rat.Denom())
-				num.Exp(num, exp, nil)
-				den.Exp(den, exp, nil)
+				bigIntExp(num, num, exp)
+				bigIntExp(den, den, exp)
 				z := bigRatInt64(0)
 				if positive {
 					z.SetFrac(num, den)

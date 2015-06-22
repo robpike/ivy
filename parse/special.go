@@ -27,7 +27,19 @@ func (p *Parser) need(want ...scan.Type) scan.Token {
 	panic("not reached")
 }
 
+// nextDecimalNumber returns the next number, which
+// must be a non-negative int32 (even though the result is of type int).
 func (p *Parser) nextDecimalNumber() int {
+	n64 := p.nextDecimalNumber64()
+	if n64 != int64(int32(n64)) {
+		p.errorf("value too large: %v", n64)
+	}
+	return int(n64)
+}
+
+// nextDecimalNumber64 returns the next number, which
+// must fit in a non-negative int64.
+func (p *Parser) nextDecimalNumber64() int64 {
 	ibase, obase := p.config.Base()
 	defer p.config.SetBase(ibase, obase)
 	p.config.SetBase(10, obase)
@@ -35,11 +47,22 @@ func (p *Parser) nextDecimalNumber() int {
 	if err != nil {
 		p.errorf("%s", err)
 	}
-	num, ok := v.(value.Int)
-	if !ok {
-		p.errorf("value must be an integer: %v", v)
+	var n int64 = -1
+	switch num := v.(type) {
+	case value.Int:
+		n = int64(num)
+	case value.BigInt:
+		// The Int64 method produces undefined results if
+		// the value is too large, so we must check.
+		if num.Int.Sign() < 0 || num.Int.Cmp(value.MaxBigInt63) > 0 {
+			p.errorf("value out of range: %v", v)
+		}
+		n = num.Int64()
 	}
-	return int(num)
+	if n < 0 {
+		p.errorf("value must be a positive integer: %v", v)
+	}
+	return n
 }
 
 func truth(x bool) int {
@@ -114,10 +137,14 @@ Switch:
 			break Switch
 		}
 		max := p.nextDecimalNumber()
-		if max > 1e9 {
-			p.errorf("illegal max digits %d", max)
-		}
 		p.config.SetMaxDigits(uint(max))
+	case "maxexp":
+		if p.peek().Type == scan.Newline {
+			p.Printf("%d\n", p.config.MaxExp())
+			break Switch
+		}
+		max := p.nextDecimalNumber64()
+		p.config.SetMaxExp(int64(max))
 	case "op":
 		name := p.need(scan.Identifier).Text
 		fn := p.context.unaryFn[name]
@@ -151,7 +178,7 @@ Switch:
 			break Switch
 		}
 		prec := p.nextDecimalNumber()
-		if prec <= 0 || prec > 1e6 {
+		if prec == 0 || prec > 1e6 {
 			p.errorf("illegal prec %d", prec) // TODO: make 0 be disable?
 		}
 		p.config.SetFloatPrec(uint(prec))
@@ -166,7 +193,7 @@ Switch:
 			p.Println(p.config.Origin())
 			break Switch
 		}
-		p.config.RandomSeed(int64(p.nextDecimalNumber()))
+		p.config.RandomSeed(p.nextDecimalNumber64())
 	default:
 		p.errorf(")%s: not recognized", text)
 	}

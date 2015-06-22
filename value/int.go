@@ -15,6 +15,8 @@ import (
 type Int int64
 
 const (
+	// We use an int32 size, so multiplications will fit in int64
+	// and can be scaled afterwards.
 	intBits = 32
 	minInt  = -(1 << (intBits - 1))
 	maxInt  = 1<<(intBits-1) - 1

@@ -30,6 +30,9 @@ const specialHelpMessage = `
 	To avoid overwhelming amounts of output, if an integer has more
 	than this many digits, print it using the defined floating-point
 	format. If maxdigits is 0, integers are always printed as integers.
+) maxexp 1000000000
+	The maximum allowed exponent in the ** operator.
+	The exponent must fit in 63 bits; the default is 1e9.
 ) op X
 	Show the definition of the user-defined operator X.
 	Inside the definition, numbers are always shown base

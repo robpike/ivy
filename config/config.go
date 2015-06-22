@@ -38,6 +38,7 @@ type Config struct {
 	source      rand.Source
 	random      *rand.Rand
 	maxDigits   uint // Above this size, ints print in floating format.
+	maxExp  int64 // Maximum exponent for ** operator.
 	floatPrec   uint // Length of mantissa of a BigFloat.
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
@@ -50,6 +51,7 @@ func (c *Config) init() {
 		c.source = rand.NewSource(time.Now().Unix())
 		c.random = rand.New(c.source)
 		c.maxDigits = 1e4
+		c.maxExp = 1e9
 		c.floatPrec = 256
 	}
 }
@@ -199,7 +201,7 @@ func (c *Config) RandomSeed(seed int64) {
 	c.source.Seed(seed)
 }
 
-// MaxBits returns the maximum integer size to print as integer, in digits.
+// MaxDigits returns the maximum integer size to print as integer, in digits.
 func (c *Config) MaxDigits() uint {
 	c.init()
 	return c.maxDigits
@@ -209,6 +211,18 @@ func (c *Config) MaxDigits() uint {
 func (c *Config) SetMaxDigits(digits uint) {
 	c.init()
 	c.maxDigits = digits
+}
+
+// MaxExp returns the maximum allowed exponent for **.
+func (c *Config) MaxExp() int64 {
+	c.init()
+	return c.maxExp
+}
+
+// SetMaxExp returns the maximum allowed exponent for **.
+func (c *Config) SetMaxExp(exp int64) {
+	c.init()
+	c.maxExp = exp
 }
 
 // FloatPrec returns the floating-point precision in bits.
