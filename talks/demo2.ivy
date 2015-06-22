@@ -1,0 +1,137 @@
+#This is ivy. Each step in the demo is one line of input followed by some output.
+# Arithmetic
+23
+23 + 45
+# Rationals
+1/3
+1/3 + 4/5
+1.2
+# Big numbers
+1e10       # Still an integer.
+1e100      # Still an integer.
+2**64
+2**640
+2**6400
+# Characters
+'x'
+char 0x61
+char 0x1f4a9
+code '💩'
+# Vectors
+1 2 3
+1 2 3 + 4 5 6
+23 + 1 2 3
+1 << 1 2 3 4 5
+iota 10
+2 ** iota 100
+(2 ** iota 100) == (1<<iota 100)
+2 ** -1 + iota 100
+'hello world'
+3 take iota 10
+3 drop iota 10
+6 drop 'hello world'
+# Reduction
+iota 15
+1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15
++/iota 15
+1 * 2 * 3 * 4 * 5 * 6 * 7 * 8 * 9 * 10
+*/iota 10
+*/iota 100
+# Type this: */iota 10000
+max/2 34 42 233 2 2 521 14 1 4 1 55 133 
+# Shapes
+5 rho 1
+5 5 rho 1
+5 5 rho 25
+5 5 rho iota 25
+3 5 5 rho iota 125
+x = 5 5 rho iota 75
+x
+x/2
+x**2
+x**3
+x**10
+# Inner product
+x = 2**iota 5; x
+y = 3**iota 5; y
+x +.* y
+# Outer product
+x o.* y
+x = iota 5; x o.== x
+# Random numbers
+?100
+?100
+?10 rho 100
+x = ?10 rho 100
+x
+# Indexing
+x[1]
+x[1 9 3]
+up x
+x[up x]
+x[down x]
+'hello world'[up 'hello world']
+# Rolls of a die
+?6
+10 rho 6
+?10 rho 6
+x = ?10 rho 6; x
+(iota 6) o.== x
++/(iota 6) o.== x
++/(iota 6) o.== ?60000 rho 6
+# A big number calculator
+*/iota 100
+2**64
+2**iota 64
+-1+2**63
+)base 16
+_
+1<<iota 10
+(2**40)-1
+)obase 10
+_
+# Back to base 10 in and out.
+)base 10
+# Big rationals
+(2**1e3)/(3**1e2)
+)format '%.12g'
+_
+)format '%.100g'
+_
+)format '%#x'
+_
+)format '%.12g'
+_
+(3 4 rho iota 12)/4
+# Floats
+sqrt 2
+pi
+e
+# Exponentials and logarithms.
+e**1e6
+log e**1e6
+log e**1e8
+log 1e1000000
+# Transcendentals.
+sin pi/2
+cos .25*pi * -1 + iota 9
+log iota 6
+# Successive approximations to e.
+(float 1+10**-iota 9) ** 10**iota 9
+# Default precision is 256 bits of mantissa.
+)prec 3000
+e
+)format '%.1000g'
+e
+pi
+sqrt 2
+e**1e6
+log e**1e6
+(2**1e3)/(3**1e2)
+# User-defined operators.
+def avg x = (+/x)/rho x
+avg iota 100
+def n largest x = n take x[down x]
+3 largest ? 100 rho 1000
+4 largest 'hello world'
+# go get robpike.io/ivy # Use the dev branch; see talks directory
