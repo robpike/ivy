@@ -179,3 +179,15 @@ func (i BigInt) shrink() Value {
 	}
 	return i
 }
+
+func (i BigInt) BitLen() int64 {
+	return int64(i.Int.BitLen())
+}
+
+// mustFit errors out if n is larger than the maximum number of bits allowed.
+func mustFit(n int64) {
+	max := conf.MaxBits()
+	if max != 0 && n > int64(max) {
+		Errorf("result too large (%d bits)", n)
+	}
+}

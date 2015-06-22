@@ -108,12 +108,9 @@ func bigIntExp(i, j, k *big.Int) *big.Int {
 	if exp < 0 {
 		exp = -exp
 	}
-	// The expected result mustn't be too big.
-	if int64(j.BitLen())*exp > 1e6 { // A million bits of data is enough. TODO: parameterize?
-		Errorf("%s**%s: result too large", j, k)
-	}
+	mustFit(int64(j.BitLen()) * exp)
 	// Unlikely unless user has set it very low.
-	if exp > conf.MaxExp() {
+	if conf.MaxExp() != 0 && exp > conf.MaxExp() {
 		Errorf("%s**%s: exponent too large", j, k)
 	}
 	i.Exp(j, k, nil)
@@ -181,6 +178,8 @@ func init() {
 				return (u.(Int) + v.(Int)).maybeBig()
 			},
 			bigIntType: func(u, v Value) Value {
+				mustFit(u.(BigInt).BitLen() + 1)
+				mustFit(v.(BigInt).BitLen() + 1)
 				return binaryBigIntOp(u, (*big.Int).Add, v)
 			},
 			bigRatType: func(u, v Value) Value {
@@ -200,6 +199,8 @@ func init() {
 				return (u.(Int) - v.(Int)).maybeBig()
 			},
 			bigIntType: func(u, v Value) Value {
+				mustFit(u.(BigInt).BitLen() + 1)
+				mustFit(v.(BigInt).BitLen() + 1)
 				return binaryBigIntOp(u, (*big.Int).Sub, v)
 			},
 			bigRatType: func(u, v Value) Value {
@@ -219,6 +220,7 @@ func init() {
 				return (u.(Int) * v.(Int)).maybeBig()
 			},
 			bigIntType: func(u, v Value) Value {
+				mustFit(u.(BigInt).BitLen() + v.(BigInt).BitLen())
 				return binaryBigIntOp(u, (*big.Int).Mul, v)
 			},
 			bigRatType: func(u, v Value) Value {

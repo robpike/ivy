@@ -131,6 +131,13 @@ Switch:
 		p.config.SetFormat(p.getString())
 	case "get":
 		p.runFromFile(p.getString())
+	case "maxbits":
+		if p.peek().Type == scan.Newline {
+			p.Printf("%d\n", p.config.MaxBits())
+			break Switch
+		}
+		max := p.nextDecimalNumber()
+		p.config.SetMaxBits(uint(max))
 	case "maxdigits":
 		if p.peek().Type == scan.Newline {
 			p.Printf("%d\n", p.config.MaxDigits())
