@@ -6,6 +6,7 @@ package value
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 )
 
@@ -29,8 +30,80 @@ func setBigFloatString(s string) (BigFloat, error) {
 	return BigFloat{f}, nil
 }
 
+const fastFloatPrint = true
+
 func (f BigFloat) String() string {
+	var mant big.Float
+	exp := f.Float.MantExp(&mant)
+	positive := 1
+	if exp < 0 {
+		positive = 0
+		exp = -exp
+	}
 	format := conf.Format()
+	// Printing huge floats can be very slow using
+	// big.Float's native methods; see issue #11068.
+	// For example 1e5000000 takes a minute of CPU time just
+	// to print. The code below is instantaneous, by rescaling
+	// first. It is however less feature-complete.
+	// (Big ints are problematic too, but if you print 1e50000000
+	// as an integer you probably won't be surprised it's slow.)
+	// TODO: Handle formats. Better yet, don't need this code.
+	if fastFloatPrint && exp > 10000 && (format == "" || format == "%v" || format == "%g") {
+		fexp := newF().SetInt64(int64(exp))
+		fexp.Mul(fexp, floatLog2)
+		fexp.Quo(fexp, floatLog10)
+		// We now have a floating-point base 10 exponent.
+		// Break into the integer part and the fractional part.
+		// The integer part is what we will show.
+		// The 10**(fractional part) will be multiplied back in.
+		iexp, _ := fexp.Int(nil)
+		fraction := fexp.Sub(fexp, newF().SetInt(iexp))
+		// Now compute 10**(fractional part).
+		// Fraction is in base 10. Move it to base e.
+		fraction.Mul(fraction, floatLog10)
+		scale := exponential(fraction)
+		if positive > 0 {
+			mant.Mul(&mant, scale)
+		} else {
+			mant.Quo(&mant, scale)
+		}
+		ten := newF().SetInt64(10)
+		i64exp := iexp.Int64()
+		// For numbers not too far from one, print without the E notation.
+		// Shouldn't happen (exp must be large to get here) but just
+		// in case, we keep this around.
+		if -4 <= i64exp && i64exp <= 11 {
+			if i64exp > 0 {
+				for i := 0; i < int(i64exp); i++ {
+					mant.Mul(&mant, ten)
+				}
+			} else {
+				for i := 0; i < int(-i64exp); i++ {
+					mant.Quo(&mant, ten)
+				}
+			}
+			fmt.Sprintf("%g\n", &mant)
+		} else {
+			sign := ""
+			if mant.Sign() < 0 {
+				sign = "-"
+				mant.Neg(&mant)
+			}
+			// If it has a leading zero, rescale.
+			digits := mant.Text('g', 12)
+			for digits[0] == '0' {
+				mant.Mul(&mant, ten)
+				if positive > 0 {
+					i64exp--
+				} else {
+					i64exp++
+				}
+				digits = mant.Text('g', 12)
+			}
+			return fmt.Sprintf("%s%se%c%d\n", sign, digits, "-+"[positive], i64exp)
+		}
+	}
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
 		if ok {
