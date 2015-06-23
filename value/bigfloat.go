@@ -40,7 +40,14 @@ func (f BigFloat) String() string {
 		positive = 0
 		exp = -exp
 	}
+	verb, prec := byte('g'), 12
 	format := conf.Format()
+	if format != "" {
+		v, p, ok := conf.FloatFormat()
+		if ok {
+			verb, prec = v, p
+		}
+	}
 	// Printing huge floats can be very slow using
 	// big.Float's native methods; see issue #11068.
 	// For example 1e5000000 takes a minute of CPU time just
@@ -48,8 +55,14 @@ func (f BigFloat) String() string {
 	// first. It is however less feature-complete.
 	// (Big ints are problematic too, but if you print 1e50000000
 	// as an integer you probably won't be surprised it's slow.)
-	// TODO: Handle formats. Better yet, don't need this code.
-	if fastFloatPrint && exp > 10000 && (format == "" || format == "%v" || format == "%g") {
+	if fastFloatPrint && exp > 10000 {
+		// We always use %g to print the fraction, and it will
+		// never have an exponent, but if the format is %E we
+		// need to use a capital E.
+		eChar := 'e'
+		if verb == 'E' || verb == 'G' {
+			eChar = 'E'
+		}
 		fexp := newF().SetInt64(int64(exp))
 		fexp.Mul(fexp, floatLog2)
 		fexp.Quo(fexp, floatLog10)
@@ -91,7 +104,7 @@ func (f BigFloat) String() string {
 				mant.Neg(&mant)
 			}
 			// If it has a leading zero, rescale.
-			digits := mant.Text('g', 12)
+			digits := mant.Text('g', prec)
 			for digits[0] == '0' {
 				mant.Mul(&mant, ten)
 				if positive > 0 {
@@ -99,18 +112,12 @@ func (f BigFloat) String() string {
 				} else {
 					i64exp++
 				}
-				digits = mant.Text('g', 12)
+				digits = mant.Text('g', prec)
 			}
-			return fmt.Sprintf("%s%se%c%d\n", sign, digits, "-+"[positive], i64exp)
+			return fmt.Sprintf("%s%s%c%c%d", sign, digits, eChar, "-+"[positive], i64exp)
 		}
 	}
-	if format != "" {
-		verb, prec, ok := conf.FloatFormat()
-		if ok {
-			return f.Float.Text(verb, prec)
-		}
-	}
-	return f.Float.Text('g', 12)
+	return f.Float.Text(verb, prec)
 }
 
 func (f BigFloat) ProgString() string {
