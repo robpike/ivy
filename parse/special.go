@@ -145,13 +145,6 @@ Switch:
 		}
 		max := p.nextDecimalNumber()
 		p.config.SetMaxDigits(uint(max))
-	case "maxexp":
-		if p.peek().Type == scan.Newline {
-			p.Printf("%d\n", p.config.MaxExp())
-			break Switch
-		}
-		max := p.nextDecimalNumber64()
-		p.config.SetMaxExp(int64(max))
 	case "op":
 		name := p.need(scan.Identifier).Text
 		fn := p.context.unaryFn[name]

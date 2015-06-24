@@ -109,10 +109,6 @@ func bigIntExp(i, j, k *big.Int) *big.Int {
 		exp = -exp
 	}
 	mustFit(int64(j.BitLen()) * exp)
-	// Unlikely unless user has set it very low.
-	if conf.MaxExp() != 0 && exp > conf.MaxExp() {
-		Errorf("%s**%s: exponent too large", j, k)
-	}
 	i.Exp(j, k, nil)
 	return i
 }
