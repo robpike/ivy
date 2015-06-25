@@ -12,6 +12,13 @@ It uses exact rational arithmetic so it can handle arbitrary precision. Values t
 input may be integers (3, -1), rationals (1/3, -45/67) or floating point values (1e3,
 -1.5 (representing 1000 and -3/2)).
 
+Unlike in most other languages, operators always have the same precedence, and
+expressions are evaluated in right-associative order. That is, unary operators
+apply to everything to the right, and binary operators apply to the operand
+immediately to the left, and to everything to the right.  Thus, 3*4+5 is 27 (it
+groups as 3*(4+5)) and iota 3+2 is 1 2 3 4 5 while 3+iota 2 is 3 4 5. A vector
+is a single operand, so 1 2 3 + 3 + 3 4 5 is (1 2 3) + 3 + (3 4 5), or 7 9 11.
+
 Some functions such as sqrt are irrational. When ivy evaluates an irrational
 function, the result is stored in a high-precision floating-point number (default
 256 bits of mantissa). Thus when using irrational functions, the values have high
