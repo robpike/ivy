@@ -2,12 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This file contains 1024-digit string representations of fundamental constants.
-// They are stored in 3400-bit Floats, almost sufficient to represent the values.
+// This file contains 3011-digit string representations of fundamental constants.
+// They are stored in 10000-bit Floats, almost sufficient to represent the values.
 // When used in calculations, those Floats are truncated to the precision of the operands.
 
 // In the unlikely event more digits are needed, it's easy to find the values online and
-// lengthen the constants.
+// lengthen the constants. Or compute them: By a magic of math, log 2 is not needed
+// to compute log 2 by the algorithm here (the exponent is zero in the Taylor-Maclaurin
+// series) so it is possible to bootstrap to huge precisions.
 
 package value
 
