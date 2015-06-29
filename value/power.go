@@ -38,13 +38,11 @@ func floatPower(bx, bexp BigFloat) *big.Float {
 	z := integerPower(x, exp)
 	// Fractional part..
 	if !isInt {
-		f64exp, _ := fexp.Float64()
-		frac := f64exp - float64(int64(f64exp))
+		frac := fexp.Sub(fexp, newF().SetInt64(exp))
 		// x**frac is e**(frac*log x)
 		logx := floatLog(x)
-		y := newF().SetFloat64(frac)
-		y.Mul(y, logx)
-		z.Mul(z, exponential(y))
+		frac.Mul(frac, logx)
+		z.Mul(z, exponential(frac))
 	}
 	if !positive {
 		z.Quo(floatOne, z)
@@ -59,14 +57,15 @@ func exponential(x *big.Float) *big.Float {
 
 	xN := newF().Set(x)
 	term := newF()
-	n := newF().Set(floatOne)
-	nFactorial := newF().Set(floatOne)
+	n := big.NewInt(1)
+	nFactorial := big.NewInt(1)
 	z := newF().SetInt64(1)
 
 	loop := newLoop("exponential", x, 4)
-	for {
+	for i := 0; ; i++ {
 		term.Set(xN)
-		term.Quo(term, nFactorial)
+		nf := newF().SetInt(nFactorial)
+		term.Quo(term, nf)
 		z.Add(z, term)
 
 		if loop.terminate(z) {
@@ -75,7 +74,7 @@ func exponential(x *big.Float) *big.Float {
 		// Advance x**index (multiply by x).
 		xN.Mul(xN, x)
 		// Advance n, n!.
-		n.Add(n, floatOne)
+		n.Add(n, bigOne.Int)
 		nFactorial.Mul(nFactorial, n)
 	}
 
