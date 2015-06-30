@@ -220,7 +220,7 @@ func (p *Parser) runFromFile(name string) {
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			fmt.Fprintf(os.Stderr, "%s: %s\n", p.Loc(), err)
+			fmt.Fprintf(os.Stderr, "%s%s\n", p.Loc(), err)
 			return
 		}
 		panic(err)

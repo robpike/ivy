@@ -117,7 +117,7 @@ func run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		}
 		p.FlushToNewline()
 		if err, ok := err.(value.Error); ok {
-			fmt.Fprintf(os.Stderr, "%s: %s\n", p.Loc(), err)
+			fmt.Fprintf(os.Stderr, "%s%s\n", p.Loc(), err)
 			if interactive {
 				fmt.Fprintln(writer)
 			}

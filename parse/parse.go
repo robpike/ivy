@@ -286,9 +286,13 @@ func (p *Parser) peek() scan.Token {
 	return p.peekTok
 }
 
-// Loc returns the current input location in the form name:line.
+// Loc returns the current input location in the form "name:line: ".
+// If the name is <stdin>, it returns the empty string.
 func (p *Parser) Loc() string {
-	return fmt.Sprintf("%s:%d", p.fileName, p.lineNum)
+	if p.fileName == "<stdin>" {
+		return ""
+	}
+	return fmt.Sprintf("%s:%d: ", p.fileName, p.lineNum)
 }
 
 func (p *Parser) errorf(format string, args ...interface{}) {
