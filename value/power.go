@@ -11,6 +11,11 @@ func power(u, v Value) Value {
 	return BigFloat{z}.shrink()
 }
 
+func exp(u Value) Value {
+	z := exponential(floatSelf(u).(BigFloat).Float)
+	return BigFloat{z}.shrink()
+}
+
 // floatPower computes bx to the power of bexp.
 func floatPower(bx, bexp BigFloat) *big.Float {
 	x := bx.Float

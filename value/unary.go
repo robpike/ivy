@@ -44,6 +44,7 @@ var (
 	gradeUp, gradeDown                *unaryOp
 	reverse, flip                     *unaryOp
 	floor, ceil                       *unaryOp
+	unaryExp                          *unaryOp
 	unaryCos, unarySin, unaryTan      *unaryOp
 	unaryAcos, unaryAsin, unaryAtan   *unaryOp
 	unaryLog, unarySqrt               *unaryOp
@@ -564,6 +565,16 @@ func init() {
 		},
 	}
 
+	unaryExp = &unaryOp{
+		elementwise: true,
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return exp(v) },
+			bigIntType:   func(v Value) Value { return exp(v) },
+			bigRatType:   func(v Value) Value { return exp(v) },
+			bigFloatType: func(v Value) Value { return exp(v) },
+		},
+	}
+
 	unarySqrt = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
@@ -599,6 +610,7 @@ func init() {
 	}
 
 	unaryOps = map[string]*unaryOp{
+		"**":    unaryExp,
 		"+":     unaryPlus,
 		",":     unaryRavel,
 		"-":     unaryMinus,
