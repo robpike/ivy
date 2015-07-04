@@ -181,3 +181,14 @@ code 'abc'
 
 char 97 98 99
 	abc
+
+# Text
+
+text iota 10
+	1 2 3 4 5 6 7 8 9 10
+
+x=text iota 10; x[up x]
+	         01123456789
+
+x=text iota 10; x[down x]
+	98765432110         

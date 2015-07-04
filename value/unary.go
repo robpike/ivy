@@ -48,7 +48,7 @@ var (
 	unaryCos, unarySin, unaryTan      *unaryOp
 	unaryAcos, unaryAsin, unaryAtan   *unaryOp
 	unaryLog, unarySqrt               *unaryOp
-	unaryChar, unaryCode              *unaryOp
+	unaryChar, unaryCode, unaryText   *unaryOp
 	unaryFloat                        *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
@@ -599,6 +599,17 @@ func init() {
 		},
 	}
 
+	unaryText = &unaryOp{
+		fn: [numType]unaryFn{
+			intType:      func(v Value) Value { return text(v) },
+			bigIntType:   func(v Value) Value { return text(v) },
+			bigRatType:   func(v Value) Value { return text(v) },
+			bigFloatType: func(v Value) Value { return text(v) },
+			vectorType:   func(v Value) Value { return text(v) },
+			matrixType:   func(v Value) Value { return text(v) },
+		},
+	}
+
 	unaryFloat = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
@@ -637,6 +648,7 @@ func init() {
 		"sgn":   unarySignum,
 		"sqrt":  unarySqrt,
 		"tan":   unaryTan,
+		"text":  unaryText,
 		"up":    gradeUp,
 		"~":     unaryLogicalNot,
 	}

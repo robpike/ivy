@@ -83,6 +83,7 @@ var operatorWord = map[string]bool{
 	"sgn":   true,
 	"sqrt":  true,
 	"take":  true,
+	"text":  true,
 	"tan":   true,
 	"up":    true,
 	"xor":   true,

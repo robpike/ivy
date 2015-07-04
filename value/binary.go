@@ -4,7 +4,10 @@
 
 package value
 
-import "math/big"
+import (
+	"fmt"
+	"math/big"
+)
 
 // Binary operators.
 
@@ -731,6 +734,7 @@ func init() {
 					values[i] = A[x]
 				}
 				if len(values) == 1 {
+					fmt.Printf("type %T %T\n", values, values[0])
 					return values[0]
 				}
 				return NewVector(values)

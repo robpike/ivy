@@ -57,7 +57,7 @@ Unary functions.
 	Grade up          ⍋B    up      Indices of B which will arrange B in ascending order
 	Grade down        ⍒B    down    Indices of B which will arrange B in descending order
 	Execute           ⍎B            Execute an APL expression
-	Monadic format    ⍕B            A character representation of B
+	Monadic format    ⍕B    text    A character representation of B
 	Monadic transpose ⍉B            Reverse the axes of B
 	Factorial         !B            Product of integers 1 to B
 	Bitwise not             ^       Bitwise complement of B (integer only)
@@ -141,7 +141,8 @@ Type-converting operations
 	Name                  Ivy      Meaning
 	Code                  code B   The integer Unicode value of char B
 	Char                  char B   The character with integer Unicode value B
-	Float                 float B  The floating-point represntation of B
+	Float                 float B  The floating-point representation of B
+	Text                  text B   The textual (vector of Char) representation of B
 
 Pre-defined constants
 
