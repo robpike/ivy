@@ -184,9 +184,8 @@ func size(shape []Value) int {
 	return size
 }
 
-// newMatrix makes a new matrix. The number of elems
-// must fit in an Int.
-func newMatrix(shape, data []Value) Matrix {
+// NewMatrix makes a new matrix. The number of elements must fit in an Int.
+func NewMatrix(shape, data []Value) Matrix {
 	// Check consistency and sanity.
 	nelems := 0
 	if len(shape) > 0 {
@@ -274,5 +273,5 @@ func reshape(A, B Vector) Value {
 	if len(A) == 1 {
 		return NewVector(values)
 	}
-	return newMatrix(A, NewVector(values))
+	return NewMatrix(A, NewVector(values))
 }

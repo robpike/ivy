@@ -1,0 +1,23 @@
+# Copyright 2015 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# The evaluation operator, ivy.
+
+ivy '34'
+	34
+
+# Can evaluate ) commands, even without a newline.
+ivy ")format '%.2f'"
+3
+	3.00
+
+x = text 345
+2 * ivy rev x
+	1086
+
+# Symbols and functions are shared.
+ivy 'x=iota 10'
+ivy 'def average v = (+/v)/rho v'
+average iota 10
+	11/2

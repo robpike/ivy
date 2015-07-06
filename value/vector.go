@@ -59,7 +59,7 @@ func (v Vector) toType(which valueType) Value {
 	case vectorType:
 		return v
 	case matrixType:
-		return newMatrix([]Value{Int(len(v))}, v)
+		return NewMatrix([]Value{Int(len(v))}, v)
 	}
 	Errorf("cannot convert vector to %s", which)
 	return nil

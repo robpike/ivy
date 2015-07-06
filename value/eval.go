@@ -117,6 +117,7 @@ func whichType(v Value) valueType {
 	case Matrix:
 		return matrixType
 	}
+	Errorf("unknown type %T in whichType", v)
 	panic("which type")
 }
 
@@ -206,7 +207,7 @@ func innerProduct(u Value, left, right string, v Value) Value {
 				col = 0
 			}
 		}
-		return newMatrix(shape, data)
+		return NewMatrix(shape, data)
 	}
 	Errorf("can't do inner product on %s", whichType(u))
 	panic("not reached")
@@ -274,7 +275,7 @@ func reduce(opName string, v Value) Value {
 		if len(shape) == 1 { // TODO: Matrix.shrink()?
 			return NewVector(data)
 		}
-		return newMatrix(shape, data)
+		return NewMatrix(shape, data)
 	}
 	Errorf("can't do reduce on %s", whichType(v))
 	panic("not reached")
@@ -310,7 +311,7 @@ func scan(opName string, v Value) Value {
 		index := 0
 		nrows := 1
 		for i := 0; i < len(v.shape)-1; i++ {
-			// Guaranteed by newMatrix not to overflow.
+			// Guaranteed by NewMatrix not to overflow.
 			nrows *= int(v.shape[i].(Int))
 		}
 		for i := 0; i < nrows; i++ {
@@ -322,7 +323,7 @@ func scan(opName string, v Value) Value {
 			}
 			index += stride
 		}
-		return newMatrix(v.shape, data)
+		return NewMatrix(v.shape, data)
 	}
 	Errorf("can't do scan on %s", whichType(v))
 	panic("not reached")
@@ -345,7 +346,7 @@ func unaryMatrixOp(op string, i Value) Value {
 	for k := range u.data {
 		n[k] = Unary(op, u.data[k])
 	}
-	return newMatrix(u.shape, NewVector(n))
+	return NewMatrix(u.shape, NewVector(n))
 }
 
 // binaryVectorOp applies op elementwise to i and j.
@@ -426,7 +427,7 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 			n[k] = Binary(u.data[k], op, v.data[k])
 		}
 	}
-	return newMatrix(shape, NewVector(n))
+	return NewMatrix(shape, NewVector(n))
 }
 
 // isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.

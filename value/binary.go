@@ -4,10 +4,7 @@
 
 package value
 
-import (
-	"fmt"
-	"math/big"
-)
+import "math/big"
 
 // Binary operators.
 
@@ -156,6 +153,7 @@ var (
 	binaryCatenate                    *binaryOp
 	take, drop                        *binaryOp
 	min, max                          *binaryOp
+	fill, sel, rot                    *binaryOp
 	binaryOps                         map[string]*binaryOp
 )
 
@@ -734,7 +732,6 @@ func init() {
 					values[i] = A[x]
 				}
 				if len(values) == 1 {
-					fmt.Printf("type %T %T\n", values, values[0])
 					return values[0]
 				}
 				return NewVector(values)
@@ -772,12 +769,12 @@ func init() {
 					// Matrix of one less degree.
 					newShape := make(Vector, len(A.shape)-1)
 					copy(newShape, A.shape[1:])
-					return newMatrix(newShape, values)
+					return NewMatrix(newShape, values)
 				}
 				newShape := make(Vector, len(A.shape))
 				copy(newShape, A.shape)
 				newShape[0] = Int(len(B))
-				return newMatrix(newShape, values)
+				return NewMatrix(newShape, values)
 			},
 		},
 	}
@@ -924,7 +921,7 @@ func init() {
 				copy(newData, A.data)
 				newData = append(newData, B.data...)
 				newShape[0] = newShape[0].(Int) + 1
-				return newMatrix(newShape, newData)
+				return NewMatrix(newShape, newData)
 			},
 		},
 	}
@@ -996,40 +993,228 @@ func init() {
 		},
 	}
 
+	rot = &binaryOp{
+		whichType: atLeastVectorType,
+		fn: [numType]binaryFn{
+			vectorType: func(u, v Value) Value {
+				vec := v.(Vector)
+				if len(vec) == 0 {
+					return vec
+				}
+				if len(vec) == 1 {
+					return vec[0]
+				}
+				countVec := u.(Vector)
+				if len(countVec) != 1 {
+					Errorf("rot: count must be small integer")
+				}
+				count, ok := countVec[0].(Int)
+				if !ok {
+					Errorf("rot: count must be small integer")
+				}
+				elems := make([]Value, len(vec))
+				j := int(count) % len(elems)
+				if j < 0 {
+					j += len(elems)
+				}
+				for i := range elems {
+					elems[i] = vec[j%len(vec)]
+					j++
+				}
+				vec = NewVector(elems)
+				return vec
+			},
+			matrixType: func(u, v Value) Value {
+				mat := v.(Matrix)
+				switch len(mat.shape) {
+				case 0:
+					return mat
+				case 1:
+					return mat.data
+				case 2:
+				default:
+					Errorf("rotation on matrix with rank > 2 unimplemented")
+				}
+				countMat := u.(Matrix)
+				if len(countMat.shape) != 1 {
+					Errorf("rot: count must be small integer")
+				}
+				count, ok := countMat.data[0].(Int)
+				if !ok {
+					Errorf("rot: count must be small integer")
+				}
+				elems := make([]Value, len(mat.data))
+				dim0 := int(mat.shape[0].(Int))
+				n := mat.elemSize() // Each element is moved within its submatrix, of total size n.
+				for k := 0; k < n; k++ {
+					j := (int(count) + k) % n
+					if j < 0 {
+						j += n
+					}
+					i := k
+					for d := 0; d < dim0; d++ {
+						elems[i] = mat.data[j]
+						i += n
+						j += n
+					}
+				}
+				return NewMatrix(mat.shape, elems)
+			},
+		},
+	}
+
+	fill = &binaryOp{
+		whichType: atLeastVectorType,
+		fn: [numType]binaryFn{
+			vectorType: func(u, v Value) Value {
+				i := u.(Vector)
+				j := v.(Vector)
+				if len(i) == 0 {
+					return NewVector(nil)
+				}
+				// All lhs values must be small integers.
+				var count int64
+				numLeft := 0
+				for _, x := range i {
+					y, ok := x.(Int)
+					if !ok {
+						Errorf("left operand of fill must be small integers")
+					}
+					switch {
+					case y == 0:
+						count++
+					case y < 0:
+						count -= int64(y)
+					default:
+						numLeft++
+						count += int64(y)
+					}
+				}
+				if numLeft != len(j) {
+					Errorf("fill: count > 0 on left (%d) must equal length of right (%d)", numLeft, len(j))
+				}
+				if count > 1e8 {
+					Errorf("fill: result too large: %d elements", count)
+				}
+				result := make([]Value, 0, count)
+				jx := 0
+				var zero Value
+				if j.allChars() {
+					zero = Char(' ')
+				} else {
+					zero = Int(0)
+				}
+				for _, x := range i {
+					y := x.(Int)
+					switch {
+					case y == 0:
+						result = append(result, zero)
+					case y < 0:
+						for y = -y; y > 0; y-- {
+							result = append(result, zero)
+						}
+					default:
+						for ; y > 0; y-- {
+							result = append(result, j[jx])
+						}
+						jx++
+					}
+				}
+				return NewVector(result)
+			},
+		},
+	}
+
+	sel = &binaryOp{
+		whichType: atLeastVectorType,
+		fn: [numType]binaryFn{
+			vectorType: func(u, v Value) Value {
+				i := u.(Vector)
+				j := v.(Vector)
+				if len(i) == 0 {
+					return NewVector(nil)
+				}
+				// All lhs values must be small integers.
+				var count int64
+				for _, x := range i {
+					y, ok := x.(Int)
+					if !ok {
+						Errorf("left operand of sel must be small integers")
+					}
+					if y < 0 {
+						count -= int64(y)
+					} else {
+						count += int64(y)
+					}
+				}
+				if count > 1e8 {
+					Errorf("sel: result too large: %d elements", count)
+				}
+				result := make([]Value, 0, count)
+				add := func(howMany, what Value) {
+					hm := int(howMany.(Int))
+					if hm < 0 {
+						hm = -hm
+						what = Int(0)
+					}
+					for ; hm > 0; hm-- {
+						result = append(result, what)
+					}
+				}
+				if len(i) == 1 {
+					for _, y := range j {
+						add(i[0], y)
+					}
+				} else {
+					if len(i) != len(j) {
+						Errorf("sel: unequal lengths %d != %d", len(i), len(j))
+					}
+					for x, y := range j {
+						add(i[x], y)
+					}
+				}
+				return NewVector(result)
+			},
+		},
+	}
+
 	binaryOps = map[string]*binaryOp{
-		"+":    add,
-		"-":    sub,
-		"*":    mul,
-		"/":    quo,  // Exact rational division.
-		"idiv": idiv, // Go-like truncating integer division.
-		"imod": imod, // Go-like integer moduls.
-		"div":  div,  // Euclidean integer division.
-		"mod":  mod,  // Euclidean integer division.
-		"**":   pow,
-		"log":  binaryLog,
-		"&":    bitAnd,
-		"|":    bitOr,
-		"^":    bitXor,
-		"<<":   lsh,
-		">>":   rsh,
-		"==":   eq,
 		"!=":   ne,
+		"&":    bitAnd,
+		"*":    mul,
+		"**":   pow,
+		"+":    add,
+		",":    binaryCatenate,
+		"-":    sub,
+		"/":    quo, // Exact rational division.
 		"<":    lt,
+		"<<":   lsh,
 		"<=":   le,
+		"==":   eq,
 		">":    gt,
 		">=":   ge,
+		">>":   rsh,
 		"[]":   index,
+		"^":    bitXor,
 		"and":  logicalAnd,
-		"or":   logicalOr,
-		"xor":  logicalXor,
+		"div":  div, // Euclidean integer division.
+		"drop": drop,
+		"fill": fill,
+		"idiv": idiv, // Go-like truncating integer division.
+		"imod": imod, // Go-like integer moduls.
+		"iota": binaryIota,
+		"log":  binaryLog,
+		"max":  max,
+		"min":  min,
+		"mod":  mod, // Euclidean integer division.
 		"nand": logicalNand,
 		"nor":  logicalNor,
-		"iota": binaryIota,
-		"min":  min,
-		"max":  max,
+		"or":   logicalOr,
 		"rho":  binaryRho,
-		",":    binaryCatenate,
+		"rot":  rot,
+		"sel":  sel,
 		"take": take,
-		"drop": drop,
+		"xor":  logicalXor,
+		"|":    bitOr,
 	}
 }

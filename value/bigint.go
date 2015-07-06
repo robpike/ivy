@@ -149,7 +149,7 @@ func (i BigInt) toType(which valueType) Value {
 	case vectorType:
 		return NewVector([]Value{i})
 	case matrixType:
-		return newMatrix([]Value{one}, []Value{i})
+		return NewMatrix([]Value{one}, []Value{i})
 	}
 	Errorf("cannot convert big int to %s", which)
 	return nil

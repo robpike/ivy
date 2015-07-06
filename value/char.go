@@ -38,7 +38,7 @@ func (c Char) toType(which valueType) Value {
 	case vectorType:
 		return NewVector([]Value{c})
 	case matrixType:
-		return newMatrix([]Value{one}, []Value{c})
+		return NewMatrix([]Value{one}, []Value{c})
 	}
 	Errorf("cannot convert %s to char", which)
 	return nil

@@ -4,7 +4,10 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+	"unicode/utf8"
+)
 
 // Unary operators.
 
@@ -50,6 +53,7 @@ var (
 	unaryLog, unarySqrt               *unaryOp
 	unaryChar, unaryCode, unaryText   *unaryOp
 	unaryFloat                        *unaryOp
+	unaryIvy                          *unaryOp
 	unaryOps                          map[string]*unaryOp
 )
 
@@ -81,6 +85,27 @@ func floatSelf(v Value) Value {
 	Errorf("floatSelf")
 	return nil
 }
+
+// text returns a vector of Chars holding the string representation
+// of the value.
+func text(v Value) Value {
+	str := v.String()
+	elem := make([]Value, utf8.RuneCountInString(str))
+	for i, r := range str {
+		elem[i] = Char(r)
+	}
+	return NewVector(elem)
+}
+
+var context Context
+
+// SetContext sets the context for evaluation; needed by IvyEval.
+func SetContext(c Context) {
+	context = c
+}
+
+// Implemented in main, handled as a func to avoid a dependency loop.
+var IvyEval func(context Context, s string) Value
 
 func init() {
 	unaryRoll = &unaryOp{
@@ -610,6 +635,18 @@ func init() {
 		},
 	}
 
+	unaryIvy = &unaryOp{
+		fn: [numType]unaryFn{
+			vectorType: func(v Value) Value {
+				text := v.(Vector)
+				if !text.allChars() {
+					Errorf("ivy: value is not a vector of char")
+				}
+				return IvyEval(context, text.makeString(false))
+			},
+		},
+	}
+
 	unaryFloat = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
@@ -641,6 +678,7 @@ func init() {
 		"float": unaryFloat,
 		"floor": floor,
 		"iota":  unaryIota,
+		"ivy":   unaryIvy,
 		"log":   unaryLog,
 		"rev":   reverse,
 		"rho":   unaryRho,

@@ -137,7 +137,7 @@ func (f BigFloat) toType(which valueType) Value {
 	case vectorType:
 		return NewVector([]Value{f})
 	case matrixType:
-		return newMatrix([]Value{one}, []Value{f})
+		return NewMatrix([]Value{one}, []Value{f})
 	}
 	Errorf("cannot convert float to %s", which)
 	return nil

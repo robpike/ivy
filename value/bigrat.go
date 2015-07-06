@@ -171,7 +171,7 @@ func (r BigRat) toType(which valueType) Value {
 	case vectorType:
 		return NewVector([]Value{r})
 	case matrixType:
-		return newMatrix([]Value{one, one}, []Value{r})
+		return NewMatrix([]Value{one, one}, []Value{r})
 	}
 	Errorf("cannot convert rational to %s", which)
 	return nil
