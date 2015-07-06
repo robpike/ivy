@@ -80,6 +80,7 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 	initConf()
 	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")+"\n"))
 	context := parse.NewContext()
+	value.SetContext(context)
 	parser := parse.NewParser(&conf, name, scanner, context)
 	testBuf.Reset()
 	if !run(parser, context, false) != shouldFail {

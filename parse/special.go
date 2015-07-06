@@ -197,7 +197,7 @@ Switch:
 	default:
 		p.errorf(")%s: not recognized", text)
 	}
-	p.need(scan.Newline)
+	p.need(scan.Newline, scan.EOF) // EOF lets this be in a string we evaluate.
 }
 
 // getString returns the value of the string that must be next in the input.

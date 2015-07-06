@@ -4,11 +4,7 @@
 
 package value
 
-import (
-	"fmt"
-	"os"
-	"strings"
-)
+import "strings"
 
 type valueType int
 
@@ -22,32 +18,6 @@ const (
 	matrixType
 	numType
 )
-
-var sigChan chan os.Signal
-
-func init() {
-	sigChan = make(chan os.Signal, 100)
-	// signal.Notify(sigChan, syscall.SIGINT) // TODO: Find a finer-grained way to handle this.
-}
-
-func CheckInterrupt() {
-	select {
-	case <-sigChan:
-		Errorf("interrupted")
-	default:
-	}
-}
-
-func DrainInterrupt() {
-	for {
-		select {
-		case <-sigChan:
-			fmt.Fprintln(os.Stderr, "interrupted")
-		default:
-			return
-		}
-	}
-}
 
 var typeName = [...]string{"int", "char", "big int", "rational", "float", "vector", "matrix"}
 
@@ -63,7 +33,6 @@ type unaryOp struct {
 }
 
 func Unary(opName string, v Value) Value {
-	CheckInterrupt()
 	if len(opName) > 1 {
 		if strings.HasSuffix(opName, `/`) {
 			return reduce(opName[:len(opName)-1], v)
@@ -122,7 +91,6 @@ func whichType(v Value) valueType {
 }
 
 func Binary(u Value, opName string, v Value) Value {
-	CheckInterrupt()
 	if strings.Contains(opName, ".") {
 		return product(u, opName, v)
 	}

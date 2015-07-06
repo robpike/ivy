@@ -56,7 +56,7 @@ Unary functions.
 	Reversal          ⊖B    flip    Reverse elements of B along first axis
 	Grade up          ⍋B    up      Indices of B which will arrange B in ascending order
 	Grade down        ⍒B    down    Indices of B which will arrange B in descending order
-	Execute           ⍎B            Execute an APL expression
+	Execute           ⍎B    ivy     Execute an APL (ivy) expression
 	Monadic format    ⍕B    text    A character representation of B
 	Monadic transpose ⍉B            Reverse the axes of B
 	Factorial         !B            Product of integers 1 to B
@@ -97,12 +97,14 @@ Binary functions.
 	                            mod     A modulo B (Euclidean)
 	                            imod    A modulo B (Go)
 	Catenation            A,B   ,       Elements of B appended to the elements of A
-	Expansion             A\B           Insert zeros (or blanks) in B corresponding to zeros in A
-	Compression           A/B           Select elements in B corresponding to ones in A
-	Index of              A⍳B           The location (index) of B in A; 1+⌈/⍳⍴A if not found
+	Expansion             A\B   fill    Insert zeros (or blanks) in B corresponding to zeros in A
+	                                    In ivy: abs(A) gives count, A <= 0 inserts zero (or blank)
+	Compression           A/B   sel     Select elements in B corresponding to ones in A
+	                                    In ivy: abs(A) gives count, A <= 0 inserts zero
+	Index of              A⍳B   iota    The location (index) of B in A; 1+⌈/⍳⍴A if not found
 	                                    In ivy: origin-1 if not found (i.e. 0 if one-indexed)
 	Matrix divide         A⌹B           Solution to system of linear equations Ax = B
-	Rotation              A⌽B           The elements of B are rotated A positions
+	Rotation              A⌽B   rot     The elements of B are rotated A positions left
 	Rotation              A⊖B           The elements of B are rotated A positions along the first axis
 	Logarithm             A⍟B   log     Logarithm of B to base A
 	Dyadic format         A⍕B           Format B into a character matrix according to A
@@ -143,6 +145,7 @@ Type-converting operations
 	Char                  char B   The character with integer Unicode value B
 	Float                 float B  The floating-point representation of B
 	Text                  text B   The textual (vector of Char) representation of B
+	Evaluate              ivy B    The result of evaluating B as ivy program text
 
 Pre-defined constants
 
