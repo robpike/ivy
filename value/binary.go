@@ -997,68 +997,23 @@ func init() {
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
 			vectorType: func(u, v Value) Value {
-				vec := v.(Vector)
-				if len(vec) == 0 {
-					return vec
-				}
-				if len(vec) == 1 {
-					return vec[0]
-				}
 				countVec := u.(Vector)
-				if len(countVec) != 1 {
-					Errorf("rot: count must be small integer")
-				}
 				count, ok := countVec[0].(Int)
 				if !ok {
 					Errorf("rot: count must be small integer")
 				}
-				elems := make([]Value, len(vec))
-				j := int(count) % len(elems)
-				if j < 0 {
-					j += len(elems)
-				}
-				for i := range elems {
-					elems[i] = vec[j%len(vec)]
-					j++
-				}
-				vec = NewVector(elems)
-				return vec
+				return v.(Vector).rotate(int(count))
 			},
 			matrixType: func(u, v Value) Value {
-				mat := v.(Matrix)
-				switch len(mat.shape) {
-				case 0:
-					return mat
-				case 1:
-					return mat.data
-				case 2:
-				default:
-					Errorf("rotation on matrix with rank > 2 unimplemented")
-				}
 				countMat := u.(Matrix)
-				if len(countMat.shape) != 1 {
+				if len(countMat.shape) != 1 || len(countMat.data) != 1 {
 					Errorf("rot: count must be small integer")
 				}
 				count, ok := countMat.data[0].(Int)
 				if !ok {
 					Errorf("rot: count must be small integer")
 				}
-				elems := make([]Value, len(mat.data))
-				dim0 := int(mat.shape[0].(Int))
-				n := mat.elemSize() // Each element is moved within its submatrix, of total size n.
-				for k := 0; k < n; k++ {
-					j := (int(count) + k) % n
-					if j < 0 {
-						j += n
-					}
-					i := k
-					for d := 0; d < dim0; d++ {
-						elems[i] = mat.data[j]
-						i += n
-						j += n
-					}
-				}
-				return NewMatrix(mat.shape, elems)
+				return v.(Matrix).rotate(int(count))
 			},
 		},
 	}

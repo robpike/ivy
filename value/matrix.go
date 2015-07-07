@@ -275,3 +275,21 @@ func reshape(A, B Vector) Value {
 	}
 	return NewMatrix(A, NewVector(values))
 }
+
+// rotate returns a copy of v with elements rotated left by n.
+// Rotation occurs on the rightmost axis.
+func (m Matrix) rotate(n int) Value {
+	if len(m.shape) == 0 {
+		return Matrix{}
+	}
+	elems := make([]Value, len(m.data))
+	dim := int(m.shape[len(m.shape)-1].(Int))
+	n %= dim
+	if n < 0 {
+		n += dim
+	}
+	for i := 0; i < len(m.data); i += dim {
+		doRotate(elems[i:i+dim], m.data[i:i+dim], n)
+	}
+	return NewMatrix(m.shape, elems)
+}

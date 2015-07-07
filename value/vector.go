@@ -71,6 +71,33 @@ func (v Vector) sameLength(x Vector) {
 	}
 }
 
+// rotate returns a copy of v with elements rotated left by n.
+func (v Vector) rotate(n int) Value {
+	if len(v) == 0 {
+		return v
+	}
+	if len(v) == 1 {
+		return v[0]
+	}
+	n %= len(v)
+	if n < 0 {
+		n += len(v)
+	}
+	elems := make([]Value, len(v))
+	doRotate(elems, v, n%len(elems))
+	return NewVector(elems)
+}
+
+func doRotate(dst, src []Value, j int) {
+	for i := range dst {
+		dst[i] = src[j]
+		j++
+		if j >= len(src) {
+			j = 0
+		}
+	}
+}
+
 // grade returns as a Vector the indexes that sort the vector into increasing order
 func (v Vector) grade() Vector {
 	x := make([]int, len(v))
