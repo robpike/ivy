@@ -4,7 +4,9 @@ ivy
 Ivy is an interpreter for an APL-like language. It is a plaything and a work in
 progress.
 
-Also, a prototype App for iPhone and iPad is available in the App store.
+To be built, it requires Go 1.5, which is in beta at the time of writing.
+
+A prototype App for iPhone and iPad is available in the App store.
 Search for "ivy bignum calculator".
 
 Full documentation at: http://godoc.org/robpike.io/ivy
