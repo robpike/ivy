@@ -97,7 +97,7 @@ func (f BigFloat) String() string {
 					mant.Quo(&mant, ten)
 				}
 			}
-			fmt.Sprintf("%g\n", &mant)
+			return fmt.Sprintf("%g\n", &mant)
 		} else {
 			sign := ""
 			if mant.Sign() < 0 {
