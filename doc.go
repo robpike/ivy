@@ -165,7 +165,7 @@ and `ab`, `a` `b`, "ab", "a" "b", 'ab', and 'a' 'b' are equivalent representatio
 of a two-char vector.
 
 Unlike in Go, a string in ivy comprises code points, not bytes; as such it can
-contain only valid Unicode values. Thus in ivy '\x80' is illegal, although it is
+contain only valid Unicode values. Thus in ivy "\x80" is illegal, although it is
 a legal one-byte string in Go.
 
 Strings can be printed. If a vector contains only chars, it is printed without
@@ -185,7 +185,7 @@ same name.
 The syntax of a definition is the 'def' keyword, the operator and formal
 arguments, an equals sign, and then the body. The names of the operator and its
 arguments must be identifiers.  For unary operators, write "def name arg"; for
-binary write "def arg1 name arg2". The final expression of the body is the
+binary write "def leftarg name rightarg". The final expression in the body is the
 return value.
 
 The body may be a single line (possibly containing semicolons) on the same line
@@ -217,6 +217,9 @@ To declare an operator but not define it, omit the equals sign and what follows.
 	def foo x = -x
 	bar 3
 	result: -3
+	def foo x = /x
+	bar 3
+	result: 1/3
 
 Within a user-defined operator, identifiers are local to the invocation unless
 they are undefined in the operator but defined globally, in which case they refer to
