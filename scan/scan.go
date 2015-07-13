@@ -571,7 +571,11 @@ func digitsForBase(base int) string {
 	d := digits[base]
 	if d == "" {
 		if base <= 10 {
-			d = decimal[:base]
+			// Always accept a maximal string of numerals.
+			// Whatever the input base, if it's <= 10 let the parser
+			// decide if it's valid. This also helps us get the always-
+			// base-10 numbers for )specials.
+			d = decimal[:10]
 		} else {
 			d = decimal + lower[:base-10] + upper[:base-10]
 		}

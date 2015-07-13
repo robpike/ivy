@@ -147,3 +147,9 @@
 )format "%g"
 1e10
 	1e+10
+
+# Verify that )specials always use base 10.
+)base 3
+)base 10
+1<<9
+	512
