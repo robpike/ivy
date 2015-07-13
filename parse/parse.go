@@ -321,7 +321,7 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 		p.special()
 		p.context.SetConstants()
 		return nil, true
-	case scan.Def:
+	case scan.Op:
 		p.functionDefn()
 		return nil, true
 	}

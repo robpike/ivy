@@ -18,6 +18,6 @@ x = text 345
 
 # Symbols and functions are shared.
 ivy 'x=iota 10'
-ivy 'def average v = (+/v)/rho v'
+ivy 'op average v = (+/v)/rho v'
 average iota 10
 	11/2

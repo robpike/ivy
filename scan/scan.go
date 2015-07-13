@@ -34,13 +34,13 @@ const (
 	// Interesting things
 	Assign         // '='
 	Char           // printable ASCII character; grab bag for comma etc.
-	Def            // "def", function definition keyword
 	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
 	LeftBrack      // '['
 	LeftParen      // '('
 	Number         // simple number
 	Operator       // known operator
+	Op             // "op", operator definition keyword
 	Rational       // rational number like 2/3
 	RightBrack     // ']'
 	RightParen     // ')'
@@ -49,6 +49,8 @@ const (
 	String         // quoted string (includes quotes)
 )
 
+// Note: All operators are not valid hexadecimal constants,
+// so they work when base is 16. Higher bases are less critical.
 var operatorWord = map[string]bool{
 	"abs":   true,
 	"acos":  true,
@@ -395,8 +397,8 @@ Loop:
 				return lexOperator
 			case operatorWord[word]:
 				return lexOperator
-			case word == "def":
-				l.emit(Def)
+			case word == "op":
+				l.emit(Op)
 			case l.config.InputBase() > 10 && isAllDigits(word, l.config.InputBase()):
 				l.emit(Number)
 			default:

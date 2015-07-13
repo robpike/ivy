@@ -182,29 +182,29 @@ Users can define unary and binary operators, which then behave just like
 built-in operators. Both a unary and a binary operator may be defined for the
 same name.
 
-The syntax of a definition is the 'def' keyword, the operator and formal
+The syntax of a definition is the 'op' keyword, the operator and formal
 arguments, an equals sign, and then the body. The names of the operator and its
-arguments must be identifiers.  For unary operators, write "def name arg"; for
-binary write "def leftarg name rightarg". The final expression in the body is the
+arguments must be identifiers.  For unary operators, write "op name arg"; for
+binary write "op leftarg name rightarg". The final expression in the body is the
 return value.
 
 The body may be a single line (possibly containing semicolons) on the same line
-as the 'def', or it can be multiple lines. For a multiline entry, there is a
+as the 'op', or it can be multiple lines. For a multiline entry, there is a
 newline after the '=' and the definition ends at the first blank line (ignoring
 spaces).
 
 Example: average of a vector (unary):
-	def avg x = (+/x)/rho x
+	op avg x = (+/x)/rho x
 	avg iota 11
 	result: 6
 
 Example: n largest entries in a vector (binary):
-	def n largest x = n take x[down x]
+	op n largest x = n take x[down x]
 	3 largest 7 1 3 24 1 5 12 5 51
 	result: 51 24 12
 
 Example: multiline operator definition (binary):
-	def a sum b =
+	op a sum b =
 		a = a+b
 		a
 
@@ -212,12 +212,12 @@ Example: multiline operator definition (binary):
 	result: 1 2 3 4 5 6 7
 
 To declare an operator but not define it, omit the equals sign and what follows.
-	def foo x
-	def bar x = foo x
-	def foo x = -x
-	bar 3
+	op foo x
+	op bar x = foo x
+	op foo x = -x
+	op 3
 	result: -3
-	def foo x = /x
+	op foo x = /x
 	bar 3
 	result: 1/3
 

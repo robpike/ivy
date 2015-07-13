@@ -75,7 +75,7 @@ func truth(x bool) int {
 func (p *Parser) special() {
 	p.need(scan.RightParen)
 Switch:
-	switch text := p.need(scan.Identifier).Text; text {
+	switch text := p.need(scan.Identifier, scan.Op).Text; text {
 	case "help":
 		p.Println(specialHelpMessage)
 		p.Println("More at: http://godoc.org/robpike.io/ivy")

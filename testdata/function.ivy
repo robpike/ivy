@@ -4,46 +4,46 @@
 
 # User-defined functions.
 
-def i x = iota x
+op i x = iota x
 i 5
 	1 2 3 4 5
 
-def avg x = (+/x)/rho x
+op avg x = (+/x)/rho x
 avg iota 11
 	6
 
-def n largest x = n take x[down x]
+op n largest x = n take x[down x]
 3 largest 7 1 3 24 1 5 12 5 51
 	51 24 12
 
 # Args are not globals
 x = 100
-def i x = iota x
+op i x = iota x
 i 3; x
 	1 2 3 100
 
 # Local non-args are globals
 x = 100
-def double u = x = u; x*2
+op double u = x = u; x*2
 double 3; x
 	6 3
 
 # Declare unary before use
-def foo x
-def bar x = foo x
-def foo x = -x
+op foo x
+op bar x = foo x
+op foo x = -x
 bar 3
 		-3
 
 # Declare binary before use
-def x foo y
-def x bar y = -x foo y
-def x foo y = x + y
+op x foo y
+op x bar y = -x foo y
+op x foo y = x + y
 3 bar 4
 		-7
 
 # Multiline function definition
-def a x b =
+op a x b =
  y = a*b
  y = y*y
  y
@@ -54,12 +54,12 @@ def a x b =
 # Program printing
 
 # Simple.
-def a x b = a + b
+op a x b = a + b
 )op x
-	def a x b = a + b
+	op a x b = a + b
 
 # Character escapes and other formatting details.
-def x a = 
+op x a = 
  'abc\u0001\U0010FFFF\\\'\a\b\f\n\r\t\v\n'
  'a'
  1.5
@@ -67,7 +67,7 @@ def x a =
  'a' 'b' 'c'
  
 )op x
-	def x a =
+	op x a =
 		'abc\u0001\U0010ffff\\\'\a\b\f\n\r\t\v\n'
 		'a'
 		3/2
@@ -75,22 +75,22 @@ def x a =
 		'abc'
 
 # Parentheses only when required.
-def x a = (3+2)*(3+2)
+op x a = (3+2)*(3+2)
 )op x
-	def x a = (3 + 2) * 3 + 2
+	op x a = (3 + 2) * 3 + 2
 
-def x a = abs (3+2)
+op x a = abs (3+2)
 )op x
-	def x a = abs 3 + 2
+	op x a = abs 3 + 2
 
-def x a = 3 + abs -2
+op x a = 3 + abs -2
 )op x
-	def x a = 3 + abs -2
+	op x a = 3 + abs -2
 
-def x a = (sqrt 4)*a
+op x a = (sqrt 4)*a
 )op x
-	def x a = (sqrt 4) * a
+	op x a = (sqrt 4) * a
 
-def x a = a*(sqrt 4)*(sqrt 4)
+op x a = a*(sqrt 4)*(sqrt 4)
 )op x
-	def x a = a * (sqrt 4) * sqrt 4
+	op x a = a * (sqrt 4) * sqrt 4

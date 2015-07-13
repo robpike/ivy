@@ -24,7 +24,7 @@ func (fn *function) String() string {
 	if fn.isBinary {
 		left = fn.left.name + " "
 	}
-	s := fmt.Sprintf("def %s%s %s =", left, fn.name, fn.right.name)
+	s := fmt.Sprintf("op %s%s %s =", left, fn.name, fn.right.name)
 	if len(fn.body) == 1 {
 		return s + " " + fn.body[0].ProgString()
 	}
@@ -36,16 +36,16 @@ func (fn *function) String() string {
 
 // function definition
 //
-//	"def" name arg '\n'
-//	"def" name arg '=' statements '\n'
-//	"def" arg name arg '=' statements '\n'
+//	"op" name arg '\n'
+//	"op" name arg '=' statements '\n'
+//	"op" arg name arg '=' statements '\n'
 //
 // statements:
 //	expressionList
 //	'\n' (expressionList '\n')+ '\n' # For multiline definition, ending with blank line.
 //
 func (p *Parser) functionDefn() {
-	p.need(scan.Def)
+	p.need(scan.Op)
 	fn := new(function)
 	// Two identifiers means: op arg.
 	// Three identifiers means: arg op arg.
@@ -59,9 +59,9 @@ func (p *Parser) functionDefn() {
 	switch tok.Type {
 	case scan.Assign:
 		// Either one line:
-		//	def x a = expression
+		//	op x a = expression
 		// or multiple lines terminated by a blank line:
-		//	def x a =
+		//	op x a =
 		//	expression
 		//	expression
 		//
@@ -106,7 +106,7 @@ func (p *Parser) functionDefn() {
 		p.errorf("argument name %q is function name", fn.name)
 	}
 	if p.config.Debug("parse") {
-		p.Printf("def %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
+		p.Printf("op %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
 	}
 }
 
