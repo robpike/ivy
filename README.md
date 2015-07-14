@@ -6,7 +6,7 @@ progress.
 
 To be built, it requires Go 1.5, which is in beta at the time of writing.
 
-A prototype App for iPhone and iPad is available in the App store.
+Prototype apps for iPhone and iPad is available in the App store, and for Android in the Google Play store.
 Search for "ivy bignum calculator".
 
 Full documentation at: http://godoc.org/robpike.io/ivy
