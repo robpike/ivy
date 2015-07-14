@@ -14,6 +14,7 @@ Full documentation at: http://godoc.org/robpike.io/ivy
 
 Slides for a talk at: http://go-talks.appspot.com/github.com/robpike/ivy/talks/ivy.slide
 Video for the talk at: http://www.youtube.com/watch?v=PXoG0WX0r_E
+The talk predates a lot of the features, including floating point and text.
 
 
 ![Ivy](ivy.jpg)
