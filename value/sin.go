@@ -57,7 +57,7 @@ func floatSin(x *big.Float) *big.Float {
 	return result
 }
 
-// floatCos computes sin(x) using argument reduction and a Taylor series.
+// floatCos computes cos(x) using argument reduction and a Taylor series.
 func floatCos(x *big.Float) *big.Float {
 	twoPiReduce(x)
 

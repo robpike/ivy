@@ -85,3 +85,7 @@ y==x/x
 0.69; 09e1
 	69/100 90
 
+# Was a bug. 1/f was not seen as a fraction, so it misparsed as 1/(f+1).
+)base 16
+1/f+1
+	10/f

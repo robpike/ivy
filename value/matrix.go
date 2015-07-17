@@ -241,7 +241,7 @@ func (x Matrix) sameShape(y Matrix) {
 	}
 }
 
-// reshape implements unary rho
+// reshape implements binary rho
 // A⍴B: Array of shape A with data B
 func reshape(A, B Vector) Value {
 	if len(B) == 0 {

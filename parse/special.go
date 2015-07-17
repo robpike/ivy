@@ -99,6 +99,12 @@ Switch:
 			obase = base
 		}
 		p.config.SetBase(ibase, obase)
+		// We set the configuration in the scanner here, before it retrieves
+		// the following newline. That means that any number it scans
+		// at the beginning of the next line will happen after the config
+		// has been updated. Also, the send of the newline token will
+		// synchronize the transfer of the value.
+		p.scanner.SetConfig(p.config)
 	case "debug":
 		if p.peek().Type == scan.Newline {
 			for _, f := range config.DebugFlags {

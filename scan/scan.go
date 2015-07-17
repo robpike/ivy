@@ -150,8 +150,11 @@ type stateFn func(*Scanner) stateFn
 
 // Scanner holds the state of the scanner.
 type Scanner struct {
-	Tokens     chan Token // channel of scanned items
-	config     *config.Config
+	Tokens chan Token // channel of scanned items
+	// Config is stored as a copy, so we don't race with the rest of the program's use
+	// of a single config if it is modified while we are working.
+	// See also the comment in ../parse/special.go.
+	config     config.Config
 	r          io.ByteReader
 	done       bool
 	name       string // the name of the input; used only for error reports
@@ -260,13 +263,18 @@ func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
 func New(conf *config.Config, name string, r io.ByteReader) *Scanner {
 	l := &Scanner{
 		r:      r,
-		config: conf,
 		name:   name,
 		line:   1,
-		Tokens: make(chan Token),
+		Tokens: make(chan Token), // Must be unbuffered to synchronize with parser.
 	}
+	l.SetConfig(conf)
 	go l.run()
 	return l
+}
+
+// SetConfig sets the configuration for the Scanner.
+func (l *Scanner) SetConfig(conf *config.Config) {
+	l.config = *conf
 }
 
 // run runs the state machine for the Scanner.
@@ -399,7 +407,7 @@ Loop:
 				return lexOperator
 			case word == "op":
 				l.emit(Op)
-			case l.config.InputBase() > 10 && isAllDigits(word, l.config.InputBase()):
+			case isAllDigits(word, l.config.InputBase()):
 				l.emit(Number)
 			default:
 				l.emit(Identifier)
@@ -500,7 +508,7 @@ func lexNumber(l *Scanner) stateFn {
 			l.emit(Operator)
 			return lexAny
 		}
-		if r != '.' && !unicode.IsDigit(r) {
+		if r != '.' && !isNumeral(r, l.config.InputBase()) {
 			l.emit(Operator)
 			return lexAny
 		}
@@ -515,7 +523,7 @@ func lexNumber(l *Scanner) stateFn {
 	// Might be a rational.
 	l.accept("/")
 
-	if r := l.peek(); r != '.' && !unicode.IsDigit(r) {
+	if r := l.peek(); r != '.' && !isNumeral(r, l.config.InputBase()) {
 		// Oops, not a number. Hack!
 		l.pos-- // back up before '/'
 		l.emit(Number)
@@ -634,6 +642,27 @@ func isEndOfLine(r rune) bool {
 // isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+// isNumeral reports whether r is a numeral in the specified base.
+// A decimal digit is always taken as a numeral, because otherwise parsing
+// would be muddled. (In base 8, 039 shouldn't be scanned as two numbers.)
+// The parser will check that the scanned number is legal.
+func isNumeral(r rune, base int) bool {
+	if '0' <= r && r <= '9' {
+		return true
+	}
+	if base < 10 {
+		return false
+	}
+	top := rune(base - 10)
+	if 'a' <= r && r <= 'a'+top {
+		return true
+	}
+	if 'A' <= r && r <= 'A'+top {
+		return true
+	}
+	return false
 }
 
 // isAllDigits reports whether s consists of digits in the specified base.
