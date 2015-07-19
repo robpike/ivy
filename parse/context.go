@@ -52,22 +52,24 @@ func (c *execContext) AssignLocal(name string, value value.Value) {
 // Assign assigns the variable the value. The variable must
 // be defined either in the current function or globally.
 // Inside a function, new variables become locals.
-func (c *execContext) Assign(name string, value value.Value) {
+func (c *execContext) Assign(name string, val value.Value) {
 	n := len(c.stack)
 	if n == 0 {
-		c.stack[0][name] = value
-		return
+		value.Errorf("empty stack; cannot happen")
 	}
-	// In this function?
 	globals := c.stack[0]
-	frame := c.stack[n-1]
-	_, globallyDefined := globals[name]
-	if _, ok := frame[name]; ok || !globallyDefined {
-		frame[name] = value
-		return
+	if n > 1 {
+		// In this function?
+		frame := c.stack[n-1]
+		_, globallyDefined := globals[name]
+		if _, ok := frame[name]; ok || !globallyDefined {
+			frame[name] = val
+			return
+		}
 	}
 	// Assign global variable.
-	globals[name] = value
+	c.noOp(name)
+	globals[name] = val
 }
 
 // Push pushes a new frame onto the context stack.
@@ -90,4 +92,33 @@ func (c *execContext) Eval(exprs []value.Expr) []value.Value {
 		}
 	}
 	return values
+}
+
+// noVar guarantees that there is no global variable with that name,
+// preventing an op from being defined with the same name as a variable,
+// which could cause problems. A variable with value zero is considered to
+// be OK, so one can clear a variable before defining a symbol. A cleared
+// variable is removed from the global symbol table.
+// noVar also prevents defining _ as an op.
+func (c *execContext) noVar(name string) {
+	if name == "_" {
+		value.Errorf(`cannot define op with name "_"`)
+	}
+	sym := c.stack[0][name]
+	if sym == nil {
+		return
+	}
+	if i, ok := sym.(value.Int); ok && i == 0 {
+		delete(c.stack[0], name)
+		return
+	}
+	value.Errorf("cannot define op %s; it is a variable (%[1]s=0 to clear)", name)
+}
+
+// noOp is the dual of noVar. It just errors out if there is a conflict.
+func (c *execContext) noOp(name string) {
+	if c.unaryFn[name] == nil && c.binaryFn[name] == nil {
+		return
+	}
+	value.Errorf("cannot define variable %s; it is an op", name)
 }
