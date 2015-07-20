@@ -23,6 +23,16 @@ type Matrix struct {
 	data  Vector
 }
 
+// Shape returns the shape of the matrix.
+func (m *Matrix) Shape() Vector {
+	return m.shape
+}
+
+// Data returns the data of the matrix as a vector.
+func (m *Matrix) Data() Vector {
+	return m.data
+}
+
 // write2d prints the 2d matrix m into the buffer.
 // value is a slice of already-printed values.
 // The receiver provides only the shape of the matrix.
@@ -224,10 +234,6 @@ func (m Matrix) toType(which valueType) Value {
 	}
 	Errorf("cannot convert matrix to %s", which)
 	return nil
-}
-
-func (m Matrix) Shape() Vector {
-	return m.shape
 }
 
 func (x Matrix) sameShape(y Matrix) {

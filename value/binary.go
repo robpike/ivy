@@ -1054,7 +1054,7 @@ func init() {
 				result := make([]Value, 0, count)
 				jx := 0
 				var zero Value
-				if j.allChars() {
+				if j.AllChars() {
 					zero = Char(' ')
 				} else {
 					zero = Int(0)

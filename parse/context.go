@@ -13,6 +13,7 @@ type execContext struct {
 	stack    []symtab
 	unaryFn  map[string]*function
 	binaryFn map[string]*function
+	defs     []opDef
 }
 
 // NewContext returns a new execution context: the stack and variables.
@@ -94,15 +95,46 @@ func (c *execContext) Eval(exprs []value.Expr) []value.Value {
 	return values
 }
 
+// define defines the function and installs it. It also performs
+// some error checking and adds the function to the sequencing
+// information used by the save method.
+func (c *execContext) define(fn *function) {
+	c.noVar(fn.name)
+	if fn.isBinary {
+		c.binaryFn[fn.name] = fn
+	} else {
+		c.unaryFn[fn.name] = fn
+	}
+	// Update the sequence of definitions.
+	// First, if it's last (a very common case) there's nothing to do.
+	if len(c.defs) > 0 {
+		last := c.defs[len(c.defs)-1]
+		if last.name == fn.name && last.isBinary == fn.isBinary {
+			return
+		}
+	}
+	// Is it already defined?
+	for i, def := range c.defs {
+		if def.name == fn.name && def.isBinary == fn.isBinary {
+			// Yes. Drop it.
+			copy(c.defs[i:], c.defs[i+1:])
+			c.defs = c.defs[:len(c.defs)-1]
+			break
+		}
+	}
+	// It is now the most recent definition.
+	c.defs = append(c.defs, opDef{fn.name, fn.isBinary})
+}
+
 // noVar guarantees that there is no global variable with that name,
 // preventing an op from being defined with the same name as a variable,
 // which could cause problems. A variable with value zero is considered to
 // be OK, so one can clear a variable before defining a symbol. A cleared
 // variable is removed from the global symbol table.
-// noVar also prevents defining _ as an op.
+// noVar also prevents defining builtin variables as ops.
 func (c *execContext) noVar(name string) {
-	if name == "_" {
-		value.Errorf(`cannot define op with name "_"`)
+	if name == "_" || name == "pi" || name == "e" { // Cannot redefine these.
+		value.Errorf(`cannot define op with name %q`, name)
 	}
 	sym := c.stack[0][name]
 	if sym == nil {
@@ -115,8 +147,12 @@ func (c *execContext) noVar(name string) {
 	value.Errorf("cannot define op %s; it is a variable (%[1]s=0 to clear)", name)
 }
 
-// noOp is the dual of noVar. It just errors out if there is a conflict.
+// noOp is the dual of noVar. It also checks for assignment to builtins.
+// It just errors out if there is a conflict.
 func (c *execContext) noOp(name string) {
+	if name == "pi" || name == "e" { // Cannot redefine these.
+		value.Errorf(`cannot reassign %q`, name)
+	}
 	if c.unaryFn[name] == nil && c.binaryFn[name] == nil {
 		return
 	}

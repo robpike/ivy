@@ -16,6 +16,8 @@ import (
 	"robpike.io/ivy/value"
 )
 
+const defaultFile = "save.ivy"
+
 func (p *Parser) need(want ...scan.Type) scan.Token {
 	tok := p.next()
 	for _, w := range want {
@@ -136,7 +138,11 @@ Switch:
 		}
 		p.config.SetFormat(p.getString())
 	case "get":
-		p.runFromFile(p.getString())
+		if p.peek().Type == scan.Newline {
+			p.runFromFile(defaultFile)
+		} else {
+			p.runFromFile(p.getString())
+		}
 	case "maxbits":
 		if p.peek().Type == scan.Newline {
 			p.Printf("%d\n", p.config.MaxBits())
@@ -194,6 +200,14 @@ Switch:
 			break Switch
 		}
 		p.config.SetPrompt(p.getString())
+	case "save":
+		if p.peek().Type == scan.Newline {
+			fmt.Println("TODO saving to /dev/tty")
+			p.context.save("/dev/tty", p.config)
+			// p.context.save(defaultFile, p.config)
+		} else {
+			p.context.save(p.getString(), p.config)
+		}
 	case "seed":
 		if p.peek().Type == scan.Newline {
 			p.Println(p.config.Origin())
@@ -237,10 +251,15 @@ func (p *Parser) runFromFile(name string) {
 	}
 	scanner := scan.New(p.config, name, bufio.NewReader(fd))
 	parser := NewParser(p.config, name, scanner, p.context)
+	out := p.config.Output()
 	for {
 		value, ok := parser.Line()
-		if value != nil {
-			fmt.Fprintln(os.Stdout, value)
+		for _, val := range value {
+			val = val.Eval(p.context)
+			if val == nil {
+				continue
+			}
+			fmt.Fprintf(out, "%v\n", val)
 		}
 		if !ok {
 			return

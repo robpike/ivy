@@ -639,7 +639,7 @@ func init() {
 		fn: [numType]unaryFn{
 			vectorType: func(v Value) Value {
 				text := v.(Vector)
-				if !text.allChars() {
+				if !text.AllChars() {
 					Errorf("ivy: value is not a vector of char")
 				}
 				return IvyEval(context, text.makeString(false))

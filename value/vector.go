@@ -13,7 +13,7 @@ import (
 type Vector []Value
 
 func (v Vector) String() string {
-	return v.makeString(!v.allChars())
+	return v.makeString(!v.AllChars())
 }
 
 func (v Vector) ProgString() string {
@@ -37,7 +37,8 @@ func (v Vector) makeString(spaces bool) string {
 	return b.String()
 }
 
-func (v Vector) allChars() bool {
+// AllChars reports whether the vector contains only Chars.
+func (v Vector) AllChars() bool {
 	for _, c := range v {
 		if _, ok := c.(Char); !ok {
 			return false

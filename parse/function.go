@@ -96,17 +96,14 @@ func (p *Parser) functionDefn() {
 		fn.left = p.variable(idents[0])
 		fn.name = idents[1]
 		fn.right = p.variable(idents[2])
-		p.context.noVar(fn.name)
-		p.context.binaryFn[fn.name] = fn
 	} else {
 		fn.name = idents[0]
 		fn.right = p.variable(idents[1])
-		p.context.noVar(fn.name)
-		p.context.unaryFn[fn.name] = fn
 	}
 	if fn.name == fn.left.name || fn.name == fn.right.name {
 		p.errorf("argument name %q is function name", fn.name)
 	}
+	p.context.define(fn)
 	if p.config.Debug("parse") {
 		p.Printf("op %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
 	}

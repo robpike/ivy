@@ -1,0 +1,64 @@
+# Copyright 2015 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Saving.
+
+# Initial configuration.
+)save "<conf.out>"
+	)prec 256
+	)maxbits 1000000
+	)maxdigits 10000
+	)origin 1
+	)prompt ""
+	)format ""
+	# Set base 10 for parsing numbers.
+	)base 10
+	)ibase 0
+	)obase 0
+
+# Variables.
+x0 = 3
+x1 = 1/3
+x2 = sqrt 3
+x4 = iota 5
+x5 = 3 4 rho iota 12
+x6 = 'x'
+x7 = 'abc'
+x8 = 1 'x' 2
+)save "<conf.out>"
+	)prec 256
+	)maxbits 1000000
+	)maxdigits 10000
+	)origin 1
+	)prompt ""
+	)format ""
+	# Set base 10 for parsing numbers.
+	)base 10
+	x0 = 3
+	x1 = 1/3
+	x2 = 1.7320508075688772935274463415058723669428052538103806280558069794519330169088
+	x4 = 1 2 3 4 5
+	x5 = 3 4 rho 1 2 3 4 5 6 7 8 9 10 11 12
+	x6 = 'x'
+	x7 = "abc"
+	x8 = 1 'x' 2
+	)ibase 0
+	)obase 0
+
+# Simple definitions.
+op avg x = (+/x) / rho x
+op roll x = x?100
+)save "<conf.out>"
+	)prec 256
+	)maxbits 1000000
+	)maxdigits 10000
+	)origin 1
+	)prompt ""
+	)format ""
+	op avg x = (+/ x) / rho x
+	op roll x = x ? 100
+	# Set base 10 for parsing numbers.
+	)base 10
+	)ibase 0
+	)obase 0
