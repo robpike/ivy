@@ -56,6 +56,36 @@ func (p *Parser) functionDefn() {
 		idents = append(idents, p.next().Text)
 	}
 	tok := p.next()
+	// Install the function in the symbol table so recursive ops work. (As if.)
+	var installMap map[string]*function
+	if len(idents) == 3 {
+		fn.isBinary = true
+		fn.left = p.variable(idents[0])
+		fn.name = idents[1]
+		fn.right = p.variable(idents[2])
+		installMap = p.context.binaryFn
+	} else {
+		fn.name = idents[0]
+		fn.right = p.variable(idents[1])
+		installMap = p.context.unaryFn
+	}
+	if fn.name == fn.left.name || fn.name == fn.right.name {
+		p.errorf("argument name %q is function name", fn.name)
+	}
+	// Define it, but prepare to undefine if there's trouble.
+	p.context.define(fn)
+	succeeded := false
+	prevDefn := installMap[fn.name]
+	defer func() {
+		if !succeeded {
+			if prevDefn == nil {
+				delete(installMap, fn.name)
+			} else {
+				installMap[fn.name] = prevDefn
+			}
+		}
+	}()
+
 	switch tok.Type {
 	case scan.Assign:
 		// Either one line:
@@ -91,22 +121,71 @@ func (p *Parser) functionDefn() {
 	default:
 		p.errorf("expected newline after function declaration, found %s", tok)
 	}
-	if len(idents) == 3 {
-		fn.isBinary = true
-		fn.left = p.variable(idents[0])
-		fn.name = idents[1]
-		fn.right = p.variable(idents[2])
-	} else {
-		fn.name = idents[0]
-		fn.right = p.variable(idents[1])
-	}
-	if fn.name == fn.left.name || fn.name == fn.right.name {
-		p.errorf("argument name %q is function name", fn.name)
-	}
 	p.context.define(fn)
+	succeeded = true
+	for _, ref := range fn.references() {
+		// One day this will work, but until we have ifs and such, warn.
+		if ref.name == fn.name && ref.isBinary == fn.isBinary {
+			p.Printf("warning: definition of %s is recursive\n", fn.name)
+		}
+	}
 	if p.config.Debug("parse") {
 		p.Printf("op %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
 	}
+}
+
+// references returns a list, in appearance order, of the user-defined ops
+// referenced by this function. Only the first appearance creates an
+// entry in the list.
+func (fn *function) references() []opDef {
+	var refs []opDef
+	for _, expr := range fn.body {
+		doReferences(&refs, expr)
+	}
+	return refs
+}
+
+func doReferences(refs *[]opDef, expr value.Expr) {
+	switch e := expr.(type) {
+	case *unary:
+		// Operators are not user-defined so are not references in this sense.
+		doReferences(refs, e.right)
+	case *binary:
+		doReferences(refs, e.left)
+		doReferences(refs, e.right)
+	case variableExpr:
+	case sliceExpr:
+		for _, v := range e {
+			doReferences(refs, v)
+		}
+	case *assignment:
+		doReferences(refs, e.expr)
+	case *binaryCall:
+		addReference(refs, e.name, true)
+		doReferences(refs, e.left)
+		doReferences(refs, e.right)
+	case *unaryCall:
+		addReference(refs, e.name, false)
+		doReferences(refs, e.arg)
+	case value.Char:
+	case value.Int:
+	case value.BigInt:
+	case value.BigFloat:
+	case value.Vector:
+	case value.Matrix:
+	default:
+		fmt.Printf("unknown %T\n", e)
+	}
+}
+
+func addReference(refs *[]opDef, name string, isBinary bool) {
+	// If it's already there, ignore. This is n^2 but n is tiny.
+	for _, ref := range *refs {
+		if ref.name == name && ref.isBinary == isBinary {
+			return
+		}
+	}
+	*refs = append(*refs, opDef{name, isBinary})
 }
 
 type unaryCall struct {

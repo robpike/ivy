@@ -186,7 +186,9 @@ The syntax of a definition is the 'op' keyword, the operator and formal
 arguments, an equals sign, and then the body. The names of the operator and its
 arguments must be identifiers.  For unary operators, write "op name arg"; for
 binary write "op leftarg name rightarg". The final expression in the body is the
-return value.
+return value. Operators may have recursive definitions, but since there are
+no conditional or looping constructs (yet), such operators are problematic
+when executed.
 
 The body may be a single line (possibly containing semicolons) on the same line
 as the 'op', or it can be multiple lines. For a multiline entry, there is a
@@ -215,7 +217,7 @@ To declare an operator but not define it, omit the equals sign and what follows.
 	op foo x
 	op bar x = foo x
 	op foo x = -x
-	op 3
+	bar 3
 	result: -3
 	op foo x = /x
 	bar 3

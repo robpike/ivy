@@ -81,13 +81,26 @@ func (c *execContext) save(file string, conf *config.Config) {
 	fmt.Fprintf(out, ")format %q\n", conf.Format())
 
 	// Ops.
-	// TODO: mutual recursion.
+	printed := make(map[opDef]bool)
 	for _, def := range c.defs {
+		var fn *function
 		if def.isBinary {
-			fmt.Fprintln(out, c.binaryFn[def.name])
+			fn = c.binaryFn[def.name]
 		} else {
-			fmt.Fprintln(out, c.unaryFn[def.name])
+			fn = c.unaryFn[def.name]
 		}
+		for _, ref := range fn.references() {
+			if !printed[ref] {
+				if ref.isBinary {
+					fmt.Fprintf(out, "op _ %s _\n", ref.name)
+				} else {
+					fmt.Fprintf(out, "op %s _\n", ref.name)
+				}
+				printed[ref] = true
+			}
+		}
+		printed[def] = true
+		fmt.Fprintln(out, fn)
 	}
 
 	// Global variables.

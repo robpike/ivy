@@ -117,8 +117,7 @@ func (c *execContext) define(fn *function) {
 	for i, def := range c.defs {
 		if def.name == fn.name && def.isBinary == fn.isBinary {
 			// Yes. Drop it.
-			copy(c.defs[i:], c.defs[i+1:])
-			c.defs = c.defs[:len(c.defs)-1]
+			c.defs = append(c.defs[:i], c.defs[i+1:]...)
 			break
 		}
 	}
