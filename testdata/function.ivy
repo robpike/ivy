@@ -94,3 +94,8 @@ op x a = (sqrt 4)*a
 op x a = a*(sqrt 4)*(sqrt 4)
 )op x
 	op x a = a * (sqrt 4) * sqrt 4
+
+# Parenthesize compound elements of vectors
+op a x = 1 (sqrt x) 2
+)op a
+	op a x = 1 (sqrt x) 2

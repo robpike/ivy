@@ -137,7 +137,11 @@ func (s sliceExpr) ProgString() string {
 			if i > 0 {
 				b.WriteRune(' ')
 			}
-			b.WriteString(v.ProgString())
+			if isCompound(v) {
+				b.WriteString("(" + v.ProgString() + ")")
+			} else {
+				b.WriteString(v.ProgString())
+			}
 		}
 	}
 	return b.String()
@@ -173,7 +177,7 @@ func (e variableExpr) ProgString() string {
 // may require parentheses around it when printed to maintain correct evaluation order.
 func isCompound(x interface{}) bool {
 	switch x.(type) {
-	case value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Vector, value.Matrix:
+	case value.Char, value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Vector, value.Matrix:
 		return false
 	case sliceExpr, variableExpr:
 		return false
