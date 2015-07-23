@@ -81,3 +81,11 @@ op m1 n = n
 	)base 10
 	)ibase 0
 	)obase 0
+
+# Test that we can see variables and ops created by reading from a file.
+)get "testdata/saved"
+x
+avg x
+	1 2 3 4 5 6 7
+	4
+

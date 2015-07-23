@@ -67,10 +67,19 @@ func self(v Value) Value {
 	return v
 }
 
+// vectorSelf promotes v to type Vector.
+// v must be a scalar.
 func vectorSelf(v Value) Value {
+	switch v.(type) {
+	case Vector:
+		Errorf("internal error: vectorSelf of vector")
+	case Matrix:
+		Errorf("internal error: vectorSelf of matrix")
+	}
 	return NewVector([]Value{v})
 }
 
+// floatSelf promotes v to type BigFloat.
 func floatSelf(v Value) Value {
 	switch v.(type) {
 	case Int:
@@ -82,7 +91,7 @@ func floatSelf(v Value) Value {
 	case BigFloat:
 		return v
 	}
-	Errorf("floatSelf")
+	Errorf("internal error: floatSelf of non-number")
 	return nil
 }
 
@@ -680,14 +689,14 @@ func init() {
 		"iota":  unaryIota,
 		"ivy":   unaryIvy,
 		"log":   unaryLog,
+		"not":   unaryLogicalNot,
 		"rev":   reverse,
 		"rho":   unaryRho,
-		"sin":   unarySin,
 		"sgn":   unarySignum,
+		"sin":   unarySin,
 		"sqrt":  unarySqrt,
 		"tan":   unaryTan,
 		"text":  unaryText,
 		"up":    gradeUp,
-		"~":     unaryLogicalNot,
 	}
 }

@@ -106,12 +106,6 @@ func main() {
 	}
 }
 
-func runArgs(context value.Context) {
-	scanner := scan.New(&conf, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
-	parser := parse.NewParser(&conf, "<args>", scanner, context)
-	run(parser, context, false)
-}
-
 // IvyEval is the function called by value/unaryIvy to implement the ivy (eval) operation.
 func IvyEval(context value.Context, str string) value.Value {
 	scanner := scan.New(&conf, "<ivy>", strings.NewReader(str))
@@ -119,7 +113,18 @@ func IvyEval(context value.Context, str string) value.Value {
 	return eval(parser, context)
 }
 
-// run runs until EOF or error. The return value says whether we completed without error.
+// runArgs executes the text of the command-line arguments as an ivy program.
+func runArgs(context value.Context) {
+	scanner := scan.New(&conf, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
+	parser := parse.NewParser(&conf, "<args>", scanner, context)
+	run(parser, context, false)
+}
+
+// run runs the parser/evaluator until EOF or error.
+// The return value says whether we completed without error. If the return
+// value is false, it means we ran out of data (EOF) and the run was successful.
+// Typical execution is therefore to loop calling run until it succeeds.
+// Errors details are reported internally.
 func run(p *parse.Parser, context value.Context, interactive bool) (success bool) {
 	writer := conf.Output()
 	defer func() {
@@ -189,7 +194,7 @@ func eval(p *parse.Parser, context value.Context) value.Value {
 	}
 }
 
-// printValues neatly prints the values returned from execution, followed by a newilne.
+// printValues neatly prints the values returned from execution, followed by a newline.
 // It also handles the ')debug types' output.
 func printValues(writer io.Writer, values []value.Value) {
 	if len(values) == 0 {

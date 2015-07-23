@@ -47,6 +47,42 @@
 (float 1) ** 1e100
 	1
 
+(sqrt 0) and sqrt 2
+	0
+
+(sqrt 2) and sqrt 2
+	1
+
+(sqrt 0) or sqrt 2
+	1
+
+(sqrt 2) or sqrt 2
+	1
+
+(sqrt 0) xor sqrt 2
+	1
+
+(sqrt 2) xor sqrt 2
+	0
+
+(sqrt 0) nor sqrt 2
+	0
+
+(sqrt 2) nor sqrt 2
+	0
+
+(sqrt 0) nand sqrt 2
+	1
+
+(sqrt 2) nand sqrt 2
+	0
+
+(sqrt 2) min sqrt 3
+	1.41421356237
+
+(sqrt 2) max sqrt 3
+	1.73205080757
+
 # High precision exponential
 )format '%.75f'
 e**2.3025850929940456840179914546843642076011014886287729760333279009675726096773524802359972050895982983

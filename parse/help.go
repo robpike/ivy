@@ -22,7 +22,7 @@ const specialHelpMessage = `
 	For floating-point formats, flags and width are ignored.
 ) get "save.ivy"
 	Read input from the named file; return to interactive execution
-	afterwards. If no file is specified, read "save.ivy".
+	afterwards. If no file is specified, read from "save.ivy".
 ) maxbits 1e6
 	To avoid consuming too much memory, if an integer result would
 	require more than this many bits to store, abort the calculation.
@@ -44,7 +44,7 @@ const specialHelpMessage = `
 	Set the interactive prompt.
 ) save "save.ivy"
 	Write definitions of user-defined operators and variables to the
-	named file, as ivy textual source. If no file is specified, read
+	named file, as ivy textual source. If no file is specified, save to
 	"save.ivy".
 ) seed 0
 	Set the seed for the ? operator.

@@ -99,3 +99,9 @@ op x a = a*(sqrt 4)*(sqrt 4)
 op a x = 1 (sqrt x) 2
 )op a
 	op a x = 1 (sqrt x) 2
+
+# We can define a function with the same name as a zero variable.
+x = 0
+op x n = n
+x 3
+	3

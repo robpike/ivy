@@ -687,7 +687,7 @@ func isAllDigits(s string, base int) bool {
 // if it is a two-character operator.
 func (l *Scanner) isOperator(r rune) bool {
 	switch r {
-	case '?', '+', '-', '/', '%', '&', '|', '^', '~', ',':
+	case '?', '+', '-', '/', '%', '&', '|', '^', ',':
 		// No follow-on possible.
 	case '!':
 		if l.peek() != '=' {

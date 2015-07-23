@@ -153,3 +153,9 @@
 )base 10
 1<<9
 	512
+
+# Big integers print as float. Configurable by )maxdigits.
+)maxdigits 10
+1e100
+	1e+100
+

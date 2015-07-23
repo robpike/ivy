@@ -150,7 +150,7 @@ func (c *execContext) noVar(name string) {
 // It just errors out if there is a conflict.
 func (c *execContext) noOp(name string) {
 	if name == "pi" || name == "e" { // Cannot redefine these.
-		value.Errorf(`cannot reassign %q`, name)
+		value.Errorf("cannot reassign %q", name)
 	}
 	if c.unaryFn[name] == nil && c.binaryFn[name] == nil {
 		return

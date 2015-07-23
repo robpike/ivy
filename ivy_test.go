@@ -24,6 +24,9 @@ func initConf() {
 	conf.SetFormat("")
 	conf.SetOrigin(1)
 	conf.SetPrompt("")
+	conf.SetMaxBits(1e6)
+	conf.SetMaxDigits(1e4)
+	conf.SetFloatPrec(256)
 	conf.SetBase(0, 0)
 }
 
