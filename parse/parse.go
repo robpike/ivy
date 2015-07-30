@@ -550,16 +550,11 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 		done = false
 	}
 	var slice sliceExpr
-	if expr != nil {
-		slice = sliceExpr{expr}
-	} else {
+	if expr == nil {
 		// Must be a string.
-		exprs := evalString(str)
-		if len(exprs) == 1 {
-			slice = sliceExpr{exprs[0]}
-		} else {
-			slice = append(slice, exprs...)
-		}
+		slice = append(slice, evalString(str)...)
+	} else {
+		slice = sliceExpr{expr}
 	}
 	if !done {
 	Loop:
