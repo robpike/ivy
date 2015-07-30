@@ -171,6 +171,7 @@ func doReferences(refs *[]opDef, expr value.Expr) {
 	case value.Int:
 	case value.BigInt:
 	case value.BigFloat:
+	case value.BigRat:
 	case value.Vector:
 	case value.Matrix:
 	default:

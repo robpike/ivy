@@ -233,7 +233,7 @@ type Parser struct {
 	context    *execContext
 }
 
-var zero, _ = value.Parse("0")
+var zero = value.Int(0)
 
 // NewParser returns a new parser that will read from the scanner.
 // The context must have have been created by this package's NewContext function.

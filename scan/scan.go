@@ -150,11 +150,8 @@ type stateFn func(*Scanner) stateFn
 
 // Scanner holds the state of the scanner.
 type Scanner struct {
-	Tokens chan Token // channel of scanned items
-	// Config is stored as a copy, so we don't race with the rest of the program's use
-	// of a single config if it is modified while we are working.
-	// See also the comment in ../parse/special.go.
-	config     config.Config
+	Tokens     chan Token // channel of scanned items
+	config     *config.Config
 	r          io.ByteReader
 	done       bool
 	name       string // the name of the input; used only for error reports
@@ -266,15 +263,10 @@ func New(conf *config.Config, name string, r io.ByteReader) *Scanner {
 		name:   name,
 		line:   1,
 		Tokens: make(chan Token), // Must be unbuffered to synchronize with parser.
+		config: conf,
 	}
-	l.SetConfig(conf)
 	go l.run()
 	return l
-}
-
-// SetConfig sets the configuration for the Scanner.
-func (l *Scanner) SetConfig(conf *config.Config) {
-	l.config = *conf
 }
 
 // run runs the state machine for the Scanner.
