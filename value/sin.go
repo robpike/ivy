@@ -105,7 +105,7 @@ func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.F
 	return z
 }
 
-// twoPiReduce guarantees x < 2𝛑; x is known to be >= 0 coming in.
+// twoPiReduce guarantees x < 2π; x is known to be >= 0 coming in.
 func twoPiReduce(x *big.Float) {
 	// TODO: Is there an easy better algorithm?
 	twoPi := newF().Set(floatTwo)

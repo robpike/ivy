@@ -149,7 +149,7 @@ Type-converting operations
 
 Pre-defined constants
 
-The constants e (base of natural logarithms) and pi (𝛑) are pre-defined to high
+The constants e (base of natural logarithms) and pi (π) are pre-defined to high
 precision, about 3000 decimal digits truncated according to the floating point
 precision setting.
 
