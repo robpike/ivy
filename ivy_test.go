@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"robpike.io/ivy/exec"
 	"robpike.io/ivy/parse"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
@@ -82,7 +83,7 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 	shouldFail := strings.HasSuffix(name, "_fail.ivy")
 	initConf()
 	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")+"\n"))
-	context := parse.NewContext()
+	context := exec.NewContext()
 	value.SetContext(context)
 	parser := parse.NewParser(&conf, name, scanner, context)
 	testBuf.Reset()

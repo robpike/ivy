@@ -9,12 +9,17 @@ package value
 
 // Expr is the interface for a parsed expression.
 type Expr interface {
+	// ProgString returns the unambiguous representation of the
+	// expression to be used in program source.
 	ProgString() string
 
 	Eval(Context) Value
 }
 
 // Context is the execution context for evaluation.
+// The only implementation is ../exec/Context, but the interface
+// is defined separately, here, because of the dependence on Expr
+// and the import cycle that would otherwise result.
 type Context interface {
 	// Lookup returns the value of a symbol.
 	Lookup(name string) Value

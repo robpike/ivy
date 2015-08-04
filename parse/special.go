@@ -161,13 +161,13 @@ Switch:
 		p.config.SetMaxDigits(uint(max))
 	case "op":
 		name := p.need(scan.Identifier).Text
-		fn := p.context.unaryFn[name]
+		fn := p.context.UnaryFn[name]
 		found := false
 		if fn != nil {
 			p.Println(fn)
 			found = true
 		}
-		fn = p.context.binaryFn[name]
+		fn = p.context.BinaryFn[name]
 		if fn != nil {
 			p.Println(fn)
 			found = true
@@ -204,11 +204,9 @@ Switch:
 		p.config.SetPrompt(p.getString())
 	case "save":
 		if p.peek().Type == scan.Newline {
-			fmt.Println("TODO saving to /dev/tty")
-			p.context.save("/dev/tty", p.config)
-			// p.context.save(defaultFile, p.config)
+			save(p.context, defaultFile, p.config)
 		} else {
-			p.context.save(p.getString(), p.config)
+			save(p.context, p.getString(), p.config)
 		}
 	case "seed":
 		if p.peek().Type == scan.Newline {
@@ -219,7 +217,7 @@ Switch:
 	default:
 		p.errorf(")%s: not recognized", text)
 	}
-	p.need(scan.Newline, scan.EOF) // EOF lets this be in a string we evaluate.
+	p.need(scan.Newline, scan.EOF) // EOF lets this be in a newline-less string we evaluate.
 }
 
 // getString returns the value of the string that must be next in the input.

@@ -7,32 +7,10 @@ package parse
 import (
 	"fmt"
 
+	"robpike.io/ivy/exec"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
-
-type function struct {
-	isBinary bool
-	name     string
-	left     string
-	right    string
-	body     []value.Expr
-}
-
-func (fn *function) String() string {
-	left := ""
-	if fn.isBinary {
-		left = fn.left + " "
-	}
-	s := fmt.Sprintf("op %s%s %s =", left, fn.name, fn.right)
-	if len(fn.body) == 1 {
-		return s + " " + fn.body[0].ProgString()
-	}
-	for _, stmt := range fn.body {
-		s += "\n\t" + stmt.ProgString()
-	}
-	return s
-}
 
 // function definition
 //
@@ -46,7 +24,7 @@ func (fn *function) String() string {
 //
 func (p *Parser) functionDefn() {
 	p.need(scan.Op)
-	fn := new(function)
+	fn := new(exec.Function)
 	// Two identifiers means: op arg.
 	// Three identifiers means: arg op arg.
 	idents := make([]string, 2, 3)
@@ -57,31 +35,31 @@ func (p *Parser) functionDefn() {
 	}
 	tok := p.next()
 	// Install the function in the symbol table so recursive ops work. (As if.)
-	var installMap map[string]*function
+	var installMap map[string]*exec.Function
 	if len(idents) == 3 {
-		fn.isBinary = true
-		fn.left = idents[0]
-		fn.name = idents[1]
-		fn.right = idents[2]
-		installMap = p.context.binaryFn
+		fn.IsBinary = true
+		fn.Left = idents[0]
+		fn.Name = idents[1]
+		fn.Right = idents[2]
+		installMap = p.context.BinaryFn
 	} else {
-		fn.name = idents[0]
-		fn.right = idents[1]
-		installMap = p.context.unaryFn
+		fn.Name = idents[0]
+		fn.Right = idents[1]
+		installMap = p.context.UnaryFn
 	}
-	if fn.name == fn.left || fn.name == fn.right {
-		p.errorf("argument name %q is function name", fn.name)
+	if fn.Name == fn.Left || fn.Name == fn.Right {
+		p.errorf("argument name %q is function name", fn.Name)
 	}
 	// Define it, but prepare to undefine if there's trouble.
-	p.context.define(fn)
+	p.context.Define(fn)
 	succeeded := false
-	prevDefn := installMap[fn.name]
+	prevDefn := installMap[fn.Name]
 	defer func() {
 		if !succeeded {
 			if prevDefn == nil {
-				delete(installMap, fn.name)
+				delete(installMap, fn.Name)
 			} else {
-				installMap[fn.name] = prevDefn
+				installMap[fn.Name] = prevDefn
 			}
 		}
 	}()
@@ -103,49 +81,49 @@ func (p *Parser) functionDefn() {
 				if !ok {
 					p.errorf("invalid function definition")
 				}
-				fn.body = append(fn.body, x...)
+				fn.Body = append(fn.Body, x...)
 			}
 			p.next() // Consume final newline.
 		} else {
 			// Single line.
 			var ok bool
-			fn.body, ok = p.expressionList()
+			fn.Body, ok = p.expressionList()
 			if !ok {
 				p.errorf("invalid function definition")
 			}
 		}
-		if len(fn.body) == 0 {
+		if len(fn.Body) == 0 {
 			p.errorf("missing function body")
 		}
 	case scan.Newline:
 	default:
 		p.errorf("expected newline after function declaration, found %s", tok)
 	}
-	p.context.define(fn)
+	p.context.Define(fn)
 	succeeded = true
-	for _, ref := range fn.references() {
+	for _, ref := range references(fn.Body) {
 		// One day this will work, but until we have ifs and such, warn.
-		if ref.name == fn.name && ref.isBinary == fn.isBinary {
-			p.Printf("warning: definition of %s is recursive\n", fn.name)
+		if ref.Name == fn.Name && ref.IsBinary == fn.IsBinary {
+			p.Printf("warning: definition of %s is recursive\n", fn.Name)
 		}
 	}
 	if p.config.Debug("parse") {
-		p.Printf("op %s %s %s = %s\n", fn.left, fn.name, fn.right, tree(fn.body))
+		p.Printf("op %s %s %s = %s\n", fn.Left, fn.Name, fn.Right, tree(fn.Body))
 	}
 }
 
 // references returns a list, in appearance order, of the user-defined ops
-// referenced by this function. Only the first appearance creates an
+// referenced by this function body. Only the first appearance creates an
 // entry in the list.
-func (fn *function) references() []opDef {
-	var refs []opDef
-	for _, expr := range fn.body {
+func references(body []value.Expr) []exec.OpDef {
+	var refs []exec.OpDef
+	for _, expr := range body {
 		doReferences(&refs, expr)
 	}
 	return refs
 }
 
-func doReferences(refs *[]opDef, expr value.Expr) {
+func doReferences(refs *[]exec.OpDef, expr value.Expr) {
 	switch e := expr.(type) {
 	case *unary:
 		// Operators are not user-defined so are not references in this sense.
@@ -179,14 +157,14 @@ func doReferences(refs *[]opDef, expr value.Expr) {
 	}
 }
 
-func addReference(refs *[]opDef, name string, isBinary bool) {
+func addReference(refs *[]exec.OpDef, name string, isBinary bool) {
 	// If it's already there, ignore. This is n^2 but n is tiny.
 	for _, ref := range *refs {
-		if ref.name == name && ref.isBinary == isBinary {
+		if ref.Name == name && ref.IsBinary == isBinary {
 			return
 		}
 	}
-	*refs = append(*refs, opDef{name, isBinary})
+	*refs = append(*refs, exec.OpDef{name, isBinary})
 }
 
 type unaryCall struct {
@@ -198,14 +176,14 @@ func (u *unaryCall) Eval(context value.Context) value.Value {
 	arg := u.arg.Eval(context)
 	context.Push()
 	defer context.Pop()
-	exec := context.(*execContext) // Sigh.
-	fn := exec.unaryFn[u.name]
-	if fn == nil || fn.body == nil {
+	exec := context.(*exec.Context) // Sigh.
+	fn := exec.UnaryFn[u.name]
+	if fn == nil || fn.Body == nil {
 		value.Errorf("unary %q undefined", u.name)
 	}
-	context.AssignLocal(fn.right, arg)
+	context.AssignLocal(fn.Right, arg)
 	var v value.Value
-	for _, e := range fn.body {
+	for _, e := range fn.Body {
 		v = e.Eval(context)
 	}
 	if v == nil {
@@ -229,15 +207,15 @@ func (b *binaryCall) Eval(context value.Context) value.Value {
 	right := b.right.Eval(context)
 	context.Push()
 	defer context.Pop()
-	exec := context.(*execContext) // Sigh.
-	fn := exec.binaryFn[b.name]
-	if fn == nil || fn.body == nil {
+	exec := context.(*exec.Context) // Sigh.
+	fn := exec.BinaryFn[b.name]
+	if fn == nil || fn.Body == nil {
 		value.Errorf("binary %q undefined", b.name)
 	}
-	context.AssignLocal(fn.left, left)
-	context.AssignLocal(fn.right, right)
+	context.AssignLocal(fn.Left, left)
+	context.AssignLocal(fn.Right, right)
 	var v value.Value
-	for _, e := range fn.body {
+	for _, e := range fn.Body {
 		v = e.Eval(context)
 	}
 	if v == nil {

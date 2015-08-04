@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"robpike.io/ivy/config"
+	"robpike.io/ivy/exec"
 	"robpike.io/ivy/parse"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
@@ -66,7 +67,7 @@ func main() {
 
 	value.SetConfig(&conf)
 
-	context = parse.NewContext()
+	context = exec.NewContext()
 	value.SetContext(context)
 
 	if *execute {

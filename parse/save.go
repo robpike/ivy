@@ -14,6 +14,7 @@ import (
 	"sort"
 
 	"robpike.io/ivy/config"
+	"robpike.io/ivy/exec"
 	"robpike.io/ivy/value"
 )
 
@@ -47,17 +48,13 @@ and then defining all the variables.
 Mutually recursive functions are an extra wrinkle but easy to resolve.
 */
 
-// opDef is just a record of an op's name and arg count.
-// It is held in execContext.defs to control writing the
-// ops out in the right order during save. See comment above.
-type opDef struct {
-	name     string
-	isBinary bool
-}
+// TODO: Find a way to move this into package exec.
+// This would require passing the references for each function from
+// here to save.
 
 // save writes the state of the workspace to the named file.
 // The format of the output is ivy source text.
-func (c *execContext) save(file string, conf *config.Config) {
+func save(c *exec.Context, file string, conf *config.Config) {
 	// "<conf.out>" is a special case for testing.
 	out := conf.Output()
 	if file != "<conf.out>" {
@@ -81,20 +78,20 @@ func (c *execContext) save(file string, conf *config.Config) {
 	fmt.Fprintf(out, ")format %q\n", conf.Format())
 
 	// Ops.
-	printed := make(map[opDef]bool)
-	for _, def := range c.defs {
-		var fn *function
-		if def.isBinary {
-			fn = c.binaryFn[def.name]
+	printed := make(map[exec.OpDef]bool)
+	for _, def := range c.Defs {
+		var fn *exec.Function
+		if def.IsBinary {
+			fn = c.BinaryFn[def.Name]
 		} else {
-			fn = c.unaryFn[def.name]
+			fn = c.UnaryFn[def.Name]
 		}
-		for _, ref := range fn.references() {
+		for _, ref := range references(fn.Body) {
 			if !printed[ref] {
-				if ref.isBinary {
-					fmt.Fprintf(out, "op _ %s _\n", ref.name)
+				if ref.IsBinary {
+					fmt.Fprintf(out, "op _ %s _\n", ref.Name)
 				} else {
-					fmt.Fprintf(out, "op %s _\n", ref.name)
+					fmt.Fprintf(out, "op %s _\n", ref.Name)
 				}
 				printed[ref] = true
 			}
@@ -104,7 +101,7 @@ func (c *execContext) save(file string, conf *config.Config) {
 	}
 
 	// Global variables.
-	syms := c.stack[0]
+	syms := c.Stack[0]
 	if len(syms) > 0 {
 		// Set the base strictly to 10 for output.
 		fmt.Fprintf(out, "# Set base 10 for parsing numbers.\n)base 10\n")

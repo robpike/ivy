@@ -9,12 +9,11 @@ package scan // import "robpike.io/ivy/scan"
 import (
 	"fmt"
 	"io"
-
-	"robpike.io/ivy/config"
-
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"robpike.io/ivy/config"
 )
 
 // Token represents a token or text string returned from the scanner.

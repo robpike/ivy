@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"robpike.io/ivy/config"
+	"robpike.io/ivy/exec"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
@@ -230,7 +231,7 @@ type Parser struct {
 	errorCount int // Number of errors.
 	peekTok    scan.Token
 	curTok     scan.Token // most recent token from scanner
-	context    *execContext
+	context    *exec.Context
 }
 
 var zero = value.Int(0)
@@ -242,7 +243,7 @@ func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner, cont
 		scanner:  scanner,
 		config:   conf,
 		fileName: fileName,
-		context:  context.(*execContext),
+		context:  context.(*exec.Context),
 	}
 }
 
@@ -424,7 +425,7 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
 		return expr
 	case scan.Identifier:
-		function := p.context.binaryFn[tok.Text]
+		function := p.context.BinaryFn[tok.Text]
 		if function != nil {
 			p.next()
 			// User-defined binary.
@@ -464,7 +465,7 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 			right: p.expr(p.next()),
 		}
 	case scan.Identifier:
-		function := p.context.unaryFn[tok.Text]
+		function := p.context.UnaryFn[tok.Text]
 		if function != nil {
 			// User-defined unary.
 			expr = &unaryCall{
@@ -564,7 +565,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 			case scan.LeftParen:
 				fallthrough
 			case scan.Identifier:
-				if p.context.unaryFn[tok.Text] != nil || p.context.binaryFn[tok.Text] != nil {
+				if p.context.UnaryFn[tok.Text] != nil || p.context.BinaryFn[tok.Text] != nil {
 					break Loop
 				}
 				fallthrough

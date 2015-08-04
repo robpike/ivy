@@ -2,26 +2,37 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parse
+package exec
 
-import "robpike.io/ivy/value"
+import (
+	"robpike.io/ivy/value"
+)
 
-type symtab map[string]value.Value
+// Symtab is a symbol table, a map of names to values.
+type Symtab map[string]value.Value
 
-// execContext holds execution context, specifically the binding of names to values and operators.
-type execContext struct {
-	stack    []symtab
-	unaryFn  map[string]*function
-	binaryFn map[string]*function
-	defs     []opDef
+// Context holds execution context, specifically the binding of names to values and operators.
+// It is the only implementation of ../value/Context, but since it references the value
+// package, there would be a cycle if that package depended on this type definition.
+type Context struct {
+	// Stack is a stack of symbol tables, one entry per function (op) invocation,
+	// plus the 0th one at the base.
+	Stack []Symtab
+	//  UnaryFn maps the names of unary functions (ops) to their implemenations.
+	UnaryFn map[string]*Function
+	//  BinaryFn maps the names of binary functions (ops) to their implemenations.
+	BinaryFn map[string]*Function
+	// Defs is a list of defined ops, in time order.  It is used when saving the
+	// Context to a file.
+	Defs []OpDef
 }
 
 // NewContext returns a new execution context: the stack and variables.
 func NewContext() value.Context {
-	c := &execContext{
-		stack:    []symtab{make(symtab)},
-		unaryFn:  make(map[string]*function),
-		binaryFn: make(map[string]*function),
+	c := &Context{
+		Stack:    []Symtab{make(Symtab)},
+		UnaryFn:  make(map[string]*Function),
+		BinaryFn: make(map[string]*Function),
 	}
 	c.SetConstants()
 	return c
@@ -29,15 +40,15 @@ func NewContext() value.Context {
 
 // SetConstants re-assigns the fundamental constant values using the current
 // setting of floating-point precision.
-func (c *execContext) SetConstants() {
-	syms := c.stack[0]
+func (c *Context) SetConstants() {
+	syms := c.Stack[0]
 	syms["e"], syms["pi"] = value.Consts()
 }
 
 // Lookup returns the value of a symbol.
-func (c *execContext) Lookup(name string) value.Value {
-	for i := len(c.stack) - 1; i >= 0; i-- {
-		v := c.stack[i][name]
+func (c *Context) Lookup(name string) value.Value {
+	for i := len(c.Stack) - 1; i >= 0; i-- {
+		v := c.Stack[i][name]
 		if v != nil {
 			return v
 		}
@@ -46,22 +57,22 @@ func (c *execContext) Lookup(name string) value.Value {
 }
 
 // AssignLocal binds a value to the name in the current function.
-func (c *execContext) AssignLocal(name string, value value.Value) {
-	c.stack[len(c.stack)-1][name] = value
+func (c *Context) AssignLocal(name string, value value.Value) {
+	c.Stack[len(c.Stack)-1][name] = value
 }
 
 // Assign assigns the variable the value. The variable must
 // be defined either in the current function or globally.
 // Inside a function, new variables become locals.
-func (c *execContext) Assign(name string, val value.Value) {
-	n := len(c.stack)
+func (c *Context) Assign(name string, val value.Value) {
+	n := len(c.Stack)
 	if n == 0 {
 		value.Errorf("empty stack; cannot happen")
 	}
-	globals := c.stack[0]
+	globals := c.Stack[0]
 	if n > 1 {
 		// In this function?
-		frame := c.stack[n-1]
+		frame := c.Stack[n-1]
 		_, globallyDefined := globals[name]
 		if _, ok := frame[name]; ok || !globallyDefined {
 			frame[name] = val
@@ -74,17 +85,17 @@ func (c *execContext) Assign(name string, val value.Value) {
 }
 
 // Push pushes a new frame onto the context stack.
-func (c *execContext) Push() {
-	c.stack = append(c.stack, make(symtab))
+func (c *Context) Push() {
+	c.Stack = append(c.Stack, make(Symtab))
 }
 
 // Pop pops the top frame from the stack.
-func (c *execContext) Pop() {
-	c.stack = c.stack[:len(c.stack)-1]
+func (c *Context) Pop() {
+	c.Stack = c.Stack[:len(c.Stack)-1]
 }
 
 // Eval evaluates a list of expressions.
-func (c *execContext) Eval(exprs []value.Expr) []value.Value {
+func (c *Context) Eval(exprs []value.Expr) []value.Value {
 	var values []value.Value
 	for _, expr := range exprs {
 		v := expr.Eval(c)
@@ -95,34 +106,34 @@ func (c *execContext) Eval(exprs []value.Expr) []value.Value {
 	return values
 }
 
-// define defines the function and installs it. It also performs
+// Define defines the function and installs it. It also performs
 // some error checking and adds the function to the sequencing
 // information used by the save method.
-func (c *execContext) define(fn *function) {
-	c.noVar(fn.name)
-	if fn.isBinary {
-		c.binaryFn[fn.name] = fn
+func (c *Context) Define(fn *Function) {
+	c.noVar(fn.Name)
+	if fn.IsBinary {
+		c.BinaryFn[fn.Name] = fn
 	} else {
-		c.unaryFn[fn.name] = fn
+		c.UnaryFn[fn.Name] = fn
 	}
 	// Update the sequence of definitions.
 	// First, if it's last (a very common case) there's nothing to do.
-	if len(c.defs) > 0 {
-		last := c.defs[len(c.defs)-1]
-		if last.name == fn.name && last.isBinary == fn.isBinary {
+	if len(c.Defs) > 0 {
+		last := c.Defs[len(c.Defs)-1]
+		if last.Name == fn.Name && last.IsBinary == fn.IsBinary {
 			return
 		}
 	}
 	// Is it already defined?
-	for i, def := range c.defs {
-		if def.name == fn.name && def.isBinary == fn.isBinary {
+	for i, def := range c.Defs {
+		if def.Name == fn.Name && def.IsBinary == fn.IsBinary {
 			// Yes. Drop it.
-			c.defs = append(c.defs[:i], c.defs[i+1:]...)
+			c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
 			break
 		}
 	}
 	// It is now the most recent definition.
-	c.defs = append(c.defs, opDef{fn.name, fn.isBinary})
+	c.Defs = append(c.Defs, OpDef{fn.Name, fn.IsBinary})
 }
 
 // noVar guarantees that there is no global variable with that name,
@@ -131,16 +142,16 @@ func (c *execContext) define(fn *function) {
 // be OK, so one can clear a variable before defining a symbol. A cleared
 // variable is removed from the global symbol table.
 // noVar also prevents defining builtin variables as ops.
-func (c *execContext) noVar(name string) {
+func (c *Context) noVar(name string) {
 	if name == "_" || name == "pi" || name == "e" { // Cannot redefine these.
 		value.Errorf(`cannot define op with name %q`, name)
 	}
-	sym := c.stack[0][name]
+	sym := c.Stack[0][name]
 	if sym == nil {
 		return
 	}
 	if i, ok := sym.(value.Int); ok && i == 0 {
-		delete(c.stack[0], name)
+		delete(c.Stack[0], name)
 		return
 	}
 	value.Errorf("cannot define op %s; it is a variable (%[1]s=0 to clear)", name)
@@ -148,11 +159,11 @@ func (c *execContext) noVar(name string) {
 
 // noOp is the dual of noVar. It also checks for assignment to builtins.
 // It just errors out if there is a conflict.
-func (c *execContext) noOp(name string) {
+func (c *Context) noOp(name string) {
 	if name == "pi" || name == "e" { // Cannot redefine these.
 		value.Errorf("cannot reassign %q", name)
 	}
-	if c.unaryFn[name] == nil && c.binaryFn[name] == nil {
+	if c.UnaryFn[name] == nil && c.BinaryFn[name] == nil {
 		return
 	}
 	value.Errorf("cannot define variable %s; it is an op", name)
