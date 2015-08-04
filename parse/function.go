@@ -14,17 +14,17 @@ import (
 type function struct {
 	isBinary bool
 	name     string
-	left     variableExpr
-	right    variableExpr
+	left     string
+	right    string
 	body     []value.Expr
 }
 
 func (fn *function) String() string {
 	left := ""
 	if fn.isBinary {
-		left = fn.left.name + " "
+		left = fn.left + " "
 	}
-	s := fmt.Sprintf("op %s%s %s =", left, fn.name, fn.right.name)
+	s := fmt.Sprintf("op %s%s %s =", left, fn.name, fn.right)
 	if len(fn.body) == 1 {
 		return s + " " + fn.body[0].ProgString()
 	}
@@ -60,16 +60,16 @@ func (p *Parser) functionDefn() {
 	var installMap map[string]*function
 	if len(idents) == 3 {
 		fn.isBinary = true
-		fn.left = p.variable(idents[0])
+		fn.left = idents[0]
 		fn.name = idents[1]
-		fn.right = p.variable(idents[2])
+		fn.right = idents[2]
 		installMap = p.context.binaryFn
 	} else {
 		fn.name = idents[0]
-		fn.right = p.variable(idents[1])
+		fn.right = idents[1]
 		installMap = p.context.unaryFn
 	}
-	if fn.name == fn.left.name || fn.name == fn.right.name {
+	if fn.name == fn.left || fn.name == fn.right {
 		p.errorf("argument name %q is function name", fn.name)
 	}
 	// Define it, but prepare to undefine if there's trouble.
@@ -203,7 +203,7 @@ func (u *unaryCall) Eval(context value.Context) value.Value {
 	if fn == nil || fn.body == nil {
 		value.Errorf("unary %q undefined", u.name)
 	}
-	context.AssignLocal(fn.right.name, arg)
+	context.AssignLocal(fn.right, arg)
 	var v value.Value
 	for _, e := range fn.body {
 		v = e.Eval(context)
@@ -234,8 +234,8 @@ func (b *binaryCall) Eval(context value.Context) value.Value {
 	if fn == nil || fn.body == nil {
 		value.Errorf("binary %q undefined", b.name)
 	}
-	context.AssignLocal(fn.left.name, left)
-	context.AssignLocal(fn.right.name, right)
+	context.AssignLocal(fn.left, left)
+	context.AssignLocal(fn.right, right)
 	var v value.Value
 	for _, e := range fn.body {
 		v = e.Eval(context)
