@@ -25,6 +25,10 @@ func (p *Parser) need(want ...scan.Type) scan.Token {
 			return tok
 		}
 	}
+	// Make the output look nice; usually there is only one item.
+	if len(want) == 1 {
+		p.errorf("expected %s, got %s", want[0], tok)
+	}
 	p.errorf("expected %s, got %s", want, tok)
 	panic("not reached")
 }
