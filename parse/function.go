@@ -28,17 +28,8 @@ func (p *Parser) functionDefn() {
 	// Two identifiers means: op arg.
 	// Three identifiers means: arg op arg.
 	idents := make([]string, 2, 3)
-	// Permit operators here because we may be redefining one,
-	// but make sure they are truly identifiers. We don't allow
-	// redefining +.
-	idents[0] = p.need(scan.Identifier, scan.Operator).Text
-	idents[1] = p.need(scan.Identifier, scan.Operator).Text
-	if !scan.IsIdentifier(idents[0]) {
-		p.errorf("%q is not an identifier", idents[0])
-	}
-	if !scan.IsIdentifier(idents[1]) {
-		p.errorf("%q is not an identifier", idents[1])
-	}
+	idents[0] = p.need(scan.Identifier).Text
+	idents[1] = p.need(scan.Identifier).Text
 	if p.peek().Type == scan.Identifier {
 		idents = append(idents, p.next().Text)
 	}

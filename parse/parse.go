@@ -592,7 +592,7 @@ func (p *Parser) variable(name string) variableExpr {
 	}
 }
 
-// evalString turns a parsed string constant into slice of
+// evalString turns a parsed string constant into a slice of
 // value.Exprs each of which is a value.Char.
 func evalString(str string) []value.Expr {
 	r := ([]rune)(str)

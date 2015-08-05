@@ -366,7 +366,11 @@ func lexOperator(l *Scanner) stateFn {
 			}
 		}
 	}
-	l.emit(Operator)
+	if isIdentifier(l.input[l.start:l.pos]) {
+		l.emit(Identifier)
+	} else {
+		l.emit(Operator)
+	}
 	return lexSpace
 }
 
@@ -553,9 +557,8 @@ func isEndOfLine(r rune) bool {
 	return r == '\r' || r == '\n'
 }
 
-// IsIdentifier reports whether the string is a valid identifier.
-// It is provided as a service; it is not used by this package.
-func IsIdentifier(s string) bool {
+// isIdentifier reports whether the string is a valid identifier.
+func isIdentifier(s string) bool {
 	if s == "_" {
 		return false // Special symbol; can't redefine.
 	}
