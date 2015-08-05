@@ -82,8 +82,8 @@ func TestAll(t *testing.T) {
 func runTest(t *testing.T, name string, lineNum int, input, output []string) bool {
 	shouldFail := strings.HasSuffix(name, "_fail.ivy")
 	initConf()
-	scanner := scan.New(&conf, "", strings.NewReader(strings.Join(input, "\n")+"\n"))
 	context := exec.NewContext()
+	scanner := scan.New(&conf, context, "", strings.NewReader(strings.Join(input, "\n")+"\n"))
 	value.SetContext(context)
 	parser := parse.NewParser(&conf, name, scanner, context)
 	testBuf.Reset()

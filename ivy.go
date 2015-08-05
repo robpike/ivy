@@ -92,7 +92,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "ivy: %s\n", err)
 				os.Exit(1)
 			}
-			scanner := scan.New(&conf, name, bufio.NewReader(fd))
+			scanner := scan.New(&conf, context, name, bufio.NewReader(fd))
 			parser := parse.NewParser(&conf, name, scanner, context)
 			if !run(parser, context, interactive) {
 				break
@@ -101,7 +101,7 @@ func main() {
 		return
 	}
 
-	scanner := scan.New(&conf, "<stdin>", bufio.NewReader(os.Stdin))
+	scanner := scan.New(&conf, context, "<stdin>", bufio.NewReader(os.Stdin))
 	parser := parse.NewParser(&conf, "<stdin>", scanner, context)
 	for !run(parser, context, true) {
 	}
@@ -109,14 +109,14 @@ func main() {
 
 // IvyEval is the function called by value/unaryIvy to implement the ivy (eval) operation.
 func IvyEval(context value.Context, str string) value.Value {
-	scanner := scan.New(&conf, "<ivy>", strings.NewReader(str))
+	scanner := scan.New(&conf, context, "<ivy>", strings.NewReader(str))
 	parser := parse.NewParser(&conf, "<ivy>", scanner, context)
 	return eval(parser, context)
 }
 
 // runArgs executes the text of the command-line arguments as an ivy program.
 func runArgs(context value.Context) {
-	scanner := scan.New(&conf, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
+	scanner := scan.New(&conf, context, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
 	parser := parse.NewParser(&conf, "<args>", scanner, context)
 	run(parser, context, false)
 }

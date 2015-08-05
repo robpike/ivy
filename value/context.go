@@ -24,19 +24,10 @@ type Context interface {
 	// Lookup returns the value of a symbol.
 	Lookup(name string) Value
 
-	// AssignLocal binds a value to the name in the current function.
-	AssignLocal(name string, value Value)
-
 	// Assign assigns the variable the value. The variable must
 	// be defined either in the current function or globally.
 	// Inside a function, new variables become locals.
 	Assign(name string, value Value)
-
-	// Push pushes a new frame onto the context stack.
-	Push()
-
-	// Pop pops the top frame from the stack.
-	Pop()
 
 	// Eval evaluates a list of expressions.
 	Eval(exprs []Expr) []Value

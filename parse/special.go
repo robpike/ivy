@@ -141,9 +141,9 @@ Switch:
 		p.config.SetFormat(p.getString())
 	case "get":
 		if p.peek().Type == scan.Newline {
-			p.runFromFile(defaultFile)
+			p.runFromFile(p.context, defaultFile)
 		} else {
-			p.runFromFile(p.getString())
+			p.runFromFile(p.context, p.getString())
 		}
 	case "maxbits":
 		if p.peek().Type == scan.Newline {
@@ -160,7 +160,7 @@ Switch:
 		max := p.nextDecimalNumber()
 		p.config.SetMaxDigits(uint(max))
 	case "op":
-		name := p.need(scan.Identifier).Text
+		name := p.need(scan.Operator, scan.Identifier).Text
 		fn := p.context.UnaryFn[name]
 		found := false
 		if fn != nil {
@@ -228,7 +228,7 @@ func (p *Parser) getString() string {
 var runDepth = 0
 
 // runFromFile executes the contents of the named file.
-func (p *Parser) runFromFile(name string) {
+func (p *Parser) runFromFile(context value.Context, name string) {
 	runDepth++
 	if runDepth > 10 {
 		p.errorf("get %q nested too deep", name)
@@ -249,7 +249,7 @@ func (p *Parser) runFromFile(name string) {
 	if err != nil {
 		p.errorf("%s", err)
 	}
-	scanner := scan.New(p.config, name, bufio.NewReader(fd))
+	scanner := scan.New(p.config, context, name, bufio.NewReader(fd))
 	parser := NewParser(p.config, name, scanner, p.context)
 	out := p.config.Output()
 	for {

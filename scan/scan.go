@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"robpike.io/ivy/config"
+	"robpike.io/ivy/value"
 )
 
 // Token represents a token or text string returned from the scanner.
@@ -151,6 +152,7 @@ type stateFn func(*Scanner) stateFn
 type Scanner struct {
 	Tokens     chan Token // channel of scanned items
 	config     *config.Config
+	context    value.Context
 	r          io.ByteReader
 	done       bool
 	name       string // the name of the input; used only for error reports
@@ -256,13 +258,14 @@ func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
 }
 
 // New creates a new scanner for the input string.
-func New(conf *config.Config, name string, r io.ByteReader) *Scanner {
+func New(conf *config.Config, context value.Context, name string, r io.ByteReader) *Scanner {
 	l := &Scanner{
-		r:      r,
-		name:   name,
-		line:   1,
-		Tokens: make(chan Token), // Must be unbuffered to synchronize with parser.
-		config: conf,
+		r:       r,
+		name:    name,
+		line:    1,
+		Tokens:  make(chan Token), // Must be unbuffered to synchronize with parser.
+		config:  conf,
+		context: context,
 	}
 	go l.run()
 	return l
@@ -396,6 +399,8 @@ Loop:
 				return lexOperator
 			case operatorWord[word]:
 				return lexOperator
+			case l.context.UserDefined(word, true):
+				return lexOperator
 			case word == "op":
 				l.emit(Op)
 			case isAllDigits(word, l.config.InputBase()):
@@ -414,7 +419,7 @@ Loop:
 func lexOperator(l *Scanner) stateFn {
 	// It might be an inner product or reduction, but only if it is a binary operator.
 	word := l.input[l.start:l.pos]
-	if word == "o" || isBinary[l.input[l.start:l.pos]] {
+	if word == "o" || isBinary[word] || l.context.UserDefined(word, true) {
 		switch l.peek() {
 		case '/':
 			// Reduction.
@@ -437,8 +442,9 @@ func lexOperator(l *Scanner) stateFn {
 				if !l.atTerminator() {
 					return l.errorf("bad character %#U", r)
 				}
-				if !operatorWord[l.input[startRight:l.pos]] {
-					return l.errorf("%s not an operator", l.input[startRight:l.pos])
+				word := l.input[startRight:l.pos]
+				if !operatorWord[word] && !l.context.UserDefined(word, true) {
+					return l.errorf("%s not an operator", word)
 				}
 			}
 		}

@@ -115,3 +115,33 @@ sqrt 4
 sqrt 4
 	2
 
+# Reduce using a user-defined binary operator.
+op a binop b = a*b
+(binop/iota 10) == */iota 10
+	1
+
+# Inner product using a user-defined binary operator on the left.
+op a add b = a + b
+2 3 4 add.* 1 2 3
+	20
+
+# Inner product using a user-defined binary operator on the right.
+op a mul b = a * b
+2 3 4 +.mul 1 2 3
+	20
+
+# Inner product using a user-defined binary operator on both left and right.
+op a add b = a + b
+op a mul b = a * b
+2 3 4 add.mul 1 2 3
+2 3 4 mul.add 1 2 3
+	20
+	105
+
+# Outer product using user-defined binary operator.
+op a mul b = a * b
+2 3 4 o.mul 10 11
+	20 22
+	30 33
+	40 44
+

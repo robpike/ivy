@@ -5,6 +5,8 @@
 package exec
 
 import (
+	"sync"
+
 	"robpike.io/ivy/value"
 )
 
@@ -15,6 +17,9 @@ type Symtab map[string]value.Value
 // It is the only implementation of ../value/Context, but since it references the value
 // package, there would be a cycle if that package depended on this type definition.
 type Context struct {
+	// Locks UnaryFn and BinaryFn, which are accessed through UserDefined
+	// from the scanner.
+	mu sync.Mutex
 	// Stack is a stack of symbol tables, one entry per function (op) invocation,
 	// plus the 0th one at the base.
 	Stack []Symtab
@@ -38,6 +43,11 @@ func NewContext() value.Context {
 	return c
 }
 
+func (c *Context) sync() func() {
+	c.mu.Lock()
+	return c.mu.Unlock
+}
+
 // SetConstants re-assigns the fundamental constant values using the current
 // setting of floating-point precision.
 func (c *Context) SetConstants() {
@@ -56,8 +66,8 @@ func (c *Context) Lookup(name string) value.Value {
 	return nil
 }
 
-// AssignLocal binds a value to the name in the current function.
-func (c *Context) AssignLocal(name string, value value.Value) {
+// assignLocal binds a value to the name in the current function.
+func (c *Context) assignLocal(name string, value value.Value) {
 	c.Stack[len(c.Stack)-1][name] = value
 }
 
@@ -84,13 +94,13 @@ func (c *Context) Assign(name string, val value.Value) {
 	globals[name] = val
 }
 
-// Push pushes a new frame onto the context stack.
-func (c *Context) Push() {
+// push pushes a new frame onto the context stack.
+func (c *Context) push() {
 	c.Stack = append(c.Stack, make(Symtab))
 }
 
-// Pop pops the top frame from the stack.
-func (c *Context) Pop() {
+// pop pops the top frame from the stack.
+func (c *Context) pop() {
 	c.Stack = c.Stack[:len(c.Stack)-1]
 }
 
@@ -116,9 +126,9 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 	if fn.Body == nil {
 		value.Errorf("unary %q undefined", op)
 	}
-	c.Push()
-	defer c.Pop()
-	c.AssignLocal(fn.Right, right)
+	c.push()
+	defer c.pop()
+	c.assignLocal(fn.Right, right)
 	var v value.Value
 	for _, e := range fn.Body {
 		v = e.Eval(c)
@@ -130,6 +140,7 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 }
 
 func (c *Context) UserDefined(op string, isBinary bool) bool {
+	defer c.sync()()
 	if isBinary {
 		return c.BinaryFn[op] != nil
 	}
@@ -147,10 +158,10 @@ func (c *Context) EvalBinary(left value.Value, op string, right value.Value) val
 	if fn.Body == nil {
 		value.Errorf("binary %q undefined", op)
 	}
-	c.Push()
-	defer c.Pop()
-	c.AssignLocal(fn.Left, left)
-	c.AssignLocal(fn.Right, right)
+	c.push()
+	defer c.pop()
+	c.assignLocal(fn.Left, left)
+	c.assignLocal(fn.Right, right)
 	var v value.Value
 	for _, e := range fn.Body {
 		v = e.Eval(c)
@@ -165,6 +176,7 @@ func (c *Context) EvalBinary(left value.Value, op string, right value.Value) val
 // some error checking and adds the function to the sequencing
 // information used by the save method.
 func (c *Context) Define(fn *Function) {
+	defer c.sync()()
 	c.noVar(fn.Name)
 	if fn.IsBinary {
 		c.BinaryFn[fn.Name] = fn

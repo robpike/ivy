@@ -34,10 +34,10 @@ func (p *Parser) functionDefn() {
 	idents[0] = p.need(scan.Identifier, scan.Operator).Text
 	idents[1] = p.need(scan.Identifier, scan.Operator).Text
 	if !scan.IsIdentifier(idents[0]) {
-		p.errorf("%q is is not an identifier", idents[0])
+		p.errorf("%q is not an identifier", idents[0])
 	}
 	if !scan.IsIdentifier(idents[1]) {
-		p.errorf("%q is is not an identifier", idents[1])
+		p.errorf("%q is not an identifier", idents[1])
 	}
 	if p.peek().Type == scan.Identifier {
 		idents = append(idents, p.next().Text)
@@ -46,6 +46,9 @@ func (p *Parser) functionDefn() {
 	// Install the function in the symbol table so recursive ops work. (As if.)
 	var installMap map[string]*exec.Function
 	if len(idents) == 3 {
+		if idents[1] == "o" { // Poor choice due to outer product syntax.
+			p.errorf(`"o" is not a valid name for a binary operator`)
+		}
 		fn.IsBinary = true
 		fn.Left = idents[0]
 		fn.Name = idents[1]
