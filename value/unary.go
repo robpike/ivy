@@ -63,13 +63,13 @@ func bigIntRand(a, b *big.Int) *big.Int {
 	return a.Add(a, conf.BigOrigin())
 }
 
-func self(v Value) Value {
+func self(c Context, v Value) Value {
 	return v
 }
 
 // vectorSelf promotes v to type Vector.
 // v must be a scalar.
-func vectorSelf(v Value) Value {
+func vectorSelf(c Context, v Value) Value {
 	switch v.(type) {
 	case Vector:
 		Errorf("internal error: vectorSelf of vector")
@@ -80,7 +80,7 @@ func vectorSelf(v Value) Value {
 }
 
 // floatSelf promotes v to type BigFloat.
-func floatSelf(v Value) Value {
+func floatSelf(_ Context, v Value) Value {
 	switch v.(type) {
 	case Int:
 		return v.(Int).toType(bigFloatType)
@@ -120,14 +120,14 @@ func init() {
 	unaryRoll = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				i := int64(v.(Int))
 				if i <= 0 {
 					Errorf("illegal roll value %v", v)
 				}
 				return Int(conf.Origin()) + Int(conf.Random().Int63n(i))
 			},
-			bigIntType: func(v Value) Value {
+			bigIntType: func(c Context, v Value) Value {
 				if v.(BigInt).Sign() <= 0 {
 					Errorf("illegal roll value %v", v)
 				}
@@ -150,16 +150,16 @@ func init() {
 	unaryMinus = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				return -v.(Int)
 			},
-			bigIntType: func(v Value) Value {
+			bigIntType: func(c Context, v Value) Value {
 				return unaryBigIntOp((*big.Int).Neg, v)
 			},
-			bigRatType: func(v Value) Value {
+			bigRatType: func(c Context, v Value) Value {
 				return unaryBigRatOp((*big.Rat).Neg, v)
 			},
-			bigFloatType: func(v Value) Value {
+			bigFloatType: func(c Context, v Value) Value {
 				return unaryBigFloatOp((*big.Float).Neg, v)
 			},
 		},
@@ -168,7 +168,7 @@ func init() {
 	unaryRecip = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				i := int64(v.(Int))
 				if i == 0 {
 					Errorf("division by zero")
@@ -177,20 +177,20 @@ func init() {
 					Rat: big.NewRat(0, 1).SetFrac64(1, i),
 				}.shrink()
 			},
-			bigIntType: func(v Value) Value {
+			bigIntType: func(c Context, v Value) Value {
 				// Zero division cannot happen for unary.
 				return BigRat{
 					Rat: big.NewRat(0, 1).SetFrac(bigOne.Int, v.(BigInt).Int),
 				}.shrink()
 			},
-			bigRatType: func(v Value) Value {
+			bigRatType: func(c Context, v Value) Value {
 				// Zero division cannot happen for unary.
 				r := v.(BigRat)
 				return BigRat{
 					Rat: big.NewRat(0, 1).SetFrac(r.Denom(), r.Num()),
 				}.shrink()
 			},
-			bigFloatType: func(v Value) Value {
+			bigFloatType: func(c Context, v Value) Value {
 				// Zero division cannot happen for unary.
 				f := v.(BigFloat)
 				one := new(big.Float).SetPrec(conf.FloatPrec()).SetInt64(1)
@@ -204,7 +204,7 @@ func init() {
 	unarySignum = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				i := int64(v.(Int))
 				if i > 0 {
 					return one
@@ -214,13 +214,13 @@ func init() {
 				}
 				return zero
 			},
-			bigIntType: func(v Value) Value {
+			bigIntType: func(c Context, v Value) Value {
 				return Int(v.(BigInt).Sign())
 			},
-			bigRatType: func(v Value) Value {
+			bigRatType: func(c Context, v Value) Value {
 				return Int(v.(BigRat).Sign())
 			},
-			bigFloatType: func(v Value) Value {
+			bigFloatType: func(c Context, v Value) Value {
 				return Int(v.(BigFloat).Sign())
 			},
 		},
@@ -229,10 +229,10 @@ func init() {
 	unaryBitwiseNot = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				return ^v.(Int)
 			},
-			bigIntType: func(v Value) Value {
+			bigIntType: func(c Context, v Value) Value {
 				// Lots of ways to do this, here's one.
 				return BigInt{Int: bigInt64(0).Xor(v.(BigInt).Int, bigMinusOne.Int)}
 			},
@@ -242,25 +242,25 @@ func init() {
 	unaryLogicalNot = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				if v.(Int) == 0 {
 					return one
 				}
 				return zero
 			},
-			bigIntType: func(v Value) Value {
+			bigIntType: func(c Context, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
 					return one
 				}
 				return zero
 			},
-			bigRatType: func(v Value) Value {
+			bigRatType: func(c Context, v Value) Value {
 				if v.(BigRat).Sign() == 0 {
 					return one
 				}
 				return zero
 			},
-			bigFloatType: func(v Value) Value {
+			bigFloatType: func(c Context, v Value) Value {
 				if v.(BigFloat).Sign() == 0 {
 					return one
 				}
@@ -272,20 +272,20 @@ func init() {
 	unaryAbs = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				i := v.(Int)
 				if i < 0 {
 					i = -i
 				}
 				return i
 			},
-			bigIntType: func(v Value) Value {
+			bigIntType: func(c Context, v Value) Value {
 				return unaryBigIntOp((*big.Int).Abs, v)
 			},
-			bigRatType: func(v Value) Value {
+			bigRatType: func(c Context, v Value) Value {
 				return unaryBigRatOp((*big.Rat).Abs, v)
 			},
-			bigFloatType: func(v Value) Value {
+			bigFloatType: func(c Context, v Value) Value {
 				return unaryBigFloatOp((*big.Float).Abs, v)
 			},
 		},
@@ -294,9 +294,9 @@ func init() {
 	floor = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:    func(v Value) Value { return v },
-			bigIntType: func(v Value) Value { return v },
-			bigRatType: func(v Value) Value {
+			intType:    func(c Context, v Value) Value { return v },
+			bigIntType: func(c Context, v Value) Value { return v },
+			bigRatType: func(c Context, v Value) Value {
 				i := v.(BigRat)
 				if i.IsInt() {
 					// It can't be an integer, which means we must move up or down.
@@ -316,7 +316,7 @@ func init() {
 				}
 				return z
 			},
-			bigFloatType: func(v Value) Value {
+			bigFloatType: func(c Context, v Value) Value {
 				f := v.(BigFloat)
 				i, acc := f.Int(nil)
 				switch acc {
@@ -333,9 +333,9 @@ func init() {
 	ceil = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:    func(v Value) Value { return v },
-			bigIntType: func(v Value) Value { return v },
-			bigRatType: func(v Value) Value {
+			intType:    func(c Context, v Value) Value { return v },
+			bigIntType: func(c Context, v Value) Value { return v },
+			bigRatType: func(c Context, v Value) Value {
 				i := v.(BigRat)
 				if i.IsInt() {
 					// It can't be an integer, which means we must move up or down.
@@ -356,7 +356,7 @@ func init() {
 				}
 				return z
 			},
-			bigFloatType: func(v Value) Value {
+			bigFloatType: func(c Context, v Value) Value {
 				f := v.(BigFloat)
 				i, acc := f.Int(nil)
 				switch acc {
@@ -372,7 +372,7 @@ func init() {
 
 	unaryIota = &unaryOp{
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				i := v.(Int)
 				if i < 0 || maxInt < i {
 					Errorf("bad iota %d", i)
@@ -391,25 +391,25 @@ func init() {
 
 	unaryRho = &unaryOp{
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value {
+			intType: func(c Context, v Value) Value {
 				return Vector{}
 			},
-			charType: func(v Value) Value {
+			charType: func(c Context, v Value) Value {
 				return Vector{}
 			},
-			bigIntType: func(v Value) Value {
+			bigIntType: func(c Context, v Value) Value {
 				return Vector{}
 			},
-			bigRatType: func(v Value) Value {
+			bigRatType: func(c Context, v Value) Value {
 				return Vector{}
 			},
-			bigFloatType: func(v Value) Value {
+			bigFloatType: func(c Context, v Value) Value {
 				return Vector{}
 			},
-			vectorType: func(v Value) Value {
+			vectorType: func(c Context, v Value) Value {
 				return Int(len(v.(Vector)))
 			},
-			matrixType: func(v Value) Value {
+			matrixType: func(c Context, v Value) Value {
 				return v.(Matrix).shape
 			},
 		},
@@ -423,7 +423,7 @@ func init() {
 			bigRatType:   vectorSelf,
 			bigFloatType: vectorSelf,
 			vectorType:   self,
-			matrixType: func(v Value) Value {
+			matrixType: func(c Context, v Value) Value {
 				return v.(Matrix).data
 			},
 		},
@@ -436,7 +436,7 @@ func init() {
 			bigIntType:   self,
 			bigRatType:   self,
 			bigFloatType: self,
-			vectorType: func(v Value) Value {
+			vectorType: func(c Context, v Value) Value {
 				return v.(Vector).grade()
 			},
 		},
@@ -449,7 +449,7 @@ func init() {
 			bigIntType:   self,
 			bigRatType:   self,
 			bigFloatType: self,
-			vectorType: func(v Value) Value {
+			vectorType: func(c Context, v Value) Value {
 				x := v.(Vector).grade()
 				for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
 					x[i], x[j] = x[j], x[i]
@@ -466,14 +466,14 @@ func init() {
 			bigIntType:   self,
 			bigRatType:   self,
 			bigFloatType: self,
-			vectorType: func(v Value) Value {
+			vectorType: func(c Context, v Value) Value {
 				x := v.(Vector)
 				for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
 					x[i], x[j] = x[j], x[i]
 				}
 				return x
 			},
-			matrixType: func(v Value) Value {
+			matrixType: func(c Context, v Value) Value {
 				m := v.(Matrix)
 				if len(m.shape) == 0 {
 					return m
@@ -501,10 +501,10 @@ func init() {
 			bigIntType:   self,
 			bigRatType:   self,
 			bigFloatType: self,
-			vectorType: func(v Value) Value {
-				return Unary("rev", v)
+			vectorType: func(c Context, v Value) Value {
+				return Unary(c, "rev", v)
 			},
-			matrixType: func(v Value) Value {
+			matrixType: func(c Context, v Value) Value {
 				m := v.(Matrix)
 				if len(m.shape) == 0 {
 					return m
@@ -532,121 +532,121 @@ func init() {
 	unaryCos = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return cos(v) },
-			bigIntType:   func(v Value) Value { return cos(v) },
-			bigRatType:   func(v Value) Value { return cos(v) },
-			bigFloatType: func(v Value) Value { return cos(v) },
+			intType:      func(c Context, v Value) Value { return cos(v) },
+			bigIntType:   func(c Context, v Value) Value { return cos(v) },
+			bigRatType:   func(c Context, v Value) Value { return cos(v) },
+			bigFloatType: func(c Context, v Value) Value { return cos(v) },
 		},
 	}
 
 	unaryLog = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return logn(v) },
-			bigIntType:   func(v Value) Value { return logn(v) },
-			bigRatType:   func(v Value) Value { return logn(v) },
-			bigFloatType: func(v Value) Value { return logn(v) },
+			intType:      func(c Context, v Value) Value { return logn(v) },
+			bigIntType:   func(c Context, v Value) Value { return logn(v) },
+			bigRatType:   func(c Context, v Value) Value { return logn(v) },
+			bigFloatType: func(c Context, v Value) Value { return logn(v) },
 		},
 	}
 
 	unarySin = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return sin(v) },
-			bigIntType:   func(v Value) Value { return sin(v) },
-			bigRatType:   func(v Value) Value { return sin(v) },
-			bigFloatType: func(v Value) Value { return sin(v) },
+			intType:      func(c Context, v Value) Value { return sin(v) },
+			bigIntType:   func(c Context, v Value) Value { return sin(v) },
+			bigRatType:   func(c Context, v Value) Value { return sin(v) },
+			bigFloatType: func(c Context, v Value) Value { return sin(v) },
 		},
 	}
 
 	unaryTan = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return tan(v) },
-			bigIntType:   func(v Value) Value { return tan(v) },
-			bigRatType:   func(v Value) Value { return tan(v) },
-			bigFloatType: func(v Value) Value { return tan(v) },
+			intType:      func(c Context, v Value) Value { return tan(v) },
+			bigIntType:   func(c Context, v Value) Value { return tan(v) },
+			bigRatType:   func(c Context, v Value) Value { return tan(v) },
+			bigFloatType: func(c Context, v Value) Value { return tan(v) },
 		},
 	}
 
 	unaryAsin = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return asin(v) },
-			bigIntType:   func(v Value) Value { return asin(v) },
-			bigRatType:   func(v Value) Value { return asin(v) },
-			bigFloatType: func(v Value) Value { return asin(v) },
+			intType:      func(c Context, v Value) Value { return asin(v) },
+			bigIntType:   func(c Context, v Value) Value { return asin(v) },
+			bigRatType:   func(c Context, v Value) Value { return asin(v) },
+			bigFloatType: func(c Context, v Value) Value { return asin(v) },
 		},
 	}
 
 	unaryAcos = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return acos(v) },
-			bigIntType:   func(v Value) Value { return acos(v) },
-			bigRatType:   func(v Value) Value { return acos(v) },
-			bigFloatType: func(v Value) Value { return acos(v) },
+			intType:      func(c Context, v Value) Value { return acos(v) },
+			bigIntType:   func(c Context, v Value) Value { return acos(v) },
+			bigRatType:   func(c Context, v Value) Value { return acos(v) },
+			bigFloatType: func(c Context, v Value) Value { return acos(v) },
 		},
 	}
 
 	unaryAtan = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return atan(v) },
-			bigIntType:   func(v Value) Value { return atan(v) },
-			bigRatType:   func(v Value) Value { return atan(v) },
-			bigFloatType: func(v Value) Value { return atan(v) },
+			intType:      func(c Context, v Value) Value { return atan(v) },
+			bigIntType:   func(c Context, v Value) Value { return atan(v) },
+			bigRatType:   func(c Context, v Value) Value { return atan(v) },
+			bigFloatType: func(c Context, v Value) Value { return atan(v) },
 		},
 	}
 
 	unaryExp = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return exp(v) },
-			bigIntType:   func(v Value) Value { return exp(v) },
-			bigRatType:   func(v Value) Value { return exp(v) },
-			bigFloatType: func(v Value) Value { return exp(v) },
+			intType:      func(c Context, v Value) Value { return exp(v) },
+			bigIntType:   func(c Context, v Value) Value { return exp(v) },
+			bigRatType:   func(c Context, v Value) Value { return exp(v) },
+			bigFloatType: func(c Context, v Value) Value { return exp(v) },
 		},
 	}
 
 	unarySqrt = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return sqrt(v) },
-			bigIntType:   func(v Value) Value { return sqrt(v) },
-			bigRatType:   func(v Value) Value { return sqrt(v) },
-			bigFloatType: func(v Value) Value { return sqrt(v) },
+			intType:      func(c Context, v Value) Value { return sqrt(v) },
+			bigIntType:   func(c Context, v Value) Value { return sqrt(v) },
+			bigRatType:   func(c Context, v Value) Value { return sqrt(v) },
+			bigFloatType: func(c Context, v Value) Value { return sqrt(v) },
 		},
 	}
 
 	unaryChar = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			intType: func(v Value) Value { return Char(v.(Int)).validate() },
+			intType: func(c Context, v Value) Value { return Char(v.(Int)).validate() },
 		},
 	}
 
 	unaryCode = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
-			charType: func(v Value) Value { return Int(v.(Char)) },
+			charType: func(c Context, v Value) Value { return Int(v.(Char)) },
 		},
 	}
 
 	unaryText = &unaryOp{
 		fn: [numType]unaryFn{
-			intType:      func(v Value) Value { return text(v) },
-			bigIntType:   func(v Value) Value { return text(v) },
-			bigRatType:   func(v Value) Value { return text(v) },
-			bigFloatType: func(v Value) Value { return text(v) },
-			vectorType:   func(v Value) Value { return text(v) },
-			matrixType:   func(v Value) Value { return text(v) },
+			intType:      func(c Context, v Value) Value { return text(v) },
+			bigIntType:   func(c Context, v Value) Value { return text(v) },
+			bigRatType:   func(c Context, v Value) Value { return text(v) },
+			bigFloatType: func(c Context, v Value) Value { return text(v) },
+			vectorType:   func(c Context, v Value) Value { return text(v) },
+			matrixType:   func(c Context, v Value) Value { return text(v) },
 		},
 	}
 
 	unaryIvy = &unaryOp{
 		fn: [numType]unaryFn{
-			vectorType: func(v Value) Value {
+			vectorType: func(c Context, v Value) Value {
 				text := v.(Vector)
 				if !text.AllChars() {
 					Errorf("ivy: value is not a vector of char")

@@ -7,12 +7,12 @@ package value
 import "math/big"
 
 func power(u, v Value) Value {
-	z := floatPower(floatSelf(u).(BigFloat), floatSelf(v).(BigFloat))
+	z := floatPower(floatSelf(nil, u).(BigFloat), floatSelf(nil, v).(BigFloat))
 	return BigFloat{z}.shrink()
 }
 
 func exp(u Value) Value {
-	z := exponential(floatSelf(u).(BigFloat).Float)
+	z := exponential(floatSelf(nil, u).(BigFloat).Float)
 	return BigFloat{z}.shrink()
 }
 
@@ -29,7 +29,7 @@ func floatPower(bx, bexp BigFloat) *big.Float {
 			Errorf("negative exponent of zero")
 		}
 		positive = false
-		fexp = Unary("-", bexp).toType(bigFloatType).(BigFloat).Float
+		fexp = Unary(nil, "-", bexp).toType(bigFloatType).(BigFloat).Float // Ugly: nil context.
 	}
 	if x.Cmp(floatOne) == 0 || x.Sign() == 0 {
 		return x

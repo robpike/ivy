@@ -129,7 +129,7 @@ func (g *gradeIndex) Len() int {
 }
 
 func (g *gradeIndex) Less(i, j int) bool {
-	return toBool(Binary(g.v[g.x[i]], "<", g.v[g.x[j]]))
+	return toBool(Binary(nil, g.v[g.x[i]], "<", g.v[g.x[j]])) // Ugly: nil context.
 }
 
 func (g *gradeIndex) Swap(i, j int) {

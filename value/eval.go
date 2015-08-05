@@ -25,20 +25,20 @@ func (t valueType) String() string {
 	return typeName[t]
 }
 
-type unaryFn func(Value) Value
+type unaryFn func(Context, Value) Value
 
 type unaryOp struct {
 	elementwise bool // whether the operation applies elementwise to vectors and matrices
 	fn          [numType]unaryFn
 }
 
-func Unary(opName string, v Value) Value {
+func Unary(c Context, opName string, v Value) Value {
 	if len(opName) > 1 {
 		if strings.HasSuffix(opName, `/`) {
-			return reduce(opName[:len(opName)-1], v)
+			return reduce(c, opName[:len(opName)-1], v)
 		}
 		if strings.HasSuffix(opName, `\`) {
-			return scan(opName[:len(opName)-1], v)
+			return scan(c, opName[:len(opName)-1], v)
 		}
 	}
 	op := unaryOps[opName]
@@ -51,17 +51,17 @@ func Unary(opName string, v Value) Value {
 		if op.elementwise {
 			switch which {
 			case vectorType:
-				return unaryVectorOp(opName, v)
+				return unaryVectorOp(c, opName, v)
 			case matrixType:
-				return unaryMatrixOp(opName, v)
+				return unaryMatrixOp(c, opName, v)
 			}
 		}
 		Errorf("unary %s not implemented on type %s", opName, which)
 	}
-	return fn(v)
+	return fn(c, v)
 }
 
-type binaryFn func(Value, Value) Value
+type binaryFn func(Context, Value, Value) Value
 
 type binaryOp struct {
 	elementwise bool // whether the operation applies elementwise to vectors and matrices
@@ -90,9 +90,9 @@ func whichType(v Value) valueType {
 	panic("which type")
 }
 
-func Binary(u Value, opName string, v Value) Value {
+func Binary(c Context, u Value, opName string, v Value) Value {
 	if strings.Contains(opName, ".") {
-		return product(u, opName, v)
+		return product(c, u, opName, v)
 	}
 	op := binaryOps[opName]
 	if op == nil {
@@ -106,17 +106,17 @@ func Binary(u Value, opName string, v Value) Value {
 		if op.elementwise {
 			switch which {
 			case vectorType:
-				return binaryVectorOp(u, opName, v)
+				return binaryVectorOp(c, u, opName, v)
 			case matrixType:
-				return binaryMatrixOp(u, opName, v)
+				return binaryMatrixOp(c, u, opName, v)
 			}
 		}
 		Errorf("binary %s not implemented on type %s", opName, which)
 	}
-	return fn(u, v)
+	return fn(c, u, v)
 }
 
-func product(u Value, opName string, v Value) Value {
+func product(c Context, u Value, opName string, v Value) Value {
 	dot := strings.IndexByte(opName, '.')
 	left := opName[:dot]
 	right := opName[dot+1:]
@@ -124,24 +124,24 @@ func product(u Value, opName string, v Value) Value {
 	u = u.toType(which)
 	v = v.toType(which)
 	if left == "o" {
-		return outerProduct(u, right, v)
+		return outerProduct(c, u, right, v)
 	}
-	return innerProduct(u, left, right, v)
+	return innerProduct(c, u, left, right, v)
 }
 
 // u and v are known to be the same type and at least Vectors.
-func innerProduct(u Value, left, right string, v Value) Value {
+func innerProduct(c Context, u Value, left, right string, v Value) Value {
 	switch u := u.(type) {
 	case Vector:
 		v := v.(Vector)
 		u.sameLength(v)
 		var x Value
 		for k, e := range u {
-			tmp := Binary(e, right, v[k])
+			tmp := Binary(c, e, right, v[k])
 			if k == 0 {
 				x = tmp
 			} else {
-				x = Binary(x, left, tmp)
+				x = Binary(c, x, left, tmp)
 			}
 		}
 		return x
@@ -164,9 +164,9 @@ func innerProduct(u Value, left, right string, v Value) Value {
 		shape := NewVector([]Value{u.shape[0], u.shape[0]})
 		row, col := 0, 0
 		for i := range data {
-			acc := Binary(u.data[row*ucols], right, v.data[col])
+			acc := Binary(c, u.data[row*ucols], right, v.data[col])
 			for j := 1; j < ucols; j++ {
-				acc = Binary(acc, left, Binary(u.data[row*ucols+j], right, v.data[j*vcols+col]))
+				acc = Binary(c, acc, left, Binary(c, u.data[row*ucols+j], right, v.data[j*vcols+col]))
 			}
 			data[i] = acc
 			col++
@@ -182,7 +182,7 @@ func innerProduct(u Value, left, right string, v Value) Value {
 }
 
 // u and v are known to be at least Vectors.
-func outerProduct(u Value, opName string, v Value) Value {
+func outerProduct(c Context, u Value, opName string, v Value) Value {
 	switch u := u.(type) {
 	case Vector:
 		v := v.(Vector)
@@ -193,7 +193,7 @@ func outerProduct(u Value, opName string, v Value) Value {
 		index := 0
 		for _, vu := range u {
 			for _, vv := range v {
-				m.data[index] = Binary(vu, opName, vv)
+				m.data[index] = Binary(c, vu, opName, vv)
 				index++
 			}
 		}
@@ -205,7 +205,7 @@ func outerProduct(u Value, opName string, v Value) Value {
 
 // We must be right associative; that is the grammar.
 // -/1 2 3 == 1-2-3 is 1-(2-3) not (1-2)-3. Answer: 2.
-func reduce(opName string, v Value) Value {
+func reduce(c Context, opName string, v Value) Value {
 	switch v := v.(type) {
 	case Int, BigInt, BigRat:
 		return v
@@ -215,7 +215,7 @@ func reduce(opName string, v Value) Value {
 		}
 		acc := v[len(v)-1]
 		for i := len(v) - 2; i >= 0; i-- {
-			acc = Binary(v[i], opName, acc)
+			acc = Binary(c, v[i], opName, acc)
 		}
 		return acc
 	case Matrix:
@@ -234,7 +234,7 @@ func reduce(opName string, v Value) Value {
 			acc := v.data[pos]
 			pos--
 			for i := 1; i < stride; i++ {
-				acc = Binary(v.data[pos], opName, acc)
+				acc = Binary(c, v.data[pos], opName, acc)
 				pos--
 			}
 			data[i] = acc
@@ -251,7 +251,7 @@ func reduce(opName string, v Value) Value {
 
 // scan gives the successive values of reducing op through v.
 // We must be right associative; that is the grammar.
-func scan(opName string, v Value) Value {
+func scan(c Context, opName string, v Value) Value {
 	switch v := v.(type) {
 	case Int, BigInt, BigRat:
 		return v
@@ -264,7 +264,7 @@ func scan(opName string, v Value) Value {
 		values[0] = acc
 		// TODO: This is n^2.
 		for i := 1; i < len(v); i++ {
-			values[i] = reduce(opName, v[:i+1])
+			values[i] = reduce(c, opName, v[:i+1])
 		}
 		return NewVector(values)
 	case Matrix:
@@ -287,7 +287,7 @@ func scan(opName string, v Value) Value {
 			data[index] = acc
 			// TODO: This is n^2.
 			for j := 1; j < stride; j++ {
-				data[index+j] = reduce(opName, v.data[index:index+j+1])
+				data[index+j] = reduce(c, opName, v.data[index:index+j+1])
 			}
 			index += stride
 		}
@@ -298,52 +298,52 @@ func scan(opName string, v Value) Value {
 }
 
 // unaryVectorOp applies op elementwise to i.
-func unaryVectorOp(op string, i Value) Value {
+func unaryVectorOp(c Context, op string, i Value) Value {
 	u := i.(Vector)
 	n := make([]Value, len(u))
 	for k := range u {
-		n[k] = Unary(op, u[k])
+		n[k] = Unary(c, op, u[k])
 	}
 	return NewVector(n)
 }
 
 // unaryMatrixOp applies op elementwise to i.
-func unaryMatrixOp(op string, i Value) Value {
+func unaryMatrixOp(c Context, op string, i Value) Value {
 	u := i.(Matrix)
 	n := make([]Value, len(u.data))
 	for k := range u.data {
-		n[k] = Unary(op, u.data[k])
+		n[k] = Unary(c, op, u.data[k])
 	}
 	return NewMatrix(u.shape, NewVector(n))
 }
 
 // binaryVectorOp applies op elementwise to i and j.
-func binaryVectorOp(i Value, op string, j Value) Value {
+func binaryVectorOp(c Context, i Value, op string, j Value) Value {
 	u, v := i.(Vector), j.(Vector)
 	if len(u) == 1 {
 		n := make([]Value, len(v))
 		for k := range v {
-			n[k] = Binary(u[0], op, v[k])
+			n[k] = Binary(c, u[0], op, v[k])
 		}
 		return NewVector(n)
 	}
 	if len(v) == 1 {
 		n := make([]Value, len(u))
 		for k := range u {
-			n[k] = Binary(u[k], op, v[0])
+			n[k] = Binary(c, u[k], op, v[0])
 		}
 		return NewVector(n)
 	}
 	u.sameLength(v)
 	n := make([]Value, len(u))
 	for k := range u {
-		n[k] = Binary(u[k], op, v[k])
+		n[k] = Binary(c, u[k], op, v[k])
 	}
 	return NewVector(n)
 }
 
 // binaryMatrixOp applies op elementwise to i and j.
-func binaryMatrixOp(i Value, op string, j Value) Value {
+func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 	u, v := i.(Matrix), j.(Matrix)
 	shape := u.shape
 	var n []Value
@@ -354,13 +354,13 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 		shape = v.shape
 		n = make([]Value, len(v.data))
 		for k := range v.data {
-			n[k] = Binary(u.data[0], op, v.data[k])
+			n[k] = Binary(c, u.data[0], op, v.data[k])
 		}
 	case isScalar(v):
 		// Matrix op Scalar.
 		n = make([]Value, len(u.data))
 		for k := range u.data {
-			n[k] = Binary(u.data[k], op, v.data[0])
+			n[k] = Binary(c, u.data[k], op, v.data[0])
 		}
 	case isVector(u, v.shape):
 		// Vector op Matrix.
@@ -369,7 +369,7 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 		dim := int(u.shape[0].(Int))
 		index := 0
 		for k := range v.data {
-			n[k] = Binary(u.data[index], op, v.data[k])
+			n[k] = Binary(c, u.data[index], op, v.data[k])
 			index++
 			if index >= dim {
 				index = 0
@@ -381,7 +381,7 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 		dim := int(v.shape[0].(Int))
 		index := 0
 		for k := range u.data {
-			n[k] = Binary(v.data[index], op, u.data[k])
+			n[k] = Binary(c, v.data[index], op, u.data[k])
 			index++
 			if index >= dim {
 				index = 0
@@ -392,7 +392,7 @@ func binaryMatrixOp(i Value, op string, j Value) Value {
 		u.sameShape(v)
 		n = make([]Value, len(u.data))
 		for k := range u.data {
-			n[k] = Binary(u.data[k], op, v.data[k])
+			n[k] = Binary(c, u.data[k], op, v.data[k])
 		}
 	}
 	return NewMatrix(shape, NewVector(n))

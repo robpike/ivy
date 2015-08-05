@@ -11,7 +11,7 @@ func sqrt(v Value) Value {
 }
 
 func evalFloatFunc(v Value, fn func(*big.Float) *big.Float) Value {
-	return BigFloat{(fn(floatSelf(v).(BigFloat).Float))}.shrink()
+	return BigFloat{(fn(floatSelf(nil, v).(BigFloat).Float))}.shrink()
 }
 
 // floatSqrt computes the square root of x using Newton's method.

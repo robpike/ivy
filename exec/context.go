@@ -111,7 +111,7 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 	right = right.Eval(c)
 	fn := c.UnaryFn[op]
 	if fn == nil {
-		return value.Unary(op, right)
+		return value.Unary(c, op, right)
 	}
 	if fn.Body == nil {
 		value.Errorf("unary %q undefined", op)
@@ -135,7 +135,7 @@ func (c *Context) EvalBinary(left value.Value, op string, right value.Value) val
 	right = right.Eval(c)
 	fn := c.BinaryFn[op]
 	if fn == nil {
-		return value.Binary(left, op, right)
+		return value.Binary(c, left, op, right)
 	}
 	if fn.Body == nil {
 		value.Errorf("binary %q undefined", op)

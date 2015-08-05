@@ -171,18 +171,18 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return (u.(Int) + v.(Int)).maybeBig()
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				mustFit(u.(BigInt).BitLen() + 1)
 				mustFit(v.(BigInt).BitLen() + 1)
 				return binaryBigIntOp(u, (*big.Int).Add, v)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Add, v)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return binaryBigFloatOp(u, (*big.Float).Add, v)
 			},
 		},
@@ -192,18 +192,18 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return (u.(Int) - v.(Int)).maybeBig()
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				mustFit(u.(BigInt).BitLen() + 1)
 				mustFit(v.(BigInt).BitLen() + 1)
 				return binaryBigIntOp(u, (*big.Int).Sub, v)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Sub, v)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return binaryBigFloatOp(u, (*big.Float).Sub, v)
 			},
 		},
@@ -213,17 +213,17 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return (u.(Int) * v.(Int)).maybeBig()
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				mustFit(u.(BigInt).BitLen() + v.(BigInt).BitLen())
 				return binaryBigIntOp(u, (*big.Int).Mul, v)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Mul, v)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return binaryBigFloatOp(u, (*big.Float).Mul, v)
 			},
 		},
@@ -233,13 +233,13 @@ func init() {
 		elementwise: true,
 		whichType:   rationalType, // Use BigRats to avoid the analysis here.
 		fn: [numType]binaryFn{
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				if v.(BigRat).Sign() == 0 {
 					Errorf("division by zero")
 				}
 				return binaryBigRatOp(u, (*big.Rat).Quo, v) // True division.
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return binaryBigFloatOp(u, (*big.Float).Quo, v)
 			},
 		},
@@ -249,13 +249,13 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				if v.(Int) == 0 {
 					Errorf("division by zero")
 				}
 				return u.(Int) / v.(Int)
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
 					Errorf("division by zero")
 				}
@@ -270,13 +270,13 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				if v.(Int) == 0 {
 					Errorf("modulo by zero")
 				}
 				return u.(Int) % v.(Int)
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
 					Errorf("modulo by zero")
 				}
@@ -291,7 +291,7 @@ func init() {
 		elementwise: true,
 		whichType:   divType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
 					Errorf("division by zero")
 				}
@@ -306,7 +306,7 @@ func init() {
 		elementwise: true,
 		whichType:   divType, // Use BigInts to avoid the analysis here.
 		fn: [numType]binaryFn{
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				if v.(BigInt).Sign() == 0 {
 					Errorf("modulo by zero")
 				}
@@ -321,7 +321,7 @@ func init() {
 		elementwise: true,
 		whichType:   divType,
 		fn: [numType]binaryFn{
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				switch v.(BigInt).Sign() {
 				case 0:
 					return one
@@ -329,8 +329,8 @@ func init() {
 					if u.(BigInt).Sign() == 0 {
 						Errorf("negative exponent of zero")
 					}
-					v = Unary("abs", v).toType(bigIntType)
-					return Unary("/", binaryBigIntOp(u, bigIntExp, v))
+					v = Unary(c, "abs", v).toType(bigIntType)
+					return Unary(c, "/", binaryBigIntOp(u, bigIntExp, v))
 				}
 				x := u.(BigInt).Int
 				if x.Cmp(bigOne.Int) == 0 || x.Sign() == 0 {
@@ -338,7 +338,7 @@ func init() {
 				}
 				return binaryBigIntOp(u, bigIntExp, v)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				// (n/d)**2 is n**2/d**2.
 				rexp := v.(BigRat)
 				positive := true
@@ -350,11 +350,11 @@ func init() {
 						Errorf("negative exponent of zero")
 					}
 					positive = false
-					rexp = Unary("-", v).toType(bigRatType).(BigRat)
+					rexp = Unary(c, "-", v).toType(bigRatType).(BigRat)
 				}
 				if !rexp.IsInt() {
 					// Lift to float.
-					return Binary(floatSelf(u), "**", floatSelf(v))
+					return Binary(c, floatSelf(c, u), "**", floatSelf(c, v))
 				}
 				exp := rexp.Num()
 				rat := u.(BigRat)
@@ -370,7 +370,7 @@ func init() {
 				}
 				return z.shrink()
 			},
-			bigFloatType: func(u, v Value) Value { return power(u, v) },
+			bigFloatType: func(c Context, u, v Value) Value { return power(u, v) },
 		},
 	}
 
@@ -389,10 +389,10 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return u.(Int) & v.(Int)
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).And, v)
 			},
 		},
@@ -402,10 +402,10 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return u.(Int) | v.(Int)
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Or, v)
 			},
 		},
@@ -415,10 +415,10 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return u.(Int) ^ v.(Int)
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				return binaryBigIntOp(u, (*big.Int).Xor, v)
 			},
 		},
@@ -428,7 +428,7 @@ func init() {
 		elementwise: true,
 		whichType:   divType, // Shifts are like exp: let BigInt do the work.
 		fn: [numType]binaryFn{
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				z := bigInt64(0)
 				z.Lsh(i.Int, shiftCount(j))
@@ -442,7 +442,7 @@ func init() {
 		elementwise: true,
 		whichType:   divType, // Shifts are like exp: let BigInt do the work.
 		fn: [numType]binaryFn{
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				z := bigInt64(0)
 				z.Rsh(i.Int, shiftCount(j))
@@ -456,21 +456,21 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(u.(Int) == v.(Int))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(u.(Char) == v.(Char))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) == 0)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) == 0)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
 				return toInt(i.Cmp(j.Float) == 0)
 			},
@@ -481,21 +481,21 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(u.(Int) != v.(Int))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(u.(Char) != v.(Char))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) != 0)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) != 0)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
 				return toInt(i.Cmp(j.Float) != 0)
 			},
@@ -506,21 +506,21 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(u.(Int) < v.(Int))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(u.(Char) < v.(Char))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) < 0)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) < 0)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
 				return toInt(i.Cmp(j.Float) < 0)
 			},
@@ -531,21 +531,21 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(u.(Int) <= v.(Int))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(u.(Char) <= v.(Char))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) <= 0)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) <= 0)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
 				return toInt(i.Cmp(j.Float) <= 0)
 			},
@@ -556,21 +556,21 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(u.(Int) > v.(Int))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(u.(Char) > v.(Char))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) > 0)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) > 0)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
 				return toInt(i.Cmp(j.Float) > 0)
 			},
@@ -581,21 +581,21 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(u.(Int) >= v.(Int))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(u.(Char) >= v.(Char))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				return toInt(i.Cmp(j.Int) >= 0)
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				return toInt(i.Cmp(j.Rat) >= 0)
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
 				return toInt(i.Cmp(j.Float) >= 0)
 			},
@@ -606,19 +606,19 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) && toBool(v))
 			},
 		},
@@ -628,19 +628,19 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) || toBool(v))
 			},
 		},
@@ -650,19 +650,19 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return toInt(toBool(u) != toBool(v))
 			},
 		},
@@ -672,19 +672,19 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) && toBool(v)))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) && toBool(v)))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) && toBool(v)))
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) && toBool(v)))
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) && toBool(v)))
 			},
 		},
@@ -694,19 +694,19 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) || toBool(v)))
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) || toBool(v)))
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) || toBool(v)))
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) || toBool(v)))
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				return toInt(!(toBool(u) || toBool(v)))
 			},
 		},
@@ -715,7 +715,7 @@ func init() {
 	index = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				// A[B]: The successive elements of A with indexes elements of B.
 				A, B := u.(Vector), v.(Vector)
 				values := make([]Value, len(B))
@@ -736,7 +736,7 @@ func init() {
 				}
 				return NewVector(values)
 			},
-			matrixType: func(u, v Value) Value {
+			matrixType: func(c Context, u, v Value) Value {
 				// A[B]: The successive elements of A with indexes given by elements of B.
 				A, mB := u.(Matrix), v.(Matrix)
 				if len(mB.shape) != 1 {
@@ -782,7 +782,7 @@ func init() {
 	binaryIota = &binaryOp{
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
 				A, B := u.(Vector), v.(Vector)
 				indices := make([]Value, len(B))
@@ -790,7 +790,7 @@ func init() {
 			Outer:
 				for i, b := range B {
 					for j, a := range A {
-						if toBool(Binary(a, "==", b)) {
+						if toBool(Binary(c, a, "==", b)) {
 							indices[i] = Int(j + conf.Origin())
 							continue Outer
 						}
@@ -806,33 +806,33 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				if u.(Int) < v.(Int) {
 					return u
 				}
 				return v
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				if u.(Char) < v.(Char) {
 					return u
 				}
 				return v
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				if i.Cmp(j.Int) < 0 {
 					return i.shrink()
 				}
 				return j.shrink()
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				if i.Cmp(j.Rat) < 0 {
 					return i.shrink()
 				}
 				return j.shrink()
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
 				if i.Cmp(j.Float) < 0 {
 					return i.shrink()
@@ -846,33 +846,33 @@ func init() {
 		elementwise: true,
 		whichType:   binaryArithType,
 		fn: [numType]binaryFn{
-			intType: func(u, v Value) Value {
+			intType: func(c Context, u, v Value) Value {
 				if u.(Int) > v.(Int) {
 					return u
 				}
 				return v
 			},
-			charType: func(u, v Value) Value {
+			charType: func(c Context, u, v Value) Value {
 				if u.(Char) > v.(Char) {
 					return u
 				}
 				return v
 			},
-			bigIntType: func(u, v Value) Value {
+			bigIntType: func(c Context, u, v Value) Value {
 				i, j := u.(BigInt), v.(BigInt)
 				if i.Cmp(j.Int) > 0 {
 					return u
 				}
 				return v
 			},
-			bigRatType: func(u, v Value) Value {
+			bigRatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigRat), v.(BigRat)
 				if i.Cmp(j.Rat) > 0 {
 					return i.shrink()
 				}
 				return j.shrink()
 			},
-			bigFloatType: func(u, v Value) Value {
+			bigFloatType: func(c Context, u, v Value) Value {
 				i, j := u.(BigFloat), v.(BigFloat)
 				if i.Cmp(j.Float) > 0 {
 					return i.shrink()
@@ -885,10 +885,10 @@ func init() {
 	binaryRho = &binaryOp{
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				return reshape(u.(Vector), v.(Vector))
 			},
-			matrixType: func(u, v Value) Value {
+			matrixType: func(c Context, u, v Value) Value {
 				// LHS must be a vector underneath.
 				A, B := u.(Matrix), v.(Matrix)
 				if len(A.shape) != 1 {
@@ -902,10 +902,10 @@ func init() {
 	binaryCatenate = &binaryOp{
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				return append(u.(Vector), v.(Vector)...)
 			},
-			matrixType: func(u, v Value) Value {
+			matrixType: func(c Context, u, v Value) Value {
 				A := u.(Matrix)
 				B := v.(Matrix)
 				if len(A.shape) == 0 || len(B.shape) == 0 {
@@ -929,7 +929,7 @@ func init() {
 	take = &binaryOp{
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				const bad = Error("bad count for take")
 				i := v.(Vector)
 				nv, ok := u.(Vector)
@@ -963,7 +963,7 @@ func init() {
 	drop = &binaryOp{
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				const bad = Error("bad count for drop")
 				i := v.(Vector)
 				nv, ok := u.(Vector)
@@ -996,7 +996,7 @@ func init() {
 	rot = &binaryOp{
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				countVec := u.(Vector)
 				count, ok := countVec[0].(Int)
 				if !ok {
@@ -1004,7 +1004,7 @@ func init() {
 				}
 				return v.(Vector).rotate(int(count))
 			},
-			matrixType: func(u, v Value) Value {
+			matrixType: func(c Context, u, v Value) Value {
 				countMat := u.(Matrix)
 				if len(countMat.shape) != 1 || len(countMat.data) != 1 {
 					Errorf("rot: count must be small integer")
@@ -1021,7 +1021,7 @@ func init() {
 	fill = &binaryOp{
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				i := u.(Vector)
 				j := v.(Vector)
 				if len(i) == 0 {
@@ -1083,7 +1083,7 @@ func init() {
 	sel = &binaryOp{
 		whichType: atLeastVectorType,
 		fn: [numType]binaryFn{
-			vectorType: func(u, v Value) Value {
+			vectorType: func(c Context, u, v Value) Value {
 				i := u.(Vector)
 				j := v.(Vector)
 				if len(i) == 0 {

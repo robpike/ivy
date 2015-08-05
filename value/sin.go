@@ -15,7 +15,7 @@ func cos(v Value) Value {
 }
 
 func tan(v Value) Value {
-	x := floatSelf(v).(BigFloat).Float
+	x := floatSelf(nil, v).(BigFloat).Float
 	negate := false
 	if x.Sign() < 0 {
 		x.Neg(x)
