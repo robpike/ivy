@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"robpike.io/ivy/config"
+	"robpike.io/ivy/exec"
 	"robpike.io/ivy/value"
 )
 
@@ -48,90 +49,6 @@ const (
 	Space          // run of spaces separating
 	String         // quoted string (includes quotes)
 )
-
-// Note: All operators are not valid hexadecimal constants,
-// so they work when base is 16. Higher bases are less critical.
-var operatorWord = map[string]bool{
-	"abs":   true,
-	"acos":  true,
-	"and":   true,
-	"asin":  true,
-	"atan":  true,
-	"ceil":  true,
-	"char":  true,
-	"code":  true,
-	"cos":   true,
-	"div":   true,
-	"down":  true,
-	"drop":  true,
-	"fill":  true,
-	"flip":  true,
-	"float": true,
-	"floor": true,
-	"grade": true,
-	"idiv":  true,
-	"imod":  true,
-	"in":    true,
-	"iota":  true,
-	"ivy":   true,
-	"log":   true,
-	"max":   true,
-	"min":   true,
-	"mod":   true,
-	"nand":  true,
-	"nor":   true,
-	"not":   true,
-	"or":    true,
-	"rev":   true,
-	"rho":   true,
-	"rot":   true,
-	"sel":   true,
-	"sgn":   true,
-	"sin":   true,
-	"sqrt":  true,
-	"take":  true,
-	"tan":   true,
-	"text":  true,
-	"up":    true,
-	"xor":   true,
-}
-
-// isBinary identifies the binary operators; these can be used in reductions.
-var isBinary = map[string]bool{
-	"!=":   true,
-	"&":    true,
-	"*":    true,
-	"**":   true,
-	"+":    true,
-	",":    true, // Silly but not wrong.
-	"-":    true,
-	"/":    true,
-	"<":    true,
-	"<<":   true,
-	"<=":   true,
-	"==":   true,
-	">":    true,
-	">=":   true,
-	">>":   true,
-	"[]":   true,
-	"^":    true,
-	"and":  true,
-	"div":  true,
-	"fill": true,
-	"idiv": true,
-	"imod": true,
-	"in":   true,
-	"iota": true,
-	"max":  true,
-	"min":  true,
-	"mod":  true,
-	"or":   true,
-	"rho":  true,
-	"rot":  true,
-	"sel":  true,
-	"xor":  true,
-	"|":    true,
-}
 
 func (i Token) String() string {
 	switch {
@@ -399,9 +316,7 @@ Loop:
 			switch {
 			case word == "o" && l.peek() == '.':
 				return lexOperator
-			case operatorWord[word]:
-				return lexOperator
-			case l.context.UserDefined(word, true):
+			case exec.OperatorWord[word] || l.context.UserDefined(word, true):
 				return lexOperator
 			case word == "op":
 				l.emit(Op)
@@ -421,7 +336,7 @@ Loop:
 func lexOperator(l *Scanner) stateFn {
 	// It might be an inner product or reduction, but only if it is a binary operator.
 	word := l.input[l.start:l.pos]
-	if word == "o" || isBinary[word] || l.context.UserDefined(word, true) {
+	if word == "o" || exec.IsBinary[word] || l.context.UserDefined(word, true) {
 		switch l.peek() {
 		case '/':
 			// Reduction.
@@ -445,7 +360,7 @@ func lexOperator(l *Scanner) stateFn {
 					return l.errorf("bad character %#U", r)
 				}
 				word := l.input[startRight:l.pos]
-				if !operatorWord[word] && !l.context.UserDefined(word, true) {
+				if !exec.OperatorWord[word] && !l.context.UserDefined(word, true) {
 					return l.errorf("%s not an operator", word)
 				}
 			}

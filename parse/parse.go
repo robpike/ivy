@@ -421,18 +421,15 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
 		return expr
 	case scan.Identifier:
-		function := p.context.BinaryFn[tok.Text]
-		if function != nil {
+		if p.context.DefinedBinary(tok.Text) {
 			p.next()
-			// User-defined binary.
 			return &binary{
-				op:    tok.Text,
 				left:  expr,
+				op:    tok.Text,
 				right: p.expr(p.next()),
 			}
 		}
 	case scan.Operator:
-		// Binary.
 		p.next()
 		return &binary{
 			left:  expr,
@@ -455,15 +452,12 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 	var expr value.Expr
 	switch tok.Type {
 	case scan.Operator:
-		// Unary.
 		expr = &unary{
 			op:    tok.Text,
 			right: p.expr(p.next()),
 		}
 	case scan.Identifier:
-		function := p.context.UnaryFn[tok.Text]
-		if function != nil {
-			// User-defined unary.
+		if p.context.DefinedUnary(tok.Text) {
 			expr = &unary{
 				op:    tok.Text,
 				right: p.expr(p.next()),
@@ -561,7 +555,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 			case scan.LeftParen:
 				fallthrough
 			case scan.Identifier:
-				if p.context.UnaryFn[tok.Text] != nil || p.context.BinaryFn[tok.Text] != nil {
+				if p.context.Defined(tok.Text) {
 					break Loop
 				}
 				fallthrough
