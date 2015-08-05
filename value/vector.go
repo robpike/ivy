@@ -119,6 +119,30 @@ func (v Vector) grade() Vector {
 	return NewVector(result)
 }
 
+// membership creates a vector of size len(u) reporting
+// whether each element is an element of v.
+// TODO: N*M algorithm - can we do better?
+func membership(c Context, u, v Vector) Value {
+	values := make([]Value, len(u))
+	for i, x := range u {
+		values[i] = Int(0)
+		for _, y := range v {
+			if Binary(c, x, "==", y) == Int(1) {
+				values[i] = Int(1)
+				break
+			}
+		}
+	}
+	return NewVector(values).shrink()
+}
+
+func (v Vector) shrink() Value {
+	if len(v) == 1 {
+		return v[0]
+	}
+	return v
+}
+
 type gradeIndex struct {
 	v Vector
 	x []int

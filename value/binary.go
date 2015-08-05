@@ -146,7 +146,7 @@ var (
 	bitAnd, bitOr, bitXor             *binaryOp
 	lsh, rsh                          *binaryOp
 	eq, ne, lt, le, gt, ge            *binaryOp
-	index                             *binaryOp
+	in, index                         *binaryOp
 	logicalAnd, logicalOr, logicalXor *binaryOp
 	logicalNand, logicalNor           *binaryOp
 	binaryIota, binaryRho             *binaryOp
@@ -712,6 +712,19 @@ func init() {
 		},
 	}
 
+	in = &binaryOp{
+		// A in B: Membership: 0 or 1 according to which elements of A present in B.
+		whichType: atLeastVectorType,
+		fn: [numType]binaryFn{
+			vectorType: func(c Context, u, v Value) Value {
+				return membership(c, u.(Vector), v.(Vector))
+			},
+			matrixType: func(c Context, u, v Value) Value {
+				return membership(c, u.(Matrix).data, v.(Matrix).data)
+			},
+		},
+	}
+
 	index = &binaryOp{
 		whichType: binaryArithType,
 		fn: [numType]binaryFn{
@@ -734,7 +747,7 @@ func init() {
 				if len(values) == 1 {
 					return values[0]
 				}
-				return NewVector(values)
+				return NewVector(values).shrink()
 			},
 			matrixType: func(c Context, u, v Value) Value {
 				// A[B]: The successive elements of A with indexes given by elements of B.
@@ -1157,6 +1170,7 @@ func init() {
 		"fill": fill,
 		"idiv": idiv, // Go-like truncating integer division.
 		"imod": imod, // Go-like integer moduls.
+		"in":   in,
 		"iota": binaryIota,
 		"log":  binaryLog,
 		"max":  max,
