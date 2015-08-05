@@ -129,6 +129,13 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 	return v
 }
 
+func (c *Context) UserDefined(op string, isBinary bool) bool {
+	if isBinary {
+		return c.BinaryFn[op] != nil
+	}
+	return c.UnaryFn[op] != nil
+}
+
 // EvalBinary evaluates a binary operator.
 func (c *Context) EvalBinary(left value.Value, op string, right value.Value) value.Value {
 	left = left.Eval(c)

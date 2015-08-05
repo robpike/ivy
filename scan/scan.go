@@ -630,6 +630,26 @@ func isEndOfLine(r rune) bool {
 	return r == '\r' || r == '\n'
 }
 
+// IsIdentifier reports whether the string is a valid identifier.
+// It is provided as a service; it is not used by this package.
+func IsIdentifier(s string) bool {
+	if s == "_" {
+		return false // Special symbol; can't redefine.
+	}
+	first := true
+	for _, r := range s {
+		if unicode.IsDigit(r) {
+			if first {
+				return false
+			}
+		} else if r != '_' && !unicode.IsLetter(r) {
+			return false
+		}
+		first = false
+	}
+	return true
+}
+
 // isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)

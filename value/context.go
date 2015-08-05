@@ -46,4 +46,7 @@ type Context interface {
 
 	// EvalBinary evaluates a binary operator.
 	EvalBinary(left Value, op string, right Value) Value
+
+	// UserDefined reports whether the specified op is user-defined.
+	UserDefined(op string, isBinary bool) bool
 }

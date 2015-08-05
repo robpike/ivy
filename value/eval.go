@@ -41,6 +41,9 @@ func Unary(c Context, opName string, v Value) Value {
 			return scan(c, opName[:len(opName)-1], v)
 		}
 	}
+	if c != nil && c.UserDefined(opName, false) {
+		return c.EvalUnary(opName, v)
+	}
 	op := unaryOps[opName]
 	if op == nil {
 		Errorf("unary %s not implemented", opName)
@@ -93,6 +96,9 @@ func whichType(v Value) valueType {
 func Binary(c Context, u Value, opName string, v Value) Value {
 	if strings.Contains(opName, ".") {
 		return product(c, u, opName, v)
+	}
+	if c != nil && c.UserDefined(opName, true) {
+		return c.EvalBinary(u, opName, v)
 	}
 	op := binaryOps[opName]
 	if op == nil {

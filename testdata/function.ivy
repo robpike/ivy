@@ -105,3 +105,13 @@ x = 0
 op x n = n
 x 3
 	3
+
+# We can define a function with the same name as a builtin.
+op sqrt x = x
+sqrt 4
+	4
+
+# It will be restored in a new context.
+sqrt 4
+	2
+
