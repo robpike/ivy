@@ -130,15 +130,24 @@ var IsBinary = map[string]bool{
 
 // Defined reports whether the operator is known.
 func (c *Context) Defined(op string) bool {
+	if c.isVariable(op) {
+		return false
+	}
 	return OperatorWord[op] || c.BinaryFn[op] != nil || c.UnaryFn[op] != nil
 }
 
 // DefinedBinary reports whether the operator is a known binary.
 func (c *Context) DefinedBinary(op string) bool {
+	if c.isVariable(op) {
+		return false
+	}
 	return c.BinaryFn[op] != nil || OperatorWord[op] && IsBinary[op]
 }
 
 // DefinedUnary reports whether the operator is a known unary.
 func (c *Context) DefinedUnary(op string) bool {
+	if c.isVariable(op) {
+		return false
+	}
 	return c.UnaryFn[op] != nil || OperatorWord[op] && IsUnary[op]
 }

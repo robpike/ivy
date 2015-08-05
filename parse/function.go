@@ -44,10 +44,13 @@ func (p *Parser) functionDefn() {
 		fn.Left = idents[0]
 		fn.Name = idents[1]
 		fn.Right = idents[2]
+		p.context.Declare(fn.Left)
+		p.context.Declare(fn.Right)
 		installMap = p.context.BinaryFn
 	} else {
 		fn.Name = idents[0]
 		fn.Right = idents[1]
+		p.context.Declare(fn.Right)
 		installMap = p.context.UnaryFn
 	}
 	if fn.Name == fn.Left || fn.Name == fn.Right {
@@ -55,6 +58,7 @@ func (p *Parser) functionDefn() {
 	}
 	// Define it, but prepare to undefine if there's trouble.
 	p.context.Define(fn)
+	defer p.context.ForgetAll()
 	succeeded := false
 	prevDefn := installMap[fn.Name]
 	defer func() {

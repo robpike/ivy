@@ -30,6 +30,8 @@ type Context struct {
 	// Defs is a list of defined ops, in time order.  It is used when saving the
 	// Context to a file.
 	Defs []OpDef
+	// Names of variables declared in the currently-being-parsed function.
+	variables []string
 }
 
 // NewContext returns a new execution context: the stack and variables.
@@ -234,4 +236,23 @@ func (c *Context) noOp(name string) {
 		return
 	}
 	value.Errorf("cannot define variable %s; it is an op", name)
+}
+
+// Declare makes the name a variable while parsing the next function.
+func (c *Context) Declare(name string) {
+	c.variables = append(c.variables, name)
+}
+
+// ForgetAll forgets the declared variables.
+func (c *Context) ForgetAll() {
+	c.variables = nil
+}
+
+func (c *Context) isVariable(op string) bool {
+	for _, s := range c.variables {
+		if op == s {
+			return true
+		}
+	}
+	return false
 }

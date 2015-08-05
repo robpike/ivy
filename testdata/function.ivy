@@ -145,3 +145,9 @@ op a mul b = a * b
 	30 33
 	40 44
 
+# Builtin names are fine as parameter names.
+op sin x cos = (sin+cos) cos 7
+sin pi/2
+3 x 2
+	1
+	5 2 7
