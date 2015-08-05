@@ -46,10 +46,6 @@ func tree(e interface{}) string {
 			return fmt.Sprintf("(%s[%s])", tree(e.left), tree(e.right))
 		}
 		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.op, tree(e.right))
-	case *unaryCall:
-		return fmt.Sprintf("(%s %s)", e.name, tree(e.arg))
-	case *binaryCall:
-		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.name, tree(e.right))
 	case []value.Expr:
 		if len(e) == 1 {
 			return tree(e[0])
@@ -197,7 +193,7 @@ func (u *unary) ProgString() string {
 }
 
 func (u *unary) Eval(context value.Context) value.Value {
-	return value.Unary(u.op, u.right.Eval(context))
+	return context.EvalUnary(u.op, u.right.Eval(context))
 }
 
 type binary struct {
@@ -219,7 +215,7 @@ func (b *binary) ProgString() string {
 }
 
 func (b *binary) Eval(context value.Context) value.Value {
-	return value.Binary(b.left.Eval(context), b.op, b.right.Eval(context))
+	return context.EvalBinary(b.left.Eval(context), b.op, b.right.Eval(context))
 }
 
 // Parser stores the state for the ivy parser.
@@ -429,8 +425,8 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 		if function != nil {
 			p.next()
 			// User-defined binary.
-			return &binaryCall{
-				name:  tok.Text,
+			return &binary{
+				op:    tok.Text,
 				left:  expr,
 				right: p.expr(p.next()),
 			}
@@ -468,9 +464,9 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 		function := p.context.UnaryFn[tok.Text]
 		if function != nil {
 			// User-defined unary.
-			expr = &unaryCall{
-				name: tok.Text,
-				arg:  p.expr(p.next()),
+			expr = &unary{
+				op:    tok.Text,
+				right: p.expr(p.next()),
 			}
 			break
 		}

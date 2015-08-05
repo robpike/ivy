@@ -101,7 +101,7 @@ func (p *Parser) functionDefn() {
 	}
 	p.context.Define(fn)
 	succeeded = true
-	for _, ref := range references(fn.Body) {
+	for _, ref := range references(p.context, fn.Body) {
 		// One day this will work, but until we have ifs and such, warn.
 		if ref.Name == fn.Name && ref.IsBinary == fn.IsBinary {
 			p.Printf("warning: definition of %s is recursive\n", fn.Name)
@@ -115,36 +115,34 @@ func (p *Parser) functionDefn() {
 // references returns a list, in appearance order, of the user-defined ops
 // referenced by this function body. Only the first appearance creates an
 // entry in the list.
-func references(body []value.Expr) []exec.OpDef {
+func references(c *exec.Context, body []value.Expr) []exec.OpDef {
 	var refs []exec.OpDef
 	for _, expr := range body {
-		doReferences(&refs, expr)
+		doReferences(c, &refs, expr)
 	}
 	return refs
 }
 
-func doReferences(refs *[]exec.OpDef, expr value.Expr) {
+func doReferences(c *exec.Context, refs *[]exec.OpDef, expr value.Expr) {
 	switch e := expr.(type) {
 	case *unary:
-		// Operators are not user-defined so are not references in this sense.
-		doReferences(refs, e.right)
+		if c.UnaryFn[e.op] != nil {
+			addReference(refs, e.op, false)
+		}
+		doReferences(c, refs, e.right)
 	case *binary:
-		doReferences(refs, e.left)
-		doReferences(refs, e.right)
+		if c.BinaryFn[e.op] != nil {
+			addReference(refs, e.op, true)
+		}
+		doReferences(c, refs, e.left)
+		doReferences(c, refs, e.right)
 	case variableExpr:
 	case sliceExpr:
 		for _, v := range e {
-			doReferences(refs, v)
+			doReferences(c, refs, v)
 		}
 	case *assignment:
-		doReferences(refs, e.expr)
-	case *binaryCall:
-		addReference(refs, e.name, true)
-		doReferences(refs, e.left)
-		doReferences(refs, e.right)
-	case *unaryCall:
-		addReference(refs, e.name, false)
-		doReferences(refs, e.arg)
+		doReferences(c, refs, e.expr)
 	case value.Char:
 	case value.Int:
 	case value.BigInt:
@@ -165,65 +163,4 @@ func addReference(refs *[]exec.OpDef, name string, isBinary bool) {
 		}
 	}
 	*refs = append(*refs, exec.OpDef{name, isBinary})
-}
-
-type unaryCall struct {
-	name string
-	arg  value.Expr
-}
-
-func (u *unaryCall) Eval(context value.Context) value.Value {
-	arg := u.arg.Eval(context)
-	context.Push()
-	defer context.Pop()
-	exec := context.(*exec.Context) // Sigh.
-	fn := exec.UnaryFn[u.name]
-	if fn == nil || fn.Body == nil {
-		value.Errorf("unary %q undefined", u.name)
-	}
-	context.AssignLocal(fn.Right, arg)
-	var v value.Value
-	for _, e := range fn.Body {
-		v = e.Eval(context)
-	}
-	if v == nil {
-		value.Errorf("no value returned by %q", u.name)
-	}
-	return v
-}
-
-func (u *unaryCall) ProgString() string {
-	return fmt.Sprintf("(%s %s)", u.name, u.arg.ProgString())
-}
-
-type binaryCall struct {
-	name  string
-	left  value.Expr
-	right value.Expr
-}
-
-func (b *binaryCall) Eval(context value.Context) value.Value {
-	left := b.left.Eval(context)
-	right := b.right.Eval(context)
-	context.Push()
-	defer context.Pop()
-	exec := context.(*exec.Context) // Sigh.
-	fn := exec.BinaryFn[b.name]
-	if fn == nil || fn.Body == nil {
-		value.Errorf("binary %q undefined", b.name)
-	}
-	context.AssignLocal(fn.Left, left)
-	context.AssignLocal(fn.Right, right)
-	var v value.Value
-	for _, e := range fn.Body {
-		v = e.Eval(context)
-	}
-	if v == nil {
-		value.Errorf("no value returned by %q", b.name)
-	}
-	return v
-}
-
-func (b *binaryCall) ProgString() string {
-	return fmt.Sprintf("(%s %s %s)", b.left.ProgString(), b.name, b.right.ProgString())
 }

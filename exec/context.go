@@ -106,6 +106,54 @@ func (c *Context) Eval(exprs []value.Expr) []value.Value {
 	return values
 }
 
+// EvalUnary evaluates a unary operator.
+func (c *Context) EvalUnary(op string, right value.Value) value.Value {
+	right = right.Eval(c)
+	fn := c.UnaryFn[op]
+	if fn == nil {
+		return value.Unary(op, right)
+	}
+	if fn.Body == nil {
+		value.Errorf("unary %q undefined", op)
+	}
+	c.Push()
+	defer c.Pop()
+	c.AssignLocal(fn.Right, right)
+	var v value.Value
+	for _, e := range fn.Body {
+		v = e.Eval(c)
+	}
+	if v == nil {
+		value.Errorf("no value returned by %q", op)
+	}
+	return v
+}
+
+// EvalBinary evaluates a binary operator.
+func (c *Context) EvalBinary(left value.Value, op string, right value.Value) value.Value {
+	left = left.Eval(c)
+	right = right.Eval(c)
+	fn := c.BinaryFn[op]
+	if fn == nil {
+		return value.Binary(left, op, right)
+	}
+	if fn.Body == nil {
+		value.Errorf("binary %q undefined", op)
+	}
+	c.Push()
+	defer c.Pop()
+	c.AssignLocal(fn.Left, left)
+	c.AssignLocal(fn.Right, right)
+	var v value.Value
+	for _, e := range fn.Body {
+		v = e.Eval(c)
+	}
+	if v == nil {
+		value.Errorf("no value returned by %q", op)
+	}
+	return v
+}
+
 // Define defines the function and installs it. It also performs
 // some error checking and adds the function to the sequencing
 // information used by the save method.

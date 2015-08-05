@@ -75,7 +75,7 @@ op m1 n = n
 	)prompt ""
 	)format ""
 	op m1 _
-	op m2 n = iota (m1 n)
+	op m2 n = iota m1 n
 	op m1 n = n
 	# Set base 10 for parsing numbers.
 	)base 10

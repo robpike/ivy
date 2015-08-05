@@ -86,7 +86,7 @@ func save(c *exec.Context, file string, conf *config.Config) {
 		} else {
 			fn = c.UnaryFn[def.Name]
 		}
-		for _, ref := range references(fn.Body) {
+		for _, ref := range references(c, fn.Body) {
 			if !printed[ref] {
 				if ref.IsBinary {
 					fmt.Fprintf(out, "op _ %s _\n", ref.Name)
