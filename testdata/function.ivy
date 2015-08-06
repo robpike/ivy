@@ -151,3 +151,13 @@ sin pi/2
 3 x 2
 	1
 	5 2 7
+
+# Sum the digits (only) in the rhs.
+op sumdigits x = t = text x; +/ (code (t in '0123456789') sel t) - code '0'
+sumdigits 99
+sumdigits iota 10
+sumdigits '23 skidoo'
+	18
+	46
+	5
+

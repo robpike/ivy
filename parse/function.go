@@ -169,5 +169,9 @@ func addReference(refs *[]exec.OpDef, name string, isBinary bool) {
 			return
 		}
 	}
-	*refs = append(*refs, exec.OpDef{name, isBinary})
+	def := exec.OpDef{
+		Name:     name,
+		IsBinary: isBinary,
+	}
+	*refs = append(*refs, def)
 }
