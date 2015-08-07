@@ -604,15 +604,16 @@ func isNumeral(r rune, base int) bool {
 
 // isAllDigits reports whether s consists of digits in the specified base.
 func isAllDigits(s string, base int) bool {
-	top := rune(base - 10)
+	top := 'a' + rune(base-10) - 1
+	TOP := 'A' + rune(base-10) - 1
 	for _, c := range s {
 		if '0' <= c && c <= '9' {
 			continue
 		}
-		if 'a' <= c && c <= 'a'+top {
+		if 'a' <= c && c <= top {
 			continue
 		}
-		if 'A' <= c && c <= 'A'+top {
+		if 'A' <= c && c <= TOP {
 			continue
 		}
 		return false
