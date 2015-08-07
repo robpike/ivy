@@ -1,4 +1,5 @@
 // echo GENERATED; DO NOT EDIT
+
 package parse
 
 const specialHelpMessage = `

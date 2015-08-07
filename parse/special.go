@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:generate sh -c "(echo '// echo GENERATED; DO NOT EDIT'; echo 'package parse; const specialHelpMessage=`'; sed -n '/^.) [a-z]/,/^$DOLLAR/s/^	//p' ../doc.go; echo '`') | gofmt >help.go"
+//go:generate sh -c "(echo '// echo GENERATED; DO NOT EDIT'; echo; echo 'package parse; const specialHelpMessage=`'; sed -n '/^.) [a-z]/,/^$DOLLAR/s/^	//p' ../doc.go; echo '`') | gofmt >help.go"
 
 package parse // import "robpike.io/ivy/parse"
 
@@ -84,7 +84,7 @@ Switch:
 	switch text := p.need(scan.Identifier, scan.Op).Text; text {
 	case "help":
 		p.Println(specialHelpMessage)
-		p.Println("More at: http://godoc.org/robpike.io/ivy")
+		p.Println("More at: https://godoc.org/robpike.io/ivy")
 	case "base", "ibase", "obase":
 		ibase, obase := p.config.Base()
 		if p.peek().Type == scan.Newline {
