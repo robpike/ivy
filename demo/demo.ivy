@@ -5,11 +5,13 @@
 # Comments start with # and produce no output.
 # Whenever you like, you can type an expression yourself. Try typing 2*3 now, followed by two newlines:
 # Keep typing newlines; the ivy demo is about to start.
-# Arithmetic has the obvious operations: + - * etc. ** is exponentiation.
+# Arithmetic has the obvious operations: + - * etc. ** is exponentiation. mod is modulo.
 23
 23 + 45
 23 * 45
 23 - 45
+7 ** 3
+7 mod 3
 # Operator precedence is unusual.
 # Unary operators operate on everything to the right.
 # Binary operators operate on the item immediately to the left, and everything to the right.
@@ -19,10 +21,10 @@
 # Ivy can do rational arithmetic, so 1/3 is really 1/3, not 0.333....
 1/3
 1/3 + 4/5
-1/3 ** 2  # We'll talk about non-integral exponents later.
+1/3 ** 2  # We'll see non-integral exponents later.
 # Even when a number is input in floating notation, it is still an exact rational number inside.
 1.2
-# In fact, ivy is a "bignum" calculator that can handle rationals as well.
+# In fact, ivy is a "bignum" calculator that can handle huge numbers and rationals made of huge numers.
 1e10       # Still an integer.
 1e100      # Still an integer.
 1e10/3     # Not an integer, but an exact rational.
@@ -55,8 +57,8 @@ code '💩'      # char's inverse, the value of given character, here printed in
 # iota is an "index generator": It counts from 1.
 iota 10
 2 ** iota 5
-(1 << iota 100) == (2 ** iota 100)
-2 ** -1 + iota 100 # Again, see how the precedence rules work.
+(1 << iota 100) == 2 ** iota 100
+2 ** -1 + iota 32 # Again, see how the precedence rules work.
 # The take operator removes n items from the beginning of the vector.
 3 take iota 10
 -3 take iota 10     # Negative n takes from the end.
@@ -75,8 +77,11 @@ iota 15
 */iota 10
 */iota 100
 # Type this: */iota 10000
-# max and min are binary operators that do the obvious. (Use semicolon to separate expresssions.)
+# That printed using floating-point notation for manageability but it is still an integer inside.
+# max and min are binary operators that do the obvious. (Use semicolons to separate expresssions.)
 3 max 7; 'is max and'; 3 min 7; 'is min'
+# Like all binary arithmetic operators, max applies elementwise.
+2 3 4 max 4 3 2
 # Reduce using max to find maxmimum element in vector.
 max/2 34 42 233 2 2 521 14 1 4 1 55 133
 # Ivy allows multidimensional arrays. The shape operator binary rho builds them.
@@ -87,9 +92,9 @@ max/2 34 42 233 2 2 521 14 1 4 1 55 133
 5 5 rho iota 25
 3 5 5 rho iota 125
 # Unary rho tells us the shape of an item.
-x = 3 5 5 rho iota 75; x
-rho x
 x = 3 5 rho iota 15; x
+rho x
+x = 3 5 5 rho iota 75; x
 rho x
 # Arithmetic on matrices works as you would expect by now.
 x/2
@@ -97,14 +102,16 @@ x**2
 x**3
 x**10
 # Inner product is written with a . between the operators. 
-x = 2**iota 5; x
-y = 3**iota 5; y
-x +.* y   # Dot product: multiply corresponding elements and add the result.
+# This gives dot product: multiply corresponding elements and add the result.
+1 2 3 4 +.* 2 3 4 5
 # Any operator works. How many items are the same?
 (1 2 3) +.== (1 3 3)
+# How many differ?
+(1 2 3) +.!= (1 3 3)
 # Outer product generates a matrix of all combinations applying the binary operator.
-x o.* y
-# Again, any operator works; here is how to make an identity matrix.
+(iota 5) o.* -1 + iota 5
+# That's a letter 'o', dot, star.
+# Any operator works; here is how to make an identity matrix.
 x = iota 5; x o.== x
 # Random numbers: Use a unary ? to roll an n-sided die from 1 to n.
 ?100
@@ -126,7 +133,7 @@ x[down x]
 # Remember a set of rolls.
 x = ?10 rho 6; x
 # The outer product of == and the integers puts 1 in each row where that value appeared.
-# Compar the last row of the next result to the 6s in x.
+# Compare the last row of the next result to the 6s in x.
 (iota 6) o.== x
 # Count the number of times each value appears by reducing the matrix horizontally.
 +/(iota 6) o.== x
@@ -137,20 +144,24 @@ x = ?10 rho 6; x
 2**64
 2**iota 64
 -1+2**63
-# We can change the base. Settings are made and queried with a leading right paren.
+# Settings are made and queried with a leading right paren. )help lists the settings
+)help
+# Use )base to switch input and output to base 16.
 )base 16
 )base   # The input and output for settings is always base 10.
-_       # _ is a variable that holds the most recently evaluated expression.
+# _ is a variable that holds the most recently evaluated expression. It remembers our 63-bit number.
+_
 1<<iota 10   # 16 powers of two, base 16.
 (2**40)-1    # The largest 64-bit number base 16.
 )obase 10    # Output base 10, input base still 16.
 )base
-_            # The largest 64-bit number base 10.
+-1+2**63            # The largest 63-bit number base 10.
+-1+2**64            # The largest 64-bit number base 10.
 # Go back to base 10 input and output.
 )base 10
 # Rationals can be very big too.
 (2**1e3)/(3**1e2)
-# Such output can be unwieldy. Change the output format using a printf string.
+# Such output can be unwieldy. Change the output format using a Printf string.
 )format '%.12g'
 _
 # We need more precision.
@@ -172,11 +183,11 @@ pi
 )format '%.12g'
 pi
 # Exponentials and logarithms.
-2**1/2
+2**1/2  # Note: Non-integral exponent generates irrational result.
 e**1e6
 log e**1e6
 log e**1e8
-log 1e1000000
+log 1e1000000    # Yes, that is 10 to the millionth power.
 # Transcendentals. (The low bits aren't always quite right...)
 sin pi/2
 cos .25*pi * -1 + iota 9
@@ -184,19 +195,35 @@ log iota 6
 # Successive approximations to e. (We force the calculation to use float using the "float" unary operator. Why?)
 (float 1+10**-iota 9) ** 10**iota 9
 # Default precision is 256 bits of mantissa. We can go up to 10000.
-)prec 3000         # Units is bits, not digits.
+)prec 3000         # Units are bits, not digits.
 e
 )format '%.1000g'  # Units are digits. (Sorry for the inconsistency.)
 e
 pi
 sqrt 2
 e**1e6
-log e**1e6
+log e**1e6  # Only 904 good digits; the log algorithm is numerically weak. (Ideas welcome.)
 (2**1e3)/(3**1e2)
-# User-defined operators.
-def avg x = (+/x)/rho x
+# User-defined operators are declared as unary or binary (or both). This one computes the (unary) average.
+op avg x = (+/x)/rho x
 avg iota 100
-def n largest x = n take x[down x]
+# Here is a binary operator.
+op n largest x = n take x[down x]
 3 largest ? 100 rho 1000
 4 largest 'hello world'
-# go get robpike.io/ivy # Use the dev branch; see talks directory
+# Population count. Use encode to turn the value into a string of bits. Use log to decide how many.
+op a base b = ((ceil b log a) rho b) encode a
+7 base 2
+op popcount n = +/n base 2
+popcount 7
+popcount 1e6
+popcount 1e100
+# Here is one to sum the digits. The unary operator text turns its argument into text, like Sprintf.
+op sumdigits x = t = text x; +/(code (t in '0123456789') sel t) - code '0'
+# Break it down:  The sel operator selects from the right based on the non-zero elements in the left.
+# The in operator generates a selector by choosing only the bytes that are ASCII digits.
+sumdigits 99
+sumdigits iota 10
+sumdigits '23 skidoo'  # Note: It counts only the digits.
+# That's it! Have fun.
+# For more information visit https://godoc.org/robpike.io/ivy
