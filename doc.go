@@ -30,7 +30,7 @@ have most numerical operations supported eventually.
 Semicolons separate multiple statements on a line. Variables are alphanumeric and are
 assigned with the = operator.
 
-The APL operators, adapted from http://en.wikipedia.org/wiki/APL_syntax_and_symbols,
+The APL operators, adapted from https://en.wikipedia.org/wiki/APL_syntax_and_symbols,
 and their correspondence are listed here. The correspondence is incomplete and inexact.
 
 Unary functions.
@@ -91,8 +91,8 @@ Binary functions.
 	Reshape               A⍴B   rho     Array of shape A with data B
 	Take                  A↑B   take    Select the first (or last) A elements of B according to ×A
 	Drop                  A↓B   drop    Remove the first (or last) A elements of B according to ×A
-	Decode                A⊥B           Value of a polynomial whose coefficients are B at A
-	Encode                A⊤B           Base-A representation of the value of B
+	Decode                A⊥B   decode  Value of a polynomial whose coefficients are B at A
+	Encode                A⊤B   encode  Base-A representation of the value of B
 	Residue               A∣B           B modulo A
 	                            mod     A modulo B (Euclidean)
 	                            imod    A modulo B (Go)

@@ -149,6 +149,7 @@ var (
 	in, index                         *binaryOp
 	logicalAnd, logicalOr, logicalXor *binaryOp
 	logicalNand, logicalNor           *binaryOp
+	decode, encode                    *binaryOp
 	binaryIota, binaryRho             *binaryOp
 	binaryCatenate                    *binaryOp
 	take, drop                        *binaryOp
@@ -712,6 +713,114 @@ func init() {
 		},
 	}
 
+	decode = &binaryOp{
+		whichType: atLeastVectorType,
+		fn: [numType]binaryFn{
+			vectorType: func(c Context, u, v Value) Value {
+				// A decode B is the result of polyomial B at x=A.
+				// If A is a vector, the elements of A align with B.
+				A, B := u.(Vector), v.(Vector)
+				if len(A) == 0 || len(B) == 0 {
+					return Int(0)
+				}
+				if len(A) == 1 || len(B) == 1 || len(A) == len(B) {
+					result := Value(Int(0))
+					prod := Value(Int(1))
+					get := func(v Vector, i int) Value {
+						if len(v) == 1 {
+							return v[0]
+						}
+						return v[i]
+					}
+					n := len(A)
+					if len(B) > n {
+						n = len(B)
+					}
+					for i := n - 1; i >= 0; i-- {
+						result = Binary(c, result, "+", Binary(c, prod, "*", get(B, i)))
+						prod = Binary(c, prod, "*", get(A, i))
+					}
+					return result
+				}
+				if len(A) != len(B) {
+					Errorf("decode of unequal lengths")
+				}
+				return nil
+			},
+		},
+	}
+
+	encode = &binaryOp{
+		whichType: atLeastVectorType,
+		fn: [numType]binaryFn{
+			vectorType: func(c Context, u, v Value) Value {
+				// A encode B is a matrix of len(A) rows and len(B) columns.
+				// Each entry is the residue base A[i] of B[j].
+				// Thus 2 encode 3 is just the low bit of 3, 2 2 encode 3 is the low 2 bits,
+				// and 2 2 encode 1 2 3 has 3 columns encoding 1 2 3 downwards:
+				// 0 1 1
+				// 1 0 1
+				// If they are negative the answers disagree with APL because
+				// of how modulo arithmetic works.
+				mod := func(b, a Value) Value {
+					if z, ok := a.(Int); ok && z == 0 {
+						return b
+					}
+					return Binary(c, b, "mod", a)
+				}
+				div := func(b, a Value) Value {
+					if z, ok := a.(Int); ok && z == 0 {
+						return b
+					}
+					return Binary(c, b, "div", a)
+				}
+				A, B := u.(Vector), v.(Vector)
+				// Scalar.
+				if len(A) == 1 && len(B) == 1 {
+					return mod(B[0], A[0])
+				}
+				// Vector.
+				if len(B) == 1 {
+					// 2 2 2 2 encode 11 is 1 0 1 1.
+					elems := make([]Value, len(A))
+					b := B[0]
+					for i := len(A) - 1; i >= 0; i-- {
+						a := A[i]
+						elems[i] = mod(b, a)
+						b = div(b, a)
+					}
+					return NewVector(elems)
+				}
+				if len(A) == 1 {
+					// 3 encode 1 2 3 4 is 1 2 0 1
+					elems := make([]Value, len(B))
+					a := A[0]
+					for i := range B {
+						b := B[i]
+						elems[i] = mod(b, a)
+						b = div(b, a)
+					}
+					return NewVector(elems)
+				}
+				// Matrix.
+				// 2 2 encode 1 2 3 has 3 columns encoding 1 2 3 downwards:
+				// 0 1 1
+				// 1 0 1
+				elems := make([]Value, len(A)*len(B))
+				shape := []Value{Int(len(A)), Int(len(B))}
+				for j := range B {
+					b := B[j]
+					for i := len(A) - 1; i >= 0; i-- {
+						a := A[i]
+						elems[j+i*len(B)] = mod(b, a)
+						b = div(b, a)
+					}
+				}
+				return NewMatrix(shape, elems)
+			},
+		},
+	}
+
 	in = &binaryOp{
 		// A in B: Membership: 0 or 1 according to which elements of A present in B.
 		whichType: atLeastVectorType,
@@ -1147,43 +1256,45 @@ func init() {
 	}
 
 	binaryOps = map[string]*binaryOp{
-		"!=":   ne,
-		"&":    bitAnd,
-		"*":    mul,
-		"**":   pow,
-		"+":    add,
-		",":    binaryCatenate,
-		"-":    sub,
-		"/":    quo, // Exact rational division.
-		"<":    lt,
-		"<<":   lsh,
-		"<=":   le,
-		"==":   eq,
-		">":    gt,
-		">=":   ge,
-		">>":   rsh,
-		"[]":   index,
-		"^":    bitXor,
-		"and":  logicalAnd,
-		"div":  div, // Euclidean integer division.
-		"drop": drop,
-		"fill": fill,
-		"idiv": idiv, // Go-like truncating integer division.
-		"imod": imod, // Go-like integer moduls.
-		"in":   in,
-		"iota": binaryIota,
-		"log":  binaryLog,
-		"max":  max,
-		"min":  min,
-		"mod":  mod, // Euclidean integer division.
-		"nand": logicalNand,
-		"nor":  logicalNor,
-		"or":   logicalOr,
-		"rho":  binaryRho,
-		"rot":  rot,
-		"sel":  sel,
-		"take": take,
-		"xor":  logicalXor,
-		"|":    bitOr,
+		"!=":     ne,
+		"&":      bitAnd,
+		"*":      mul,
+		"**":     pow,
+		"+":      add,
+		",":      binaryCatenate,
+		"-":      sub,
+		"/":      quo, // Exact rational division.
+		"<":      lt,
+		"<<":     lsh,
+		"<=":     le,
+		"==":     eq,
+		">":      gt,
+		">=":     ge,
+		">>":     rsh,
+		"[]":     index,
+		"^":      bitXor,
+		"and":    logicalAnd,
+		"decode": decode,
+		"div":    div, // Euclidean integer division.
+		"drop":   drop,
+		"encode": encode,
+		"fill":   fill,
+		"idiv":   idiv, // Go-like truncating integer division.
+		"imod":   imod, // Go-like integer moduls.
+		"in":     in,
+		"iota":   binaryIota,
+		"log":    binaryLog,
+		"max":    max,
+		"min":    min,
+		"mod":    mod, // Euclidean integer division.
+		"nand":   logicalNand,
+		"nor":    logicalNor,
+		"or":     logicalOr,
+		"rho":    binaryRho,
+		"rot":    rot,
+		"sel":    sel,
+		"take":   take,
+		"xor":    logicalXor,
+		"|":      bitOr,
 	}
 }

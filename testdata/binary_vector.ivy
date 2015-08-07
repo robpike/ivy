@@ -473,3 +473,42 @@
 
 'abcde' in 'hello world'
 	0 0 0 1 1
+
+# Encode (the names encode and decode seem backwards to me, but that's APL for ya.)
+2 encode 3
+	1
+
+(7 rho 3) encode 1277
+	1 2 0 2 0 2 2
+
+2 encode iota 10
+	1 0 1 0 1 0 1 0 1 0
+
+(4 rho 2 ) encode iota 10
+	0 0 0 0 0 0 0 1 1 1
+	0 0 0 1 1 1 1 0 0 0
+	0 1 1 0 0 1 1 0 0 1
+	1 0 1 0 1 0 1 0 1 0
+
+# 1254057 seconds in days, hours, minutes, and seconds.
+0 24 60 60 encode 1254057
+	14 12 20 57
+
+# Decode
+2 decode 1 0 1 0 1
+	21
+
+# Octal.
+8 decode 3 7 7
+	255
+
+# 14 days, 12 hours, 20 minutes, 57 seconds as seconds.
+0 24 60 60 decode 14 12 20 57
+	1254057
+
+1 2 3 4 decode 3
+	123
+
+(1 2 3 4 decode 3) == 1 2 3 4 decode 3 3 3 3
+	1
+
