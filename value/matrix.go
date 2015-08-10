@@ -11,11 +11,11 @@ import (
 )
 
 /*
-    3 4 ⍴ 1 2 3 4
+    3 4 ⍴ ⍳12
 
-1 2 3 4
-1 2 3 4
-1 2 3 4
+ 1  2  3  4
+ 5  6  7  8
+ 9 10 11 12
 */
 
 type Matrix struct {
@@ -75,6 +75,16 @@ func (m Matrix) String() string {
 		if nrows == 0 || ncols == 0 {
 			return ""
 		}
+		// If it's all chars, print it without padding or quotes.
+		if m.data.AllChars() {
+			for i := 0; i < nrows; i++ {
+				if i > 0 {
+					b.WriteByte('\n')
+				}
+				fmt.Fprintf(&b, "%s", m.data[i*ncols:(i+1)*ncols])
+			}
+			break
+		}
 		// We print the elements into one big string,
 		// slice that, and then format so they line up.
 		// Will need some rethinking when decimal points
@@ -89,6 +99,21 @@ func (m Matrix) String() string {
 		}
 		m.write2d(&b, strs, wid)
 	case 3:
+		// If it's all chars, print it without padding or quotes.
+		if m.data.AllChars() {
+			nelems := int(m.shape[0].(Int))
+			elemSize := m.elemSize()
+			fmt.Println(nelems, elemSize)
+			index := 0
+			for i := 0; i < nelems; i++ {
+				if i > 0 {
+					b.WriteString("\n\n")
+				}
+				fmt.Fprintf(&b, "%s", NewMatrix(m.shape[1:], m.data[index:index+elemSize]))
+				index += elemSize
+			}
+			break
+		}
 		// As for 2d: print the vector elements, compute the
 		// global width, and use that to print each 2d submatrix.
 		strs := strings.Split(m.data.String(), " ")

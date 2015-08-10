@@ -116,14 +116,23 @@ c`
 	ababababab
 
 3 4 rho 'a'
-	a a a a
-	a a a a
-	a a a a
+	aaaa
+	aaaa
+	aaaa
 
 3 4 rho 'abc'
-	a b c a
-	b c a b
-	c a b c
+	abca
+	bcab
+	cabc
+
+2 3 4 rho 'abcdefghijklmnopqrstuvwx'
+	abcd
+	efgh
+	ijkl
+		
+	mnop
+	qrst
+	uvwx
 
 'abc' , 'def'
 	abcdef
