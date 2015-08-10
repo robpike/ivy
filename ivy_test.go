@@ -18,6 +18,8 @@ import (
 	"robpike.io/ivy/value"
 )
 
+// Note: These tests share some infrastructure and cannot run in parallel.
+
 var testBuf bytes.Buffer
 
 func initConf() {
@@ -29,6 +31,7 @@ func initConf() {
 	conf.SetMaxDigits(1e4)
 	conf.SetFloatPrec(256)
 	conf.SetBase(0, 0)
+	conf.RandomSeed(0)
 }
 
 func TestAll(t *testing.T) {
