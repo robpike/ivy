@@ -103,7 +103,6 @@ func (m Matrix) String() string {
 		if m.data.AllChars() {
 			nelems := int(m.shape[0].(Int))
 			elemSize := m.elemSize()
-			fmt.Println(nelems, elemSize)
 			index := 0
 			for i := 0; i < nelems; i++ {
 				if i > 0 {
