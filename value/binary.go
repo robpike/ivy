@@ -102,7 +102,7 @@ func bigIntExp(i, j, k *big.Int) *big.Int {
 	// Large exponents can be very expensive.
 	// First, it must fit in an int64.
 	if k.BitLen() > 63 {
-		Errorf("%s**%s: exponent too large", j, k)
+		Errorf("%s**%v: exponent too large", j, newF().SetInt(k))
 	}
 	exp := k.Int64()
 	if exp < 0 {
