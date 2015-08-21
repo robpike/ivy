@@ -29,6 +29,7 @@ type Config struct {
 	mu          sync.Mutex
 	prompt      string
 	output      io.Writer
+	errOutput   io.Writer
 	format      string
 	ratFormat   string
 	formatVerb  byte // The verb if format is floating-point.
@@ -50,6 +51,7 @@ type Config struct {
 func (c *Config) init() {
 	if c.output == nil {
 		c.output = os.Stdout
+		c.errOutput = os.Stderr
 		c.source = rand.NewSource(time.Now().Unix())
 		c.random = rand.New(c.source)
 		c.maxBits = 1e6
@@ -75,6 +77,20 @@ func (c *Config) SetOutput(output io.Writer) {
 	defer c.sync()()
 	c.init()
 	c.output = output
+}
+
+// ErrOutput returns the writer to be used for error output.
+func (c *Config) ErrOutput() io.Writer {
+	defer c.sync()()
+	c.init()
+	return c.errOutput
+}
+
+// SetErrOutput sets the writer to which error output is printed; default is os.Stderr.
+func (c *Config) SetErrOutput(output io.Writer) {
+	defer c.sync()()
+	c.init()
+	c.errOutput = output
 }
 
 // Format returns the formatting string. If empty, the default

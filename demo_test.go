@@ -11,6 +11,7 @@ import (
 
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/parse"
+	"robpike.io/ivy/run"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
@@ -33,8 +34,9 @@ func TestDemo(t *testing.T) {
 	context := exec.NewContext()
 	scanner := scan.New(&conf, context, "", bytes.NewBuffer(data))
 	value.SetContext(context)
+	run.Init(&conf, context)
 	parser := parse.NewParser(&conf, "demo.ivy", scanner, context)
-	if !run(parser, context, true) {
+	if !run.Run(parser, context, true) {
 		t.Fatal("demo execution error")
 	}
 	result := testBuf.String()

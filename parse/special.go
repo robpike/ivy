@@ -240,7 +240,7 @@ func (p *Parser) runFromFile(context value.Context, name string) {
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			fmt.Fprintf(os.Stderr, "%s%s\n", p.Loc(), err)
+			fmt.Fprintf(p.config.ErrOutput(), "%s%s\n", p.Loc(), err)
 			return
 		}
 		panic(err)

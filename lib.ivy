@@ -1,0 +1,12 @@
+# Average
+op avg x = (+/x)/rho x
+# Largest n in x.
+op n largest x = n take x[down x]
+# Digits of a base b. Use log to decide how many.
+op a base b = ((ceil b log a) rho b) encode a
+# Population count. Use encode to turn the value into a string of bits.
+op popcount n = +/n base 2
+# Sum of digits.
+op sumdigits x = t = text x; +/(code (t in '0123456789') sel t) - code '0'
+# Meters to feet.
+op m2ft m = 0 12 encode (ceil m*1000/25.4)

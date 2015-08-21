@@ -14,6 +14,7 @@ import (
 
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/parse"
+	"robpike.io/ivy/run"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
@@ -88,9 +89,10 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 	context := exec.NewContext()
 	scanner := scan.New(&conf, context, "", strings.NewReader(strings.Join(input, "\n")+"\n"))
 	value.SetContext(context)
+	run.Init(&conf, context)
 	parser := parse.NewParser(&conf, name, scanner, context)
 	testBuf.Reset()
-	if !run(parser, context, false) != shouldFail {
+	if !run.Run(parser, context, false) != shouldFail {
 		if shouldFail {
 			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
 		} else {

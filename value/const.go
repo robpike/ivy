@@ -16,7 +16,6 @@ package value
 import (
 	"fmt"
 	"math/big"
-	"os"
 )
 
 const (
@@ -50,7 +49,7 @@ func newF() *big.Float {
 
 func Consts() (e, pi BigFloat) {
 	if conf.FloatPrec() > constPrecisionInBits {
-		fmt.Fprintf(os.Stderr, "warning: precision too high; only have %d digits (%d bits) of precision for e and pi", constPrecisionInDigits, constPrecisionInBits)
+		fmt.Fprintf(conf.ErrOutput(), "warning: precision too high; only have %d digits (%d bits) of precision for e and pi", constPrecisionInDigits, constPrecisionInBits)
 	}
 	floatOne = newF().SetInt64(1)
 	floatTwo = newF().SetInt64(2)
