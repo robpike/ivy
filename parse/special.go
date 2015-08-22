@@ -213,7 +213,7 @@ Switch:
 			p.Println(p.config.Origin())
 			break Switch
 		}
-		p.config.RandomSeed(p.nextDecimalNumber64())
+		p.config.SetRandomSeed(p.nextDecimalNumber64())
 	default:
 		p.errorf(")%s: not recognized", text)
 	}

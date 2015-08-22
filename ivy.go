@@ -67,7 +67,7 @@ func main() {
 	context = exec.NewContext()
 	value.SetContext(context)
 
-	run.Init(&conf, context)
+	run.SetConfig(&conf)
 
 	if *execute {
 		runArgs(context)

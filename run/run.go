@@ -19,17 +19,15 @@ import (
 )
 
 var (
-	conf    *config.Config
-	context value.Context
+	conf *config.Config
 )
 
 func init() {
 	value.IvyEval = IvyEval
 }
 
-func Init(config *config.Config, cont value.Context) {
+func SetConfig(config *config.Config) {
 	conf = config
-	context = cont
 }
 
 // IvyEval is the function called by value/unaryIvy to implement the ivy (eval) operation.
@@ -42,9 +40,9 @@ func IvyEval(context value.Context, str string) value.Value {
 
 // Run runs the parser/evaluator until EOF or error.
 // The return value says whether we completed without error. If the return
-// value is false, it means we ran out of data (EOF) and the run was successful.
-// Typical execution is therefore to loop calling run until it succeeds.
-// Errors details are reported to the configured error output stream.
+// value is true, it means we ran out of data (EOF) and the run was successful.
+// Typical execution is therefore to loop calling Run until it succeeds.
+// Error details are reported to the configured error output stream.
 func Run(p *parse.Parser, context value.Context, interactive bool) (success bool) {
 	writer := conf.Output()
 	defer func() {

@@ -5,39 +5,18 @@
 package main
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"robpike.io/ivy/exec"
-	"robpike.io/ivy/parse"
-	"robpike.io/ivy/run"
-	"robpike.io/ivy/scan"
-	"robpike.io/ivy/value"
+	"robpike.io/ivy/mobile" // The mobile package has the handy Eval function.
 )
 
 // Note: These tests share some infrastructure and cannot run in parallel.
 
-var testBuf bytes.Buffer
-
-func initConf() {
-	conf.SetOutput(&testBuf)
-	conf.SetFormat("")
-	conf.SetOrigin(1)
-	conf.SetPrompt("")
-	conf.SetMaxBits(1e6)
-	conf.SetMaxDigits(1e4)
-	conf.SetFloatPrec(256)
-	conf.SetBase(0, 0)
-	conf.RandomSeed(0)
-}
-
 func TestAll(t *testing.T) {
-	initConf()
-	value.SetConfig(&conf)
 
 	var err error
 	check := func() {
@@ -85,25 +64,22 @@ func TestAll(t *testing.T) {
 
 func runTest(t *testing.T, name string, lineNum int, input, output []string) bool {
 	shouldFail := strings.HasSuffix(name, "_fail.ivy")
-	initConf()
-	context := exec.NewContext()
-	scanner := scan.New(&conf, context, "", strings.NewReader(strings.Join(input, "\n")+"\n"))
-	value.SetContext(context)
-	run.Init(&conf, context)
-	parser := parse.NewParser(&conf, name, scanner, context)
-	testBuf.Reset()
-	if !run.Run(parser, context, false) != shouldFail {
-		if shouldFail {
-			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
-		} else {
-			t.Fatalf("\nexecution failure at %s:%d:\n%s", name, lineNum, strings.Join(input, "\n"))
+	mobile.Reset()
+	in := strings.Join(input, "\n")
+	result, err := mobile.Eval(in)
+	if shouldFail {
+		if err == nil {
+			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, in)
 		}
-		return false
+		return true
 	}
+	if err != nil {
+		t.Fatalf("\nexecution failure (%s) at %s:%d:\n%s", err, name, lineNum, in)
+	}
+	return true
 	if shouldFail {
 		return true
 	}
-	result := testBuf.String()
 	if !equal(strings.Split(result, "\n"), output) {
 		t.Errorf("\n%s:%d:\n%s\ngot:\n%swant:\n%s",
 			name, lineNum,

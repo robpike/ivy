@@ -52,6 +52,7 @@ func (c *Config) init() {
 	if c.output == nil {
 		c.output = os.Stdout
 		c.errOutput = os.Stderr
+		c.origin = 1
 		c.source = rand.NewSource(time.Now().Unix())
 		c.random = rand.New(c.source)
 		c.maxBits = 1e6
@@ -211,8 +212,8 @@ func (c *Config) Random() *rand.Rand {
 	return c.random
 }
 
-// RandomSeed sets the seed for the random number generator.
-func (c *Config) RandomSeed(seed int64) {
+// SetRandomSeed sets the seed for the random number generator.
+func (c *Config) SetRandomSeed(seed int64) {
 	defer c.sync()()
 	c.init()
 	c.source.Seed(seed)
