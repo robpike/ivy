@@ -11,6 +11,8 @@
 // one execution stream (Eval or Demo) can be active at a time.
 package mobile
 
+//go:generate sh -c "go run help_gen.go | gofmt >help.go"
+
 import (
 	"bufio"
 	"bytes"
@@ -102,4 +104,9 @@ func Reset() {
 	context = exec.NewContext()
 	value.SetContext(context)
 	run.SetConfig(&conf)
+}
+
+// Help returns the help page formatted in HTML.
+func Help() string {
+	return help
 }
