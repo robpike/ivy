@@ -11,7 +11,7 @@
 // one execution stream (Eval or Demo) can be active at a time.
 package mobile
 
-//go:generate sh -c "go run help_gen.go | gofmt >help.go"
+//go:generate sh -c "go run help_gen.go >help.go"
 
 import (
 	"bufio"

@@ -1,7 +1,6 @@
 package mobile
 
 // GENERATED; DO NOT EDIT
-
 const help = `<!-- auto-generated from robpike.io/ivy package doc -->
 
 <head>
@@ -194,8 +193,8 @@ Syntactically, string literals are very similar to those in Go, with back-quoted
 raw strings and double-quoted interpreted strings. Unlike Go, single-quoted strings
 are equivalent to double-quoted, a nod to APL syntax. A string with a single char
 is just a singleton char value; all others are vectors. Thus &ldquo;, &#34;&#34;, and &rdquo; are
-empty vectors, "a", &#34;a&#34;, and &#39;a&#39; are equivalent representations of a single char,
-and "ab", "a" "b", &#34;ab&#34;, &#34;a&#34; &#34;b&#34;, &#39;ab&#39;, and &#39;a&#39; &#39;b&#39; are equivalent representations
+empty vectors, ` + "`" + `a` + "`" + `, &#34;a&#34;, and &#39;a&#39; are equivalent representations of a single char,
+and ` + "`" + `ab` + "`" + `, ` + "`" + `a` + "`" + ` ` + "`" + `b` + "`" + `, &#34;ab&#34;, &#34;a&#34; &#34;b&#34;, &#39;ab&#39;, and &#39;a&#39; &#39;b&#39; are equivalent representations
 of a two-char vector.
 </p>
 <p>

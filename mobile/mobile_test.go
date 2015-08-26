@@ -5,7 +5,6 @@
 package mobile
 
 import (
-	"go/format"
 	"io"
 	"io/ioutil"
 	"os"
@@ -102,10 +101,6 @@ func TestHelp(t *testing.T) {
 	buf, err := exec.Command("go", "run", "help_gen.go").Output()
 	if err != nil {
 		t.Fatalf("failed to run 'go run help_gen.go': %v", err)
-	}
-	buf, err = format.Source(buf)
-	if err != nil {
-		t.Fatalf("failed to gofmt: %v", err)
 	}
 	f, err := ioutil.TempFile("", "mobilehelp")
 	if err != nil {

@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"go/build"
 	"go/doc"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"log"
 	"os"
-	"text/template"
 )
 
 func main() {
@@ -35,17 +35,29 @@ func main() {
 
 	docPkg := doc.New(astPkg, pkg.ImportPath, doc.AllDecls)
 
-	buf := new(bytes.Buffer)
-	fmt.Fprintln(buf, `<!-- auto-generated from robpike.io/ivy package doc -->`)
-	fmt.Fprintln(buf, head)
-	fmt.Fprintln(buf, `<body>`)
-	doc.ToHTML(buf, docPkg.Doc, nil)
-	fmt.Fprintln(buf, `</body></html>`)
+	htmlBuf := new(bytes.Buffer)
+	fmt.Fprintln(htmlBuf, `<!-- auto-generated from robpike.io/ivy package doc -->`)
+	fmt.Fprintln(htmlBuf, head)
+	fmt.Fprintln(htmlBuf, `<body>`)
+	doc.ToHTML(htmlBuf, docPkg.Doc, nil)
+	fmt.Fprintln(htmlBuf, `</body></html>`)
 
-	tmpl.Execute(os.Stdout, string(bytes.Replace(buf.Bytes(), []byte{'`'}, []byte{'"'}, -1)))
+	goBuf := new(bytes.Buffer)
+	fmt.Fprintf(goBuf, "package mobile\n\n")
+	fmt.Fprintf(goBuf, "// GENERATED; DO NOT EDIT\n")
+	fmt.Fprintf(goBuf, "const help = `%s`\n", sanitize(htmlBuf.Bytes()))
+
+	buf, err := format.Source(goBuf.Bytes())
+	if err != nil {
+		log.Fatalf("failed to gofmt: %v", err)
+	}
+	os.Stdout.Write(buf)
 }
 
-var tmpl = template.Must(template.New("help.go").Parse("package mobile\n// GENERATED; DO NOT EDIT\n\nconst help = `{{.}}`\n"))
+func sanitize(b []byte) []byte {
+	// Replace ` with `+"`"+`
+	return bytes.Replace(b, []byte("`"), []byte("`+\"`\"+`"), -1)
+}
 
 const head = `
 <head>
