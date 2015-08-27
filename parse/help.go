@@ -24,6 +24,7 @@ const specialHelpMessage = `
 ) get "save.ivy"
 	Read input from the named file; return to interactive execution
 	afterwards. If no file is specified, read from "save.ivy".
+	(Unimplemented on mobile.)
 ) maxbits 1e6
 	To avoid consuming too much memory, if an integer result would
 	require more than this many bits to store, abort the calculation.
@@ -47,6 +48,7 @@ const specialHelpMessage = `
 	Write definitions of user-defined operators and variables to the
 	named file, as ivy textual source. If no file is specified, save to
 	"save.ivy".
+	(Unimplemented on mobile.)
 ) seed 0
 	Set the seed for the ? operator.
 `

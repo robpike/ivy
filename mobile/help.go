@@ -161,14 +161,14 @@ Right Shift                 &gt;&gt;      A shifted right B bits (integer only)
 <p>
 Operators and axis indicator
 </p>
-<pre>	Name                APL  Ivy  APL Example  Ivy Example  Meaning (of example)
-	Reduce (last axis)  /    /    +/B          +/B          Sum across B
-	Reduce (first axis) ⌿         +⌿B                       Sum down B
-	Scan (last axis)    \    \    +\B          +\B          Running sum across B
-	Scan (first axis)   ⍀         +⍀B                       Running sum down B
-	Inner product       .    .    A+.×B        A +.* B      Matrix product of A and B
-	Outer product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B
-                                                            (lower case o; may need preceding space)
+<pre>Name                APL  Ivy  APL Example  Ivy Example  Meaning (of example)
+Reduce (last axis)  /    /    +/B          +/B          Sum across B
+Reduce (first axis) ⌿         +⌿B                       Sum down B
+Scan (last axis)    \    \    +\B          +\B          Running sum across B
+Scan (first axis)   ⍀         +⍀B                       Running sum down B
+Inner product       .    .    A+.×B        A +.* B      Matrix product of A and B
+Outer product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B
+                                                    (lower case o; may need preceding space)
 </pre>
 <p>
 Type-converting operations
