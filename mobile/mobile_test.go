@@ -6,6 +6,9 @@ package mobile
 
 import (
 	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -90,5 +93,29 @@ func TestDemo(t *testing.T) {
 	}
 	if demoErr != string(errors) {
 		t.Fatalf("expected errors %q; got %q", demoErr, errors)
+	}
+}
+
+func TestHelp(t *testing.T) {
+	// Test to make sure the document is up to date.
+	buf, err := exec.Command("go", "run", "help_gen.go").Output()
+	if err != nil {
+		t.Fatalf("failed to run 'go run help_gen.go': %v", err)
+	}
+	f, err := ioutil.TempFile("", "mobilehelp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+
+	_, err = f.Write(buf)
+	errc := f.Close()
+	if err != nil || errc != nil {
+		t.Fatalf("failed to write the new help.go: %v", err)
+	}
+
+	data, err := exec.Command("diff", "-u", f.Name(), "help.go").CombinedOutput()
+	if len(data) > 0 || err != nil {
+		t.Errorf("Help message is outdated. Run go generate: %s (diff ended with %v)", data, err)
 	}
 }
