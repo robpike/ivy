@@ -42,6 +42,6 @@ func TestDemo(t *testing.T) {
 	check()
 	if string(data) != result {
 		err = ioutil.WriteFile("demo.bad", buf.Bytes(), 0666)
-		t.Fatal("test output differs; run\n\tdiff demo/demo.out demo.bad\nfor details")
+		t.Fatal("test output differs; run\n\tdiff demo.bad demo/demo.out\nfor details")
 	}
 }
