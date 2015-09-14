@@ -65,6 +65,7 @@ func save(c *exec.Context, file string, conf *config.Config) {
 		defer fd.Close()
 		buf := bufio.NewWriter(fd)
 		defer buf.Flush()
+		out = buf
 	}
 
 	// Configuration settings. We will set the base below,
