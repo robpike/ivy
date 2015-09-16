@@ -209,7 +209,7 @@ func (l *Scanner) Next() Token {
 		close(l.tokens)
 		l.tokens = nil
 	}
-	return Token{EOF, 0, "EOF"}
+	return Token{EOF, l.pos, "EOF"}
 }
 
 // state functions
