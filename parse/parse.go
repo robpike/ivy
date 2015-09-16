@@ -264,7 +264,7 @@ func (p *Parser) nextErrorOut(errorOut bool) scan.Token {
 	if tok.Type != scan.EOF {
 		p.peekTok = scan.Token{Type: scan.EOF}
 	} else {
-		tok = <-p.scanner.Tokens
+		tok = p.scanner.Next()
 	}
 	if tok.Type == scan.Error && errorOut {
 		p.errorf("%q", tok)
@@ -282,7 +282,7 @@ func (p *Parser) peek() scan.Token {
 	if tok.Type != scan.EOF {
 		return tok
 	}
-	p.peekTok = <-p.scanner.Tokens
+	p.peekTok = p.scanner.Next()
 	return p.peekTok
 }
 

@@ -4,11 +4,7 @@
 
 package exec
 
-import (
-	"sync"
-
-	"robpike.io/ivy/value"
-)
+import "robpike.io/ivy/value"
 
 // Symtab is a symbol table, a map of names to values.
 type Symtab map[string]value.Value
@@ -17,9 +13,6 @@ type Symtab map[string]value.Value
 // It is the only implementation of ../value/Context, but since it references the value
 // package, there would be a cycle if that package depended on this type definition.
 type Context struct {
-	// Locks UnaryFn and BinaryFn, which are accessed through UserDefined
-	// from the scanner.
-	mu sync.Mutex
 	// Stack is a stack of symbol tables, one entry per function (op) invocation,
 	// plus the 0th one at the base.
 	Stack []Symtab
@@ -43,11 +36,6 @@ func NewContext() value.Context {
 	}
 	c.SetConstants()
 	return c
-}
-
-func (c *Context) sync() func() {
-	c.mu.Lock()
-	return c.mu.Unlock
 }
 
 // SetConstants re-assigns the fundamental constant values using the current
@@ -142,7 +130,6 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 }
 
 func (c *Context) UserDefined(op string, isBinary bool) bool {
-	defer c.sync()()
 	if isBinary {
 		return c.BinaryFn[op] != nil
 	}
@@ -178,7 +165,6 @@ func (c *Context) EvalBinary(left value.Value, op string, right value.Value) val
 // some error checking and adds the function to the sequencing
 // information used by the save method.
 func (c *Context) Define(fn *Function) {
-	defer c.sync()()
 	c.noVar(fn.Name)
 	if fn.IsBinary {
 		c.BinaryFn[fn.Name] = fn

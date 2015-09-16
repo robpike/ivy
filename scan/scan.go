@@ -69,7 +69,7 @@ type stateFn func(*Scanner) stateFn
 
 // Scanner holds the state of the scanner.
 type Scanner struct {
-	Tokens     chan Token // channel of scanned items
+	tokens     chan Token // channel of scanned items
 	config     *config.Config
 	context    value.Context
 	r          io.ByteReader
@@ -145,7 +145,7 @@ func (l *Scanner) emit(t Type) {
 	if l.config.Debug("tokens") {
 		fmt.Fprintf(l.config.Output(), "%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, s})
 	}
-	l.Tokens <- Token{t, l.line, s}
+	l.tokens <- Token{t, l.line, s}
 	l.start = l.pos
 	l.width = 0
 }
@@ -173,7 +173,7 @@ func (l *Scanner) acceptRun(valid string) {
 
 // errorf returns an error token and continues to scan.
 func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
-	l.Tokens <- Token{Error, l.start, fmt.Sprintf(format, args...)}
+	l.tokens <- Token{Error, l.start, fmt.Sprintf(format, args...)}
 	return lexAny
 }
 
@@ -183,20 +183,33 @@ func New(conf *config.Config, context value.Context, name string, r io.ByteReade
 		r:       r,
 		name:    name,
 		line:    1,
-		Tokens:  make(chan Token), // Must be unbuffered to synchronize with parser.
+		tokens:  make(chan Token, 2), // We need a little room to save tokens.
 		config:  conf,
 		context: context,
+		state:   lexAny,
 	}
-	go l.run()
 	return l
 }
 
-// run runs the state machine for the Scanner.
-func (l *Scanner) run() {
-	for l.state = lexAny; l.state != nil; {
-		l.state = l.state(l)
+// Next returns the next token.
+func (l *Scanner) Next() Token {
+	// The lexer is concurrent but we don't want it to run in parallel
+	// with the rest of the interpreter, so we only run the state machine
+	// when we need a token.
+	for l.state != nil {
+		select {
+		case tok := <-l.tokens:
+			return tok
+		default:
+			// Run the machine
+			l.state = l.state(l)
+		}
 	}
-	close(l.Tokens)
+	if l.tokens != nil {
+		close(l.tokens)
+		l.tokens = nil
+	}
+	return Token{EOF, 0, "EOF"}
 }
 
 // state functions

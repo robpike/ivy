@@ -11,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -26,7 +25,6 @@ var DebugFlags = [...]string{
 // A Config holds information about the configuration of the system.
 // The zero value of a Config represents the default values for all settings.
 type Config struct {
-	mu          sync.Mutex
 	prompt      string
 	output      io.Writer
 	errOutput   io.Writer
@@ -61,35 +59,26 @@ func (c *Config) init() {
 	}
 }
 
-func (c *Config) sync() func() {
-	c.mu.Lock()
-	return c.mu.Unlock
-}
-
 // Output returns the writer to be used for program output.
 func (c *Config) Output() io.Writer {
-	defer c.sync()()
 	c.init()
 	return c.output
 }
 
 // SetOutput sets the writer to which program output is printed; default is os.Stdout.
 func (c *Config) SetOutput(output io.Writer) {
-	defer c.sync()()
 	c.init()
 	c.output = output
 }
 
 // ErrOutput returns the writer to be used for error output.
 func (c *Config) ErrOutput() io.Writer {
-	defer c.sync()()
 	c.init()
 	return c.errOutput
 }
 
 // SetErrOutput sets the writer to which error output is printed; default is os.Stderr.
 func (c *Config) SetErrOutput(output io.Writer) {
-	defer c.sync()()
 	c.init()
 	c.errOutput = output
 }
@@ -97,20 +86,17 @@ func (c *Config) SetErrOutput(output io.Writer) {
 // Format returns the formatting string. If empty, the default
 // formatting is used, as defined by the bases.
 func (c *Config) Format() string {
-	defer c.sync()()
 	return c.format
 }
 
 // Format returns the formatting string for rationals.
 func (c *Config) RatFormat() string {
-	defer c.sync()()
 	return c.ratFormat
 }
 
 // SetFormat sets the formatting string. Rational formatting
 // is just this format applied twice with a / in between.
 func (c *Config) SetFormat(s string) {
-	defer c.sync()()
 	c.init()
 	c.formatVerb = 0
 	c.formatPrec = 0
@@ -143,13 +129,11 @@ func (c *Config) SetFormat(s string) {
 // FloatFormat returns the parsed information about the format,
 // if it's a floating-point format.
 func (c *Config) FloatFormat() (verb byte, prec int, ok bool) {
-	defer c.sync()()
 	return c.formatVerb, c.formatPrec, c.formatFloat
 }
 
 // Debug returns the value of the specified boolean debugging flag.
 func (c *Config) Debug(flag string) bool {
-	defer c.sync()()
 	for i, f := range DebugFlags {
 		if f == flag {
 			return c.debug[i]
@@ -161,7 +145,6 @@ func (c *Config) Debug(flag string) bool {
 // SetDebug sets the value of the specified boolean debugging flag.
 // It returns false if the flag is unknown.
 func (c *Config) SetDebug(flag string, state bool) bool {
-	defer c.sync()()
 	c.init()
 	for i, f := range DebugFlags {
 		if f == flag {
@@ -174,19 +157,16 @@ func (c *Config) SetDebug(flag string, state bool) bool {
 
 // Origin returns the index origin, default 1.
 func (c *Config) Origin() int {
-	defer c.sync()()
 	return c.origin
 }
 
 // BigOrigin returns the index origin as a *big.Int.
 func (c *Config) BigOrigin() *big.Int {
-	defer c.sync()()
 	return c.bigOrigin
 }
 
 // SetOrigin sets the index origin.
 func (c *Config) SetOrigin(origin int) {
-	defer c.sync()()
 	c.init()
 	c.origin = origin
 	c.bigOrigin = big.NewInt(int64(origin))
@@ -194,55 +174,47 @@ func (c *Config) SetOrigin(origin int) {
 
 // Prompt returns the interactive prompt.
 func (c *Config) Prompt() string {
-	defer c.sync()()
 	return c.prompt
 }
 
 // SetPrompt sets the interactive prompt.
 func (c *Config) SetPrompt(prompt string) {
-	defer c.sync()()
 	c.init()
 	c.prompt = prompt
 }
 
 // Random returns the generator for random numbers.
 func (c *Config) Random() *rand.Rand {
-	defer c.sync()()
 	c.init()
 	return c.random
 }
 
 // SetRandomSeed sets the seed for the random number generator.
 func (c *Config) SetRandomSeed(seed int64) {
-	defer c.sync()()
 	c.init()
 	c.source.Seed(seed)
 }
 
 // MaxBits returns the maximum integer size to store, in bits.
 func (c *Config) MaxBits() uint {
-	defer c.sync()()
 	c.init()
 	return c.maxBits
 }
 
 // MaxBits sets the maximum integer size to store, in bits.
 func (c *Config) SetMaxBits(digits uint) {
-	defer c.sync()()
 	c.init()
 	c.maxBits = digits
 }
 
 // MaxDigits returns the maximum integer size to print as integer, in digits.
 func (c *Config) MaxDigits() uint {
-	defer c.sync()()
 	c.init()
 	return c.maxDigits
 }
 
 // SetMaxDigits sets the maximum integer size to print as integer, in digits.
 func (c *Config) SetMaxDigits(digits uint) {
-	defer c.sync()()
 	c.init()
 	c.maxDigits = digits
 }
@@ -250,14 +222,12 @@ func (c *Config) SetMaxDigits(digits uint) {
 // FloatPrec returns the floating-point precision in bits.
 // The exponent size is fixed by math/big.
 func (c *Config) FloatPrec() uint {
-	defer c.sync()()
 	c.init()
 	return c.floatPrec
 }
 
 // SetFloatPrec sets the floating-point precision in bits.
 func (c *Config) SetFloatPrec(prec uint) {
-	defer c.sync()()
 	c.init()
 	if prec == 0 {
 		panic("zero float precision")
@@ -267,25 +237,21 @@ func (c *Config) SetFloatPrec(prec uint) {
 
 // Base returns the input and output bases.
 func (c *Config) Base() (inputBase, outputBase int) {
-	defer c.sync()()
 	return c.inputBase, c.outputBase
 }
 
 // InputBase returns the input base.
 func (c *Config) InputBase() int {
-	defer c.sync()()
 	return c.inputBase
 }
 
 // OutputBase returns the output base.
 func (c *Config) OutputBase() int {
-	defer c.sync()()
 	return c.outputBase
 }
 
 // SetBase sets the input and output bases.
 func (c *Config) SetBase(inputBase, outputBase int) {
-	defer c.sync()()
 	c.init()
 	c.inputBase = inputBase
 	c.outputBase = outputBase
