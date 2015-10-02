@@ -17,7 +17,7 @@
 # Binary operators operate on the item immediately to the left, and everything to the right.
 2*3+4     # Parsed as 2*(3+4), not the usual (2*3)+4.
 2**2+3    # 2**5, not (2**2) + 3
-2**(2+3)  # Use parentheses if you need to group differently.
+(2+3)**2  # Use parentheses if you need to group differently.
 # Ivy can do rational arithmetic, so 1/3 is really 1/3, not 0.333....
 1/3
 1/3 + 4/5
