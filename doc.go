@@ -30,6 +30,9 @@ have most numerical operations supported eventually.
 Semicolons separate multiple statements on a line. Variables are alphanumeric and are
 assigned with the = operator.
 
+After each successful expression evaluation, the result is stored in the variable
+called _ (underscore) so it can be used in the next expression.
+
 The APL operators, adapted from https://en.wikipedia.org/wiki/APL_syntax_and_symbols,
 and their correspondence are listed here. The correspondence is incomplete and inexact.
 
