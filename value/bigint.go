@@ -37,12 +37,7 @@ func (i BigInt) String() string {
 	var maxBits = (uint64(conf.MaxDigits()) * 33222) / 10000 // log 10 / log 2 is 3.32192809489
 	if uint64(bitLen) > maxBits && maxBits != 0 {
 		// Print in floating point.
-		verb, prec, ok := conf.FloatFormat()
-		if !ok {
-			verb = 'g'
-			prec = 12
-		}
-		return i.floatString(verb, prec)
+		return BigFloat{newF().SetInt(i.Int)}.String()
 	}
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
