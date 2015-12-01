@@ -9,4 +9,4 @@ op popcount n = +/n base 2
 # Sum of digits.
 op sumdigits x = t = text x; +/(code (t in '0123456789') sel t) - code '0'
 # Meters to feet.
-op m2ft m = 0 12 encode (ceil m*1000/25.4)
+op m2ft m = 0 12 encode ceil m*1000/25.4
