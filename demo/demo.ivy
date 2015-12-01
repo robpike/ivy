@@ -195,7 +195,7 @@ log iota 6
 # Successive approximations to e. (We force the calculation to use float using the "float" unary operator. Why?)
 (float 1+10**-iota 9) ** 10**iota 9
 # Default precision is 256 bits of mantissa. We can go up to 10000.
-)prec 3000         # Units are bits, not digits.
+)prec 3350         # Units are bits, not digits. 2 log 10 == 3.321. Add a few more bits for floating point errors.
 e
 )format '%.1000g'  # Units are digits. (Sorry for the inconsistency.)
 e
