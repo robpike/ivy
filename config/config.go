@@ -51,7 +51,7 @@ func (c *Config) init() {
 		c.output = os.Stdout
 		c.errOutput = os.Stderr
 		c.origin = 1
-		c.source = rand.NewSource(time.Now().Unix())
+		c.source = rand.NewSource(time.Now().UnixNano())
 		c.random = rand.New(c.source)
 		c.maxBits = 1e6
 		c.maxDigits = 1e4
