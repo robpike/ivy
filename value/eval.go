@@ -105,8 +105,9 @@ func Binary(c Context, u Value, opName string, v Value) Value {
 		Errorf("binary %s not implemented", opName)
 	}
 	which := op.whichType(whichType(u), whichType(v))
-	u = u.toType(which)
-	v = v.toType(which)
+	conf := c.Config()
+	u = u.toType(conf, which)
+	v = v.toType(conf, which)
 	fn := op.fn[which]
 	if fn == nil {
 		if op.elementwise {
@@ -127,8 +128,8 @@ func product(c Context, u Value, opName string, v Value) Value {
 	left := opName[:dot]
 	right := opName[dot+1:]
 	which := atLeastVectorType(whichType(u), whichType(v))
-	u = u.toType(which)
-	v = v.toType(which)
+	u = u.toType(c.Config(), which)
+	v = v.toType(c.Config(), which)
 	if left == "o" {
 		return outerProduct(c, u, right, v)
 	}

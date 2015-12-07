@@ -7,6 +7,8 @@ package value
 import (
 	"fmt"
 	"strconv"
+
+	"robpike.io/ivy/config"
 )
 
 // Int is not only the simplest representation, it provides the operands that mix
@@ -22,12 +24,16 @@ const (
 	maxInt  = 1<<(intBits-1) - 1
 )
 
-func setIntString(s string) (Int, error) {
+func setIntString(conf *config.Config, s string) (Int, error) {
 	i, err := strconv.ParseInt(s, conf.InputBase(), intBits)
 	return Int(i), err
 }
 
 func (i Int) String() string {
+	return "(" + i.Sprint(debugConf) + ")"
+}
+
+func (i Int) Sprint(conf *config.Config) string {
 	format := conf.Format()
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
@@ -124,7 +130,7 @@ func (i Int) Eval(Context) Value {
 	return i
 }
 
-func (i Int) toType(which valueType) Value {
+func (i Int) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case intType:
 		return i
@@ -133,7 +139,7 @@ func (i Int) toType(which valueType) Value {
 	case bigRatType:
 		return bigRatInt64(int64(i))
 	case bigFloatType:
-		return bigFloatInt64(int64(i))
+		return bigFloatInt64(conf, int64(i))
 	case vectorType:
 		return NewVector([]Value{i})
 	case matrixType:

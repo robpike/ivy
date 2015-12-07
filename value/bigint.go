@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+
+	"robpike.io/ivy/config"
 )
 
 type BigInt struct {
@@ -23,7 +25,7 @@ type BigInt struct {
 // This is ugly but very simple and cheap.
 func (i BigInt) Format() {}
 
-func setBigIntString(s string) (BigInt, error) {
+func setBigIntString(conf *config.Config, s string) (BigInt, error) {
 	i, ok := big.NewInt(0).SetString(s, conf.InputBase())
 	if !ok {
 		return BigInt{}, errors.New("integer parse error")
@@ -32,12 +34,16 @@ func setBigIntString(s string) (BigInt, error) {
 }
 
 func (i BigInt) String() string {
+	return "(" + i.Sprint(debugConf) + ")"
+}
+
+func (i BigInt) Sprint(conf *config.Config) string {
 	bitLen := i.BitLen()
 	format := conf.Format()
 	var maxBits = (uint64(conf.MaxDigits()) * 33222) / 10000 // log 10 / log 2 is 3.32192809489
 	if uint64(bitLen) > maxBits && maxBits != 0 {
 		// Print in floating point.
-		return BigFloat{newF().SetInt(i.Int)}.String()
+		return BigFloat{newF(conf).SetInt(i.Int)}.Sprint(conf)
 	}
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
@@ -48,7 +54,7 @@ func (i BigInt) String() string {
 	}
 	// Is this from a rational and we could use an int?
 	if i.BitLen() < intBits {
-		return Int(i.Int64()).String()
+		return Int(i.Int64()).Sprint(conf)
 	}
 	switch conf.OutputBase() {
 	case 0, 10:
@@ -131,7 +137,7 @@ func (i BigInt) Eval(Context) Value {
 	return i
 }
 
-func (i BigInt) toType(which valueType) Value {
+func (i BigInt) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case bigIntType:
 		return i
@@ -180,7 +186,7 @@ func (i BigInt) BitLen() int64 {
 }
 
 // mustFit errors out if n is larger than the maximum number of bits allowed.
-func mustFit(n int64) {
+func mustFit(conf *config.Config, n int64) {
 	max := conf.MaxBits()
 	if max != 0 && n > int64(max) {
 		Errorf("result too large (%d bits)", n)

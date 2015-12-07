@@ -98,7 +98,7 @@ func save(c *exec.Context, file string, conf *config.Config) {
 			}
 		}
 		printed[def] = true
-		fmt.Fprintln(out, fn)
+		fmt.Fprintln(out, fn) // TODO: Does this need conf?
 	}
 
 	// Global variables.

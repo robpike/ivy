@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strconv"
 	"unicode/utf8"
+
+	"robpike.io/ivy/config"
 )
 
 type Char rune
@@ -18,7 +20,11 @@ const (
 )
 
 func (c Char) String() string {
-	// We ignore the format - they are always textual.
+	return "(" + string(c) + ")"
+}
+
+func (c Char) Sprint(conf *config.Config) string {
+	// We ignore the format - chars are always textual.
 	// TODO: What about escapes?
 	return string(c)
 }
@@ -31,7 +37,7 @@ func (c Char) Eval(Context) Value {
 	return c
 }
 
-func (c Char) toType(which valueType) Value {
+func (c Char) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case charType:
 		return c

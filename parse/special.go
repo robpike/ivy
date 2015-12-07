@@ -46,10 +46,11 @@ func (p *Parser) nextDecimalNumber() int {
 // nextDecimalNumber64 returns the next number, which
 // must fit in a non-negative int64.
 func (p *Parser) nextDecimalNumber64() int64 {
-	ibase, obase := p.config.Base()
-	defer p.config.SetBase(ibase, obase)
-	p.config.SetBase(10, obase)
-	v, err := value.Parse(p.need(scan.Number).Text)
+	conf := p.context.Config()
+	ibase, obase := conf.Base()
+	defer conf.SetBase(ibase, obase)
+	conf.SetBase(10, obase)
+	v, err := value.Parse(conf, p.need(scan.Number).Text)
 	if err != nil {
 		p.errorf("%s", err)
 	}
@@ -80,13 +81,14 @@ func truth(x bool) int {
 
 func (p *Parser) special() {
 	p.need(scan.RightParen)
+	conf := p.context.Config()
 Switch:
 	switch text := p.need(scan.Identifier, scan.Op).Text; text {
 	case "help":
 		p.Println(specialHelpMessage)
 		p.Println("More at: https://godoc.org/robpike.io/ivy")
 	case "base", "ibase", "obase":
-		ibase, obase := p.config.Base()
+		ibase, obase := conf.Base()
 		if p.peek().Type == scan.Newline {
 			p.Printf("ibase\t%d\n", ibase)
 			p.Printf("obase\t%d\n", obase)
@@ -104,7 +106,7 @@ Switch:
 		case "obase":
 			obase = base
 		}
-		p.config.SetBase(ibase, obase)
+		conf.SetBase(ibase, obase)
 		// We set the configuration in the scanner here, before it retrieves
 		// the following newline. That means that any number it scans
 		// at the beginning of the next line will happen after the config
@@ -112,17 +114,17 @@ Switch:
 	case "debug":
 		if p.peek().Type == scan.Newline {
 			for _, f := range config.DebugFlags {
-				p.Printf("%s\t%d\n", f, truth(p.config.Debug(f)))
+				p.Printf("%s\t%d\n", f, truth(conf.Debug(f)))
 			}
 			break Switch
 		}
 		name := p.need(scan.Identifier).Text
 		if p.peek().Type == scan.Newline {
 			// Toggle the value
-			if !p.config.SetDebug(name, !p.config.Debug(name)) {
+			if !conf.SetDebug(name, !conf.Debug(name)) {
 				p.Println("no such debug flag:", name)
 			}
-			if p.config.Debug(name) {
+			if conf.Debug(name) {
 				p.Println("1")
 			} else {
 				p.Println("0")
@@ -130,15 +132,15 @@ Switch:
 			break
 		}
 		number := p.nextDecimalNumber()
-		if !p.config.SetDebug(name, number != 0) {
+		if !conf.SetDebug(name, number != 0) {
 			p.Println("no such debug flag:", name)
 		}
 	case "format":
 		if p.peek().Type == scan.Newline {
-			p.Printf("%q\n", p.config.Format())
+			p.Printf("%q\n", conf.Format())
 			break Switch
 		}
-		p.config.SetFormat(p.getString())
+		conf.SetFormat(p.getString())
 	case "get":
 		if p.peek().Type == scan.Newline {
 			p.runFromFile(p.context, defaultFile)
@@ -147,18 +149,18 @@ Switch:
 		}
 	case "maxbits":
 		if p.peek().Type == scan.Newline {
-			p.Printf("%d\n", p.config.MaxBits())
+			p.Printf("%d\n", conf.MaxBits())
 			break Switch
 		}
 		max := p.nextDecimalNumber()
-		p.config.SetMaxBits(uint(max))
+		conf.SetMaxBits(uint(max))
 	case "maxdigits":
 		if p.peek().Type == scan.Newline {
-			p.Printf("%d\n", p.config.MaxDigits())
+			p.Printf("%d\n", conf.MaxDigits())
 			break Switch
 		}
 		max := p.nextDecimalNumber()
-		p.config.SetMaxDigits(uint(max))
+		conf.SetMaxDigits(uint(max))
 	case "op":
 		name := p.need(scan.Operator, scan.Identifier).Text
 		fn := p.context.UnaryFn[name]
@@ -177,7 +179,7 @@ Switch:
 		}
 	case "origin":
 		if p.peek().Type == scan.Newline {
-			p.Println(p.config.Origin())
+			p.Println(conf.Origin())
 			break Switch
 
 		}
@@ -185,35 +187,35 @@ Switch:
 		if origin != 0 && origin != 1 {
 			p.errorf("illegal origin %d", origin)
 		}
-		p.config.SetOrigin(origin)
+		conf.SetOrigin(origin)
 	case "prec":
 		if p.peek().Type == scan.Newline {
-			p.Printf("%d\n", p.config.FloatPrec())
+			p.Printf("%d\n", conf.FloatPrec())
 			break Switch
 		}
 		prec := p.nextDecimalNumber()
 		if prec == 0 || prec > 1e6 {
 			p.errorf("illegal prec %d", prec) // TODO: make 0 be disable?
 		}
-		p.config.SetFloatPrec(uint(prec))
+		conf.SetFloatPrec(uint(prec))
 	case "prompt":
 		if p.peek().Type == scan.Newline {
-			p.Printf("%q\n", p.config.Format())
+			p.Printf("%q\n", conf.Format())
 			break Switch
 		}
-		p.config.SetPrompt(p.getString())
+		conf.SetPrompt(p.getString())
 	case "save":
 		if p.peek().Type == scan.Newline {
-			save(p.context, defaultFile, p.config)
+			save(p.context, defaultFile, conf)
 		} else {
-			save(p.context, p.getString(), p.config)
+			save(p.context, p.getString(), conf)
 		}
 	case "seed":
 		if p.peek().Type == scan.Newline {
-			p.Println(p.config.Origin())
+			p.Println(conf.Origin())
 			break Switch
 		}
-		p.config.SetRandomSeed(p.nextDecimalNumber64())
+		conf.SetRandomSeed(p.nextDecimalNumber64())
 	default:
 		p.errorf(")%s: not recognized", text)
 	}
@@ -240,7 +242,7 @@ func (p *Parser) runFromFile(context value.Context, name string) {
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			fmt.Fprintf(p.config.ErrOutput(), "%s%s\n", p.Loc(), err)
+			fmt.Fprintf(p.context.Config().ErrOutput(), "%s%s\n", p.Loc(), err)
 			return
 		}
 		panic(err)
@@ -249,17 +251,17 @@ func (p *Parser) runFromFile(context value.Context, name string) {
 	if err != nil {
 		p.errorf("%s", err)
 	}
-	scanner := scan.New(p.config, context, name, bufio.NewReader(fd))
-	parser := NewParser(p.config, name, scanner, p.context)
-	out := p.config.Output()
+	scanner := scan.New(context, name, bufio.NewReader(fd))
+	parser := NewParser(name, scanner, p.context)
+	out := p.context.Config().Output()
 	for {
-		value, ok := parser.Line()
-		for _, val := range value {
-			val = val.Eval(p.context)
+		exprs, ok := parser.Line()
+		for _, expr := range exprs {
+			val := expr.Eval(p.context)
 			if val == nil {
 				continue
 			}
-			fmt.Fprintf(out, "%v\n", val)
+			fmt.Fprintf(out, "%v\n", val.Sprint(context.Config()))
 		}
 		if !ok {
 			return

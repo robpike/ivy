@@ -79,16 +79,17 @@ func binaryBigRatOp(u Value, op func(*big.Rat, *big.Rat, *big.Rat) *big.Rat, v V
 	return z.shrink()
 }
 
-func binaryBigFloatOp(u Value, op func(*big.Float, *big.Float, *big.Float) *big.Float, v Value) Value {
+func binaryBigFloatOp(c Context, u Value, op func(*big.Float, *big.Float, *big.Float) *big.Float, v Value) Value {
 	i, j := u.(BigFloat), v.(BigFloat)
-	z := bigFloatInt64(0)
+	z := bigFloatInt64(c.Config(), 0)
 	op(z.Float, i.Float, j.Float)
 	return z.shrink()
 }
 
 // bigIntExp is the "op" for exp on *big.Int. Different signature for Exp means we can't use *big.Exp directly.
+// Also we need a context (really a config); see the bigIntExpOp function below.
 // We know this is not 0**negative.
-func bigIntExp(i, j, k *big.Int) *big.Int {
+func bigIntExp(c Context, i, j, k *big.Int) *big.Int {
 	if j.Cmp(bigOne.Int) == 0 || j.Sign() == 0 {
 		return i.Set(j)
 	}
@@ -102,15 +103,22 @@ func bigIntExp(i, j, k *big.Int) *big.Int {
 	// Large exponents can be very expensive.
 	// First, it must fit in an int64.
 	if k.BitLen() > 63 {
-		Errorf("%s**%v: exponent too large", j, newF().SetInt(k))
+		Errorf("%s**%s: exponent too large", j, k)
 	}
 	exp := k.Int64()
 	if exp < 0 {
 		exp = -exp
 	}
-	mustFit(int64(j.BitLen()) * exp)
+	mustFit(c.Config(), int64(j.BitLen())*exp)
 	i.Exp(j, k, nil)
 	return i
+}
+
+// bigIntExpOp wraps bigIntExp with a Context and returns the closure as an op.
+func bigIntExpOp(c Context) func(i, j, k *big.Int) *big.Int {
+	return func(i, j, k *big.Int) *big.Int {
+		return bigIntExp(c, i, j, k)
+	}
 }
 
 // toInt turns the boolean into an Int 0 or 1.
@@ -176,15 +184,15 @@ func init() {
 				return (u.(Int) + v.(Int)).maybeBig()
 			},
 			bigIntType: func(c Context, u, v Value) Value {
-				mustFit(u.(BigInt).BitLen() + 1)
-				mustFit(v.(BigInt).BitLen() + 1)
+				mustFit(c.Config(), u.(BigInt).BitLen()+1)
+				mustFit(c.Config(), v.(BigInt).BitLen()+1)
 				return binaryBigIntOp(u, (*big.Int).Add, v)
 			},
 			bigRatType: func(c Context, u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Add, v)
 			},
 			bigFloatType: func(c Context, u, v Value) Value {
-				return binaryBigFloatOp(u, (*big.Float).Add, v)
+				return binaryBigFloatOp(c, u, (*big.Float).Add, v)
 			},
 		},
 	}
@@ -197,15 +205,15 @@ func init() {
 				return (u.(Int) - v.(Int)).maybeBig()
 			},
 			bigIntType: func(c Context, u, v Value) Value {
-				mustFit(u.(BigInt).BitLen() + 1)
-				mustFit(v.(BigInt).BitLen() + 1)
+				mustFit(c.Config(), u.(BigInt).BitLen()+1)
+				mustFit(c.Config(), v.(BigInt).BitLen()+1)
 				return binaryBigIntOp(u, (*big.Int).Sub, v)
 			},
 			bigRatType: func(c Context, u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Sub, v)
 			},
 			bigFloatType: func(c Context, u, v Value) Value {
-				return binaryBigFloatOp(u, (*big.Float).Sub, v)
+				return binaryBigFloatOp(c, u, (*big.Float).Sub, v)
 			},
 		},
 	}
@@ -218,14 +226,14 @@ func init() {
 				return (u.(Int) * v.(Int)).maybeBig()
 			},
 			bigIntType: func(c Context, u, v Value) Value {
-				mustFit(u.(BigInt).BitLen() + v.(BigInt).BitLen())
+				mustFit(c.Config(), u.(BigInt).BitLen()+v.(BigInt).BitLen())
 				return binaryBigIntOp(u, (*big.Int).Mul, v)
 			},
 			bigRatType: func(c Context, u, v Value) Value {
 				return binaryBigRatOp(u, (*big.Rat).Mul, v)
 			},
 			bigFloatType: func(c Context, u, v Value) Value {
-				return binaryBigFloatOp(u, (*big.Float).Mul, v)
+				return binaryBigFloatOp(c, u, (*big.Float).Mul, v)
 			},
 		},
 	}
@@ -241,7 +249,7 @@ func init() {
 				return binaryBigRatOp(u, (*big.Rat).Quo, v) // True division.
 			},
 			bigFloatType: func(c Context, u, v Value) Value {
-				return binaryBigFloatOp(u, (*big.Float).Quo, v)
+				return binaryBigFloatOp(c, u, (*big.Float).Quo, v)
 			},
 		},
 	}
@@ -330,14 +338,14 @@ func init() {
 					if u.(BigInt).Sign() == 0 {
 						Errorf("negative exponent of zero")
 					}
-					v = Unary(c, "abs", v).toType(bigIntType)
-					return Unary(c, "/", binaryBigIntOp(u, bigIntExp, v))
+					v = Unary(c, "abs", v).toType(c.Config(), bigIntType)
+					return Unary(c, "/", binaryBigIntOp(u, bigIntExpOp(c), v))
 				}
 				x := u.(BigInt).Int
 				if x.Cmp(bigOne.Int) == 0 || x.Sign() == 0 {
 					return u
 				}
-				return binaryBigIntOp(u, bigIntExp, v)
+				return binaryBigIntOp(u, bigIntExpOp(c), v)
 			},
 			bigRatType: func(c Context, u, v Value) Value {
 				// (n/d)**2 is n**2/d**2.
@@ -351,7 +359,7 @@ func init() {
 						Errorf("negative exponent of zero")
 					}
 					positive = false
-					rexp = Unary(c, "-", v).toType(bigRatType).(BigRat)
+					rexp = Unary(c, "-", v).toType(c.Config(), bigRatType).(BigRat)
 				}
 				if !rexp.IsInt() {
 					// Lift to float.
@@ -361,8 +369,8 @@ func init() {
 				rat := u.(BigRat)
 				num := new(big.Int).Set(rat.Num())
 				den := new(big.Int).Set(rat.Denom())
-				bigIntExp(num, num, exp)
-				bigIntExp(den, den, exp)
+				bigIntExp(c, num, num, exp)
+				bigIntExp(c, den, den, exp)
 				z := bigRatInt64(0)
 				if positive {
 					z.SetFrac(num, den)
@@ -371,7 +379,7 @@ func init() {
 				}
 				return z.shrink()
 			},
-			bigFloatType: func(c Context, u, v Value) Value { return power(u, v) },
+			bigFloatType: func(c Context, u, v Value) Value { return power(c, u, v) },
 		},
 	}
 
@@ -841,7 +849,7 @@ func init() {
 				// A[B]: The successive elements of A with indexes elements of B.
 				A, B := u.(Vector), v.(Vector)
 				values := make([]Value, len(B))
-				origin := Int(conf.Origin())
+				origin := Int(c.Config().Origin())
 				for i, b := range B {
 					x, ok := b.(Int)
 					if !ok {
@@ -867,7 +875,7 @@ func init() {
 				B := mB.data
 				elemSize := Int(A.elemSize())
 				values := make(Vector, 0, elemSize*Int(len(B)))
-				origin := Int(conf.Origin())
+				origin := Int(c.Config().Origin())
 				for _, b := range B {
 					x, ok := b.(Int)
 					if !ok {
@@ -909,11 +917,12 @@ func init() {
 				A, B := u.(Vector), v.(Vector)
 				indices := make([]Value, len(B))
 				// TODO: This is n^2.
+				origin := c.Config().Origin()
 			Outer:
 				for i, b := range B {
 					for j, a := range A {
 						if toBool(Binary(c, a, "==", b)) {
-							indices[i] = Int(j + conf.Origin())
+							indices[i] = Int(j + origin)
 							continue Outer
 						}
 					}

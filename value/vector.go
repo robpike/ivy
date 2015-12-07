@@ -8,12 +8,18 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+
+	"robpike.io/ivy/config"
 )
 
 type Vector []Value
 
 func (v Vector) String() string {
-	return v.makeString(!v.AllChars())
+	return "(" + v.Sprint(debugConf) + ")"
+}
+
+func (v Vector) Sprint(conf *config.Config) string {
+	return v.makeString(conf, !v.AllChars())
 }
 
 func (v Vector) ProgString() string {
@@ -26,13 +32,13 @@ func (v Vector) ProgString() string {
 // whether to put spaces between the elements. By
 // default (that is, by calling String) spaces are suppressed
 // if all the elements of the Vector are Chars.
-func (v Vector) makeString(spaces bool) string {
+func (v Vector) makeString(conf *config.Config, spaces bool) string {
 	var b bytes.Buffer
 	for i, elem := range v {
 		if spaces && i > 0 {
 			fmt.Fprint(&b, " ")
 		}
-		fmt.Fprintf(&b, "%s", elem)
+		fmt.Fprintf(&b, "%s", elem.Sprint(conf))
 	}
 	return b.String()
 }
@@ -55,7 +61,7 @@ func (v Vector) Eval(Context) Value {
 	return v
 }
 
-func (v Vector) toType(which valueType) Value {
+func (v Vector) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case vectorType:
 		return v
@@ -100,13 +106,13 @@ func doRotate(dst, src []Value, j int) {
 }
 
 // grade returns as a Vector the indexes that sort the vector into increasing order
-func (v Vector) grade() Vector {
+func (v Vector) grade(c Context) Vector {
 	x := make([]int, len(v))
 	for i := range x {
 		x[i] = i
 	}
-	sort.Sort(&gradeIndex{v: v, x: x})
-	origin := conf.Origin()
+	sort.Sort(&gradeIndex{c: c, v: v, x: x})
+	origin := c.Config().Origin()
 	result := make([]Value, len(v))
 	for i, index := range x {
 		n := origin + index
@@ -144,6 +150,7 @@ func (v Vector) shrink() Value {
 }
 
 type gradeIndex struct {
+	c Context
 	v Vector
 	x []int
 }
@@ -153,7 +160,7 @@ func (g *gradeIndex) Len() int {
 }
 
 func (g *gradeIndex) Less(i, j int) bool {
-	return toBool(Binary(nil, g.v[g.x[i]], "<", g.v[g.x[j]])) // Ugly: nil context.
+	return toBool(Binary(g.c, g.v[g.x[i]], "<", g.v[g.x[j]]))
 }
 
 func (g *gradeIndex) Swap(i, j int) {

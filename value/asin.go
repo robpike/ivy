@@ -6,55 +6,55 @@ package value
 
 import "math/big"
 
-func asin(v Value) Value {
-	return evalFloatFunc(v, floatAsin)
+func asin(c Context, v Value) Value {
+	return evalFloatFunc(c, v, floatAsin)
 }
 
-func acos(v Value) Value {
-	return evalFloatFunc(v, floatAcos)
+func acos(c Context, v Value) Value {
+	return evalFloatFunc(c, v, floatAcos)
 }
 
-func atan(v Value) Value {
-	return evalFloatFunc(v, floatAtan)
+func atan(c Context, v Value) Value {
+	return evalFloatFunc(c, v, floatAtan)
 }
 
 // floatAsin computes asin(x) using the formula asin(x) = atan(x/sqrt(1-x²)).
-func floatAsin(x *big.Float) *big.Float {
+func floatAsin(c Context, x *big.Float) *big.Float {
 	// The asin Taylor series converges very slowly near ±1, but our
 	// atan implementation converges well for all values, so we use
 	// the formula above to compute asin. But be careful when |x|=1.
 	if x.Cmp(floatOne) == 0 {
-		z := newF().Set(floatPi)
+		z := newFloat(c).Set(floatPi)
 		return z.Quo(z, floatTwo)
 	}
 	if x.Cmp(floatMinusOne) == 0 {
-		z := newF().Set(floatPi)
+		z := newFloat(c).Set(floatPi)
 		z.Quo(z, floatTwo)
 		return z.Neg(z)
 	}
-	z := newF()
+	z := newFloat(c)
 	z.Mul(x, x)
 	z.Sub(floatOne, z)
-	z = floatSqrt(z)
+	z = floatSqrt(c, z)
 	z.Quo(x, z)
-	return floatAtan(z)
+	return floatAtan(c, z)
 }
 
 // floatAcos computes acos(x) as π/2 - asin(x).
-func floatAcos(x *big.Float) *big.Float {
+func floatAcos(c Context, x *big.Float) *big.Float {
 	// acos(x) = π/2 - asin(x)
-	z := newF().Set(floatPi)
-	z.Quo(z, newF().SetInt64(2))
-	return z.Sub(z, floatAsin(x))
+	z := newFloat(c).Set(floatPi)
+	z.Quo(z, newFloat(c).SetInt64(2))
+	return z.Sub(z, floatAsin(c, x))
 }
 
 // floatAtan computes atan(x) using a Taylor series. There are two series,
 // one for |x| < 1 and one for larger values.
-func floatAtan(x *big.Float) *big.Float {
+func floatAtan(c Context, x *big.Float) *big.Float {
 	// atan(-x) == -atan(x). Do this up top to simplify the Euler crossover calculation.
 	if x.Sign() < 0 {
-		z := newF().Set(x)
-		z = floatAtan(z.Neg(z))
+		z := newFloat(c).Set(x)
+		z = floatAtan(c, z.Neg(z))
 		return z.Neg(z)
 	}
 
@@ -73,41 +73,41 @@ func floatAtan(x *big.Float) *big.Float {
 	// crossover at 0.5, here are the number of iterations done by
 	//	atan .1*iota 20
 	// 0.1 39, 0.2 55, 0.3 73, 0.4 96, 0.5 126, 0.6 47, 0.7 59, 0.8 71, 0.9 85, 1.0 99, 1.1 116, 1.2 38, 1.3 44, 1.4 50, 1.5 213, 1.6 183, 1.7 163, 1.8 147, 1.9 135, 2.0 125
-	tmp := newF().Set(floatOne)
+	tmp := newFloat(c).Set(floatOne)
 	tmp.Sub(tmp, x)
 	tmp.Abs(tmp)
-	if tmp.Cmp(newF().SetFloat64(0.5)) < 0 {
-		z := newF().Set(floatPi)
-		z.Quo(z, newF().SetInt64(8))
-		y := floatSqrt(floatTwo)
+	if tmp.Cmp(newFloat(c).SetFloat64(0.5)) < 0 {
+		z := newFloat(c).Set(floatPi)
+		z.Quo(z, newFloat(c).SetInt64(8))
+		y := floatSqrt(c, floatTwo)
 		y.Sub(y, floatOne)
-		num := newF().Set(x)
+		num := newFloat(c).Set(x)
 		num.Sub(num, y)
-		den := newF().Set(x)
+		den := newFloat(c).Set(x)
 		den = den.Mul(den, y)
 		den = den.Add(den, floatOne)
-		z = z.Add(z, floatAtan(num.Quo(num, den)))
+		z = z.Add(z, floatAtan(c, num.Quo(num, den)))
 		return z
 	}
 
 	if x.Cmp(floatOne) > 0 {
-		return floatAtanLarge(x)
+		return floatAtanLarge(c, x)
 	}
 
 	// This is the series for small values |x| <  1.
 	// asin(x) = x - x³/3 + x⁵/5 - x⁷/7 + ...
 	// First term to compute in loop will be x
 
-	n := newF().Set(floatOne)
-	two := newF().SetInt64(2)
-	term := newF()
-	xN := newF().Set(x)
-	xSquared := newF().Set(x)
+	n := newFloat(c).Set(floatOne)
+	two := newFloat(c).SetInt64(2)
+	term := newFloat(c)
+	xN := newFloat(c).Set(x)
+	xSquared := newFloat(c).Set(x)
 	xSquared.Mul(x, x)
-	z := newF()
+	z := newFloat(c)
 	plus := true
 
-	loop := newLoop("atan", x, 4)
+	loop := newLoop(c.Config(), "atan", x, 4)
 	// n goes up by two each loop.
 	for {
 		term.Set(xN)
@@ -133,21 +133,21 @@ func floatAtan(x *big.Float) *big.Float {
 
 // floatAtanLarge computes atan(x)  for large x using a Taylor series.
 // x is known to be > 1.
-func floatAtanLarge(x *big.Float) *big.Float {
+func floatAtanLarge(c Context, x *big.Float) *big.Float {
 	// This is the series for larger values |x| >=  1.
 	// For x > 0, atan(x) = +π/2 - 1/x + 1/3x³ -1/5x⁵ + 1/7x⁷ - ...
 	// First term to compute in loop will be -1/x
 
-	n := newF().Set(floatOne)
-	term := newF()
-	xN := newF().Set(x)
-	xSquared := newF().Set(x)
+	n := newFloat(c).Set(floatOne)
+	term := newFloat(c)
+	xN := newFloat(c).Set(x)
+	xSquared := newFloat(c).Set(x)
 	xSquared.Mul(x, x)
-	z := newF().Set(floatPi)
+	z := newFloat(c).Set(floatPi)
 	z.Quo(z, floatTwo)
 	plus := false
 
-	loop := newLoop("atan", x, 4)
+	loop := newLoop(c.Config(), "atan", x, 4)
 	// n goes up by two each loop.
 	for {
 		term.Set(xN)

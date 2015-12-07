@@ -13,7 +13,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/value"
 )
@@ -70,7 +69,6 @@ type stateFn func(*Scanner) stateFn
 // Scanner holds the state of the scanner.
 type Scanner struct {
 	tokens     chan Token // channel of scanned items
-	config     *config.Config
 	context    value.Context
 	r          io.ByteReader
 	done       bool
@@ -142,8 +140,9 @@ func (l *Scanner) emit(t Type) {
 		l.line++
 	}
 	s := l.input[l.start:l.pos]
-	if l.config.Debug("tokens") {
-		fmt.Fprintf(l.config.Output(), "%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, s})
+	config := l.context.Config()
+	if config.Debug("tokens") {
+		fmt.Fprintf(config.Output(), "%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, s})
 	}
 	l.tokens <- Token{t, l.line, s}
 	l.start = l.pos
@@ -178,13 +177,12 @@ func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
 }
 
 // New creates a new scanner for the input string.
-func New(conf *config.Config, context value.Context, name string, r io.ByteReader) *Scanner {
+func New(context value.Context, name string, r io.ByteReader) *Scanner {
 	l := &Scanner{
 		r:       r,
 		name:    name,
 		line:    1,
 		tokens:  make(chan Token, 2), // We need a little room to save tokens.
-		config:  conf,
 		context: context,
 		state:   lexAny,
 	}
@@ -334,7 +332,7 @@ Loop:
 				return lexOperator
 			case word == "op":
 				l.emit(Op)
-			case isAllDigits(word, l.config.InputBase()):
+			case isAllDigits(word, l.context.Config().InputBase()):
 				l.emit(Number)
 			default:
 				l.emit(Identifier)
@@ -440,7 +438,7 @@ func lexNumber(l *Scanner) stateFn {
 			l.emit(Operator)
 			return lexAny
 		}
-		if r != '.' && !isNumeral(r, l.config.InputBase()) {
+		if r != '.' && !isNumeral(r, l.context.Config().InputBase()) {
 			l.emit(Operator)
 			return lexAny
 		}
@@ -455,7 +453,7 @@ func lexNumber(l *Scanner) stateFn {
 	// Might be a rational.
 	l.accept("/")
 
-	if r := l.peek(); r != '.' && !isNumeral(r, l.config.InputBase()) {
+	if r := l.peek(); r != '.' && !isNumeral(r, l.context.Config().InputBase()) {
 		// Oops, not a number. Hack!
 		l.pos-- // back up before '/'
 		l.emit(Number)
@@ -471,7 +469,7 @@ func lexNumber(l *Scanner) stateFn {
 }
 
 func (l *Scanner) scanNumber() bool {
-	base := l.config.InputBase()
+	base := l.context.Config().InputBase()
 	digits := digitsForBase(base)
 	// If base 0, acccept octal for 0 or hex for 0x or 0X.
 	if base == 0 {

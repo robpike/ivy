@@ -18,23 +18,15 @@ import (
 	"robpike.io/ivy/value"
 )
 
-var (
-	conf *config.Config
-)
-
 func init() {
 	value.IvyEval = IvyEval
-}
-
-func SetConfig(config *config.Config) {
-	conf = config
 }
 
 // IvyEval is the function called by value/unaryIvy to implement the ivy (eval) operation.
 // It is exported but is not intended to be used outside of ivy.
 func IvyEval(context value.Context, str string) value.Value {
-	scanner := scan.New(conf, context, "<ivy>", strings.NewReader(str))
-	parser := parse.NewParser(conf, "<ivy>", scanner, context)
+	scanner := scan.New(context, "<ivy>", strings.NewReader(str))
+	parser := parse.NewParser("<ivy>", scanner, context)
 	return eval(parser, context)
 }
 
@@ -44,6 +36,7 @@ func IvyEval(context value.Context, str string) value.Value {
 // Typical execution is therefore to loop calling Run until it succeeds.
 // Error details are reported to the configured error output stream.
 func Run(p *parse.Parser, context value.Context, interactive bool) (success bool) {
+	conf := context.Config()
 	writer := conf.Output()
 	defer func() {
 		if conf.Debug("panic") {
@@ -74,7 +67,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 			values = context.Eval(exprs)
 		}
 		if values != nil {
-			printValues(writer, values)
+			printValues(conf, writer, values)
 			context.Assign("_", values[len(values)-1])
 		}
 		if !ok {
@@ -92,6 +85,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 // It is always called from (somewhere below) run, so if it errors out the recover in
 // run will catch it.
 func eval(p *parse.Parser, context value.Context) value.Value {
+	conf := context.Config()
 	writer := conf.Output()
 	var prevValues []value.Value
 	for {
@@ -104,17 +98,17 @@ func eval(p *parse.Parser, context value.Context) value.Value {
 			if len(prevValues) == 0 {
 				return nil
 			}
-			printValues(writer, prevValues[:len(prevValues)-1])
+			printValues(conf, writer, prevValues[:len(prevValues)-1])
 			return prevValues[len(prevValues)-1]
 		}
-		printValues(writer, prevValues)
+		printValues(conf, writer, prevValues)
 		prevValues = values
 	}
 }
 
 // printValues neatly prints the values returned from execution, followed by a newline.
 // It also handles the ')debug types' output.
-func printValues(writer io.Writer, values []value.Value) {
+func printValues(conf *config.Config, writer io.Writer, values []value.Value) {
 	if len(values) == 0 {
 		return
 	}
@@ -128,7 +122,7 @@ func printValues(writer io.Writer, values []value.Value) {
 		fmt.Fprintln(writer)
 	}
 	for i, v := range values {
-		s := v.String()
+		s := v.Sprint(conf)
 		if i > 0 && len(s) > 0 && s[len(s)-1] != '\n' {
 			fmt.Fprint(writer, " ")
 		}

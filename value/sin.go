@@ -6,24 +6,24 @@ package value
 
 import "math/big"
 
-func sin(v Value) Value {
-	return evalFloatFunc(v, floatSin)
+func sin(c Context, v Value) Value {
+	return evalFloatFunc(c, v, floatSin)
 }
 
-func cos(v Value) Value {
-	return evalFloatFunc(v, floatCos)
+func cos(c Context, v Value) Value {
+	return evalFloatFunc(c, v, floatCos)
 }
 
-func tan(v Value) Value {
-	x := floatSelf(nil, v).(BigFloat).Float
+func tan(c Context, v Value) Value {
+	x := floatSelf(c, v).(BigFloat).Float
 	negate := false
 	if x.Sign() < 0 {
 		x.Neg(x)
 		negate = true
 	}
-	twoPiReduce(x)
-	num := floatSin(x)
-	den := floatCos(x)
+	twoPiReduce(c, x)
+	num := floatSin(c, x)
+	den := floatCos(c, x)
 	if den.Sign() == 0 {
 		Errorf("tangent is infinite")
 	}
@@ -35,20 +35,20 @@ func tan(v Value) Value {
 }
 
 // floatSin computes sin(x) using argument reduction and a Taylor series.
-func floatSin(x *big.Float) *big.Float {
+func floatSin(c Context, x *big.Float) *big.Float {
 	negate := false
 	if x.Sign() < 0 {
 		x.Neg(x)
 		negate = true
 	}
-	twoPiReduce(x)
+	twoPiReduce(c, x)
 
 	// sin(x) = x - x³/3! + x⁵/5! - ...
 	// First term to compute in loop will be -x³/3!
-	exponent := newF().SetInt64(3)
-	factorial := newF().SetInt64(6)
+	exponent := newFloat(c).SetInt64(3)
+	factorial := newFloat(c).SetInt64(6)
 
-	result := sincos("sin", 3, x, newF().Set(x), exponent, factorial)
+	result := sincos("sin", c, 3, x, newFloat(c).Set(x), exponent, factorial)
 
 	if negate {
 		result.Neg(result)
@@ -58,28 +58,28 @@ func floatSin(x *big.Float) *big.Float {
 }
 
 // floatCos computes cos(x) using argument reduction and a Taylor series.
-func floatCos(x *big.Float) *big.Float {
-	twoPiReduce(x)
+func floatCos(c Context, x *big.Float) *big.Float {
+	twoPiReduce(c, x)
 
 	// cos(x) = 1 - x²/2! + x⁴/4! - ...
 	// First term to compute in loop will be -x²/2!.
-	exponent := newF().Set(floatTwo)
-	factorial := newF().Set(floatTwo)
+	exponent := newFloat(c).Set(floatTwo)
+	factorial := newFloat(c).Set(floatTwo)
 
-	return sincos("cos", 2, x, newF().SetInt64(1), exponent, factorial)
+	return sincos("cos", c, 2, x, newFloat(c).SetInt64(1), exponent, factorial)
 }
 
 // sincos iterates a sin or cos Taylor series.
-func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.Float {
+func sincos(name string, c Context, index int, x, z, exponent, factorial *big.Float) *big.Float {
 	plus := false
-	term := newF().Set(floatOne)
+	term := newFloat(c).Set(floatOne)
 	for j := 0; j < index; j++ {
 		term.Mul(term, x)
 	}
-	xN := newF().Set(term)
-	x2 := newF().Mul(x, x)
+	xN := newFloat(c).Set(term)
+	x2 := newFloat(c).Mul(x, x)
 
-	loop := newLoop(name, x, 4)
+	loop := newLoop(c.Config(), name, x, 4)
 	for {
 		// Invariant: factorial holds exponent!.
 		term.Quo(term, factorial)
@@ -106,21 +106,21 @@ func sincos(name string, index int, x, z, exponent, factorial *big.Float) *big.F
 }
 
 // twoPiReduce guarantees x < 2π; x is known to be >= 0 coming in.
-func twoPiReduce(x *big.Float) {
+func twoPiReduce(c Context, x *big.Float) {
 	// TODO: Is there an easy better algorithm?
-	twoPi := newF().Set(floatTwo)
+	twoPi := newFloat(c).Set(floatTwo)
 	twoPi.Mul(twoPi, floatPi)
 	// Do something clever(er) if it's large.
-	if x.Cmp(newF().SetInt64(1000)) > 0 {
+	if x.Cmp(newFloat(c).SetInt64(1000)) > 0 {
 		multiples := make([]*big.Float, 0, 100)
-		sixteen := newF().SetInt64(16)
-		multiple := newF().Set(twoPi)
+		sixteen := newFloat(c).SetInt64(16)
+		multiple := newFloat(c).Set(twoPi)
 		for {
 			multiple.Mul(multiple, sixteen)
 			if x.Cmp(multiple) < 0 {
 				break
 			}
-			multiples = append(multiples, newF().Set(multiple))
+			multiples = append(multiples, newFloat(c).Set(multiple))
 		}
 		// From the right, subtract big multiples.
 		for i := len(multiples) - 1; i >= 0; i-- {

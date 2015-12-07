@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
@@ -221,7 +220,6 @@ func (b *binary) Eval(context value.Context) value.Value {
 // Parser stores the state for the ivy parser.
 type Parser struct {
 	scanner    *scan.Scanner
-	config     *config.Config
 	fileName   string
 	lineNum    int
 	errorCount int // Number of errors.
@@ -234,10 +232,9 @@ var zero = value.Int(0)
 
 // NewParser returns a new parser that will read from the scanner.
 // The context must have have been created by this package's NewContext function.
-func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner, context value.Context) *Parser {
+func NewParser(fileName string, scanner *scan.Scanner, context value.Context) *Parser {
 	return &Parser{
 		scanner:  scanner,
-		config:   conf,
 		fileName: fileName,
 		context:  context.(*exec.Context),
 	}
@@ -245,12 +242,12 @@ func NewParser(conf *config.Config, fileName string, scanner *scan.Scanner, cont
 
 // Printf formats the args and writes them to the configured output writer.
 func (p *Parser) Printf(format string, args ...interface{}) {
-	fmt.Fprintf(p.config.Output(), format, args...)
+	fmt.Fprintf(p.context.Config().Output(), format, args...)
 }
 
 // Println prints the args and writes them to the configured output writer.
 func (p *Parser) Println(args ...interface{}) {
-	fmt.Fprintln(p.config.Output(), args...)
+	fmt.Fprintln(p.context.Config().Output(), args...)
 }
 
 func (p *Parser) next() scan.Token {
@@ -354,7 +351,7 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 	default:
 		p.errorf("unexpected %s", tok)
 	}
-	if len(exprs) > 0 && p.config.Debug("parse") {
+	if len(exprs) > 0 && p.context.Config().Debug("parse") {
 		p.Println(tree(exprs))
 	}
 	return exprs, ok
@@ -513,7 +510,7 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 	case scan.String:
 		str = value.ParseString(text)
 	case scan.Number, scan.Rational:
-		expr, err = value.Parse(text)
+		expr, err = value.Parse(p.context.Config(), text)
 	case scan.LeftParen:
 		expr = p.expr(p.next())
 		tok := p.next()

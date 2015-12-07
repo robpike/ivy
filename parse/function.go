@@ -114,7 +114,7 @@ func (p *Parser) functionDefn() {
 			p.Printf("warning: definition of %s is recursive\n", fn.Name)
 		}
 	}
-	if p.config.Debug("parse") {
+	if p.context.Config().Debug("parse") {
 		p.Printf("op %s %s %s = %s\n", fn.Left, fn.Name, fn.Right, tree(fn.Body))
 	}
 }

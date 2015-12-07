@@ -52,8 +52,8 @@ func Eval(expr string) (result string, errors error) {
 	conf.SetOutput(stdout)
 	conf.SetErrOutput(stderr)
 
-	scanner := scan.New(&conf, context, " ", reader)
-	parser := parse.NewParser(&conf, " ", scanner, context)
+	scanner := scan.New(context, " ", reader)
+	parser := parse.NewParser(" ", scanner, context)
 
 	for !run.Run(parser, context, false) {
 	}
@@ -100,10 +100,7 @@ func Reset() {
 	conf.SetPrompt("")
 	conf.SetBase(0, 0)
 	conf.SetRandomSeed(0)
-	value.SetConfig(&conf)
-	context = exec.NewContext()
-	value.SetContext(context)
-	run.SetConfig(&conf)
+	context = exec.NewContext(&conf)
 }
 
 // Help returns the help page formatted in HTML.

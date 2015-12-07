@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+
+	"robpike.io/ivy/config"
 )
 
 type BigRat struct {
@@ -17,7 +19,7 @@ type BigRat struct {
 
 // The input is known to be in floating-point syntax.
 // If there's a slash, the parsing is done in Parse().
-func setBigRatFromFloatString(s string) (br BigRat, err error) {
+func setBigRatFromFloatString(_ *config.Config, s string) (br BigRat, err error) {
 	// Be safe: Verify that it is floating-point, because otherwise
 	// we need to honor ibase.
 	if !strings.ContainsAny(s, ".eE") {
@@ -33,6 +35,10 @@ func setBigRatFromFloatString(s string) (br BigRat, err error) {
 }
 
 func (r BigRat) String() string {
+	return "(" + r.Sprint(debugConf) + ")"
+}
+
+func (r BigRat) Sprint(conf *config.Config) string {
 	format := conf.Format()
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
@@ -43,7 +49,7 @@ func (r BigRat) String() string {
 	}
 	num := BigInt{r.Num()}
 	den := BigInt{r.Denom()}
-	return fmt.Sprintf("%s/%s", num, den)
+	return fmt.Sprintf("%s/%s", num.Sprint(conf), den.Sprint(conf))
 }
 
 func (r BigRat) ProgString() string {
@@ -161,7 +167,7 @@ func (r BigRat) Eval(Context) Value {
 	return r
 }
 
-func (r BigRat) toType(which valueType) Value {
+func (r BigRat) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case bigRatType:
 		return r

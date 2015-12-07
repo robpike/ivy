@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+
+	"robpike.io/ivy/config"
 )
 
 /*
@@ -63,6 +65,10 @@ func (m Matrix) write2d(b *bytes.Buffer, value []string, width int) {
 }
 
 func (m Matrix) String() string {
+	return "(" + m.Sprint(debugConf) + ")"
+}
+
+func (m Matrix) Sprint(conf *config.Config) string {
 	var b bytes.Buffer
 	switch len(m.shape) {
 	case 0:
@@ -81,7 +87,7 @@ func (m Matrix) String() string {
 				if i > 0 {
 					b.WriteByte('\n')
 				}
-				fmt.Fprintf(&b, "%s", m.data[i*ncols:(i+1)*ncols])
+				fmt.Fprintf(&b, "%s", m.data[i*ncols:(i+1)*ncols].Sprint(conf))
 			}
 			break
 		}
@@ -90,7 +96,7 @@ func (m Matrix) String() string {
 		// Will need some rethinking when decimal points
 		// can appear.
 		// Vector.String does what we want for the first part.
-		strs := strings.Split(m.data.makeString(true), " ")
+		strs := strings.Split(m.data.makeString(conf, true), " ")
 		wid := 1
 		for _, s := range strs {
 			if wid < len(s) {
@@ -108,14 +114,14 @@ func (m Matrix) String() string {
 				if i > 0 {
 					b.WriteString("\n\n")
 				}
-				fmt.Fprintf(&b, "%s", NewMatrix(m.shape[1:], m.data[index:index+elemSize]))
+				fmt.Fprintf(&b, "%s", NewMatrix(m.shape[1:], m.data[index:index+elemSize]).Sprint(conf))
 				index += elemSize
 			}
 			break
 		}
 		// As for 2d: print the vector elements, compute the
 		// global width, and use that to print each 2d submatrix.
-		strs := strings.Split(m.data.String(), " ")
+		strs := strings.Split(m.data.Sprint(conf), " ")
 		wid := 1
 		for _, s := range strs {
 			if wid < len(s) {
@@ -137,7 +143,7 @@ func (m Matrix) String() string {
 			start += size
 		}
 	default:
-		return m.higherDim("[", 0)
+		return m.higherDim(conf, "[", 0)
 	}
 	return b.String()
 }
@@ -147,9 +153,9 @@ func (m Matrix) ProgString() string {
 	panic("matrix.ProgString - cannot happen")
 }
 
-func (m Matrix) higherDim(prefix string, indentation int) string {
+func (m Matrix) higherDim(conf *config.Config, prefix string, indentation int) string {
 	if len(m.shape) <= 3 {
-		return indent(indentation, m.String())
+		return indent(indentation, m.Sprint(conf))
 	}
 	dim := int(m.shape[0].(Int))
 	rest := strings.Repeat(" *", len(m.shape)-1)[1:]
@@ -164,7 +170,7 @@ func (m Matrix) higherDim(prefix string, indentation int) string {
 		}
 		innerPrefix := fmt.Sprintf("%s%d ", prefix, i+conf.Origin())
 		b.WriteString(indent(indentation, "%s%s]:\n", innerPrefix, rest))
-		b.WriteString(inner.higherDim(innerPrefix, indentation+1))
+		b.WriteString(inner.higherDim(conf, innerPrefix, indentation+1))
 	}
 	return b.String()
 }
@@ -251,7 +257,7 @@ func (m Matrix) Eval(Context) Value {
 	return m
 }
 
-func (m Matrix) toType(which valueType) Value {
+func (m Matrix) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case matrixType:
 		return m

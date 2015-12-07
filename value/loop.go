@@ -4,7 +4,11 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+
+	"robpike.io/ivy/config"
+)
 
 type loop struct {
 	name          string     // The name of the function we are evaluating.
@@ -22,14 +26,14 @@ type loop struct {
 // the maximum number of iterations to perform before giving up.
 // The last number in terms of iterations per bit, so the caller can
 // ignore the precision setting.
-func newLoop(name string, x *big.Float, itersPerBit uint) *loop {
+func newLoop(conf *config.Config, name string, x *big.Float, itersPerBit uint) *loop {
 	return &loop{
 		name:          name,
-		start:         newF().Set(x),
+		start:         newF(conf).Set(x),
 		maxIterations: 10 + itersPerBit*conf.FloatPrec(),
-		prevZ:         newF(),
-		delta:         newF().Set(x),
-		prevDelta:     newF(),
+		prevZ:         newF(conf),
+		delta:         newF(conf).Set(x),
+		prevDelta:     newF(conf),
 	}
 }
 

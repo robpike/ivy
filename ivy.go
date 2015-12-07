@@ -63,11 +63,7 @@ func main() {
 		}
 	}
 
-	value.SetConfig(&conf)
-	context = exec.NewContext()
-	value.SetContext(context)
-
-	run.SetConfig(&conf)
+	context = exec.NewContext(&conf)
 
 	if *execute {
 		runArgs(context)
@@ -91,8 +87,8 @@ func main() {
 				fmt.Fprintf(os.Stderr, "ivy: %s\n", err)
 				os.Exit(1)
 			}
-			scanner := scan.New(&conf, context, name, bufio.NewReader(fd))
-			parser := parse.NewParser(&conf, name, scanner, context)
+			scanner := scan.New(context, name, bufio.NewReader(fd))
+			parser := parse.NewParser(name, scanner, context)
 			if !run.Run(parser, context, interactive) {
 				break
 			}
@@ -100,16 +96,16 @@ func main() {
 		return
 	}
 
-	scanner := scan.New(&conf, context, "<stdin>", bufio.NewReader(os.Stdin))
-	parser := parse.NewParser(&conf, "<stdin>", scanner, context)
+	scanner := scan.New(context, "<stdin>", bufio.NewReader(os.Stdin))
+	parser := parse.NewParser("<stdin>", scanner, context)
 	for !run.Run(parser, context, true) {
 	}
 }
 
 // runArgs executes the text of the command-line arguments as an ivy program.
 func runArgs(context value.Context) {
-	scanner := scan.New(&conf, context, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
-	parser := parse.NewParser(&conf, "<args>", scanner, context)
+	scanner := scan.New(context, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
+	parser := parse.NewParser("<args>", scanner, context)
 	run.Run(parser, context, false)
 }
 

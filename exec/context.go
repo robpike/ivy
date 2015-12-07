@@ -4,7 +4,10 @@
 
 package exec
 
-import "robpike.io/ivy/value"
+import (
+	"robpike.io/ivy/config"
+	"robpike.io/ivy/value"
+)
 
 // Symtab is a symbol table, a map of names to values.
 type Symtab map[string]value.Value
@@ -13,6 +16,10 @@ type Symtab map[string]value.Value
 // It is the only implementation of ../value/Context, but since it references the value
 // package, there would be a cycle if that package depended on this type definition.
 type Context struct {
+	// config is the configuration state used for evaluation, printing, etc.
+	// Accessed through the value.Context Config method.
+	config *config.Config
+
 	// Stack is a stack of symbol tables, one entry per function (op) invocation,
 	// plus the 0th one at the base.
 	Stack []Symtab
@@ -27,9 +34,11 @@ type Context struct {
 	variables []string
 }
 
-// NewContext returns a new execution context: the stack and variables.
-func NewContext() value.Context {
+// NewContext returns a new execution context: the stack and variables,
+// plus the execution configuration.
+func NewContext(conf *config.Config) value.Context {
 	c := &Context{
+		config:   conf,
 		Stack:    []Symtab{make(Symtab)},
 		UnaryFn:  make(map[string]*Function),
 		BinaryFn: make(map[string]*Function),
@@ -38,11 +47,15 @@ func NewContext() value.Context {
 	return c
 }
 
+func (c *Context) Config() *config.Config {
+	return c.config
+}
+
 // SetConstants re-assigns the fundamental constant values using the current
 // setting of floating-point precision.
 func (c *Context) SetConstants() {
 	syms := c.Stack[0]
-	syms["e"], syms["pi"] = value.Consts()
+	syms["e"], syms["pi"] = value.Consts(c)
 }
 
 // Lookup returns the value of a symbol.

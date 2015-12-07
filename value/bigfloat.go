@@ -5,9 +5,10 @@
 package value
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
+
+	"robpike.io/ivy/config"
 )
 
 type BigFloat struct {
@@ -22,17 +23,13 @@ type BigFloat struct {
 // This is ugly but very simple and cheap.
 func (i BigFloat) Format() {}
 
-func setBigFloatString(s string) (BigFloat, error) {
-	f, ok := new(big.Float).SetPrec(conf.FloatPrec()).SetString(s)
-	if !ok {
-		return BigFloat{}, errors.New("float parse error")
-	}
-	return BigFloat{f}, nil
-}
-
 const fastFloatPrint = true
 
 func (f BigFloat) String() string {
+	return "(" + f.Sprint(debugConf) + ")"
+}
+
+func (f BigFloat) Sprint(conf *config.Config) string {
 	var mant big.Float
 	exp := f.Float.MantExp(&mant)
 	positive := 1
@@ -64,7 +61,7 @@ func (f BigFloat) String() string {
 		if verb == 'E' || verb == 'G' {
 			eChar = 'E'
 		}
-		fexp := newF().SetInt64(int64(exp))
+		fexp := newF(conf).SetInt64(int64(exp))
 		fexp.Mul(fexp, floatLog2)
 		fexp.Quo(fexp, floatLog10)
 		// We now have a floating-point base 10 exponent.
@@ -72,17 +69,17 @@ func (f BigFloat) String() string {
 		// The integer part is what we will show.
 		// The 10**(fractional part) will be multiplied back in.
 		iexp, _ := fexp.Int(nil)
-		fraction := fexp.Sub(fexp, newF().SetInt(iexp))
+		fraction := fexp.Sub(fexp, newF(conf).SetInt(iexp))
 		// Now compute 10**(fractional part).
 		// Fraction is in base 10. Move it to base e.
 		fraction.Mul(fraction, floatLog10)
-		scale := exponential(fraction)
+		scale := exponential(conf, fraction)
 		if positive > 0 {
 			mant.Mul(&mant, scale)
 		} else {
 			mant.Quo(&mant, scale)
 		}
-		ten := newF().SetInt64(10)
+		ten := newF(conf).SetInt64(10)
 		i64exp := iexp.Int64()
 		// For numbers not too far from one, print without the E notation.
 		// Shouldn't happen (exp must be large to get here) but just
@@ -130,7 +127,7 @@ func (f BigFloat) Eval(Context) Value {
 	return f
 }
 
-func (f BigFloat) toType(which valueType) Value {
+func (f BigFloat) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case bigFloatType:
 		return f
@@ -143,11 +140,9 @@ func (f BigFloat) toType(which valueType) Value {
 	return nil
 }
 
-var floatTmp big.Float // For use in shrink only!. TODO: Delete this and use nil when possible.
-
 // shrink shrinks, if possible, a BigFloat down to an integer type.
 func (f BigFloat) shrink() Value {
-	exp := f.MantExp(&floatTmp)
+	exp := f.MantExp(nil)
 	if exp <= 100 && f.IsInt() { // Huge integers are not pretty. (Exp here is power of two.)
 		i, _ := f.Int(nil) // Result guaranteed exact.
 		return BigInt{i}.shrink()

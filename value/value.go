@@ -12,14 +12,14 @@ import (
 	"robpike.io/ivy/config"
 )
 
-var conf *config.Config
-
-func SetConfig(c *config.Config) {
-	conf = c
-}
+var debugConf = &config.Config{} // For debugging, e.g. to call a String method.
 
 type Value interface {
+	// String is for internal debugging only. It uses default configuration
+	// and puts parentheses around every value so it's clear when it is used.
+	// All user output should call Sprint instead.
 	String() string
+	Sprint(*config.Config) string
 	Eval(Context) Value
 
 	// ProgString is like String, but suitable for program listing.
@@ -27,7 +27,7 @@ type Value interface {
 	// puts quotes on chars, guaranteeing a correct representation.
 	ProgString() string
 
-	toType(valueType) Value
+	toType(*config.Config, valueType) Value
 }
 
 // Error is the type we recognize as a recoverable run-time error.
@@ -42,18 +42,18 @@ func Errorf(format string, args ...interface{}) {
 	panic(Error(fmt.Sprintf(format, args...)))
 }
 
-func Parse(s string) (Value, error) {
+func Parse(conf *config.Config, s string) (Value, error) {
 	// Is it a rational? If so, it's tricky.
 	if strings.ContainsRune(s, '/') {
 		elems := strings.Split(s, "/")
 		if len(elems) != 2 {
 			panic("bad rat")
 		}
-		num, err := Parse(elems[0])
+		num, err := Parse(conf, elems[0])
 		if err != nil {
 			return nil, err
 		}
-		den, err := Parse(elems[1])
+		den, err := Parse(conf, elems[1])
 		if err != nil {
 			return nil, err
 		}
@@ -62,23 +62,23 @@ func Parse(s string) (Value, error) {
 			return bigRatTwoInt64s(int64(num.(Int)), int64(den.(Int))).shrink(), nil
 		}
 		// General mix-em-up.
-		rden := den.toType(bigRatType)
+		rden := den.toType(conf, bigRatType)
 		if rden.(BigRat).Sign() == 0 {
 			Errorf("zero denominator in rational")
 		}
-		return binaryBigRatOp(num.toType(bigRatType), (*big.Rat).Quo, rden), nil
+		return binaryBigRatOp(num.toType(conf, bigRatType), (*big.Rat).Quo, rden), nil
 	}
 	// Not a rational, but might be something like 1.3e-2 and therefore
 	// become a rational.
-	i, err := setIntString(s)
+	i, err := setIntString(conf, s)
 	if err == nil {
 		return i, nil
 	}
-	b, err := setBigIntString(s)
+	b, err := setBigIntString(conf, s)
 	if err == nil {
 		return b.shrink(), nil
 	}
-	r, err := setBigRatFromFloatString(s) // We know there is no slash.
+	r, err := setBigRatFromFloatString(conf, s) // We know there is no slash.
 	if err == nil {
 		return r.shrink(), nil
 	}
@@ -93,7 +93,7 @@ func bigRatInt64(x int64) BigRat {
 	return bigRatTwoInt64s(x, 1)
 }
 
-func bigFloatInt64(x int64) BigFloat {
+func bigFloatInt64(conf *config.Config, x int64) BigFloat {
 	return BigFloat{new(big.Float).SetPrec(conf.FloatPrec()).SetInt64(x)}
 }
 
