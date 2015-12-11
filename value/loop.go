@@ -12,8 +12,8 @@ import (
 
 type loop struct {
 	name          string     // The name of the function we are evaluating.
-	i             uint       // Loop count.
-	maxIterations uint       // When to give up.
+	i             uint64     // Loop count.
+	maxIterations uint64     // When to give up.
 	stallCount    int        // Iterations since |delta| changed.
 	start         *big.Float // starting value.
 	prevZ         *big.Float // Result from the previous iteration.
@@ -30,16 +30,16 @@ func newLoop(conf *config.Config, name string, x *big.Float, itersPerBit uint) *
 	return &loop{
 		name:          name,
 		start:         newF(conf).Set(x),
-		maxIterations: 10 + itersPerBit*conf.FloatPrec(),
+		maxIterations: 10 + uint64(itersPerBit*conf.FloatPrec()),
 		prevZ:         newF(conf),
 		delta:         newF(conf).Set(x),
 		prevDelta:     newF(conf),
 	}
 }
 
-// terminate reports whether the loop is done. If it does not converge
+// done reports whether the loop is done. If it does not converge
 // after the maximum number of iterations, it errors out.
-func (l *loop) terminate(z *big.Float) bool {
+func (l *loop) done(z *big.Float) bool {
 	l.delta.Sub(l.prevZ, z)
 	if l.delta.Sign() == 0 {
 		return true

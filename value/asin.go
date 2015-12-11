@@ -98,8 +98,7 @@ func floatAtan(c Context, x *big.Float) *big.Float {
 	// asin(x) = x - x³/3 + x⁵/5 - x⁷/7 + ...
 	// First term to compute in loop will be x
 
-	n := newFloat(c).Set(floatOne)
-	two := newFloat(c).SetInt64(2)
+	n := newFloat(c)
 	term := newFloat(c)
 	xN := newFloat(c).Set(x)
 	xSquared := newFloat(c).Set(x)
@@ -107,11 +106,10 @@ func floatAtan(c Context, x *big.Float) *big.Float {
 	z := newFloat(c)
 	plus := true
 
-	loop := newLoop(c.Config(), "atan", x, 4)
 	// n goes up by two each loop.
-	for {
+	for loop := newLoop(c.Config(), "atan", x, 4); ; {
 		term.Set(xN)
-		term.Quo(term, n)
+		term.Quo(term, n.SetUint64(2*(loop.i+1)))
 		if plus {
 			z.Add(z, term)
 		} else {
@@ -119,11 +117,9 @@ func floatAtan(c Context, x *big.Float) *big.Float {
 		}
 		plus = !plus
 
-		if loop.terminate(z) {
+		if loop.done(z) {
 			break
 		}
-		// Advance.
-		n.Add(n, two)
 		// xN *= x², becoming x**(n+2).
 		xN.Mul(xN, xSquared)
 	}
@@ -138,7 +134,7 @@ func floatAtanLarge(c Context, x *big.Float) *big.Float {
 	// For x > 0, atan(x) = +π/2 - 1/x + 1/3x³ -1/5x⁵ + 1/7x⁷ - ...
 	// First term to compute in loop will be -1/x
 
-	n := newFloat(c).Set(floatOne)
+	n := newFloat(c)
 	term := newFloat(c)
 	xN := newFloat(c).Set(x)
 	xSquared := newFloat(c).Set(x)
@@ -147,11 +143,10 @@ func floatAtanLarge(c Context, x *big.Float) *big.Float {
 	z.Quo(z, floatTwo)
 	plus := false
 
-	loop := newLoop(c.Config(), "atan", x, 4)
 	// n goes up by two each loop.
-	for {
+	for loop := newLoop(c.Config(), "atan", x, 4); ; {
 		term.Set(xN)
-		term.Mul(term, n)
+		term.Mul(term, n.SetUint64(2*(loop.i+1)))
 		term.Quo(floatOne, term)
 		if plus {
 			z.Add(z, term)
@@ -160,11 +155,9 @@ func floatAtanLarge(c Context, x *big.Float) *big.Float {
 		}
 		plus = !plus
 
-		if loop.terminate(z) {
+		if loop.done(z) {
 			break
 		}
-		// Advance.
-		n.Add(n, floatTwo)
 		// xN *= x², becoming x**(n+2).
 		xN.Mul(xN, xSquared)
 	}

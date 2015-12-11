@@ -45,10 +45,9 @@ func floatSin(c Context, x *big.Float) *big.Float {
 
 	// sin(x) = x - x³/3! + x⁵/5! - ...
 	// First term to compute in loop will be -x³/3!
-	exponent := newFloat(c).SetInt64(3)
 	factorial := newFloat(c).SetInt64(6)
 
-	result := sincos("sin", c, 3, x, newFloat(c).Set(x), exponent, factorial)
+	result := sincos("sin", c, 3, x, newFloat(c).Set(x), 3, factorial)
 
 	if negate {
 		result.Neg(result)
@@ -63,14 +62,13 @@ func floatCos(c Context, x *big.Float) *big.Float {
 
 	// cos(x) = 1 - x²/2! + x⁴/4! - ...
 	// First term to compute in loop will be -x²/2!.
-	exponent := newFloat(c).Set(floatTwo)
 	factorial := newFloat(c).Set(floatTwo)
 
-	return sincos("cos", c, 2, x, newFloat(c).SetInt64(1), exponent, factorial)
+	return sincos("cos", c, 2, x, newFloat(c).SetInt64(1), 2, factorial)
 }
 
 // sincos iterates a sin or cos Taylor series.
-func sincos(name string, c Context, index int, x, z, exponent, factorial *big.Float) *big.Float {
+func sincos(name string, c Context, index int, x *big.Float, z *big.Float, exp uint64, factorial *big.Float) *big.Float {
 	plus := false
 	term := newFloat(c).Set(floatOne)
 	for j := 0; j < index; j++ {
@@ -78,9 +76,9 @@ func sincos(name string, c Context, index int, x, z, exponent, factorial *big.Fl
 	}
 	xN := newFloat(c).Set(term)
 	x2 := newFloat(c).Mul(x, x)
+	n := newFloat(c)
 
-	loop := newLoop(c.Config(), name, x, 4)
-	for {
+	for loop := newLoop(c.Config(), name, x, 4); ; {
 		// Invariant: factorial holds exponent!.
 		term.Quo(term, factorial)
 		if plus {
@@ -90,17 +88,16 @@ func sincos(name string, c Context, index int, x, z, exponent, factorial *big.Fl
 		}
 		plus = !plus
 
-		if loop.terminate(z) {
+		if loop.done(z) {
 			break
 		}
 		// Advance x**index (multiply by x²).
 		term.Mul(xN, x2)
 		xN.Set(term)
-		// Advance exponent and factorial.
-		exponent.Add(exponent, floatOne)
-		factorial.Mul(factorial, exponent)
-		exponent.Add(exponent, floatOne)
-		factorial.Mul(factorial, exponent)
+		// Advance factorial.
+		factorial.Mul(factorial, n.SetUint64(exp+1))
+		factorial.Mul(factorial, n.SetUint64(exp+2))
+		exp += 2
 	}
 	return z
 }

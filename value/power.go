@@ -67,25 +67,22 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 
 	xN := newF(conf).Set(x)
 	term := newF(conf)
-	n := big.NewInt(1)
-	nFactorial := big.NewInt(1)
+	n := newF(conf)
+	nFactorial := newF(conf).SetUint64(1)
 	z := newF(conf).SetInt64(1)
 
-	loop := newLoop(conf, "exponential", x, 4)
-	for i := 0; ; i++ {
+	for loop := newLoop(conf, "exponential", x, 4); ; {
 		term.Set(xN)
-		nf := newF(conf).SetInt(nFactorial)
-		term.Quo(term, nf)
+		term.Quo(term, nFactorial)
 		z.Add(z, term)
 
-		if loop.terminate(z) {
+		if loop.done(z) {
 			break
 		}
 		// Advance x**index (multiply by x).
 		xN.Mul(xN, x)
 		// Advance n, n!.
-		n.Add(n, bigOne.Int)
-		nFactorial.Mul(nFactorial, n)
+		nFactorial.Mul(nFactorial, n.SetUint64(loop.i+1))
 	}
 
 	return z

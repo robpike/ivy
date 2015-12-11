@@ -41,14 +41,13 @@ func floatSqrt(c Context, x *big.Float) *big.Float {
 	num := newFloat(c)
 	den := newFloat(c)
 
-	loop := newLoop(c.Config(), "sqrt", x, 1)
-	for {
+	for loop := newLoop(c.Config(), "sqrt", x, 1); ; {
 		zSquared.Mul(z, z)
 		num.Sub(zSquared, x)
 		den.Mul(floatTwo, z)
 		num.Quo(num, den)
 		z.Sub(z, num)
-		if loop.terminate(z) {
+		if loop.done(z) {
 			break
 		}
 	}
