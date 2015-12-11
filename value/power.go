@@ -93,7 +93,7 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 func integerPower(c Context, x *big.Float, exp int64) *big.Float {
 	z := newFloat(c).SetInt64(1)
 	y := newFloat(c).Set(x)
-	// For each loop, we compute a x**n where n is a power of two.
+	// For each loop, we compute a xⁿ where n is a power of two.
 	for exp > 0 {
 		if exp&1 == 1 {
 			// This bit contributes. Multiply it into the result.

@@ -69,7 +69,6 @@ func floatCos(c Context, x *big.Float) *big.Float {
 
 // sincos iterates a sin or cos Taylor series.
 func sincos(name string, c Context, index int, x *big.Float, z *big.Float, exp uint64, factorial *big.Float) *big.Float {
-	plus := false
 	term := newFloat(c).Set(floatOne)
 	for j := 0; j < index; j++ {
 		term.Mul(term, x)
@@ -79,14 +78,10 @@ func sincos(name string, c Context, index int, x *big.Float, z *big.Float, exp u
 	n := newFloat(c)
 
 	for loop := newLoop(c.Config(), name, x, 4); ; {
-		// Invariant: factorial holds exponent!.
+		// Invariant: factorial holds -1ⁿ*exponent!.
+		factorial.Neg(factorial)
 		term.Quo(term, factorial)
-		if plus {
-			z.Add(z, term)
-		} else {
-			z.Sub(z, term)
-		}
-		plus = !plus
+		z.Add(z, term)
 
 		if loop.done(z) {
 			break

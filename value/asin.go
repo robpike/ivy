@@ -104,18 +104,13 @@ func floatAtan(c Context, x *big.Float) *big.Float {
 	xSquared := newFloat(c).Set(x)
 	xSquared.Mul(x, x)
 	z := newFloat(c)
-	plus := true
 
 	// n goes up by two each loop.
 	for loop := newLoop(c.Config(), "atan", x, 4); ; {
+		xN.Neg(xN)
 		term.Set(xN)
 		term.Quo(term, n.SetUint64(2*(loop.i+1)))
-		if plus {
-			z.Add(z, term)
-		} else {
-			z.Sub(z, term)
-		}
-		plus = !plus
+		z.Add(z, term)
 
 		if loop.done(z) {
 			break
@@ -141,19 +136,14 @@ func floatAtanLarge(c Context, x *big.Float) *big.Float {
 	xSquared.Mul(x, x)
 	z := newFloat(c).Set(floatPi)
 	z.Quo(z, floatTwo)
-	plus := false
 
 	// n goes up by two each loop.
 	for loop := newLoop(c.Config(), "atan", x, 4); ; {
+		xN.Neg(xN)
 		term.Set(xN)
 		term.Mul(term, n.SetUint64(2*(loop.i+1)))
 		term.Quo(floatOne, term)
-		if plus {
-			z.Add(z, term)
-		} else {
-			z.Sub(z, term)
-		}
-		plus = !plus
+		z.Add(z, term)
 
 		if loop.done(z) {
 			break

@@ -93,7 +93,7 @@ func bigIntExp(c Context, i, j, k *big.Int) *big.Int {
 	if j.Cmp(bigOne.Int) == 0 || j.Sign() == 0 {
 		return i.Set(j)
 	}
-	// -1**n is just parity.
+	// -1ⁿ is just parity.
 	if j.Cmp(bigMinusOne.Int) == 0 {
 		if k.And(k, bigOne.Int).Int64() == 0 {
 			return i.Neg(j)
