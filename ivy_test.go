@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -32,6 +33,7 @@ func TestAll(t *testing.T) {
 		if !strings.HasSuffix(name, ".ivy") {
 			continue
 		}
+		fmt.Println("NAME", name)
 		var data []byte
 		path := filepath.Join("testdata", name)
 		data, err = ioutil.ReadFile(path)
@@ -76,7 +78,6 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 	if err != nil {
 		t.Fatalf("\nexecution failure (%s) at %s:%d:\n%s", err, name, lineNum, in)
 	}
-	return true
 	if shouldFail {
 		return true
 	}

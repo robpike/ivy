@@ -107,10 +107,10 @@ func floatAtan(c Context, x *big.Float) *big.Float {
 
 	// n goes up by two each loop.
 	for loop := newLoop(c.Config(), "atan", x, 4); ; {
-		xN.Neg(xN)
 		term.Set(xN)
-		term.Quo(term, n.SetUint64(2*(loop.i+1)))
+		term.Quo(term, n.SetUint64(2*loop.i+1))
 		z.Add(z, term)
+		xN.Neg(xN)
 
 		if loop.done(z) {
 			break
@@ -141,7 +141,7 @@ func floatAtanLarge(c Context, x *big.Float) *big.Float {
 	for loop := newLoop(c.Config(), "atan", x, 4); ; {
 		xN.Neg(xN)
 		term.Set(xN)
-		term.Mul(term, n.SetUint64(2*(loop.i+1)))
+		term.Mul(term, n.SetUint64(2*loop.i+1))
 		term.Quo(floatOne, term)
 		z.Add(z, term)
 

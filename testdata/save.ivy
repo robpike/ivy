@@ -7,7 +7,7 @@
 # Initial configuration.
 )save "<conf.out>"
 	)prec 256
-	)maxbits 1000000
+	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
@@ -28,7 +28,7 @@ x7 = 'abc'
 x8 = 1 'x' 2
 )save "<conf.out>"
 	)prec 256
-	)maxbits 1000000
+	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
@@ -51,7 +51,7 @@ op avg x = (+/x) / rho x
 op roll x = x?100
 )save "<conf.out>"
 	)prec 256
-	)maxbits 1000000
+	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
@@ -69,7 +69,7 @@ op m2 n = iota m1 n
 op m1 n = n
 )save "<conf.out>"
 	)prec 256
-	)maxbits 1000000
+	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""

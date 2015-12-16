@@ -206,9 +206,9 @@ Switch:
 		conf.SetPrompt(p.getString())
 	case "save":
 		if p.peek().Type == scan.Newline {
-			save(p.context, defaultFile, conf)
+			save(p.context, defaultFile)
 		} else {
-			save(p.context, p.getString(), conf)
+			save(p.context, p.getString())
 		}
 	case "seed":
 		if p.peek().Type == scan.Newline {

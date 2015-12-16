@@ -54,8 +54,9 @@ Mutually recursive functions are an extra wrinkle but easy to resolve.
 
 // save writes the state of the workspace to the named file.
 // The format of the output is ivy source text.
-func save(c *exec.Context, file string, conf *config.Config) {
+func save(c *exec.Context, file string) {
 	// "<conf.out>" is a special case for testing.
+	conf := c.Config()
 	out := conf.Output()
 	if file != "<conf.out>" {
 		fd, err := os.Create(file)
@@ -77,6 +78,7 @@ func save(c *exec.Context, file string, conf *config.Config) {
 	fmt.Fprintf(out, ")origin %d\n", conf.Origin())
 	fmt.Fprintf(out, ")prompt %q\n", conf.Prompt())
 	fmt.Fprintf(out, ")format %q\n", conf.Format())
+	conf.SetBase(10, 10)
 
 	// Ops.
 	printed := make(map[exec.OpDef]bool)
@@ -114,7 +116,7 @@ func save(c *exec.Context, file string, conf *config.Config) {
 				continue
 			}
 			fmt.Fprintf(out, "%s = ", sym.name)
-			put(out, sym.val)
+			put(conf, out, sym.val)
 			fmt.Fprint(out, "\n")
 		}
 	}
@@ -122,6 +124,9 @@ func save(c *exec.Context, file string, conf *config.Config) {
 	// Now we can set the base.
 	fmt.Fprintf(out, ")ibase %d\n", ibase)
 	fmt.Fprintf(out, ")obase %d\n", obase)
+
+	// Restore the configuration's own base.
+	conf.SetBase(ibase, obase)
 }
 
 // saveSym holds a variable's name and value so we can sort them for saving.
@@ -148,7 +153,7 @@ func sortSyms(syms map[string]value.Value) []saveSym {
 }
 
 // put writes to out a version of the value that will recreate it when parsed.
-func put(out io.Writer, val value.Value) {
+func put(conf *config.Config, out io.Writer, val value.Value) {
 	switch val := val.(type) {
 	case value.Char:
 		fmt.Fprintf(out, "%q", rune(val))
@@ -159,32 +164,32 @@ func put(out io.Writer, val value.Value) {
 	case value.BigRat:
 		fmt.Fprintf(out, "%d/%d", val.Num(), val.Denom())
 	case value.BigFloat:
-		// TODO The actual value might not have the same prec as
-		// the configuration, so we might not get this right
-		// Probably not important but it would be nice to fix it.
 		if val.Sign() == 0 || val.IsInf() {
 			// These have prec 0 and are easy.
 			// They shouldn't appear anyway, but be safe.
 			fmt.Fprintf(out, "%g", val)
 			return
 		}
+		// TODO The actual value might not have the same prec as
+		// the configuration, so we might not get this right
+		// Probably not important but it would be nice to fix it.
 		digits := int(float64(val.Prec()) * 0.301029995664) // 10 log 2.
-		fmt.Fprintf(out, "%.*g", digits, val.Float)
+		fmt.Fprintf(out, "%.*g", digits+1, val.Float)       // Add another digit to be sure.
 	case value.Vector:
 		if val.AllChars() {
-			fmt.Fprintf(out, "%q", val)
+			fmt.Fprintf(out, "%q", val.Sprint(conf))
 			return
 		}
 		for i, v := range val {
 			if i > 0 {
 				fmt.Fprint(out, " ")
 			}
-			put(out, v)
+			put(conf, out, v)
 		}
 	case value.Matrix:
-		put(out, val.Shape())
+		put(conf, out, val.Shape())
 		fmt.Fprint(out, " rho ")
-		put(out, val.Data())
+		put(conf, out, val.Data())
 	default:
 		value.Errorf("internal error: can't save type %T", val)
 	}
