@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -33,7 +32,6 @@ func TestAll(t *testing.T) {
 		if !strings.HasSuffix(name, ".ivy") {
 			continue
 		}
-		fmt.Println("NAME", name)
 		var data []byte
 		path := filepath.Join("testdata", name)
 		data, err = ioutil.ReadFile(path)
