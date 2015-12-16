@@ -23,9 +23,7 @@ func floatLog(c Context, x *big.Float) *big.Float {
 	invert := false
 	if x.Cmp(floatOne) > 0 {
 		invert = true
-		xx := newFloat(c)
-		xx.Quo(floatOne, x)
-		x = xx
+		x.Quo(floatOne, x)
 	}
 
 	// x = mantissa * 2**exp, and 0.5 <= mantissa < 1.
