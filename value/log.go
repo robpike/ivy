@@ -52,7 +52,7 @@ func floatLog(c Context, x *big.Float) *big.Float {
 	// This is the slowest-converging series, so we add a factor of ten to the cutoff.
 	// Only necessary when FloatPrec is at or beyond constPrecisionInBits.
 
-	for loop := newLoop(c.Config(), "log", y, 40); ; {
+	for loop := newLoop(c.Config(), "log", x, 40); ; {
 		term.Quo(yN, n.SetUint64(loop.i+1))
 		z.Sub(z, term)
 		if loop.done(z) {

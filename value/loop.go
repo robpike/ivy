@@ -15,7 +15,7 @@ type loop struct {
 	i             uint64     // Loop count.
 	maxIterations uint64     // When to give up.
 	stallCount    int        // Iterations since |delta| changed.
-	start         *big.Float // starting value.
+	arg           *big.Float // original argument to function; only used for diagnostic.
 	prevZ         *big.Float // Result from the previous iteration.
 	delta         *big.Float // |Change| from previous iteration.
 	prevDelta     *big.Float // Delta from the previous iteration.
@@ -29,10 +29,10 @@ type loop struct {
 func newLoop(conf *config.Config, name string, x *big.Float, itersPerBit uint) *loop {
 	return &loop{
 		name:          name,
-		start:         newF(conf).Set(x),
+		arg:           newF(conf).Set(x),
 		maxIterations: 10 + uint64(itersPerBit*conf.FloatPrec()),
 		prevZ:         newF(conf),
-		delta:         newF(conf).Set(x),
+		delta:         newF(conf),
 		prevDelta:     newF(conf),
 	}
 }
@@ -67,7 +67,7 @@ func (l *loop) done(z *big.Float) bool {
 	l.i++
 	if l.i == l.maxIterations {
 		// Users should never see this.
-		Errorf("%s %s: did not converge after %d iterations; prev,last result %s,%s delta %s", l.name, l.start, l.maxIterations, BigFloat{z}, BigFloat{l.prevZ}, BigFloat{l.delta})
+		Errorf("%s %s: did not converge after %d iterations; prev,last result %s,%s delta %s", l.name, l.arg, l.maxIterations, BigFloat{z}, BigFloat{l.prevZ}, BigFloat{l.delta})
 	}
 	l.prevDelta.Set(l.delta)
 	l.prevZ.Set(z)

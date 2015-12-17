@@ -23,3 +23,69 @@ op a base b = ((ceil b log a) rho b) encode a
 
 )debug parse
 	0
+
+)debug tokens
+	1
+
+23
+	:1: emit Number: "23"
+	:2: emit Newline: "\n"
+	23
+
+op a base b = ((ceil b log a) rho b) encode a
+	 :1: emit Op: "op"
+	 :1: emit Identifier: "a"
+	 :1: emit Identifier: "base"
+	 :1: emit Identifier: "b"
+	 :1: emit Assign: "="
+	 :1: emit LeftParen: "("
+	 :1: emit LeftParen: "("
+	 :1: emit Identifier: "ceil"
+	 :1: emit Identifier: "b"
+	 :1: emit Identifier: "log"
+	 :1: emit Identifier: "a"
+	 :1: emit RightParen: ")"
+	 :1: emit Identifier: "rho"
+	 :1: emit Identifier: "b"
+	 :1: emit RightParen: ")"
+	 :1: emit Identifier: "encode"
+	 :1: emit Identifier: "a"
+	 :2: emit Newline: "\n"
+
+)debug tokens
+	 :1: emit RightParen: ")"
+	 :1: emit Identifier: "debug"
+	 :1: emit Identifier: "tokens"
+	 :2: emit Newline: "\n"
+	0
+
+)debug types
+	1
+
+23
+	value.Int
+	23
+
+'c'
+	value.Char
+	c
+
+1 2 3
+	value.Vector
+	1 2 3
+
+sqrt 2
+	value.BigFloat
+	1.41421356237
+
+1.41421356237
+	value.BigRat
+	141421356237/100000000000
+
+2 3 rho iota 6
+	value.Matrix
+	1 2 3
+	4 5 6
+
+)debug types
+	0
