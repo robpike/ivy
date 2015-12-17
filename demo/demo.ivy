@@ -155,8 +155,9 @@ _
 (2**40)-1    # The largest 64-bit number base 16.
 )obase 10    # Output base 10, input base still 16.
 )base
--1+2**63            # The largest 63-bit number base 10.
--1+2**64            # The largest 64-bit number base 10.
+# The largest 63-bit number base 10.
+-1+2**40            # The largest 64-bit number base 10.
+-1+2**3F            # The largest 64-bit number base 10.
 # Go back to base 10 input and output.
 )base 10
 # Rationals can be very big too.
