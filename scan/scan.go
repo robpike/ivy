@@ -357,8 +357,13 @@ func lexOperator(l *Scanner) stateFn {
 			// Scan.
 			l.next()
 		case '.':
-			// Inner or outer product
-			l.next() // Accept the '.'.
+			// Inner or outer product?
+			l.next()               // Accept the '.'.
+			if isDigit(l.peek()) { // Is a number after all, as in 3*.7. Back up.
+				l.backup()
+				l.emit(Operator) // Up to but not including the period.
+				return lexNumber // We know it starts ".7".
+			}
 			startRight := l.pos
 			r := l.next()
 			switch {
@@ -591,6 +596,11 @@ func isIdentifier(s string) bool {
 // isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
 func isAlphaNumeric(r rune) bool {
 	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+// isDigit reports whether r is an ASCII digit.
+func isDigit(r rune) bool {
+	return '0' <= r && r <= '9'
 }
 
 // isNumeral reports whether r is a numeral in the specified base.
