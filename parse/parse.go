@@ -202,15 +202,17 @@ type binary struct {
 }
 
 func (b *binary) ProgString() string {
+	var left string
+	if isCompound(b.left) {
+		left = fmt.Sprintf("(%s)", b.left.ProgString())
+	} else {
+		left = b.left.ProgString()
+	}
 	// Special case for indexing.
 	if b.op == "[]" {
-		return fmt.Sprintf("%s[%s]", b.left.ProgString(), b.right.ProgString())
+		return fmt.Sprintf("%s[%s]", left, b.right.ProgString())
 	}
-	if isCompound(b.left) {
-		return fmt.Sprintf("(%s) %s %s", b.left.ProgString(), b.op, b.right.ProgString())
-	} else {
-		return fmt.Sprintf("%s %s %s", b.left.ProgString(), b.op, b.right.ProgString())
-	}
+	return fmt.Sprintf("%s %s %s", left, b.op, b.right.ProgString())
 }
 
 func (b *binary) Eval(context value.Context) value.Value {
