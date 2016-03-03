@@ -26,10 +26,6 @@ func floatSqrt(c Context, x *big.Float) *big.Float {
 
 	// Each iteration computes
 	// 	z = z - (z²-x)/2z
-	// delta holds the difference between the result
-	// this iteration and the previous. The loop stops
-	// when it hits zero.
-
 	// z holds the result so far. A good starting point is to halve the exponent.
 	// Experiments show we converge in only a handful of iterations.
 	z := newFloat(c)
