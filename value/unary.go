@@ -476,7 +476,7 @@ func init() {
 			bigRatType:   self,
 			bigFloatType: self,
 			vectorType: func(c Context, v Value) Value {
-				x := v.(Vector)
+				x := v.(Vector).Copy()
 				for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
 					x[i], x[j] = x[j], x[i]
 				}

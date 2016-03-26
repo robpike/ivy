@@ -82,13 +82,19 @@ func truth(x bool) int {
 func (p *Parser) special() {
 	p.need(scan.RightParen)
 	conf := p.context.Config()
+	// Save the base and do everything here base 10.
+	// The base command will set the values of the variables ibase and obase.
+	ibase, obase := conf.Base()
+	defer func() {
+		conf.SetBase(ibase, obase)
+	}()
+	conf.SetBase(10, 10)
 Switch:
 	switch text := p.need(scan.Identifier, scan.Op).Text; text {
 	case "help":
 		p.Println(specialHelpMessage)
 		p.Println("More at: https://godoc.org/robpike.io/ivy")
 	case "base", "ibase", "obase":
-		ibase, obase := conf.Base()
 		if p.peek().Type == scan.Newline {
 			p.Printf("ibase\t%d\n", ibase)
 			p.Printf("obase\t%d\n", obase)
@@ -106,11 +112,6 @@ Switch:
 		case "obase":
 			obase = base
 		}
-		conf.SetBase(ibase, obase)
-		// We set the configuration in the scanner here, before it retrieves
-		// the following newline. That means that any number it scans
-		// at the beginning of the next line will happen after the config
-		// has been updated.
 	case "debug":
 		if p.peek().Type == scan.Newline {
 			for _, f := range config.DebugFlags {
@@ -205,6 +206,8 @@ Switch:
 		}
 		conf.SetPrompt(p.getString())
 	case "save":
+		// Must restore ibase, obase for safe.
+		conf.SetBase(ibase, obase)
 		if p.peek().Type == scan.Newline {
 			save(p.context, defaultFile)
 		} else {
@@ -219,6 +222,11 @@ Switch:
 	default:
 		p.errorf(")%s: not recognized", text)
 	}
+	// We set the configuration in the scanner here, before it retrieves
+	// the following newline. That means that any number it scans
+	// at the beginning of the next line will happen after the config
+	// has been updated.
+	conf.SetBase(ibase, obase)
 	p.need(scan.Newline, scan.EOF) // EOF lets this be in a newline-less string we evaluate.
 }
 

@@ -61,6 +61,12 @@ func (v Vector) Eval(Context) Value {
 	return v
 }
 
+func (v Vector) Copy() Vector {
+	elem := make([]Value, len(v))
+	copy(elem, v)
+	return NewVector(elem)
+}
+
 func (v Vector) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case vectorType:

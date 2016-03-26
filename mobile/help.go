@@ -282,8 +282,8 @@ the global variable. A mechanism to declare locals may come later.
 <p>
 Ivy accepts a number of special commands, introduced by a right paren
 at the beginning of the line. Most report the current value if a new value
-is not specified. For these commands, numbers are always base 10 and
-must be non-negative.
+is not specified. For these commands, numbers are always read and printed
+base 10 and must be non-negative on input.
 </p>
 <pre>) help
 	Print this list of special commands.

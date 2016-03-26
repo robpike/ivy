@@ -100,7 +100,7 @@ op a x = 1 (sqrt x) 2
 )op a
 	op a x = 1 (sqrt x) 2
 
-# Preserve parens on LHS of unaries.
+# Preserve parens on LHS.
 op f x = (iota x)[1]
 )op f
 	op f x = (iota x)[1]
