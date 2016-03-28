@@ -51,6 +51,12 @@ groups as 3*(4+5)) and iota 3+2 is 1 2 3 4 5 while 3+iota 2 is 3 4 5. A vector
 is a single operand, so 1 2 3 + 3 + 3 4 5 is (1 2 3) + 3 + (3 4 5), or 7 9 11.
 </p>
 <p>
+As a special but important case, note that 1/3, with no intervening spaces, is a
+single rational number, not the expression 1 divided by 3. This can affect precedence:
+3/6*4 is 2 while 3 / 6*4 is 1/8 since the spacing turns the / into a division
+operator. Use parentheses or spaces to disabiguate: 3/(6*4) or 3 /6*4.
+</p>
+<p>
 Only a subset of APL&#39;s functionality is implemented, but the intention is to
 have most numerical operations supported eventually.
 </p>
