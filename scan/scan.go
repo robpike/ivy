@@ -109,10 +109,10 @@ func (l *Scanner) loadLine() {
 
 // next returns the next rune in the input.
 func (l *Scanner) next() rune {
-	if !l.done && int(l.pos) == len(l.input) {
+	if !l.done && l.pos == len(l.input) {
 		l.loadLine()
 	}
-	if len(l.input) == int(l.pos) {
+	if len(l.input) == l.pos {
 		l.width = 0
 		return eof
 	}
