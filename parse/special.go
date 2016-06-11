@@ -269,6 +269,9 @@ func (p *Parser) runFromFile(context value.Context, name string) {
 			if val == nil {
 				continue
 			}
+			if _, ok := val.(Assignment); ok {
+				continue
+			}
 			fmt.Fprintf(out, "%v\n", val.Sprint(context.Config()))
 		}
 		if !ok {

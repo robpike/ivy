@@ -35,8 +35,6 @@ func tree(e interface{}) string {
 		return s
 	case variableExpr:
 		return fmt.Sprintf("<var %s>", e.name)
-	case *assignment:
-		return fmt.Sprintf("(%s = %s)", e.variable.name, tree(e.expr))
 	case *unary:
 		return fmt.Sprintf("(%s %s)", e.op, tree(e.right))
 	case *binary:
@@ -61,20 +59,6 @@ func tree(e interface{}) string {
 	default:
 		return fmt.Sprintf("%T", e)
 	}
-}
-
-type assignment struct {
-	variable variableExpr
-	expr     value.Expr
-}
-
-func (a *assignment) Eval(context value.Context) value.Value {
-	context.Assign(a.variable.name, a.expr.Eval(context))
-	return nil
-}
-
-func (a *assignment) ProgString() string {
-	return fmt.Sprintf("%s = %s", a.variable.name, a.expr.ProgString())
 }
 
 // sliceExpr holds a syntactic vector to be verified and evaluated.
@@ -216,7 +200,23 @@ func (b *binary) ProgString() string {
 }
 
 func (b *binary) Eval(context value.Context) value.Value {
-	return context.EvalBinary(b.left.Eval(context), b.op, b.right.Eval(context))
+	rhs := b.right.Eval(context)
+	if b.op == "=" {
+		// Special handling as we cannot evaluate the left.
+		// We know the left is a variableExpr.
+		lhs := b.left.(variableExpr)
+		context.Assign(lhs.name, rhs)
+		return Assignment{Value: rhs}
+	}
+	lhs := b.left.Eval(context)
+	return context.EvalBinary(lhs, b.op, rhs)
+}
+
+// Assignment is an implementation of Value that is created as the result of an assignment.
+// It can be type-asserted to discover whether the returned value was created by assignment,
+// such as is done in the interpreter to avoid printing the results of assignment expressions.
+type Assignment struct {
+	value.Value
 }
 
 // Parser stores the state for the ivy parser.
@@ -360,17 +360,10 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 }
 
 // statementList:
-//	statement
-//	statement ';' statement
-//
-// statement:
-//	var ':=' Expr
-//	Expr
+//	expr
+//	expr ';' expr
 func (p *Parser) statementList(tok scan.Token) ([]value.Expr, bool) {
-	expr, ok := p.statement(tok)
-	if !ok {
-		return nil, false
-	}
+	expr := p.expr(tok)
 	var exprs []value.Expr
 	if expr != nil {
 		exprs = []value.Expr{expr}
@@ -385,35 +378,13 @@ func (p *Parser) statementList(tok scan.Token) ([]value.Expr, bool) {
 	return exprs, true
 }
 
-// statement:
-//	var '=' Expr
-//	Expr
-func (p *Parser) statement(tok scan.Token) (value.Expr, bool) {
-	variableName := ""
-	if tok.Type == scan.Identifier {
-		if p.peek().Type == scan.Assign {
-			p.next()
-			variableName = tok.Text
-			tok = p.next()
-		}
-	}
-	expr := p.expr(tok)
-	if expr == nil {
-		return nil, true
-	}
-	if variableName != "" {
-		expr = &assignment{
-			variable: p.variable(variableName),
-			expr:     expr,
-		}
-	}
-	return expr, true
-}
-
 // expr
 //	operand
 //	operand binop expr
 func (p *Parser) expr(tok scan.Token) value.Expr {
+	if p.peek().Type == scan.Assign && tok.Type != scan.Identifier {
+		p.errorf("cannot assign to %s", tok)
+	}
 	expr := p.operand(tok, true)
 	tok = p.peek()
 	switch tok.Type {
@@ -428,7 +399,7 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 				right: p.expr(p.next()),
 			}
 		}
-	case scan.Operator:
+	case scan.Operator, scan.Assign:
 		p.next()
 		return &binary{
 			left:  expr,

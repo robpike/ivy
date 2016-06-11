@@ -23,4 +23,4 @@ op mi2km m = float m*1.609344
 op km2mi m = float m/1.609344
 
 # Primes less <= N
-op primes N = T = 1 drop iota N; (not T in T o.* T) sel T
+op primes N = (not T in T o.* T) sel T = 1 drop iota N

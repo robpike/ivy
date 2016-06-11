@@ -148,8 +148,6 @@ func doReferences(c *exec.Context, refs *[]exec.OpDef, expr value.Expr) {
 		for _, v := range e {
 			doReferences(c, refs, v)
 		}
-	case *assignment:
-		doReferences(c, refs, e.expr)
 	case value.Char:
 	case value.Int:
 	case value.BigInt:

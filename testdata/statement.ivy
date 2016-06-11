@@ -10,3 +10,12 @@ x
 
 x = 10; x
 	10
+
+# Assignment is an expression.
+1 + y = 100
+	101
+
++/iota y = 10
+y
+	55
+	10

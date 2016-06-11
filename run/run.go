@@ -66,8 +66,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		if exprs != nil {
 			values = context.Eval(exprs)
 		}
-		if values != nil {
-			printValues(conf, writer, values)
+		if printValues(conf, writer, values) {
 			context.Assign("_", values[len(values)-1])
 		}
 		if !ok {
@@ -108,9 +107,10 @@ func eval(p *parse.Parser, context value.Context) value.Value {
 
 // printValues neatly prints the values returned from execution, followed by a newline.
 // It also handles the ')debug types' output.
-func printValues(conf *config.Config, writer io.Writer, values []value.Value) {
+// The return value reports whether it printed anything.
+func printValues(conf *config.Config, writer io.Writer, values []value.Value) bool {
 	if len(values) == 0 {
-		return
+		return false
 	}
 	if conf.Debug("types") {
 		for i, v := range values {
@@ -121,12 +121,20 @@ func printValues(conf *config.Config, writer io.Writer, values []value.Value) {
 		}
 		fmt.Fprintln(writer)
 	}
-	for i, v := range values {
+	printed := false
+	for _, v := range values {
+		if _, ok := v.(parse.Assignment); ok {
+			continue
+		}
 		s := v.Sprint(conf)
-		if i > 0 && len(s) > 0 && s[len(s)-1] != '\n' {
+		if printed && len(s) > 0 && s[len(s)-1] != '\n' {
 			fmt.Fprint(writer, " ")
 		}
 		fmt.Fprint(writer, s)
+		printed = true
 	}
-	fmt.Fprintln(writer)
+	if printed {
+		fmt.Fprintln(writer)
+	}
+	return printed
 }

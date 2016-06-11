@@ -62,7 +62,7 @@ have most numerical operations supported eventually.
 </p>
 <p>
 Semicolons separate multiple statements on a line. Variables are alphanumeric and are
-assigned with the = operator.
+assigned with the = operator. Assignment is an expression.
 </p>
 <p>
 After each successful expression evaluation, the result is stored in the variable
@@ -266,6 +266,13 @@ Example: multiline operator definition (binary):
 
 iota 3 sum 4
 result: 1 2 3 4 5 6 7
+</pre>
+<p>
+Example: primes less than N (unary):
+</p>
+<pre>op primes N = (not T in T o.* T) sel T = 1 drop iota N
+primes 50
+2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
 </pre>
 <p>
 To declare an operator but not define it, omit the equals sign and what follows.
