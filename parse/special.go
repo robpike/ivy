@@ -112,6 +112,8 @@ Switch:
 		case "obase":
 			obase = base
 		}
+	case "cpu":
+		p.Printf("%s\n", conf.PrintCPUTime())
 	case "debug":
 		if p.peek().Type == scan.Newline {
 			for _, f := range config.DebugFlags {

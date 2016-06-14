@@ -5,6 +5,7 @@
 package config // import "robpike.io/ivy/config"
 
 import (
+	"fmt"
 	"io"
 	"math/big"
 	"math/rand"
@@ -16,6 +17,7 @@ import (
 
 // Order here determines order in the Config.debug array.
 var DebugFlags = [...]string{
+	"cpu",
 	"panic",
 	"parse",
 	"tokens",
@@ -38,9 +40,10 @@ type Config struct {
 	debug       [len(DebugFlags)]bool
 	source      rand.Source
 	random      *rand.Rand
-	maxBits     uint // Maximum length of an integer; 0 means no limit.
-	maxDigits   uint // Above this size, ints print in floating format.
-	floatPrec   uint // Length of mantissa of a BigFloat.
+	maxBits     uint          // Maximum length of an integer; 0 means no limit.
+	maxDigits   uint          // Above this size, ints print in floating format.
+	floatPrec   uint          // Length of mantissa of a BigFloat.
+	cpuTime     time.Duration // Elapsed time of last interactive command.
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
 	outputBase int
@@ -233,6 +236,37 @@ func (c *Config) SetFloatPrec(prec uint) {
 		panic("zero float precision")
 	}
 	c.floatPrec = prec
+}
+
+// CPUTime returns the duration of the last interactive operation.
+func (c *Config) CPUTime() time.Duration {
+	c.init()
+	return c.cpuTime
+}
+
+// SetCPUTime sets the duration of the last interactive operation.
+func (c *Config) SetCPUTime(d time.Duration) {
+	c.init()
+	c.cpuTime = d
+}
+
+// PrintCPUTime returns a nicely formatted version of the CPU time, with 3 decimal
+// places in whatever unit best fits. The default String method for Duration prints too
+// many decimals.
+func (c *Config) PrintCPUTime() string {
+	d := c.cpuTime
+	switch {
+	case d > time.Minute:
+		m := int(d.Minutes())
+		s := int(d.Seconds()) - 60*m
+		return fmt.Sprintf("%dm%02ds", m, s)
+	case d > time.Second:
+		return fmt.Sprintf("%.3fs", d.Seconds())
+	case d > time.Millisecond:
+		return fmt.Sprintf("%.3fms", float64(d.Nanoseconds())/1e6)
+	default:
+		return fmt.Sprintf("%.3fµs", float64(d.Nanoseconds())/1e3)
+	}
 }
 
 // Base returns the input and output bases.

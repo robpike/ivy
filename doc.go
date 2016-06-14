@@ -257,6 +257,8 @@ base 10 and must be non-negative on input.
 		any identifier formed from valid numerals in the base system, such
 		as abe for base 16, is taken to be a number. TODO: To output
 		large integers and rationals, base must be one of 0 2 8 10 16.
+	) cpu
+		Print the duration of the last interactive calculation.
 	) debug name 0|1
 		Toggle or set the named debugging flag. With no argument, lists
 		the settings.

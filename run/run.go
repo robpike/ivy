@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/parse"
@@ -64,7 +65,13 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		exprs, ok := p.Line()
 		var values []value.Value
 		if exprs != nil {
-			values = context.Eval(exprs)
+			if interactive {
+				start := time.Now()
+				values = context.Eval(exprs)
+				conf.SetCPUTime(time.Now().Sub(start))
+			} else {
+				values = context.Eval(exprs)
+			}
 		}
 		if printValues(conf, writer, values) {
 			context.Assign("_", values[len(values)-1])
@@ -73,6 +80,9 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 			return true
 		}
 		if interactive {
+			if exprs != nil && conf.Debug("cpu") && conf.CPUTime() != 0 {
+				fmt.Printf("(%s)\n", conf.PrintCPUTime())
+			}
 			fmt.Fprintln(writer)
 		}
 	}
