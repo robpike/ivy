@@ -229,7 +229,7 @@ sumdigits '23 skidoo'  # Note: It counts only the digits.
 # A classic (expensive!) algorithm to count primes.
 op primes N = (not T in T o.* T) sel T = 1 drop iota N
 # The assignment to T gives 2..N. We use outer product to build an array of all products.
-# Then we find all elements of T that appear in a product matrix, invert that, and select from the original.
+# Then we find all elements of T that appear in the product matrix, invert that, and select from the original.
 primes 100
 # That's it! Have fun.
 # For more information visit https://godoc.org/robpike.io/ivy
