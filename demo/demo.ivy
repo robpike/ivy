@@ -78,7 +78,7 @@ iota 15
 */iota 100
 # Type this: */iota 10000
 # That printed using floating-point notation for manageability but it is still an integer inside.
-# max and min are binary operators that do the obvious. (Use semicolons to separate expresssions.)
+# max and min are binary operators that do the obvious. (Use semicolons to separate expressions.)
 3 max 7; 'is max and'; 3 min 7; 'is min'
 # Like all binary arithmetic operators, max applies elementwise.
 2 3 4 max 4 3 2
@@ -144,7 +144,7 @@ x = ?10 rho 6; x
 2**64
 2**iota 64
 -1+2**63
-# Settings are made and queried with a leading right paren. )help lists the settings
+# Settings are made and queried with a leading right paren. )help lists the settings and other commands.
 )help
 # Use )base to switch input and output to base 16.
 )base 16
@@ -203,7 +203,7 @@ e
 pi
 sqrt 2
 e**1e6
-log e**1e6  # Only 904 good digits; the log algorithm is numerically weak. (Ideas welcome.)
+log e**1e6
 (2**1e3)/(3**1e2)
 # User-defined operators are declared as unary or binary (or both). This one computes the (unary) average.
 op avg x = (+/x)/rho x
@@ -219,12 +219,17 @@ op popcount n = +/n base 2
 popcount 7
 popcount 1e6
 popcount 1e100
-# Here is one to sum the digits. The unary operator text turns its argument into text, like Sprintf.
+# Here is one to sum the digits. The unary operator text turns its argument into text, like sprintf.
 op sumdigits x = t = text x; +/(code (t in '0123456789') sel t) - code '0'
 # Break it down:  The sel operator selects from the right based on the non-zero elements in the left.
 # The in operator generates a selector by choosing only the bytes that are ASCII digits.
 sumdigits 99
 sumdigits iota 10
 sumdigits '23 skidoo'  # Note: It counts only the digits.
+# A classic (expensive!) algorithm to count primes.
+op primes N = (not T in T o.* T) sel T = 1 drop iota N
+# The assignment to T gives 2..N. We use outer product to build an array of all products.
+# Then we find all elements of T that appear in a product matrix, invert that, and select from the original.
+primes 100
 # That's it! Have fun.
 # For more information visit https://godoc.org/robpike.io/ivy
