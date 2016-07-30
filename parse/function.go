@@ -14,9 +14,9 @@ import (
 
 // function definition
 //
-//	"op" name arg '\n'
-//	"op" name arg '=' statements '\n'
-//	"op" arg name arg '=' statements '\n'
+//	"op" name arg <eol>
+//	"op" name arg '=' statements <eol>
+//	"op" arg name arg '=' statements <eol>
 //
 // statements:
 //	expressionList
@@ -80,13 +80,13 @@ func (p *Parser) functionDefn() {
 		//	expression
 		//	expression
 		//
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			// Multiline.
 			p.next() // Skip newline; not stritly necessary.
 			if !p.readTokensToNewline() {
 				p.errorf("invalid function definition")
 			}
-			for p.peek().Type != scan.Newline && p.peek().Type != scan.EOF {
+			for p.peek().Type != scan.EOF {
 				x, ok := p.expressionList()
 				if !ok {
 					p.errorf("invalid function definition")
@@ -108,7 +108,7 @@ func (p *Parser) functionDefn() {
 		if len(fn.Body) == 0 {
 			p.errorf("missing function body")
 		}
-	case scan.Newline:
+	case scan.EOF:
 	default:
 		p.errorf("expected newline after function declaration, found %s", tok)
 	}

@@ -351,7 +351,6 @@ func (p *Parser) readTokensToNewline() bool {
 		case scan.Error:
 			p.errorf("%q", tok)
 		case scan.Newline:
-			p.tokens = append(p.tokens, tok)
 			return true
 		case scan.EOF:
 			return len(p.tokens) > 0
@@ -364,14 +363,12 @@ func (p *Parser) newExpressionList(tokens []scan.Token) ([]value.Expr, bool) {
 }
 
 // expressionList:
-//	'\n'
-//	statementList '\n'
+//	<eol>
+//	statementList <eol>
 func (p *Parser) expressionList() ([]value.Expr, bool) {
 	tok := p.next()
 	switch tok.Type {
 	case scan.EOF:
-		return nil, false
-	case scan.Newline:
 		return nil, true
 	}
 	exprs, ok := p.statementList(tok)
@@ -380,7 +377,7 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 	}
 	tok = p.next()
 	switch tok.Type {
-	case scan.EOF, scan.Newline:
+	case scan.EOF:
 	default:
 		p.errorf("unexpected %s", tok)
 	}
@@ -419,7 +416,7 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 	expr := p.operand(tok, true)
 	tok = p.peek()
 	switch tok.Type {
-	case scan.Newline, scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
+	case scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
 		return expr
 	case scan.Identifier:
 		if p.context.DefinedBinary(tok.Text) {

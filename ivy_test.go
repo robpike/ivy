@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +14,8 @@ import (
 
 	"robpike.io/ivy/mobile" // The mobile package has the handy Eval function.
 )
+
+const verbose = false
 
 // Note: These tests share some infrastructure and cannot run in parallel.
 
@@ -49,6 +52,9 @@ func TestAll(t *testing.T) {
 			input, output, length := getText(t, path, lineNum, lines)
 			if input == nil {
 				break
+			}
+			if verbose {
+				fmt.Printf("%s:%d: %s\n", path, lineNum, input)
 			}
 			if !runTest(t, path, lineNum, input, output) {
 				errCount++

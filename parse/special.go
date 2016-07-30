@@ -95,7 +95,7 @@ Switch:
 		p.Println(specialHelpMessage)
 		p.Println("More at: https://godoc.org/robpike.io/ivy")
 	case "base", "ibase", "obase":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.Printf("ibase\t%d\n", ibase)
 			p.Printf("obase\t%d\n", obase)
 			break Switch
@@ -115,14 +115,14 @@ Switch:
 	case "cpu":
 		p.Printf("%s\n", conf.PrintCPUTime())
 	case "debug":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			for _, f := range config.DebugFlags {
 				p.Printf("%s\t%d\n", f, truth(conf.Debug(f)))
 			}
 			break Switch
 		}
 		name := p.need(scan.Identifier).Text
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			// Toggle the value
 			if !conf.SetDebug(name, !conf.Debug(name)) {
 				p.Println("no such debug flag:", name)
@@ -139,26 +139,26 @@ Switch:
 			p.Println("no such debug flag:", name)
 		}
 	case "format":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.Printf("%q\n", conf.Format())
 			break Switch
 		}
 		conf.SetFormat(p.getString())
 	case "get":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.runFromFile(p.context, defaultFile)
 		} else {
 			p.runFromFile(p.context, p.getString())
 		}
 	case "maxbits":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.Printf("%d\n", conf.MaxBits())
 			break Switch
 		}
 		max := p.nextDecimalNumber()
 		conf.SetMaxBits(uint(max))
 	case "maxdigits":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.Printf("%d\n", conf.MaxDigits())
 			break Switch
 		}
@@ -181,7 +181,7 @@ Switch:
 			p.errorf("%q not defined", name)
 		}
 	case "origin":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.Println(conf.Origin())
 			break Switch
 
@@ -192,7 +192,7 @@ Switch:
 		}
 		conf.SetOrigin(origin)
 	case "prec":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.Printf("%d\n", conf.FloatPrec())
 			break Switch
 		}
@@ -202,7 +202,7 @@ Switch:
 		}
 		conf.SetFloatPrec(uint(prec))
 	case "prompt":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.Printf("%q\n", conf.Format())
 			break Switch
 		}
@@ -210,13 +210,13 @@ Switch:
 	case "save":
 		// Must restore ibase, obase for safe.
 		conf.SetBase(ibase, obase)
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			save(p.context, defaultFile)
 		} else {
 			save(p.context, p.getString())
 		}
 	case "seed":
-		if p.peek().Type == scan.Newline {
+		if p.peek().Type == scan.EOF {
 			p.Println(conf.Origin())
 			break Switch
 		}
@@ -229,7 +229,7 @@ Switch:
 	// at the beginning of the next line will happen after the config
 	// has been updated.
 	conf.SetBase(ibase, obase)
-	p.need(scan.Newline, scan.EOF) // EOF lets this be in a newline-less string we evaluate.
+	p.need(scan.EOF)
 }
 
 // getString returns the value of the string that must be next in the input.
