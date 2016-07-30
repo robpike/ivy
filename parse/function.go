@@ -82,13 +82,19 @@ func (p *Parser) functionDefn() {
 		//
 		if p.peek().Type == scan.Newline {
 			// Multiline.
-			p.next()
-			for p.peek().Type != scan.Newline {
+			p.next() // Skip newline; not stritly necessary.
+			if !p.readTokensToNewline() {
+				p.errorf("invalid function definition")
+			}
+			for p.peek().Type != scan.Newline && p.peek().Type != scan.EOF {
 				x, ok := p.expressionList()
 				if !ok {
 					p.errorf("invalid function definition")
 				}
 				fn.Body = append(fn.Body, x...)
+				if !p.readTokensToNewline() {
+					p.errorf("invalid function definition")
+				}
 			}
 			p.next() // Consume final newline.
 		} else {

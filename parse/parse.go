@@ -222,10 +222,10 @@ type Assignment struct {
 // Parser stores the state for the ivy parser.
 type Parser struct {
 	scanner    *scan.Scanner
+	tokens     []scan.Token
 	fileName   string
 	lineNum    int
-	errorCount int // Number of errors.
-	peekTok    scan.Token
+	errorCount int        // Number of errors.
 	curTok     scan.Token // most recent token from scanner
 	context    *exec.Context
 }
@@ -259,30 +259,43 @@ func (p *Parser) next() scan.Token {
 // nextErrorOut accepts a flag whether to trigger a panic on error.
 // The flag is set to false when we are draining input tokens in FlushToNewline.
 func (p *Parser) nextErrorOut(errorOut bool) scan.Token {
-	tok := p.peekTok
+	tok := p.peek()
 	if tok.Type != scan.EOF {
-		p.peekTok = scan.Token{Type: scan.EOF}
-	} else {
-		tok = p.scanner.Next()
+		p.tokens = p.tokens[1:]
+		p.lineNum = tok.Line // This gives us the line number before the newline.
 	}
 	if tok.Type == scan.Error && errorOut {
 		p.errorf("%q", tok)
 	}
 	p.curTok = tok
-	if tok.Type != scan.Newline {
-		// Show the line number before we hit the newline.
-		p.lineNum = tok.Line
-	}
 	return tok
 }
 
 func (p *Parser) peek() scan.Token {
-	tok := p.peekTok
-	if tok.Type != scan.EOF {
-		return tok
+	if len(p.tokens) == 0 {
+		return scan.Token{Type: scan.EOF}
 	}
-	p.peekTok = p.scanner.Next()
-	return p.peekTok
+	return p.tokens[0]
+}
+
+var eof = scan.Token{
+	Type: scan.EOF,
+}
+
+func (p *Parser) nextToken() scan.Token {
+	if len(p.tokens) == 0 {
+		return eof
+	}
+	tok := p.tokens[0]
+	p.tokens = p.tokens[1:]
+	return tok
+}
+
+func (p *Parser) peekToken() scan.Token {
+	if len(p.tokens) == 0 {
+		return eof
+	}
+	return p.tokens[0]
 }
 
 // Loc returns the current input location in the form "name:line: ".
@@ -295,7 +308,7 @@ func (p *Parser) Loc() string {
 }
 
 func (p *Parser) errorf(format string, args ...interface{}) {
-	p.peekTok = scan.Token{Type: scan.EOF}
+	p.tokens = p.tokens[:0]
 	value.Errorf(format, args...)
 }
 
@@ -306,6 +319,8 @@ func (p *Parser) FlushToNewline() {
 	}
 }
 
+var newParser = true
+
 // Line reads a line of input and returns the values it evaluates.
 // A nil returned slice means there were no values.
 // The boolean reports whether the line is valid.
@@ -315,6 +330,10 @@ func (p *Parser) FlushToNewline() {
 //	def function defintion
 //	expressionList '\n'
 func (p *Parser) Line() ([]value.Expr, bool) {
+	var ok bool
+	if !p.readTokensToNewline() {
+		return nil, false
+	}
 	tok := p.peek()
 	switch tok.Type {
 	case scan.RightParen:
@@ -330,6 +349,31 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 		return nil, false
 	}
 	return exprs, true
+}
+
+// readTokensToNewline returns the next line of input.
+// The boolean is false at EOF.
+// We read all tokens before parsing for easy error recovery
+// if an error occurs mid-line. It also gives us lookahead
+// for parsing, which we may use one day.
+func (p *Parser) readTokensToNewline() bool {
+	p.tokens = p.tokens[:0]
+	for {
+		tok := p.scanner.Next()
+		switch tok.Type {
+		case scan.Error:
+			p.errorf("%q", tok)
+		case scan.Newline:
+			p.tokens = append(p.tokens, tok)
+			return true
+		case scan.EOF:
+			return len(p.tokens) > 0
+		}
+		p.tokens = append(p.tokens, tok)
+	}
+}
+func (p *Parser) newExpressionList(tokens []scan.Token) ([]value.Expr, bool) {
+	return nil, true
 }
 
 // expressionList:
