@@ -253,18 +253,12 @@ func (p *Parser) Println(args ...interface{}) {
 }
 
 func (p *Parser) next() scan.Token {
-	return p.nextErrorOut(true)
-}
-
-// nextErrorOut accepts a flag whether to trigger a panic on error.
-// The flag is set to false when we are draining input tokens in FlushToNewline.
-func (p *Parser) nextErrorOut(errorOut bool) scan.Token {
 	tok := p.peek()
 	if tok.Type != scan.EOF {
 		p.tokens = p.tokens[1:]
 		p.lineNum = tok.Line // This gives us the line number before the newline.
 	}
-	if tok.Type == scan.Error && errorOut {
+	if tok.Type == scan.Error {
 		p.errorf("%q", tok)
 	}
 	p.curTok = tok
@@ -310,13 +304,6 @@ func (p *Parser) Loc() string {
 func (p *Parser) errorf(format string, args ...interface{}) {
 	p.tokens = p.tokens[:0]
 	value.Errorf(format, args...)
-}
-
-// FlushToNewline any remaining characters on the current input line.
-func (p *Parser) FlushToNewline() {
-	for p.curTok.Type != scan.Newline && p.curTok.Type != scan.EOF {
-		p.nextErrorOut(false)
-	}
 }
 
 var newParser = true

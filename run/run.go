@@ -47,7 +47,6 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		if err == nil {
 			return
 		}
-		p.FlushToNewline()
 		if err, ok := err.(value.Error); ok {
 			fmt.Fprintf(conf.ErrOutput(), "%s%s\n", p.Loc(), err)
 			if interactive {
