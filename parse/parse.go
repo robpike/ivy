@@ -225,8 +225,7 @@ type Parser struct {
 	tokens     []scan.Token
 	fileName   string
 	lineNum    int
-	errorCount int        // Number of errors.
-	curTok     scan.Token // most recent token from scanner
+	errorCount int // Number of errors.
 	context    *exec.Context
 }
 
@@ -261,7 +260,6 @@ func (p *Parser) next() scan.Token {
 	if tok.Type == scan.Error {
 		p.errorf("%q", tok)
 	}
-	p.curTok = tok
 	return tok
 }
 
@@ -323,6 +321,8 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 	}
 	tok := p.peek()
 	switch tok.Type {
+	case scan.EOF:
+		return nil, true
 	case scan.RightParen:
 		p.special()
 		p.context.SetConstants()
@@ -358,26 +358,17 @@ func (p *Parser) readTokensToNewline() bool {
 		p.tokens = append(p.tokens, tok)
 	}
 }
-func (p *Parser) newExpressionList(tokens []scan.Token) ([]value.Expr, bool) {
-	return nil, true
-}
 
 // expressionList:
-//	<eol>
 //	statementList <eol>
 func (p *Parser) expressionList() ([]value.Expr, bool) {
-	tok := p.next()
-	switch tok.Type {
-	case scan.EOF:
-		return nil, true
-	}
-	exprs, ok := p.statementList(tok)
+	exprs, ok := p.statementList()
 	if !ok {
 		return nil, false
 	}
-	tok = p.next()
+	tok := p.next()
 	switch tok.Type {
-	case scan.EOF:
+	case scan.EOF: // Expect to be at end of line.
 	default:
 		p.errorf("unexpected %s", tok)
 	}
@@ -390,15 +381,15 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 // statementList:
 //	expr
 //	expr ';' expr
-func (p *Parser) statementList(tok scan.Token) ([]value.Expr, bool) {
-	expr := p.expr(tok)
+func (p *Parser) statementList() ([]value.Expr, bool) {
+	expr := p.expr()
 	var exprs []value.Expr
 	if expr != nil {
 		exprs = []value.Expr{expr}
 	}
 	if p.peek().Type == scan.Semicolon {
 		p.next()
-		more, ok := p.statementList(p.next())
+		more, ok := p.statementList()
 		if ok {
 			exprs = append(exprs, more...)
 		}
@@ -409,7 +400,8 @@ func (p *Parser) statementList(tok scan.Token) ([]value.Expr, bool) {
 // expr
 //	operand
 //	operand binop expr
-func (p *Parser) expr(tok scan.Token) value.Expr {
+func (p *Parser) expr() value.Expr {
+	tok := p.next()
 	if p.peek().Type == scan.Assign && tok.Type != scan.Identifier {
 		p.errorf("cannot assign to %s", tok)
 	}
@@ -424,7 +416,7 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 			return &binary{
 				left:  expr,
 				op:    tok.Text,
-				right: p.expr(p.next()),
+				right: p.expr(),
 			}
 		}
 	case scan.Operator, scan.Assign:
@@ -432,7 +424,7 @@ func (p *Parser) expr(tok scan.Token) value.Expr {
 		return &binary{
 			left:  expr,
 			op:    tok.Text,
-			right: p.expr(p.next()),
+			right: p.expr(),
 		}
 	}
 	p.errorf("after expression: unexpected %s", p.peek())
@@ -452,13 +444,13 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 	case scan.Operator:
 		expr = &unary{
 			op:    tok.Text,
-			right: p.expr(p.next()),
+			right: p.expr(),
 		}
 	case scan.Identifier:
 		if p.context.DefinedUnary(tok.Text) {
 			expr = &unary{
 				op:    tok.Text,
-				right: p.expr(p.next()),
+				right: p.expr(),
 			}
 			break
 		}
@@ -481,7 +473,7 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 func (p *Parser) index(expr value.Expr) value.Expr {
 	for p.peek().Type == scan.LeftBrack {
 		p.next()
-		index := p.expr(p.next())
+		index := p.expr()
 		tok := p.next()
 		if tok.Type != scan.RightBrack {
 			p.errorf("expected right bracket, found %s", tok)
@@ -513,7 +505,7 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 	case scan.Number, scan.Rational:
 		expr, err = value.Parse(p.context.Config(), text)
 	case scan.LeftParen:
-		expr = p.expr(p.next())
+		expr = p.expr()
 		tok := p.next()
 		if tok.Type != scan.RightParen {
 			p.errorf("expected right paren, found %s", tok)
