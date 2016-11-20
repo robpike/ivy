@@ -328,7 +328,7 @@ Loop:
 			switch {
 			case word == "o" && l.peek() == '.':
 				return lexOperator
-			case exec.OperatorWord[word] || l.context.UserDefined(word, true):
+			case exec.Predefined(word) || l.context.UserDefined(word, true):
 				return lexOperator
 			case word == "op":
 				l.emit(Op)
@@ -348,7 +348,7 @@ Loop:
 func lexOperator(l *Scanner) stateFn {
 	// It might be an inner product or reduction, but only if it is a binary operator.
 	word := l.input[l.start:l.pos]
-	if word == "o" || exec.IsBinary[word] || l.context.UserDefined(word, true) {
+	if word == "o" || value.BinaryOps[word] != nil || l.context.UserDefined(word, true) {
 		switch l.peek() {
 		case '/':
 			// Reduction.
@@ -377,7 +377,7 @@ func lexOperator(l *Scanner) stateFn {
 					return l.errorf("bad character %#U", r)
 				}
 				word := l.input[startRight:l.pos]
-				if !exec.OperatorWord[word] && !l.context.UserDefined(word, true) {
+				if !exec.Predefined(word) && !l.context.UserDefined(word, true) {
 					return l.errorf("%s not an operator", word)
 				}
 			}

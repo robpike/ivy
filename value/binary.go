@@ -148,25 +148,6 @@ func toBool(t Value) bool {
 }
 
 var (
-	add, sub, mul, pow                *binaryOp
-	quo, idiv, imod, div, mod         *binaryOp
-	binaryLog                         *binaryOp
-	bitAnd, bitOr, bitXor             *binaryOp
-	lsh, rsh                          *binaryOp
-	eq, ne, lt, le, gt, ge            *binaryOp
-	in, index                         *binaryOp
-	logicalAnd, logicalOr, logicalXor *binaryOp
-	logicalNand, logicalNor           *binaryOp
-	decode, encode                    *binaryOp
-	binaryIota, binaryRho             *binaryOp
-	binaryCatenate                    *binaryOp
-	take, drop                        *binaryOp
-	min, max                          *binaryOp
-	fill, sel, rot                    *binaryOp
-	binaryOps                         map[string]*binaryOp
-)
-
-var (
 	zero        = Int(0)
 	one         = Int(1)
 	minusOne    = Int(-1)
@@ -175,7 +156,7 @@ var (
 	bigMinusOne = bigInt64(-1)
 )
 
-func init() {
+var (
 	add = &binaryOp{
 		elementwise: true,
 		whichType:   binaryArithType,
@@ -1263,8 +1244,12 @@ func init() {
 			},
 		},
 	}
+)
 
-	binaryOps = map[string]*binaryOp{
+var BinaryOps map[string]*binaryOp
+
+func init() {
+	BinaryOps = map[string]*binaryOp{
 		"!=":     ne,
 		"&":      bitAnd,
 		"*":      mul,

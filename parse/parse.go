@@ -545,7 +545,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 			case scan.LeftParen:
 				fallthrough
 			case scan.Identifier:
-				if p.context.Defined(tok.Text) {
+				if p.context.DefinedOp(tok.Text) {
 					break Loop
 				}
 				fallthrough

@@ -50,25 +50,6 @@ func bigFloatWrap(op func(*big.Float, *big.Float) *big.Float) func(Context, *big
 	}
 }
 
-var (
-	unaryRoll                         *unaryOp
-	unaryPlus, unaryMinus, unaryRecip *unaryOp
-	unaryAbs, unarySignum             *unaryOp
-	unaryBitwiseNot, unaryLogicalNot  *unaryOp
-	unaryIota, unaryRho, unaryRavel   *unaryOp
-	gradeUp, gradeDown                *unaryOp
-	reverse, flip                     *unaryOp
-	floor, ceil                       *unaryOp
-	unaryExp                          *unaryOp
-	unaryCos, unarySin, unaryTan      *unaryOp
-	unaryAcos, unaryAsin, unaryAtan   *unaryOp
-	unaryLog, unarySqrt               *unaryOp
-	unaryChar, unaryCode, unaryText   *unaryOp
-	unaryFloat                        *unaryOp
-	unaryIvy                          *unaryOp
-	unaryOps                          map[string]*unaryOp
-)
-
 // bigIntRand sets a to a random number in [origin, origin+b].
 func bigIntRand(c Context, a, b *big.Int) *big.Int {
 	a.Rand(c.Config().Random(), b)
@@ -122,7 +103,7 @@ func text(c Context, v Value) Value {
 // Implemented in main, handled as a func to avoid a dependency loop.
 var IvyEval func(context Context, s string) Value
 
-func init() {
+var (
 	unaryRoll = &unaryOp{
 		elementwise: true,
 		fn: [numType]unaryFn{
@@ -674,8 +655,12 @@ func init() {
 			bigFloatType: floatSelf,
 		},
 	}
+)
 
-	unaryOps = map[string]*unaryOp{
+var UnaryOps map[string]*unaryOp
+
+func init() {
+	UnaryOps = map[string]*unaryOp{
 		"**":    unaryExp,
 		"+":     unaryPlus,
 		",":     unaryRavel,

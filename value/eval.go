@@ -44,7 +44,7 @@ func Unary(c Context, opName string, v Value) Value {
 	if c != nil && c.UserDefined(opName, false) {
 		return c.EvalUnary(opName, v)
 	}
-	op := unaryOps[opName]
+	op := UnaryOps[opName]
 	if op == nil {
 		Errorf("unary %s not implemented", opName)
 	}
@@ -100,7 +100,7 @@ func Binary(c Context, u Value, opName string, v Value) Value {
 	if c != nil && c.UserDefined(opName, true) {
 		return c.EvalBinary(u, opName, v)
 	}
-	op := binaryOps[opName]
+	op := BinaryOps[opName]
 	if op == nil {
 		Errorf("binary %s not implemented", opName)
 	}
