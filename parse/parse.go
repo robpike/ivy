@@ -166,6 +166,22 @@ func isCompound(x interface{}) bool {
 	}
 }
 
+// unwrapAssignment pulls the inner value out of an Assignment struct.
+// An expression may be wrapped in an Assignment struct; this will happen
+// if we're assigning a in a=b=1. In this case we need to reduce the rhs to the
+// inner value. An Assignment should only ever be the top-level Expression.
+func unwrapAssignment(context value.Context, expr value.Expr) value.Value {
+	v := expr.Eval(context)
+	for {
+		a, ok := v.(Assignment)
+		if !ok {
+			break
+		}
+		v = a.Value
+	}
+	return v
+}
+
 type unary struct {
 	op    string
 	right value.Expr
@@ -176,7 +192,8 @@ func (u *unary) ProgString() string {
 }
 
 func (u *unary) Eval(context value.Context) value.Value {
-	return context.EvalUnary(u.op, u.right.Eval(context))
+	arg := unwrapAssignment(context, u.right)
+	return value.Unary(context, u.op, arg)
 }
 
 type binary struct {
@@ -200,26 +217,16 @@ func (b *binary) ProgString() string {
 }
 
 func (b *binary) Eval(context value.Context) value.Value {
-	rhs := b.right.Eval(context)
+	rhs := unwrapAssignment(context, b.right)
 	if b.op == "=" {
 		// Special handling as we cannot evaluate the left.
 		// We know the left is a variableExpr.
 		lhs := b.left.(variableExpr)
-		// The right may be wrapped in an Assignment struct; this will happen
-		// if we're assigning a in a=b=1. So we need to reduce the rhs to the
-		// inner value.
-		for {
-			v, ok := rhs.(Assignment)
-			if !ok {
-				break
-			}
-			rhs = v.Value
-		}
 		context.Assign(lhs.name, rhs)
 		return Assignment{Value: rhs}
 	}
 	lhs := b.left.Eval(context)
-	return context.EvalBinary(lhs, b.op, rhs)
+	return value.Binary(context, lhs, b.op, rhs)
 }
 
 // Assignment is an implementation of Value that is created as the result of an assignment.

@@ -121,11 +121,7 @@ func (c *Context) Eval(exprs []value.Expr) []value.Value {
 
 // EvalUnary evaluates a unary operator.
 func (c *Context) EvalUnary(op string, right value.Value) value.Value {
-	right = right.Eval(c)
 	fn := c.UnaryFn[op]
-	if fn == nil {
-		return value.Unary(c, op, right)
-	}
 	if fn.Body == nil {
 		value.Errorf("unary %q undefined", op)
 	}
@@ -151,12 +147,7 @@ func (c *Context) UserDefined(op string, isBinary bool) bool {
 
 // EvalBinary evaluates a binary operator.
 func (c *Context) EvalBinary(left value.Value, op string, right value.Value) value.Value {
-	left = left.Eval(c)
-	right = right.Eval(c)
 	fn := c.BinaryFn[op]
-	if fn == nil {
-		return value.Binary(c, left, op, right)
-	}
 	if fn.Body == nil {
 		value.Errorf("binary %q undefined", op)
 	}
