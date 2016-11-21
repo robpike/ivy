@@ -97,7 +97,7 @@ func Binary(c Context, u Value, opName string, v Value) Value {
 	if strings.Contains(opName, ".") {
 		return product(c, u, opName, v)
 	}
-	if c != nil && c.UserDefined(opName, true) {
+	if c.UserDefined(opName, true) {
 		return c.EvalBinary(u, opName, v)
 	}
 	op := BinaryOps[opName]

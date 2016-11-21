@@ -205,6 +205,16 @@ func (b *binary) Eval(context value.Context) value.Value {
 		// Special handling as we cannot evaluate the left.
 		// We know the left is a variableExpr.
 		lhs := b.left.(variableExpr)
+		// The right may be wrapped in an Assignment struct; this will happen
+		// if we're assigning a in a=b=1. So we need to reduce the rhs to the
+		// inner value.
+		for {
+			v, ok := rhs.(Assignment)
+			if !ok {
+				break
+			}
+			rhs = v.Value
+		}
 		context.Assign(lhs.name, rhs)
 		return Assignment{Value: rhs}
 	}
