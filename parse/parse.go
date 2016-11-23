@@ -193,7 +193,7 @@ func (u *unary) ProgString() string {
 
 func (u *unary) Eval(context value.Context) value.Value {
 	arg := unwrapAssignment(context, u.right)
-	return value.Unary(context, u.op, arg)
+	return context.EvalUnary(u.op, arg)
 }
 
 type binary struct {
@@ -226,7 +226,7 @@ func (b *binary) Eval(context value.Context) value.Value {
 		return Assignment{Value: rhs}
 	}
 	lhs := b.left.Eval(context)
-	return value.Binary(context, lhs, b.op, rhs)
+	return context.EvalBinary(lhs, b.op, rhs)
 }
 
 // Assignment is an implementation of Value that is created as the result of an assignment.

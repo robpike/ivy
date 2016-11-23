@@ -5,6 +5,8 @@
 package exec
 
 import (
+	"strings"
+
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/value"
 )
@@ -121,7 +123,22 @@ func (c *Context) Eval(exprs []value.Expr) []value.Value {
 
 // EvalUnary evaluates a unary operator.
 func (c *Context) EvalUnary(op string, right value.Value) value.Value {
+	if len(op) > 1 {
+		switch op[len(op)-1] {
+		case '/':
+			return value.Reduce(c, op[:len(op)-1], right)
+		case '\\':
+			return value.Scan(c, op[:len(op)-1], right)
+		}
+	}
 	fn := c.UnaryFn[op]
+	if fn == nil {
+		builtin := value.UnaryOps[op]
+		if builtin == nil {
+			value.Errorf("unary %s not implemented", op)
+		}
+		return builtin.Eval(c, right)
+	}
 	if fn.Body == nil {
 		value.Errorf("unary %q undefined", op)
 	}
@@ -147,7 +164,18 @@ func (c *Context) UserDefined(op string, isBinary bool) bool {
 
 // EvalBinary evaluates a binary operator.
 func (c *Context) EvalBinary(left value.Value, op string, right value.Value) value.Value {
+	if strings.Contains(op, ".") {
+		return value.Product(c, left, op, right)
+	}
 	fn := c.BinaryFn[op]
+	if fn == nil {
+		// Built-in.
+		builtin := value.BinaryOps[op]
+		if builtin == nil {
+			value.Errorf("binary %s not implemented", op)
+		}
+		return builtin.Eval(c, left, right)
+	}
 	if fn.Body == nil {
 		value.Errorf("binary %q undefined", op)
 	}

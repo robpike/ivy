@@ -34,7 +34,7 @@ func floatPower(c Context, bx, bexp BigFloat) *big.Float {
 			Errorf("negative exponent of zero")
 		}
 		positive = false
-		fexp = Unary(c, "-", bexp).toType(conf, bigFloatType).(BigFloat).Float
+		fexp = c.EvalUnary("-", bexp).toType(conf, bigFloatType).(BigFloat).Float
 	}
 	if x.Cmp(floatOne) == 0 || x.Sign() == 0 {
 		return x

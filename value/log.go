@@ -11,7 +11,7 @@ func logn(c Context, v Value) Value {
 }
 
 func logBaseU(c Context, u, v Value) Value {
-	return Binary(c, logn(c, v), "/", logn(c, u))
+	return c.EvalBinary(logn(c, v), "/", logn(c, u))
 }
 
 // floatLog computes natural log(x) using the Maclaurin series for log(1-x).

@@ -492,7 +492,7 @@ var (
 			bigRatType:   self,
 			bigFloatType: self,
 			vectorType: func(c Context, v Value) Value {
-				return Unary(c, "rev", v)
+				return c.EvalUnary("rev", v)
 			},
 			matrixType: func(c Context, v Value) Value {
 				m := v.(Matrix)
@@ -657,40 +657,42 @@ var (
 	}
 )
 
-var UnaryOps map[string]*unaryOp
+var UnaryOps = map[string]*unaryOp{
+	"**":    unaryExp,
+	"+":     unaryPlus,
+	",":     unaryRavel,
+	"-":     unaryMinus,
+	"/":     unaryRecip,
+	"?":     unaryRoll,
+	"^":     unaryBitwiseNot,
+	"abs":   unaryAbs,
+	"acos":  unaryAcos,
+	"asin":  unaryAsin,
+	"atan":  unaryAtan,
+	"ceil":  ceil,
+	"char":  unaryChar,
+	"code":  unaryCode,
+	"cos":   unaryCos,
+	"down":  gradeDown,
+	"flip":  flip,
+	"float": unaryFloat,
+	"floor": floor,
+	"iota":  unaryIota,
+	"ivy":   unaryIvy,
+	"log":   unaryLog,
+	"not":   unaryLogicalNot,
+	"rev":   reverse,
+	"rho":   unaryRho,
+	"sgn":   unarySignum,
+	"sin":   unarySin,
+	"sqrt":  unarySqrt,
+	"tan":   unaryTan,
+	"text":  unaryText,
+	"up":    gradeUp,
+}
 
 func init() {
-	UnaryOps = map[string]*unaryOp{
-		"**":    unaryExp,
-		"+":     unaryPlus,
-		",":     unaryRavel,
-		"-":     unaryMinus,
-		"/":     unaryRecip,
-		"?":     unaryRoll,
-		"^":     unaryBitwiseNot,
-		"abs":   unaryAbs,
-		"acos":  unaryAcos,
-		"asin":  unaryAsin,
-		"atan":  unaryAtan,
-		"ceil":  ceil,
-		"char":  unaryChar,
-		"code":  unaryCode,
-		"cos":   unaryCos,
-		"down":  gradeDown,
-		"flip":  flip,
-		"float": unaryFloat,
-		"floor": floor,
-		"iota":  unaryIota,
-		"ivy":   unaryIvy,
-		"log":   unaryLog,
-		"not":   unaryLogicalNot,
-		"rev":   reverse,
-		"rho":   unaryRho,
-		"sgn":   unarySignum,
-		"sin":   unarySin,
-		"sqrt":  unarySqrt,
-		"tan":   unaryTan,
-		"text":  unaryText,
-		"up":    gradeUp,
+	for name, op := range UnaryOps {
+		op.name = name
 	}
 }

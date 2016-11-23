@@ -139,7 +139,7 @@ func membership(c Context, u, v Vector) Value {
 	for i, x := range u {
 		values[i] = Int(0)
 		for _, y := range v {
-			if Binary(c, x, "==", y) == Int(1) {
+			if c.EvalBinary(x, "==", y) == Int(1) {
 				values[i] = Int(1)
 				break
 			}
@@ -166,7 +166,7 @@ func (g *gradeIndex) Len() int {
 }
 
 func (g *gradeIndex) Less(i, j int) bool {
-	return toBool(Binary(g.c, g.v[g.x[i]], "<", g.v[g.x[j]]))
+	return toBool(g.c.EvalBinary(g.v[g.x[i]], "<", g.v[g.x[j]]))
 }
 
 func (g *gradeIndex) Swap(i, j int) {

@@ -319,8 +319,8 @@ var (
 					if u.(BigInt).Sign() == 0 {
 						Errorf("negative exponent of zero")
 					}
-					v = Unary(c, "abs", v).toType(c.Config(), bigIntType)
-					return Unary(c, "/", binaryBigIntOp(u, bigIntExpOp(c), v))
+					v = c.EvalUnary("abs", v).toType(c.Config(), bigIntType)
+					return c.EvalUnary("/", binaryBigIntOp(u, bigIntExpOp(c), v))
 				}
 				x := u.(BigInt).Int
 				if x.Cmp(bigOne.Int) == 0 || x.Sign() == 0 {
@@ -340,11 +340,11 @@ var (
 						Errorf("negative exponent of zero")
 					}
 					positive = false
-					rexp = Unary(c, "-", v).toType(c.Config(), bigRatType).(BigRat)
+					rexp = c.EvalUnary("-", v).toType(c.Config(), bigRatType).(BigRat)
 				}
 				if !rexp.IsInt() {
 					// Lift to float.
-					return Binary(c, floatSelf(c, u), "**", floatSelf(c, v))
+					return c.EvalBinary(floatSelf(c, u), "**", floatSelf(c, v))
 				}
 				exp := rexp.Num()
 				rat := u.(BigRat)
@@ -726,8 +726,8 @@ var (
 						n = len(B)
 					}
 					for i := n - 1; i >= 0; i-- {
-						result = Binary(c, result, "+", Binary(c, prod, "*", get(B, i)))
-						prod = Binary(c, prod, "*", get(A, i))
+						result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", get(B, i)))
+						prod = c.EvalBinary(prod, "*", get(A, i))
 					}
 					return result
 				}
@@ -755,13 +755,13 @@ var (
 					if z, ok := a.(Int); ok && z == 0 {
 						return b
 					}
-					return Binary(c, b, "mod", a)
+					return c.EvalBinary(b, "mod", a)
 				}
 				div := func(b, a Value) Value {
 					if z, ok := a.(Int); ok && z == 0 {
 						return b
 					}
-					return Binary(c, b, "div", a)
+					return c.EvalBinary(b, "div", a)
 				}
 				A, B := u.(Vector), v.(Vector)
 				// Scalar.
@@ -902,7 +902,7 @@ var (
 			Outer:
 				for i, b := range B {
 					for j, a := range A {
-						if toBool(Binary(c, a, "==", b)) {
+						if toBool(c.EvalBinary(a, "==", b)) {
 							indices[i] = Int(j + origin)
 							continue Outer
 						}
@@ -1246,49 +1246,51 @@ var (
 	}
 )
 
-var BinaryOps map[string]*binaryOp
+var BinaryOps = map[string]*binaryOp{
+	"!=":     ne,
+	"&":      bitAnd,
+	"*":      mul,
+	"**":     pow,
+	"+":      add,
+	",":      binaryCatenate,
+	"-":      sub,
+	"/":      quo, // Exact rational division.
+	"<":      lt,
+	"<<":     lsh,
+	"<=":     le,
+	"==":     eq,
+	">":      gt,
+	">=":     ge,
+	">>":     rsh,
+	"[]":     index,
+	"^":      bitXor,
+	"and":    logicalAnd,
+	"decode": decode,
+	"div":    div, // Euclidean integer division.
+	"drop":   drop,
+	"encode": encode,
+	"fill":   fill,
+	"idiv":   idiv, // Go-like truncating integer division.
+	"imod":   imod, // Go-like integer moduls.
+	"in":     in,
+	"iota":   binaryIota,
+	"log":    binaryLog,
+	"max":    max,
+	"min":    min,
+	"mod":    mod, // Euclidean integer division.
+	"nand":   logicalNand,
+	"nor":    logicalNor,
+	"or":     logicalOr,
+	"rho":    binaryRho,
+	"rot":    rot,
+	"sel":    sel,
+	"take":   take,
+	"xor":    logicalXor,
+	"|":      bitOr,
+}
 
 func init() {
-	BinaryOps = map[string]*binaryOp{
-		"!=":     ne,
-		"&":      bitAnd,
-		"*":      mul,
-		"**":     pow,
-		"+":      add,
-		",":      binaryCatenate,
-		"-":      sub,
-		"/":      quo, // Exact rational division.
-		"<":      lt,
-		"<<":     lsh,
-		"<=":     le,
-		"==":     eq,
-		">":      gt,
-		">=":     ge,
-		">>":     rsh,
-		"[]":     index,
-		"^":      bitXor,
-		"and":    logicalAnd,
-		"decode": decode,
-		"div":    div, // Euclidean integer division.
-		"drop":   drop,
-		"encode": encode,
-		"fill":   fill,
-		"idiv":   idiv, // Go-like truncating integer division.
-		"imod":   imod, // Go-like integer moduls.
-		"in":     in,
-		"iota":   binaryIota,
-		"log":    binaryLog,
-		"max":    max,
-		"min":    min,
-		"mod":    mod, // Euclidean integer division.
-		"nand":   logicalNand,
-		"nor":    logicalNor,
-		"or":     logicalOr,
-		"rho":    binaryRho,
-		"rot":    rot,
-		"sel":    sel,
-		"take":   take,
-		"xor":    logicalXor,
-		"|":      bitOr,
+	for name, op := range BinaryOps {
+		op.name = name
 	}
 }
