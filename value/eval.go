@@ -33,7 +33,7 @@ type unaryOp struct {
 	fn          [numType]unaryFn
 }
 
-func (op *unaryOp) Eval(c Context, v Value) Value {
+func (op *unaryOp) EvalUnary(c Context, v Value) Value {
 	which := whichType(v)
 	fn := op.fn[which]
 	if fn == nil {
@@ -80,7 +80,7 @@ func whichType(v Value) valueType {
 	panic("which type")
 }
 
-func (op *binaryOp) Eval(c Context, u, v Value) Value {
+func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 	which := op.whichType(whichType(u), whichType(v))
 	conf := c.Config()
 	u = u.toType(conf, which)

@@ -33,3 +33,42 @@ func (fn *Function) String() string {
 	}
 	return s
 }
+
+func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Value {
+	if fn.Body == nil {
+		value.Errorf("unary %q undefined", fn.Name)
+	}
+	// It's known to be an exec.Context.
+	c := context.(*Context)
+	c.push()
+	defer c.pop()
+	c.assignLocal(fn.Right, right)
+	var v value.Value
+	for _, e := range fn.Body {
+		v = e.Eval(c)
+	}
+	if v == nil {
+		value.Errorf("no value returned by %q", fn.Name)
+	}
+	return v
+}
+
+func (fn *Function) EvalBinary(context value.Context, left, right value.Value) value.Value {
+	if fn.Body == nil {
+		value.Errorf("binary %q undefined", fn.Name)
+	}
+	// It's known to be an exec.Context.
+	c := context.(*Context)
+	c.push()
+	defer c.pop()
+	c.assignLocal(fn.Left, left)
+	c.assignLocal(fn.Right, right)
+	var v value.Value
+	for _, e := range fn.Body {
+		v = e.Eval(c)
+	}
+	if v == nil {
+		value.Errorf("no value returned by %q", fn.Name)
+	}
+	return v
+}

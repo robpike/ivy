@@ -18,6 +18,16 @@ type Expr interface {
 	Eval(Context) Value
 }
 
+// UnaryOp is the interface implemented by a simple unary operator.
+type UnaryOp interface {
+	EvalUnary(c Context, right Value) Value
+}
+
+// BinaryOp is the interface implemented by a simple binary operator.
+type BinaryOp interface {
+	EvalBinary(c Context, right, left Value) Value
+}
+
 // Context is the execution context for evaluation.
 // The only implementation is ../exec/Context, but the interface
 // is defined separately, here, because of the dependence on Expr

@@ -121,7 +121,7 @@ func (c *Context) Eval(exprs []value.Expr) []value.Value {
 	return values
 }
 
-// EvalUnary evaluates a unary operator.
+// EvalUnary evaluates a unary operator, including reductions and scans.
 func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 	if len(op) > 1 {
 		switch op[len(op)-1] {
@@ -131,28 +131,23 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 			return value.Scan(c, op[:len(op)-1], right)
 		}
 	}
-	fn := c.UnaryFn[op]
+	fn := c.Unary(op)
 	if fn == nil {
-		builtin := value.UnaryOps[op]
-		if builtin == nil {
-			value.Errorf("unary %s not implemented", op)
-		}
-		return builtin.Eval(c, right)
+		value.Errorf("unary %q not implemented", op)
 	}
-	if fn.Body == nil {
-		value.Errorf("unary %q undefined", op)
+	return fn.EvalUnary(c, right)
+}
+
+func (c *Context) Unary(op string) value.UnaryOp {
+	userFn := c.UnaryFn[op]
+	if userFn != nil {
+		return userFn
 	}
-	c.push()
-	defer c.pop()
-	c.assignLocal(fn.Right, right)
-	var v value.Value
-	for _, e := range fn.Body {
-		v = e.Eval(c)
+	builtin := value.UnaryOps[op]
+	if builtin != nil {
+		return builtin
 	}
-	if v == nil {
-		value.Errorf("no value returned by %q", op)
-	}
-	return v
+	return nil
 }
 
 func (c *Context) UserDefined(op string, isBinary bool) bool {
@@ -162,35 +157,28 @@ func (c *Context) UserDefined(op string, isBinary bool) bool {
 	return c.UnaryFn[op] != nil
 }
 
-// EvalBinary evaluates a binary operator.
+// EvalBinary evaluates a binary operator, including products.
 func (c *Context) EvalBinary(left value.Value, op string, right value.Value) value.Value {
 	if strings.Contains(op, ".") {
 		return value.Product(c, left, op, right)
 	}
-	fn := c.BinaryFn[op]
+	fn := c.Binary(op)
 	if fn == nil {
-		// Built-in.
-		builtin := value.BinaryOps[op]
-		if builtin == nil {
-			value.Errorf("binary %s not implemented", op)
-		}
-		return builtin.Eval(c, left, right)
+		value.Errorf("binary %q not implemented", op)
 	}
-	if fn.Body == nil {
-		value.Errorf("binary %q undefined", op)
+	return fn.EvalBinary(c, left, right)
+}
+
+func (c *Context) Binary(op string) value.BinaryOp {
+	user := c.BinaryFn[op]
+	if user != nil {
+		return user
 	}
-	c.push()
-	defer c.pop()
-	c.assignLocal(fn.Left, left)
-	c.assignLocal(fn.Right, right)
-	var v value.Value
-	for _, e := range fn.Body {
-		v = e.Eval(c)
+	builtin := value.BinaryOps[op]
+	if builtin != nil {
+		return builtin
 	}
-	if v == nil {
-		value.Errorf("no value returned by %q", op)
-	}
-	return v
+	return nil
 }
 
 // Define defines the function and installs it. It also performs
