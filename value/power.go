@@ -23,7 +23,7 @@ func exp(c Context, u Value) Value {
 // floatPower computes bx to the power of bexp.
 func floatPower(c Context, bx, bexp BigFloat) *big.Float {
 	x := bx.Float
-	fexp := bexp.Float
+	fexp := newFloat(c).Set(bexp.Float)
 	positive := true
 	conf := c.Config()
 	switch fexp.Sign() {

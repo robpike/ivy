@@ -41,6 +41,14 @@
 2 log 2**32
 	32
 
+# Was bug; overwrote arguments. Issue 30.
+e**pi
+e
+pi
+	23.1406926328
+	2.71828182846
+	3.14159265359
+
 (float 0) ** 1e100
 	0
 
