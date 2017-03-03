@@ -188,6 +188,20 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 			}
 		}
 		return m // TODO: Shrink?
+	case Matrix:
+		v := v.(Matrix)
+		m := Matrix{
+			shape: NewVector(append(u.Shape(), v.Shape()...)),
+			data:  NewVector(make(Vector, len(u.Data())*len(v.Data()))),
+		}
+		index := 0
+		for _, vu := range u.Data() {
+			for _, vv := range v.Data() {
+				m.data[index] = Binary(c, vu, opName, vv)
+				index++
+			}
+		}
+		return m // TODO: Shrink?
 	}
 	Errorf("can't do outer product on %s", whichType(u))
 	panic("not reached")
