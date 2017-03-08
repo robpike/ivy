@@ -197,7 +197,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 		index := 0
 		for _, vu := range u.Data() {
 			for _, vv := range v.Data() {
-				m.data[index] = Binary(c, vu, opName, vv)
+				m.data[index] = c.EvalBinary(vu, op, vv)
 				index++
 			}
 		}
