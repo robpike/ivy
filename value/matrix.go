@@ -329,3 +329,33 @@ func (m Matrix) rotate(n int) Value {
 	}
 	return NewMatrix(m.shape, elems)
 }
+
+// vrotate returns a copy of v with elements rotated down by n.
+// Rotation occurs on the leftmost axis.
+func (m Matrix) vrotate(n int) Value {
+	if len(m.shape) == 0 {
+		return Matrix{}
+	}
+	if len(m.shape) == 1 {
+		return m
+	}
+
+	elems := make([]Value, len(m.data))
+	dim := len(m.data) / int(m.shape[0].(Int))
+
+	n *= dim
+	n %= len(m.data)
+	if n < 0 {
+		n += len(m.data)
+	}
+
+	for i := 0; i < len(m.data); i += dim {
+		copy(elems[i:i+dim], m.data[n:n+dim])
+		n += dim
+		if n >= len(m.data) {
+			n = 0
+		}
+	}
+
+	return NewMatrix(m.shape, elems)
+}

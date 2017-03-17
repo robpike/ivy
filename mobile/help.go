@@ -146,7 +146,7 @@ Index of              A⍳B   iota    The location (index) of B in A; 1+⌈/⍳�
                                     In ivy: origin-1 if not found (i.e. 0 if one-indexed)
 Matrix divide         A⌹B           Solution to system of linear equations Ax = B
 Rotation              A⌽B   rot     The elements of B are rotated A positions left
-Rotation              A⊖B           The elements of B are rotated A positions along the first axis
+Rotation              A⊖B   flip    The elements of B are rotated A positions along the first axis
 Logarithm             A⍟B   log     Logarithm of B to base A
 Dyadic format         A⍕B           Format B into a character matrix according to A
 General transpose     A⍉B           The axes of B are ordered by A
