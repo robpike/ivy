@@ -80,18 +80,18 @@ up 6 5 8 10 4 1 2 5 4 7
 down 6 5 8 10 4 1 2 5 4 7
 	4 3 10 1 8 2 5 9 7 6
 
-rev iota 0
+rot iota 0
 	
 
-rev iota 1
+rot iota 1
 	1
 
-rev iota 10
+rot iota 10
 	10 9 8 7 6 5 4 3 2 1
 
-# rev doesn't overwrite its argument. Issue #24
+# rot doesn't overwrite its argument. Issue #24
 x=iota 10
-y = rev x
+y = rot x
 x
 	1 2 3 4 5 6 7 8 9 10
 

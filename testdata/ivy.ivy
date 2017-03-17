@@ -13,7 +13,7 @@ ivy ")format '%.2f'"
 	3.00
 
 x = text 345
-2 * ivy rev x
+2 * ivy rot x
 	1086
 
 # Symbols and functions are shared.

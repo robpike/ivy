@@ -468,7 +468,7 @@ func init() {
 		},
 
 		{
-			name: "rev",
+			name: "rot",
 			fn: [numType]unaryFn{
 				intType:      self,
 				charType:     self,
@@ -488,7 +488,7 @@ func init() {
 						return m
 					}
 					if len(m.shape) == 1 {
-						Errorf("rev: matrix is vector")
+						Errorf("rot: matrix is vector")
 					}
 					size := m.size()
 					ncols := int(m.shape[len(m.shape)-1].(Int))
@@ -512,7 +512,7 @@ func init() {
 				bigRatType:   self,
 				bigFloatType: self,
 				vectorType: func(c Context, v Value) Value {
-					return c.EvalUnary("rev", v)
+					return c.EvalUnary("rot", v)
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(Matrix)

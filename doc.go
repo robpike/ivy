@@ -60,7 +60,7 @@ Unary functions.
 	Matrix inverse    ⌹B            Inverse of matrix B
 	Pi times          ○B            Multiply by π
 	Logarithm         ⍟B    log     Natural logarithm of B
-	Reversal          ⌽B    rev     Reverse elements of B along last axis
+	Reversal          ⌽B    rot     Reverse elements of B along last axis
 	Reversal          ⊖B    flip    Reverse elements of B along first axis
 	Grade up          ⍋B    up      Indices of B which will arrange B in ascending order
 	Grade down        ⍒B    down    Indices of B which will arrange B in descending order

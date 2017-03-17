@@ -167,7 +167,7 @@ x = 'now is the time'
 3 drop 'abcdef'
 	def
 
-rev 'abcdef'
+rot 'abcdef'
 	fedcba
 
 # Unicode, or conversion between int and char.
