@@ -1172,6 +1172,35 @@ func init() {
 		},
 
 		{
+			name:      "flip",
+			whichType: atLeastVectorType,
+			fn: [numType]binaryFn{
+				vectorType: func(c Context, u, v Value) Value {
+					countVec := u.(Vector)
+					if len(countVec) != 1 {
+						Errorf("flip: count must be small integer")
+					}
+					count, ok := countVec[0].(Int)
+					if !ok {
+						Errorf("flip: count must be small integer")
+					}
+					return v.(Vector).rotate(int(count))
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					countMat := u.(Matrix)
+					if len(countMat.shape) != 1 || len(countMat.data) != 1 {
+						Errorf("flip: count must be small integer")
+					}
+					count, ok := countMat.data[0].(Int)
+					if !ok {
+						Errorf("flip: count must be small integer")
+					}
+					return v.(Matrix).vrotate(int(count))
+				},
+			},
+		},
+
+		{
 			name:      "fill",
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
