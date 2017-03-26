@@ -436,7 +436,18 @@ func (p *Parser) expr() value.Expr {
 				right: p.expr(),
 			}
 		}
-	case scan.Operator, scan.Assign:
+	case scan.Assign:
+		p.next()
+		variable, ok := expr.(variableExpr)
+		if !ok {
+			p.errorf("cannot assign to %s", tree(expr))
+		}
+		return &binary{
+			left:  variable,
+			op:    tok.Text,
+			right: p.expr(),
+		}
+	case scan.Operator:
 		p.next()
 		return &binary{
 			left:  expr,
