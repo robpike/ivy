@@ -586,9 +586,11 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 }
 
 func isScalar(v value.Value) bool {
-	switch v.(type) {
+	switch v := v.(type) {
 	case value.Int, value.Char, value.BigInt, value.BigRat, value.BigFloat:
 		return true
+	case Assignment:
+		return isScalar(v.Value)
 	}
 	return false
 }
