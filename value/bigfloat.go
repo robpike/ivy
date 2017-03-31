@@ -127,6 +127,10 @@ func (f BigFloat) Eval(Context) Value {
 	return f
 }
 
+func (f BigFloat) Inner() Value {
+	return f
+}
+
 func (f BigFloat) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case bigFloatType:

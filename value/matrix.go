@@ -229,20 +229,26 @@ func NewMatrix(shape, data []Value) Matrix {
 	// Check consistency and sanity.
 	nelems := 0
 	if len(shape) > 0 {
+		// While we're here, demote the shape vector to its Inner values.
+		// Thus after NewMatrix shape is always guaranteed to be only Ints.
+		nshape := make([]Value, len(shape))
 		for i := 0; i < len(shape); i++ {
-			_, ok := shape[0].(Int)
+			nshape[i] = shape[i].Inner()
+			_, ok := nshape[i].(Int)
 			if !ok {
 				Errorf("non-integral shape for new matrix")
 			}
 		}
-		n := shape[0].(Int)
+		// Can't use size function here: must avoid overflow.
+		n := nshape[0].(Int)
 		for i := 1; i < len(shape); i++ {
-			n *= shape[i].(Int)
+			n *= nshape[i].(Int)
 			if n > maxInt {
 				Errorf("matrix too large")
 			}
 		}
 		nelems = int(n)
+		shape = nshape
 	}
 	if nelems != len(data) {
 		Errorf("inconsistent shape and data size for new matrix")
@@ -254,6 +260,10 @@ func NewMatrix(shape, data []Value) Matrix {
 }
 
 func (m Matrix) Eval(Context) Value {
+	return m
+}
+
+func (m Matrix) Inner() Value {
 	return m
 }
 
@@ -288,13 +298,13 @@ func reshape(A, B Vector) Value {
 	}
 	nelems := Int(1)
 	for i := range A {
-		n, ok := A[i].(Int)
+		n, ok := A[i].Inner().(Int)
 		if !ok || n < 0 || maxInt < n {
-			Errorf("bad shape")
+			Errorf("bad shape: %s is not an integer", A[i])
 		}
 		nelems *= n
 		if nelems > maxInt {
-			Errorf("too many elements")
+			Errorf("rho has too many elements")
 		}
 	}
 	values := make([]Value, nelems)

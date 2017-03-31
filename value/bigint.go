@@ -137,6 +137,10 @@ func (i BigInt) Eval(Context) Value {
 	return i
 }
 
+func (i BigInt) Inner() Value {
+	return i
+}
+
 func (i BigInt) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case bigIntType:

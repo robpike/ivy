@@ -46,7 +46,7 @@ func (v Vector) makeString(conf *config.Config, spaces bool) string {
 // AllChars reports whether the vector contains only Chars.
 func (v Vector) AllChars() bool {
 	for _, c := range v {
-		if _, ok := c.(Char); !ok {
+		if _, ok := c.Inner().(Char); !ok {
 			return false
 		}
 	}
@@ -58,6 +58,10 @@ func NewVector(elem []Value) Vector {
 }
 
 func (v Vector) Eval(Context) Value {
+	return v
+}
+
+func (v Vector) Inner() Value {
 	return v
 }
 

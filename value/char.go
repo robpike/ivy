@@ -37,6 +37,10 @@ func (c Char) Eval(Context) Value {
 	return c
 }
 
+func (c Char) Inner() Value {
+	return c
+}
+
 func (c Char) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case charType:

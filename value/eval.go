@@ -60,7 +60,7 @@ type binaryOp struct {
 }
 
 func whichType(v Value) valueType {
-	switch v.(type) {
+	switch v.Inner().(type) {
 	case Int:
 		return intType
 	case Char:

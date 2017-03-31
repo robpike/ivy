@@ -66,6 +66,13 @@ type sliceExpr []value.Expr
 
 func (s sliceExpr) Eval(context value.Context) value.Value {
 	v := make([]value.Value, len(s))
+	// First do all assignments. These two vectors are legal.
+	// y (y=3) and (y=3) y.
+	for i, x := range s {
+		if bin, ok := x.(*binary); ok && bin.op == "=" {
+			s[i] = x.Eval(context)
+		}
+	}
 	for i, x := range s {
 		elem := x.Eval(context)
 		// Each element must be a singleton.
@@ -166,22 +173,6 @@ func isCompound(x interface{}) bool {
 	}
 }
 
-// unwrapAssignment pulls the inner value out of an Assignment struct.
-// An expression may be wrapped in an Assignment struct; this will happen
-// if we're assigning a in a=b=1. In this case we need to reduce the rhs to the
-// inner value. An Assignment should only ever be the top-level Expression.
-func unwrapAssignment(context value.Context, expr value.Expr) value.Value {
-	v := expr.Eval(context)
-	for {
-		a, ok := v.(Assignment)
-		if !ok {
-			break
-		}
-		v = a.Value
-	}
-	return v
-}
-
 type unary struct {
 	op    string
 	right value.Expr
@@ -192,8 +183,7 @@ func (u *unary) ProgString() string {
 }
 
 func (u *unary) Eval(context value.Context) value.Value {
-	arg := unwrapAssignment(context, u.right)
-	return context.EvalUnary(u.op, arg)
+	return context.EvalUnary(u.op, u.right.Eval(context).Inner())
 }
 
 type binary struct {
@@ -217,7 +207,7 @@ func (b *binary) ProgString() string {
 }
 
 func (b *binary) Eval(context value.Context) value.Value {
-	rhs := unwrapAssignment(context, b.right)
+	rhs := b.right.Eval(context).Inner()
 	if b.op == "=" {
 		// Special handling as we cannot evaluate the left.
 		// We know the left is a variableExpr.

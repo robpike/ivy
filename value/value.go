@@ -22,6 +22,10 @@ type Value interface {
 	Sprint(*config.Config) string
 	Eval(Context) Value
 
+	// Inner retrieves the value, without evaluation. But for Assignments,
+	// it returns the right-hand side.
+	Inner() Value
+
 	// ProgString is like String, but suitable for program listing.
 	// For instance, it ignores the user format for numbers and
 	// puts quotes on chars, guaranteeing a correct representation.

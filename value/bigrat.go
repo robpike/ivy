@@ -167,6 +167,10 @@ func (r BigRat) Eval(Context) Value {
 	return r
 }
 
+func (r BigRat) Inner() Value {
+	return r
+}
+
 func (r BigRat) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case bigRatType:

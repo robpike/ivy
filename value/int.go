@@ -130,6 +130,10 @@ func (i Int) Eval(Context) Value {
 	return i
 }
 
+func (i Int) Inner() Value {
+	return i
+}
+
 func (i Int) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case intType:
