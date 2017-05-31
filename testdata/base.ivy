@@ -6,12 +6,12 @@
 # The testing harness resets ibase and obase before each test.
 
 )ibase 16
-0; 1; 10; 16; abe; 3abe; a/b; a8add6a7f6a6d
-	0 1 16 22 2750 15038 10/11 2967433346247277
+0; 1; 10; 16; abe; 3abe; a/b; a8add6a7f6a6d; 1/f+1
+	0 1 16 22 2750 15038 10/11 2967433346247277 16/15
 
 )base 16
-0; 1; 10; 16; abe; 3abe; a/b; a8add6a7f6a6d
-	0 1 10 16 abe 3abe a/b a8add6a7f6a6d
+0; 1; 10; 16; abe; 3abe; a/b; a8add6a7f6a6d; 1/f+1
+	0 1 10 16 abe 3abe a/b a8add6a7f6a6d 10/f
 
 )ibase 8
 0; 1; 10; 32; 37/41; 2367433346247277
