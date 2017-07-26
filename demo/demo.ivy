@@ -42,11 +42,13 @@ code '💩'      # char's inverse, the value of given character, here printed in
 # Vectors are written and displayed with spaces between the elements.
 1 2 3
 1 4/3 5/3 (2+1/3)
+# Note that without the parens this becomes (1 4/3 5/3 2)+1/3
+1 4/3 5/3 2+1/3
 # Vectors of characters print without quotes or spaces.
 'h' 'e' 'l' 'l' 'o'
 # This is a nicer way to write 'h' 'e' 'l' 'l' 'o'. It means the same.
 'hello'
-# Arithmetic works on vectors.
+# Arithmetic works elementwise on vectors.
 1 2 3 + 4 5 6
 # Arithmetic between scalar and vector also works, either way.
 23 + 1 2 3
@@ -82,9 +84,9 @@ iota 15
 3 max 7; 'is max and'; 3 min 7; 'is min'
 # Like all binary arithmetic operators, max applies elementwise.
 2 3 4 max 4 3 2
-# Reduce using max to find maxmimum element in vector.
+# Reduce using max to find maximum element in vector.
 max/2 34 42 233 2 2 521 14 1 4 1 55 133
-# Ivy allows multidimensional arrays. The shape operator binary rho builds them.
+# Ivy allows multidimensional arrays. The binary shape operator, rho, builds them.
 # Dimension (which may be a vector) on the left, data on the right.
 5 rho 1
 5 5 rho 1
@@ -113,6 +115,8 @@ x**10
 # That's a letter 'o', dot, star.
 # Any operator works; here is how to make an identity matrix.
 x = iota 5; x o.== x
+# Assignment is an operator, so you can save an intermediate expression.
+x o.== x = iota 5
 # Random numbers: Use a unary ? to roll an n-sided die from 1 to n.
 ?100
 ?100
@@ -157,7 +161,7 @@ _
 )base
 # The largest 63-bit number base 10.
 -1+2**40            # The largest 64-bit number base 10.
--1+2**3F            # The largest 64-bit number base 10.
+-1+2**3F            # The largest 63-bit number base 10.
 # Go back to base 10 input and output.
 )base 10
 # Rationals can be very big too.
@@ -189,7 +193,7 @@ e**1e6
 log e**1e6
 log e**1e8
 log 1e1000000    # Yes, that is 10 to the millionth power.
-# Transcendentals. (The low bits aren't always quite right...)
+# Transcendentals. (The low bit isn't always right...)
 sin pi/2
 cos .25*pi * -1 + iota 9
 log iota 6
