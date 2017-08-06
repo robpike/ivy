@@ -229,7 +229,8 @@ type Assignment struct {
 // Parser stores the state for the ivy parser.
 type Parser struct {
 	scanner    *scan.Scanner
-	tokens     []scan.Token
+	tokens     []scan.Token    // Points to tokenBuf.
+	tokenBuf   [100]scan.Token // Reusable.
 	fileName   string
 	lineNum    int
 	errorCount int // Number of errors.
@@ -265,7 +266,7 @@ func (p *Parser) next() scan.Token {
 		p.lineNum = tok.Line // This gives us the line number before the newline.
 	}
 	if tok.Type == scan.Error {
-		p.errorf("%q", tok)
+		p.errorf("%s", tok)
 	}
 	return tok
 }
@@ -281,22 +282,6 @@ var eof = scan.Token{
 	Type: scan.EOF,
 }
 
-func (p *Parser) nextToken() scan.Token {
-	if len(p.tokens) == 0 {
-		return eof
-	}
-	tok := p.tokens[0]
-	p.tokens = p.tokens[1:]
-	return tok
-}
-
-func (p *Parser) peekToken() scan.Token {
-	if len(p.tokens) == 0 {
-		return eof
-	}
-	return p.tokens[0]
-}
-
 // Loc returns the current input location in the form "name:line: ".
 // If the name is <stdin>, it returns the empty string.
 func (p *Parser) Loc() string {
@@ -307,7 +292,7 @@ func (p *Parser) Loc() string {
 }
 
 func (p *Parser) errorf(format string, args ...interface{}) {
-	p.tokens = p.tokens[:0]
+	p.tokens = p.tokenBuf[:0]
 	value.Errorf(format, args...)
 }
 
@@ -351,12 +336,12 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 // if an error occurs mid-line. It also gives us lookahead
 // for parsing, which we may use one day.
 func (p *Parser) readTokensToNewline() bool {
-	p.tokens = p.tokens[:0]
+	p.tokens = p.tokenBuf[:0]
 	for {
 		tok := p.scanner.Next()
 		switch tok.Type {
 		case scan.Error:
-			p.errorf("%q", tok)
+			p.errorf("%s", tok)
 		case scan.Newline:
 			return true
 		case scan.EOF:

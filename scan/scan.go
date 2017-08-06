@@ -170,9 +170,14 @@ func (l *Scanner) acceptRun(valid string) {
 	l.backup()
 }
 
-// errorf returns an error token and continues to scan.
+// errorf returns an error token, replaces the input line with a
+// newline (so the next token will be a newline, skipping the
+// rest of the current line), and continues to scan.
 func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
 	l.tokens <- Token{Error, l.start, fmt.Sprintf(format, args...)}
+	l.start = 0
+	l.pos = 0
+	l.input = "\n"
 	return lexAny
 }
 
@@ -404,6 +409,10 @@ func (l *Scanner) atTerminator() bool {
 	if rd, _ := utf8.DecodeRuneInString(l.rightDelim); rd == r {
 		return true
 	}
+	// It could be a compound operator like o.*. Ugly!
+	if r == 'o' && strings.HasPrefix(l.input[l.pos:], "o.") {
+		return true
+	}
 	return false
 }
 
@@ -448,10 +457,11 @@ func lexNumber(l *Scanner) stateFn {
 			return lexAny
 		}
 	}
-	if !l.scanNumber() {
+	if !l.scanNumber(true) {
 		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
 	}
-	if l.peek() != '/' {
+	r := l.peek()
+	if r != '/' {
 		l.emit(Number)
 		return lexAny
 	}
@@ -466,14 +476,17 @@ func lexNumber(l *Scanner) stateFn {
 		l.emit(Operator)
 		return lexAny
 	}
-	if !l.scanNumber() {
+	if !l.scanNumber(false) {
 		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
+	}
+	if l.peek() == '.' {
+		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos+1])
 	}
 	l.emit(Rational)
 	return lexAny
 }
 
-func (l *Scanner) scanNumber() bool {
+func (l *Scanner) scanNumber(followingSlashOK bool) bool {
 	base := l.context.Config().InputBase()
 	digits := digitsForBase(base)
 	// If base 0, acccept octal for 0 or hex for 0x or 0X.
@@ -492,8 +505,16 @@ func (l *Scanner) scanNumber() bool {
 		l.accept("+-")
 		l.acceptRun("0123456789")
 	}
+	r := l.peek()
+	if followingSlashOK && r == '/' {
+		return true
+	}
 	// Next thing mustn't be alphanumeric except possibly an o for outer product (3o.+2).
-	if l.peek() != 'o' && isAlphaNumeric(l.peek()) {
+	if r != 'o' && isAlphaNumeric(r) {
+		l.next()
+		return false
+	}
+	if r == '.' || !l.atTerminator() {
 		l.next()
 		return false
 	}
@@ -569,9 +590,9 @@ func isSpace(r rune) bool {
 	return r == ' ' || r == '\t'
 }
 
-// isEndOfLine reports whether r is an end-of-line character.
+// isEndOfLine reports whether r is an end-of-line (really end-of-statement) character.
 func isEndOfLine(r rune) bool {
-	return r == '\r' || r == '\n'
+	return r == '\r' || r == '\n' || r == ';'
 }
 
 // isIdentifier reports whether the string is a valid identifier.
