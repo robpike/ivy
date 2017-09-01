@@ -669,6 +669,10 @@ func init() {
 		{
 			name: "ivy",
 			fn: [numType]unaryFn{
+				charType: func(c Context, v Value) Value {
+					char := v.(Char)
+					return IvyEval(c, string(char))
+				},
 				vectorType: func(c Context, v Value) Value {
 					text := v.(Vector)
 					if !text.AllChars() {

@@ -7,6 +7,19 @@
 ivy '34'
 	34
 
+ivy 'pi'
+	3.14159265359
+
+ivy '3'
+	3
+
+ivy 'e'
+	2.71828182846
+
+x='3+4'
+ivy x
+	7
+
 # Can evaluate ) commands, even without a newline.
 ivy ")format '%.2f'"
 3

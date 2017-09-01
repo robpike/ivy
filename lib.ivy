@@ -22,5 +22,10 @@ op mi2km m = float m*1.609344
 # Kilometers to miles
 op km2mi m = float m/1.609344
 
+# Some crazy math. Avoid N ≳1000; these nutty routines take too long.
+
 # Primes less <= N
 op primes N = (not T in T o.* T) sel T = 1 drop iota N
+
+# Approximations to pi.
+op approxPi N = sqrt 6*+/ /(iota N)**2
