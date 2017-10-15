@@ -55,7 +55,7 @@ func (l *loop) done(z *big.Float) bool {
 	l.i++
 	if l.i == l.maxIterations {
 		// Users should never see this.
-		Errorf("%s %s: did not converge after %d iterations; prev,last result %s,%s delta %s", l.name, l.arg, l.maxIterations, BigFloat{z}, BigFloat{l.prevZ}, BigFloat{l.delta})
+		Errorf("%s %s: did not converge after %d iterations; prev,last result %s,%s delta %s", l.name, BigFloat{l.arg}, l.maxIterations, BigFloat{z}, BigFloat{l.prevZ}, BigFloat{l.delta})
 	}
 	l.prevZ.Set(z)
 	return false

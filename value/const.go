@@ -34,6 +34,7 @@ var (
 	floatLog10    *big.Float
 	floatOne      *big.Float
 	floatTwo      *big.Float
+	floatHalf     *big.Float
 	floatMinusOne *big.Float
 )
 
@@ -61,6 +62,7 @@ func Consts(c Context) (e, pi BigFloat) {
 	floatOne = newF(conf).SetInt64(1)
 	floatTwo = newF(conf).SetInt64(2)
 	floatMinusOne = newF(conf).SetInt64(-1)
+	floatHalf = newF(conf).SetFloat64(0.5)
 	var ok bool
 	floatE, ok = newF(conf).SetString(strE)
 	if !ok {

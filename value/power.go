@@ -36,8 +36,16 @@ func floatPower(c Context, bx, bexp BigFloat) *big.Float {
 		positive = false
 		fexp = c.EvalUnary("-", bexp).toType(conf, bigFloatType).(BigFloat).Float
 	}
-	if x.Cmp(floatOne) == 0 || x.Sign() == 0 {
+	// Easy cases.
+	switch {
+	case x.Cmp(floatOne) == 0, x.Sign() == 0:
 		return x
+	case fexp.Cmp(floatHalf) == 0:
+		z := floatSqrt(c, x)
+		if !positive {
+			z = z.Quo(floatOne, z)
+		}
+		return z
 	}
 	isInt := true
 	exp, acc := fexp.Int64() // No point in doing *big.Ints now. TODO?
