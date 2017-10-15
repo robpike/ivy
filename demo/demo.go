@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 func main() {
@@ -32,7 +33,7 @@ func main() {
 		log.Fatal("Usage: cd ivy/demo; go build demo.go; ./demo\n")
 	}
 	log.SetPrefix("demo: ")
-	text, err := ioutil.ReadFile("demo.ivy")
+	text, err := ioutil.ReadFile(pathTo("demo.ivy"))
 	ck(err)
 	cmd := exec.Command("ivy")
 	cmd.Stdout = os.Stdout
@@ -72,4 +73,25 @@ func ck(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func exists(file string) bool {
+	info, err := os.Stat(file)
+	return err == nil && !info.IsDir()
+}
+
+func pathTo(file string) string {
+	if exists(file) {
+		return file
+	}
+	for _, dir := range filepath.SplitList(os.Getenv("GOPATH")) {
+		if dir == "" {
+			continue
+		}
+		name := filepath.Join(dir, "src", "robpike.io", "ivy", "demo", file)
+		if exists(name) {
+			return name
+		}
+	}
+	return file // We'll get an error when we try to open it.
 }

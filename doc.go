@@ -262,6 +262,8 @@ base 10 and must be non-negative on input.
 	) debug name 0|1
 		Toggle or set the named debugging flag. With no argument, lists
 		the settings.
+	) demo
+		Run a line-by-line interactive demo. Requires a Go installation.
 	) format ""
 		Set the format for printing values. If empty, the output is printed
 		using the output base. If non-empty, the format determines the

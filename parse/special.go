@@ -10,6 +10,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/scan"
@@ -137,6 +139,16 @@ Switch:
 		number := p.nextDecimalNumber()
 		if !conf.SetDebug(name, number != 0) {
 			p.Println("no such debug flag:", name)
+		}
+	case "demo":
+		p.need(scan.EOF)
+		cmd := exec.Command("go", "run", pathTo("demo.go"))
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = conf.Output()
+		cmd.Stdout = conf.ErrOutput()
+		err := cmd.Run()
+		if err != nil {
+			p.errorf("%v", err)
 		}
 	case "format":
 		if p.peek().Type == scan.EOF {
@@ -280,4 +292,25 @@ func (p *Parser) runFromFile(context value.Context, name string) {
 			return
 		}
 	}
+}
+
+func exists(file string) bool {
+	info, err := os.Stat(file)
+	return err == nil && !info.IsDir()
+}
+
+func pathTo(file string) string {
+	if exists(file) {
+		return file
+	}
+	for _, dir := range filepath.SplitList(os.Getenv("GOPATH")) {
+		if dir == "" {
+			continue
+		}
+		name := filepath.Join(dir, "src", "robpike.io", "ivy", "demo", file)
+		if exists(name) {
+			return name
+		}
+	}
+	return file // We'll get an error when we try to open it.
 }
