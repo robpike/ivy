@@ -54,7 +54,7 @@ func floatPower(c Context, bx, bexp BigFloat) *big.Float {
 	}
 	// Integer part.
 	z := integerPower(c, x, exp)
-	// Fractional part..
+	// Fractional part.
 	if !isInt {
 		frac := fexp.Sub(fexp, newFloat(c).SetInt64(exp))
 		// x**frac is e**(frac*log x)

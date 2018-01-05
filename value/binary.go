@@ -109,6 +109,10 @@ func bigIntExp(c Context, i, j, k *big.Int) *big.Int {
 	if exp < 0 {
 		exp = -exp
 	}
+	// "2" is just shift. math/big should do this, really.
+	if j.Cmp(bigTwo.Int) == 0 && exp >= 0 {
+		return i.Lsh(big.NewInt(1), uint(exp))
+	}
 	mustFit(c.Config(), int64(j.BitLen())*exp)
 	i.Exp(j, k, nil)
 	return i
@@ -153,6 +157,7 @@ var (
 	minusOne    = Int(-1)
 	bigZero     = bigInt64(0)
 	bigOne      = bigInt64(1)
+	bigTwo      = bigInt64(2)
 	bigMinusOne = bigInt64(-1)
 )
 
