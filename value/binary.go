@@ -4,9 +4,7 @@
 
 package value
 
-import (
-	"math/big"
-)
+import "math/big"
 
 // Binary operators.
 
