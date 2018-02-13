@@ -230,7 +230,7 @@ func init() {
 				},
 				bigIntType: func(c Context, v Value) Value {
 					// Lots of ways to do this, here's one.
-					return BigInt{Int: bigInt64(0).Xor(v.(BigInt).Int, bigMinusOne.Int)}
+					return BigInt{Int: bigInt64(0).Xor(v.(BigInt).Int, bigMinusOne.Int)}.shrink()
 				},
 			},
 		},
@@ -313,7 +313,7 @@ func init() {
 						z.Add(z.Int, bigOne.Int)
 						z.Neg(z.Int)
 					}
-					return z
+					return z.shrink()
 				},
 				bigFloatType: func(c Context, v Value) Value {
 					f := v.(BigFloat)
@@ -354,7 +354,7 @@ func init() {
 					} else {
 						z.Neg(z.Int)
 					}
-					return z
+					return z.shrink()
 				},
 				bigFloatType: func(c Context, v Value) Value {
 					f := v.(BigFloat)
