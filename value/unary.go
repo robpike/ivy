@@ -394,19 +394,19 @@ func init() {
 			name: "rho",
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return Vector{}
+					return Int(0)
 				},
 				charType: func(c Context, v Value) Value {
-					return Vector{}
+					return Int(0)
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return Vector{}
+					return Int(0)
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return Vector{}
+					return Int(0)
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return Vector{}
+					return Int(0)
 				},
 				vectorType: func(c Context, v Value) Value {
 					return Int(len(v.(Vector)))
