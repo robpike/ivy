@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package exec
+package exec // import "robpike.io/ivy/parse/exec"
 
 // OpDef is just a record of an op's name and arg count.
 // It is held in execContext.defs to control writing the

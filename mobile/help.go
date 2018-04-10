@@ -1,4 +1,4 @@
-package mobile
+package mobile // import "robpike.io/ivy/mobile"
 
 // GENERATED; DO NOT EDIT
 const help = `<!-- auto-generated from robpike.io/ivy package doc -->
