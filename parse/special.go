@@ -92,7 +92,9 @@ func (p *Parser) special() {
 	}()
 	conf.SetBase(10, 10)
 Switch:
-	switch text := p.need(scan.Identifier, scan.Op).Text; text {
+	// Permit scan.Number in case we are in a high base (say 52) in which
+	// case text looks numeric.
+	switch text := p.need(scan.Identifier, scan.Number, scan.Op).Text; text {
 	case "help":
 		p.Println(specialHelpMessage)
 		p.Println("More at: https://godoc.org/robpike.io/ivy")

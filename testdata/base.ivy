@@ -5,6 +5,13 @@
 # Input and output bases.
 # The testing harness resets ibase and obase before each test.
 
+# Make sure setting a big base doesn't break seeing words as commands.
+)base 36
+)base 10
+)base
+	ibase	10
+	obase	10
+
 )ibase 16
 0; 1; 10; 16; abe; 3abe; a/b; a8add6a7f6a6d
 	0 1 16 22 2750 15038 10/11 2967433346247277
