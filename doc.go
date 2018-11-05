@@ -21,13 +21,13 @@ Unlike in most other languages, operators always have the same precedence and
 expressions are evaluated in right-associative order. That is, unary operators
 apply to everything to the right, and binary operators apply to the operand
 immediately to the left and to everything to the right.  Thus, 3*4+5 is 27 (it
-groups as 3*(4+5)) and iota 3+2 is 1 2 3 4 5 while 3+iota 2 is 3 4 5. A vector
+groups as 3*(4+5)) and iota 3+2 is 1 2 3 4 5 while 3+iota 2 is 4 5. A vector
 is a single operand, so 1 2 3 + 3 + 3 4 5 is (1 2 3) + 3 + (3 4 5), or 7 9 11.
 
 As a special but important case, note that 1/3, with no intervening spaces, is a
 single rational number, not the expression 1 divided by 3. This can affect precedence:
 3/6*4 is 2 while 3 / 6*4 is 1/8 since the spacing turns the / into a division
-operator. Use parentheses or spaces to disabiguate: 3/(6*4) or 3 /6*4.
+operator. Use parentheses or spaces to disambiguate: 3/(6*4) or 3 /6*4.
 
 Only a subset of APL's functionality is implemented, but the intention is to
 have most numerical operations supported eventually.
