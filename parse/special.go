@@ -84,13 +84,14 @@ func truth(x bool) int {
 func (p *Parser) special() {
 	p.need(scan.RightParen)
 	conf := p.context.Config()
-	// Save the base and do everything here base 10.
+	// Save the base and do everything here base 0, which is decimal but
+	// allows hex and octal in C syntax: 0xFF, 072.
 	// The base command will set the values of the variables ibase and obase.
 	ibase, obase := conf.Base()
 	defer func() {
 		conf.SetBase(ibase, obase)
 	}()
-	conf.SetBase(10, 10)
+	conf.SetBase(0, 0)
 Switch:
 	// Permit scan.Number in case we are in a high base (say 52) in which
 	// case text looks numeric.
