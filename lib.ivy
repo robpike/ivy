@@ -4,8 +4,8 @@ op avg x = (+/x)/rho x
 # Largest n in x.
 op n largest x = n take x[down x]
 
-# Digits of a base b. Use log to decide how many.
-op a base b = ((ceil b log a) rho b) encode a
+# Digits of a base b. Use log to decide how many. Assumes origin is 1. (Remove 1+ if not.)
+op a base b = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[1 + ((ceil b log a) rho b) encode a]
 
 # Population count. Use encode to turn the value into a string of bits.
 op popcount n = +/n base 2
