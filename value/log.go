@@ -19,6 +19,10 @@ func floatLog(c Context, x *big.Float) *big.Float {
 	if x.Sign() <= 0 {
 		Errorf("log of non-positive value")
 	}
+	// Convergence is imperfect at 1, so get it right.
+	if x.Cmp(floatOne) == 0 {
+		return newFloat(c)
+	}
 	// The series wants x < 1, and log 1/x == -log x, so exploit that.
 	invert := false
 	x = newFloat(c).Set(x) // Don't modify argument!

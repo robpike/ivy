@@ -300,7 +300,7 @@ func reshape(A, B Vector) Value {
 	for i := range A {
 		n, ok := A[i].Inner().(Int)
 		if !ok || n < 0 || maxInt < n {
-			Errorf("bad shape: %s is not an integer", A[i])
+			Errorf("bad shape for rho: %s is not a small integer", A[i])
 		}
 		nelems *= n
 		if nelems > maxInt {
