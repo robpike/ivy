@@ -318,7 +318,7 @@ func init() {
 				bigFloatType: func(c Context, v Value) Value {
 					f := v.(BigFloat)
 					if f.Float.IsInf() {
-						Errorf("floor of %s", v)
+						Errorf("floor of %s", v.Sprint(c.Config()))
 					}
 					i, acc := f.Int(nil)
 					switch acc {
@@ -362,7 +362,7 @@ func init() {
 				bigFloatType: func(c Context, v Value) Value {
 					f := v.(BigFloat)
 					if f.Float.IsInf() {
-						Errorf("ceil of %s", v)
+						Errorf("ceil of %s", v.Sprint(c.Config()))
 					}
 					i, acc := f.Int(nil)
 					switch acc {
