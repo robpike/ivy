@@ -24,7 +24,7 @@
 1/3 ** 2  # We'll see non-integral exponents later.
 # Even when a number is input in floating notation, it is still an exact rational number inside.
 1.2
-# In fact, ivy is a "bignum" calculator that can handle huge numbers and rationals made of huge numers.
+# In fact, ivy is a "bignum" calculator that can handle huge numbers and rationals made of huge numbers.
 1e10       # Still an integer.
 1e100      # Still an integer.
 1e10/3     # Not an integer, but an exact rational.
