@@ -16,6 +16,7 @@ func main() {
 		log.Fatal("Usage: script program filename")
 	}
 	text, err := ioutil.ReadFile(flag.Arg(1))
+	ck(err)
 	cmd := exec.Command(flag.Arg(0))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
