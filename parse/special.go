@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:generate sh -c "(echo '// echo GENERATED; DO NOT EDIT'; echo; echo 'package parse; const specialHelpMessage=`'; sed -n '/^.) [a-z]/,/^$DOLLAR/s/^	//p' ../doc.go; echo '`') | gofmt >help.go"
+//go:generate go run helpgen.go
 
 package parse // import "robpike.io/ivy/parse"
 
@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/scan"
@@ -97,8 +98,46 @@ Switch:
 	// case text looks numeric.
 	switch text := p.need(scan.Identifier, scan.Number, scan.Op).Text; text {
 	case "help":
-		p.Println(specialHelpMessage)
-		p.Println("More at: https://godoc.org/robpike.io/ivy")
+		p.Println("")
+		tok := p.peek()
+		if tok.Type == scan.EOF {
+			p.helpOverview()
+			break
+		}
+		str := strings.ToLower(strings.TrimSpace(tok.Text))
+		switch str {
+		case "help":
+			p.helpOverview()
+		case "intro":
+			p.printHelpBlock("", "Unary operators")
+		case "unary":
+			p.printHelpBlock("Unary operators", "Binary operators")
+		case "binary":
+			p.printHelpBlock("Binary operators", "Operators and axis indicator")
+		case "axis":
+			p.printHelpBlock("Operators and axis indicator", "Type-converting operations")
+		case "type", "conversion":
+			p.printHelpBlock("Type-converting operations", "Pre-defined constants")
+		case "constant":
+			p.printHelpBlock("Pre-defined constants", "Character data")
+		case "char", "character":
+			p.printHelpBlock("Character data", "User-defined operators")
+		case "op", "operator":
+			p.printHelpBlock("User-defined operators", "Special commands")
+		case "special":
+			p.printHelpBlock("Special commands", "$$EOF$$")
+		case "about":
+			p.next()
+			tok = p.next()
+			if tok.Type == scan.EOF {
+				p.helpOverview()
+				break
+			}
+			p.helpAbout(tok.Text)
+		default:
+			p.help(str)
+		}
+		p.next()
 	case "base", "ibase", "obase":
 		if p.peek().Type == scan.EOF {
 			p.Printf("ibase\t%d\n", ibase)

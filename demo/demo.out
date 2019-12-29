@@ -218,58 +218,28 @@ wroolllhed
 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304 8388608 16777216 33554432 67108864 134217728 268435456 536870912 1073741824 2147483648 4294967296 8589934592 17179869184 34359738368 68719476736 137438953472 274877906944 549755813888 1099511627776 2199023255552 4398046511104 8796093022208 17592186044416 35184372088832 70368744177664 140737488355328 281474976710656 562949953421312 1125899906842624 2251799813685248 4503599627370496 9007199254740992 18014398509481984 36028797018963968 72057594037927936 144115188075855872 288230376151711744 576460752303423488 1152921504606846976 2305843009213693952 4611686018427387904 9223372036854775808 18446744073709551616
 9223372036854775807
 
-) help
-	Print this list of special commands.
-) base 0
-	Set the number base for input and output. The commands ibase and
-	obase control setting of the base for input and output alone,
-	respectively.  Base 0 allows C-style input: decimal, with 037 being
-	octal and 0x10 being hexadecimal. If the base is greater than 10,
-	any identifier formed from valid numerals in the base system, such
-	as abe for base 16, is taken to be a number. TODO: To output
-	large integers and rationals, base must be one of 0 2 8 10 16.
-) cpu
-	Print the duration of the last interactive calculation.
-) debug name 0|1
-	Toggle or set the named debugging flag. With no argument, lists
-	the settings.
-) demo
-	Run a line-by-line interactive demo. Requires a Go installation.
-) format ""
-	Set the format for printing values. If empty, the output is printed
-	using the output base. If non-empty, the format determines the
-	base used in printing. The format is in the style of golang.org/pkg/fmt.
-	For floating-point formats, flags and width are ignored.
-) get "save.ivy"
-	Read input from the named file; return to interactive execution
-	afterwards. If no file is specified, read from "save.ivy".
-	(Unimplemented on mobile.)
-) maxbits 1e6
-	To avoid consuming too much memory, if an integer result would
-	require more than this many bits to store, abort the calculation.
-	If maxbits is 0, there is no limit; the default is 1e6.
-) maxdigits 1e4
-	To avoid overwhelming amounts of output, if an integer has more
-	than this many digits, print it using the defined floating-point
-	format. If maxdigits is 0, integers are always printed as integers.
-) op X
-	Show the definition of the user-defined operator X. Inside the
-	definition, numbers are always shown base 10, ignoring the ibase
-	and obase.
-) origin 1
-	Set the origin for indexing a vector or matrix.
-) prec 256
-	Set the precision (mantissa length) for floating-point values.
-	The value is in bits. The exponent always has 32 bits.
-) prompt ""
-	Set the interactive prompt.
-) save "save.ivy"
-	Write definitions of user-defined operators and variables to the
-	named file, as ivy textual source. If no file is specified, save to
-	"save.ivy".
-	(Unimplemented on mobile.)
-) seed 0
-	Set the seed for the ? operator.
+Overview:
+	)help intro
+Unary operators:
+	)help unary
+Binary operators:
+	)help binary
+Axis operators:
+	)help axis
+Types and conversions:
+	)help types
+Constants:
+	)help constants
+Characters:
+	)help char
+User-defined ops:
+	)help ops
+Special commands:
+	)help special
+Search docs:
+	)help about <word>
+Specific op:
+	)help <op>
 
 More at: https://godoc.org/robpike.io/ivy
 ibase	16

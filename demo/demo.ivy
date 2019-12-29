@@ -30,7 +30,7 @@
 1e10/3     # Not an integer, but an exact rational.
 3/1e10     # Not an integer, but an exact rational.
 2**64      # They can get big.
-2**640     # They can get really big.  
+2**640     # They can get really big.
 # They can get really really big. Type a newline to see 2**6400 scroll by.
 2**6400
 # Ivy also has characters, which represent a Unicode code point.
@@ -103,7 +103,7 @@ x/2
 x**2
 x**3
 x**10
-# Inner product is written with a . between the operators. 
+# Inner product is written with a . between the operators.
 # This gives dot product: multiply corresponding elements and add the result.
 1 2 3 4 +.* 2 3 4 5
 # Any operator works. How many items are the same?
@@ -148,7 +148,7 @@ x = ?10 rho 6; x
 2**64
 2**iota 64
 -1+2**63
-# Settings are made and queried with a leading right paren. )help lists the settings and other commands.
+# Settings are made and queried with a leading right paren. )help helps with settings and other commands.
 )help
 # Use )base to switch input and output to base 16.
 )base 16

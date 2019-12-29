@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// The precise format and contents of this file are depended
+// on by parse/helpgen.go. Do not edit without verifying that
+// )help still works properly.
+
 /*
 
 Ivy is an interpreter for an APL-like language. It is a plaything and a work in
@@ -41,7 +45,7 @@ called _ (underscore) so it can be used in the next expression.
 The APL operators, adapted from https://en.wikipedia.org/wiki/APL_syntax_and_symbols,
 and their correspondence are listed here. The correspondence is incomplete and inexact.
 
-Unary functions.
+Unary operators
 
 	Name              APL   Ivy     Meaning
 	Roll              ?B    ?       One integer selected randomly from the first B integers
@@ -74,7 +78,7 @@ Unary functions.
 	Cosine                  cos     cos(A); ditto
 	Tangent                 tan     tan(A); ditto
 
-Binary functions.
+Binary operators
 
 	Name                  APL   Ivy     Meaning
 	Add                   A+B   +       Sum of A and B
@@ -148,12 +152,10 @@ Operators and axis indicator
 
 Type-converting operations
 
-	Name                  Ivy      Meaning
-	Code                  code B   The integer Unicode value of char B
-	Char                  char B   The character with integer Unicode value B
-	Float                 float B  The floating-point representation of B
-	Text                  text B   The textual (vector of Char) representation of B
-	Evaluate              ivy B    The result of evaluating B as ivy program text
+	Name              APL   Ivy     Meaning
+	Code                    code B  The integer Unicode value of char B
+	Char                    char B  The character with integer Unicode value B
+	Float                   float B The floating-point representation of B
 
 Pre-defined constants
 
