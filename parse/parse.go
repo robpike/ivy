@@ -415,7 +415,7 @@ func (p *Parser) expr() value.Expr {
 		p.next()
 		variable, ok := expr.(variableExpr)
 		if !ok {
-			p.errorf("cannot assign to %s", tree(expr))
+			p.errorf("cannot assign to %s", expr.ProgString())
 		}
 		return &binary{
 			left:  variable,
