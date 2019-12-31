@@ -496,7 +496,7 @@ func init() {
 					if m.Rank() == 1 {
 						Errorf("rot: matrix is vector")
 					}
-					size := m.size()
+					size := m.Size()
 					ncols := int(m.shape[m.Rank()-1].(Int))
 					x := m.data
 					for index := 0; index <= size-ncols; index += ncols {
@@ -528,8 +528,8 @@ func init() {
 					if m.Rank() == 1 {
 						Errorf("flip: matrix is vector")
 					}
-					elemSize := m.elemSize()
-					size := m.size()
+					elemSize := m.ElemSize()
+					size := m.Size()
 					x := m.data
 					lo := 0
 					hi := size - elemSize

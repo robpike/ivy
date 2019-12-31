@@ -112,14 +112,14 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 		// If it's all chars, print it without padding or quotes.
 		if m.data.AllChars() {
 			nelems := int(m.shape[0].(Int))
-			elemSize := m.elemSize()
+			ElemSize := m.ElemSize()
 			index := 0
 			for i := 0; i < nelems; i++ {
 				if i > 0 {
 					b.WriteString("\n\n")
 				}
-				fmt.Fprintf(&b, "%s", NewMatrix(m.shape[1:], m.data[index:index+elemSize]).Sprint(conf))
-				index += elemSize
+				fmt.Fprintf(&b, "%s", NewMatrix(m.shape[1:], m.data[index:index+ElemSize]).Sprint(conf))
+				index += ElemSize
 			}
 			break
 		}
@@ -133,7 +133,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 			}
 		}
 		n2d := int(m.shape[0].(Int)) // number of 2d submatrices.
-		size := m.elemSize()         // number of elems in each submatrix.
+		size := m.ElemSize()         // number of elems in each submatrix.
 		start := 0
 		for i := 0; i < n2d; i++ {
 			if i > 0 {
@@ -167,7 +167,7 @@ func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) 
 	for i := 0; i < dim; i++ {
 		inner := Matrix{
 			shape: m.shape[1:],
-			data:  m.data[i*m.elemSize():],
+			data:  m.data[i*m.ElemSize():],
 		}
 		if i > 0 {
 			b.WriteString("\n")
@@ -208,16 +208,16 @@ func spaces(n int) string {
 	return "                    "[:2*n]
 }
 
-// elemSize returns number of elements of the submatrix forming the elements of the matrix.
-// Given shape [a, b, c, ...] it is b*c*....
-func (m *Matrix) elemSize() int {
-	return size(m.shape[1:])
+// Size returns number of elements of the matrix.
+// Given shape [a, b, c, ...] it is a*b*c*....
+func (m *Matrix) Size() int {
+	return size(m.shape)
 }
 
-// size returns number of elements of the matrix.
+// ElemSize returns the size of each top-level element of the matrix.
 // Given shape [a, b, c, ...] it is b*c*....
-func (m *Matrix) size() int {
-	return size(m.shape)
+func (m *Matrix) ElemSize() int {
+	return size(m.shape[1:])
 }
 
 func size(shape []Value) int {

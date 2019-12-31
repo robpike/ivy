@@ -217,27 +217,45 @@ func (b *binary) Eval(context value.Context) value.Value {
 			return Assignment{Value: rhs}
 		case *binary:
 			if lhs.op == "[]" {
+				// TODO: Chained indexes don't work because of the l-value/r-value issue.
+				// Do this later with x[1 2 3]
+				if v, ok := lhs.left.(*binary); ok && v.op == "[]" {
+					value.Errorf("cannot assign to %s", b.left.ProgString())
+				}
+				config := context.Config()
 				index := lhs.right.Eval(context)
 				x, ok := index.(value.Int)
 				if !ok {
-					value.Errorf("index must be integer")
+					value.Errorf("index must be integer") // TODO: Should allow vectors, as in x[1 2 3] = ...
 				}
 				origin := value.Int(context.Config().Origin())
 				x -= origin
-				vec := lhs.left.Eval(context)
-				switch A := vec.(type) {
+				val := lhs.left.Eval(context)
+				if rhs.Rank() != val.Rank()-1 {
+					value.Errorf("rank error assigning %s to %s", rhs.Sprint(config), b.left.ProgString())
+				}
+				switch A := val.(type) {
 				case value.Vector:
 					if x < 0 || value.Int(len(A)) <= x {
 						value.Errorf("index %d of out of range", x+origin)
 					}
-					if rhs.Rank() != 0 {
-						value.Errorf("cannot assign non-scalar %s to vector element", rhs)
-					}
 					A[x] = rhs
 					return Assignment{Value: rhs}
 				case *value.Matrix:
-					// TODO: It's annoying that this doesn't work. It would if we had *Matrix here.
-					value.Errorf("cannot assign to element of matrix")
+					// Rank cannot be 0 due to check above.
+					if x < 0 || A.Shape()[0].(value.Int) <= x {
+						value.Errorf("index %d of out of range", x+origin)
+					}
+					data, ok := rhs.(value.Vector)
+					if !ok {
+						data = rhs.(*value.Matrix).Data()
+					}
+					if len(data) != A.ElemSize() {
+						// TODO: One day we could allow this?
+						value.Errorf("length mismatch assigning %s to %s", rhs.Sprint(config), b.left.ProgString())
+					}
+					copy(A.Data()[int(x)*A.ElemSize():], data)
+					return Assignment{Value: rhs}
 				}
 				value.Errorf("cannot assign to element of %s", lhs.left)
 			}

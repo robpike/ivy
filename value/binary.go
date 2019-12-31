@@ -892,8 +892,8 @@ func init() {
 						Errorf("bad index rank %d", mB.Rank())
 					}
 					B := mB.data
-					elemSize := Int(A.elemSize())
-					values := make(Vector, 0, elemSize*Int(len(B)))
+					ElemSize := Int(A.ElemSize())
+					values := make(Vector, 0, ElemSize*Int(len(B)))
 					origin := Int(c.Config().Origin())
 					for _, b := range B {
 						x, ok := b.(Int)
@@ -904,8 +904,8 @@ func init() {
 						if x < 0 || Int(A.shape[0].(Int)) <= x {
 							Errorf("index %d out of range (shape %s)", x+origin, A.shape)
 						}
-						start := elemSize * x
-						values = append(values, A.data[start:start+elemSize]...)
+						start := ElemSize * x
+						values = append(values, A.data[start:start+ElemSize]...)
 					}
 					if len(B) == 1 {
 						// Special considerations. The result might need type reduction.
@@ -1066,13 +1066,13 @@ func init() {
 					if A.Rank() == 0 || B.Rank() == 0 {
 						Errorf("empty matrix for ,")
 					}
-					if A.Rank() != B.Rank()+1 || A.elemSize() != B.size() {
+					if A.Rank() != B.Rank()+1 || A.ElemSize() != B.Size() {
 						Errorf("catenate rank mismatch: %s != %s", A.shape[1:], B.shape)
 					}
-					elemSize := A.elemSize()
+					ElemSize := A.ElemSize()
 					newShape := make(Vector, A.Rank())
 					copy(newShape, A.shape)
-					newData := make(Vector, len(A.data), len(A.data)+elemSize)
+					newData := make(Vector, len(A.data), len(A.data)+ElemSize)
 					copy(newData, A.data)
 					newData = append(newData, B.data...)
 					newShape[0] = newShape[0].(Int) + 1
