@@ -21,7 +21,11 @@ type BigFloat struct {
 // that our String gets called rather than the inner Format, we
 // put a non-matching stub Format method into this interface.
 // This is ugly but very simple and cheap.
-func (i BigFloat) Format() {}
+func (f BigFloat) Format() {}
+
+func (f BigFloat) Rank() int {
+	return 0
+}
 
 const fastFloatPrint = true
 

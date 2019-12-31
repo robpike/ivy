@@ -23,6 +23,10 @@ func (c Char) String() string {
 	return "(" + string(c) + ")"
 }
 
+func (c Char) Rank() int {
+	return 0
+}
+
 func (c Char) Sprint(conf *config.Config) string {
 	// We ignore the format - chars are always textual.
 	// TODO: What about escapes?

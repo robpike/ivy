@@ -490,14 +490,14 @@ func init() {
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(Matrix)
-					if len(m.shape) == 0 {
+					if m.Rank() == 0 {
 						return m
 					}
-					if len(m.shape) == 1 {
+					if m.Rank() == 1 {
 						Errorf("rot: matrix is vector")
 					}
 					size := m.size()
-					ncols := int(m.shape[len(m.shape)-1].(Int))
+					ncols := int(m.shape[m.Rank()-1].(Int))
 					x := m.data
 					for index := 0; index <= size-ncols; index += ncols {
 						for i, j := 0, ncols-1; i < j; i, j = i+1, j-1 {
@@ -522,10 +522,10 @@ func init() {
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(Matrix)
-					if len(m.shape) == 0 {
+					if m.Rank() == 0 {
 						return m
 					}
-					if len(m.shape) == 1 {
+					if m.Rank() == 1 {
 						Errorf("flip: matrix is vector")
 					}
 					elemSize := m.elemSize()

@@ -30,6 +30,10 @@ func (m *Matrix) Shape() Vector {
 	return m.shape
 }
 
+func (m Matrix) Rank() int {
+	return len(m.shape)
+}
+
 // Data returns the data of the matrix as a vector.
 func (m *Matrix) Data() Vector {
 	return m.data
@@ -70,7 +74,7 @@ func (m Matrix) String() string {
 
 func (m Matrix) Sprint(conf *config.Config) string {
 	var b bytes.Buffer
-	switch len(m.shape) {
+	switch m.Rank() {
 	case 0:
 		Errorf("matrix is scalar")
 	case 1:
@@ -154,11 +158,11 @@ func (m Matrix) ProgString() string {
 }
 
 func (m Matrix) higherDim(conf *config.Config, prefix string, indentation int) string {
-	if len(m.shape) <= 3 {
+	if m.Rank() <= 3 {
 		return indent(indentation, m.Sprint(conf))
 	}
 	dim := int(m.shape[0].(Int))
-	rest := strings.Repeat(" *", len(m.shape)-1)[1:]
+	rest := strings.Repeat(" *", m.Rank()-1)[1:]
 	var b bytes.Buffer
 	for i := 0; i < dim; i++ {
 		inner := Matrix{
@@ -277,7 +281,7 @@ func (m Matrix) toType(conf *config.Config, which valueType) Value {
 }
 
 func (x Matrix) sameShape(y Matrix) {
-	if len(x.shape) != len(y.shape) {
+	if x.Rank() != y.Rank() {
 		Errorf("rank mismatch: %s != %s", x.shape, y.shape)
 	}
 	for i, d := range x.shape {
@@ -325,11 +329,11 @@ func reshape(A, B Vector) Value {
 // rotate returns a copy of v with elements rotated left by n.
 // Rotation occurs on the rightmost axis.
 func (m Matrix) rotate(n int) Value {
-	if len(m.shape) == 0 {
+	if m.Rank() == 0 {
 		return Matrix{}
 	}
 	elems := make([]Value, len(m.data))
-	dim := int(m.shape[len(m.shape)-1].(Int))
+	dim := int(m.shape[m.Rank()-1].(Int))
 	n %= dim
 	if n < 0 {
 		n += dim
@@ -343,10 +347,10 @@ func (m Matrix) rotate(n int) Value {
 // vrotate returns a copy of v with elements rotated down by n.
 // Rotation occurs on the leftmost axis.
 func (m Matrix) vrotate(n int) Value {
-	if len(m.shape) == 0 {
+	if m.Rank() == 0 {
 		return Matrix{}
 	}
-	if len(m.shape) == 1 {
+	if m.Rank() == 1 {
 		return m
 	}
 

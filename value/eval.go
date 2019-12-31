@@ -139,7 +139,7 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		// result[i,j] = +/(u[row i] * v[column j])
 		// The result is a square matrix with each dimension the number of columns of the lhs.
 		v := v.(Matrix)
-		if len(u.shape) != 2 || len(v.shape) != 2 {
+		if u.Rank() != 2 || v.Rank() != 2 {
 			Errorf("can't do inner product on shape %s times %s", u.shape, v.shape)
 		}
 		urows := int(u.shape[0].(Int))
@@ -224,14 +224,14 @@ func Reduce(c Context, op string, v Value) Value {
 		}
 		return acc
 	case Matrix:
-		if len(v.shape) < 2 {
+		if v.Rank() < 2 {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
-		stride := int(v.shape[len(v.shape)-1].(Int))
+		stride := int(v.shape[v.Rank()-1].(Int))
 		if stride == 0 {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
-		shape := v.shape[:len(v.shape)-1]
+		shape := v.shape[:v.Rank()-1]
 		data := make(Vector, size(shape))
 		index := 0
 		for i := range data {
@@ -274,17 +274,17 @@ func Scan(c Context, op string, v Value) Value {
 		}
 		return NewVector(values)
 	case Matrix:
-		if len(v.shape) < 2 {
+		if v.Rank() < 2 {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
-		stride := int(v.shape[len(v.shape)-1].(Int))
+		stride := int(v.shape[v.Rank()-1].(Int))
 		if stride == 0 {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
 		data := make(Vector, len(v.data))
 		index := 0
 		nrows := 1
-		for i := 0; i < len(v.shape)-1; i++ {
+		for i := 0; i < v.Rank()-1; i++ {
 			// Guaranteed by NewMatrix not to overflow.
 			nrows *= int(v.shape[i].(Int))
 		}
@@ -417,7 +417,7 @@ func isScalar(u Matrix) bool {
 // isVector reports whether u is an 1x1x...xn item where n is the last dimension
 // of the shape, that is, an n-vector promoted to matrix.
 func isVector(u Matrix, shape Vector) bool {
-	if len(u.shape) == 0 || len(shape) == 0 || u.shape[0] != shape[len(shape)-1] {
+	if u.Rank() == 0 || len(shape) == 0 || u.shape[0] != shape[len(shape)-1] {
 		return false
 	}
 	for _, dim := range u.shape[1:] {

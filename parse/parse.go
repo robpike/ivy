@@ -210,10 +210,38 @@ func (b *binary) Eval(context value.Context) value.Value {
 	rhs := b.right.Eval(context).Inner()
 	if b.op == "=" {
 		// Special handling as we cannot evaluate the left.
-		// We know the left is a variableExpr.
-		lhs := b.left.(variableExpr)
-		context.Assign(lhs.name, rhs)
-		return Assignment{Value: rhs}
+		// We know the left is a variableExpr or index expression.
+		switch lhs := b.left.(type) {
+		case variableExpr:
+			context.Assign(lhs.name, rhs)
+			return Assignment{Value: rhs}
+		case *binary:
+			if lhs.op == "[]" {
+				index := lhs.right.Eval(context)
+				x, ok := index.(value.Int)
+				if !ok {
+					value.Errorf("index must be integer")
+				}
+				origin := value.Int(context.Config().Origin())
+				x -= origin
+				vec := lhs.left.Eval(context)
+				switch A := vec.(type) {
+				case value.Vector:
+					if x < 0 || value.Int(len(A)) <= x {
+						value.Errorf("index %d of out of range", x+origin)
+					}
+					if rhs.Rank() != 0 {
+						value.Errorf("cannot assign non-scalar %s to vector element", rhs)
+					}
+					A[x] = rhs
+					return Assignment{Value: rhs}
+				case value.Matrix:
+					// TODO: It's annoying that this doesn't work. It would if we had *Matrix here.
+					value.Errorf("cannot assign to element of matrix")
+				}
+				value.Errorf("cannot assign to element of %s", lhs.left)
+			}
+		}
 	}
 	lhs := b.left.Eval(context)
 	return context.EvalBinary(lhs, b.op, rhs)
@@ -413,15 +441,21 @@ func (p *Parser) expr() value.Expr {
 		}
 	case scan.Assign:
 		p.next()
-		variable, ok := expr.(variableExpr)
-		if !ok {
-			p.errorf("cannot assign to %s", expr.ProgString())
+		switch lhs := expr.(type) {
+		case variableExpr:
+			return &binary{
+				left:  lhs,
+				op:    tok.Text,
+				right: p.expr(),
+			}
+		case *binary:
+			return &binary{
+				left:  lhs,
+				op:    tok.Text,
+				right: p.expr(),
+			}
 		}
-		return &binary{
-			left:  variable,
-			op:    tok.Text,
-			right: p.expr(),
-		}
+		p.errorf("cannot assign to %s", expr.ProgString())
 	case scan.Operator:
 		p.next()
 		return &binary{
@@ -572,13 +606,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 }
 
 func isScalar(v value.Value) bool {
-	switch v := v.(type) {
-	case value.Int, value.Char, value.BigInt, value.BigRat, value.BigFloat:
-		return true
-	case Assignment:
-		return isScalar(v.Value)
-	}
-	return false
+	return v.Rank() == 0
 }
 
 func (p *Parser) variable(name string) variableExpr {

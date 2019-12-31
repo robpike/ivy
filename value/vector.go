@@ -22,6 +22,10 @@ func (v Vector) Sprint(conf *config.Config) string {
 	return v.makeString(conf, !v.AllChars())
 }
 
+func (v Vector) Rank() int {
+	return 1
+}
+
 func (v Vector) ProgString() string {
 	// There is no such thing as a vector in program listings; they
 	// are represented as a sliceExpr.

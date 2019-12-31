@@ -888,8 +888,8 @@ func init() {
 				matrixType: func(c Context, u, v Value) Value {
 					// A[B]: The successive elements of A with indexes given by elements of B.
 					A, mB := u.(Matrix), v.(Matrix)
-					if len(mB.shape) != 1 {
-						Errorf("bad index rank %d", len(mB.shape))
+					if mB.Rank() != 1 {
+						Errorf("bad index rank %d", mB.Rank())
 					}
 					B := mB.data
 					elemSize := Int(A.elemSize())
@@ -912,15 +912,15 @@ func init() {
 						// TODO: Should this be Matrix.shrink?
 						// TODO: In some cases, can get a scalar.
 						// Is the result a vector?
-						if len(A.shape) == 2 {
+						if A.Rank() == 2 {
 							return values
 						}
 						// Matrix of one less degree.
-						newShape := make(Vector, len(A.shape)-1)
+						newShape := make(Vector, A.Rank()-1)
 						copy(newShape, A.shape[1:])
 						return NewMatrix(newShape, values)
 					}
-					newShape := make(Vector, len(A.shape))
+					newShape := make(Vector, A.Rank())
 					copy(newShape, A.shape)
 					newShape[0] = Int(len(B))
 					return NewMatrix(newShape, values)
@@ -1045,7 +1045,7 @@ func init() {
 				matrixType: func(c Context, u, v Value) Value {
 					// LHS must be a vector underneath.
 					A, B := u.(Matrix), v.(Matrix)
-					if len(A.shape) != 1 {
+					if A.Rank() != 1 {
 						Errorf("lhs of rho cannot be matrix")
 					}
 					return reshape(A.data, B.data)
@@ -1063,14 +1063,14 @@ func init() {
 				matrixType: func(c Context, u, v Value) Value {
 					A := u.(Matrix)
 					B := v.(Matrix)
-					if len(A.shape) == 0 || len(B.shape) == 0 {
+					if A.Rank() == 0 || B.Rank() == 0 {
 						Errorf("empty matrix for ,")
 					}
-					if len(A.shape) != len(B.shape)+1 || A.elemSize() != B.size() {
+					if A.Rank() != B.Rank()+1 || A.elemSize() != B.size() {
 						Errorf("catenate rank mismatch: %s != %s", A.shape[1:], B.shape)
 					}
 					elemSize := A.elemSize()
-					newShape := make(Vector, len(A.shape))
+					newShape := make(Vector, A.Rank())
 					copy(newShape, A.shape)
 					newData := make(Vector, len(A.data), len(A.data)+elemSize)
 					copy(newData, A.data)
@@ -1164,7 +1164,7 @@ func init() {
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					countMat := u.(Matrix)
-					if len(countMat.shape) != 1 || len(countMat.data) != 1 {
+					if countMat.Rank() != 1 || len(countMat.data) != 1 {
 						Errorf("rot: count must be small integer")
 					}
 					count, ok := countMat.data[0].(Int)
@@ -1193,7 +1193,7 @@ func init() {
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					countMat := u.(Matrix)
-					if len(countMat.shape) != 1 || len(countMat.data) != 1 {
+					if countMat.Rank() != 1 || len(countMat.data) != 1 {
 						Errorf("flip: count must be small integer")
 					}
 					count, ok := countMat.data[0].(Int)

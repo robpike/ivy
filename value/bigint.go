@@ -25,6 +25,10 @@ type BigInt struct {
 // This is ugly but very simple and cheap.
 func (i BigInt) Format() {}
 
+func (i BigInt) Rank() int {
+	return 0
+}
+
 func setBigIntString(conf *config.Config, s string) (BigInt, error) {
 	i, ok := big.NewInt(0).SetString(s, conf.InputBase())
 	if !ok {

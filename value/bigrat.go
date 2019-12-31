@@ -38,6 +38,10 @@ func (r BigRat) String() string {
 	return "(" + r.Sprint(debugConf) + ")"
 }
 
+func (r BigRat) Rank() int {
+	return 0
+}
+
 func (r BigRat) Sprint(conf *config.Config) string {
 	format := conf.Format()
 	if format != "" {

@@ -26,6 +26,9 @@ type Value interface {
 	// it returns the right-hand side.
 	Inner() Value
 
+	// Rank returns the rank of the value: 0 for scalar, 1 for vector, etc.
+	Rank() int
+
 	// ProgString is like String, but suitable for program listing.
 	// For instance, it ignores the user format for numbers and
 	// puts quotes on chars, guaranteeing a correct representation.
