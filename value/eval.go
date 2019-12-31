@@ -73,7 +73,7 @@ func whichType(v Value) valueType {
 		return bigFloatType
 	case Vector:
 		return vectorType
-	case Matrix:
+	case *Matrix:
 		return matrixType
 	}
 	Errorf("unknown type %T in whichType", v)
@@ -134,11 +134,11 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 			}
 		}
 		return x
-	case Matrix:
+	case *Matrix:
 		// Say we're doing +.*
 		// result[i,j] = +/(u[row i] * v[column j])
 		// The result is a square matrix with each dimension the number of columns of the lhs.
-		v := v.(Matrix)
+		v := v.(*Matrix)
 		if u.Rank() != 2 || v.Rank() != 2 {
 			Errorf("can't do inner product on shape %s times %s", u.shape, v.shape)
 		}
@@ -187,9 +187,9 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 				index++
 			}
 		}
-		return m // TODO: Shrink?
-	case Matrix:
-		v := v.(Matrix)
+		return &m // TODO: Shrink?
+	case *Matrix:
+		v := v.(*Matrix)
 		m := Matrix{
 			shape: NewVector(append(u.Shape(), v.Shape()...)),
 			data:  NewVector(make(Vector, len(u.Data())*len(v.Data()))),
@@ -201,7 +201,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 				index++
 			}
 		}
-		return m // TODO: Shrink?
+		return &m // TODO: Shrink?
 	}
 	Errorf("can't do outer product on %s", whichType(u))
 	panic("not reached")
@@ -223,7 +223,7 @@ func Reduce(c Context, op string, v Value) Value {
 			acc = c.EvalBinary(v[i], op, acc)
 		}
 		return acc
-	case Matrix:
+	case *Matrix:
 		if v.Rank() < 2 {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
@@ -273,7 +273,7 @@ func Scan(c Context, op string, v Value) Value {
 			values[i] = Reduce(c, op, v[:i+1])
 		}
 		return NewVector(values)
-	case Matrix:
+	case *Matrix:
 		if v.Rank() < 2 {
 			Errorf("shape for matrix is degenerate: %s", v.shape)
 		}
@@ -315,7 +315,7 @@ func unaryVectorOp(c Context, op string, i Value) Value {
 
 // unaryMatrixOp applies op elementwise to i.
 func unaryMatrixOp(c Context, op string, i Value) Value {
-	u := i.(Matrix)
+	u := i.(*Matrix)
 	n := make([]Value, len(u.data))
 	for k := range u.data {
 		n[k] = c.EvalUnary(op, u.data[k])
@@ -350,7 +350,7 @@ func binaryVectorOp(c Context, i Value, op string, j Value) Value {
 
 // binaryMatrixOp applies op elementwise to i and j.
 func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
-	u, v := i.(Matrix), j.(Matrix)
+	u, v := i.(*Matrix), j.(*Matrix)
 	shape := u.shape
 	var n []Value
 	// One or the other may be a scalar in disguise.
@@ -405,7 +405,7 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 }
 
 // isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.
-func isScalar(u Matrix) bool {
+func isScalar(u *Matrix) bool {
 	for _, dim := range u.shape {
 		if dim.(Int) != 1 {
 			return false
@@ -416,7 +416,7 @@ func isScalar(u Matrix) bool {
 
 // isVector reports whether u is an 1x1x...xn item where n is the last dimension
 // of the shape, that is, an n-vector promoted to matrix.
-func isVector(u Matrix, shape Vector) bool {
+func isVector(u *Matrix, shape Vector) bool {
 	if u.Rank() == 0 || len(shape) == 0 || u.shape[0] != shape[len(shape)-1] {
 		return false
 	}

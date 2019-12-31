@@ -160,7 +160,7 @@ func doReferences(c *exec.Context, refs *[]exec.OpDef, expr value.Expr) {
 	case value.BigFloat:
 	case value.BigRat:
 	case value.Vector:
-	case value.Matrix:
+	case *value.Matrix:
 	default:
 		fmt.Printf("unknown %T\n", e)
 	}

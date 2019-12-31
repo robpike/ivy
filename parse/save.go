@@ -186,7 +186,7 @@ func put(conf *config.Config, out io.Writer, val value.Value) {
 			}
 			put(conf, out, v)
 		}
-	case value.Matrix:
+	case *value.Matrix:
 		put(conf, out, val.Shape())
 		fmt.Fprint(out, " rho ")
 		put(conf, out, val.Data())

@@ -855,7 +855,7 @@ func init() {
 					return membership(c, u.(Vector), v.(Vector))
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					return membership(c, u.(Matrix).data, v.(Matrix).data)
+					return membership(c, u.(*Matrix).data, v.(*Matrix).data)
 				},
 			},
 		},
@@ -887,7 +887,7 @@ func init() {
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					// A[B]: The successive elements of A with indexes given by elements of B.
-					A, mB := u.(Matrix), v.(Matrix)
+					A, mB := u.(*Matrix), v.(*Matrix)
 					if mB.Rank() != 1 {
 						Errorf("bad index rank %d", mB.Rank())
 					}
@@ -1044,7 +1044,7 @@ func init() {
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					// LHS must be a vector underneath.
-					A, B := u.(Matrix), v.(Matrix)
+					A, B := u.(*Matrix), v.(*Matrix)
 					if A.Rank() != 1 {
 						Errorf("lhs of rho cannot be matrix")
 					}
@@ -1061,8 +1061,8 @@ func init() {
 					return append(u.(Vector), v.(Vector)...)
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					A := u.(Matrix)
-					B := v.(Matrix)
+					A := u.(*Matrix)
+					B := v.(*Matrix)
 					if A.Rank() == 0 || B.Rank() == 0 {
 						Errorf("empty matrix for ,")
 					}
@@ -1163,7 +1163,7 @@ func init() {
 					return v.(Vector).rotate(int(count))
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					countMat := u.(Matrix)
+					countMat := u.(*Matrix)
 					if countMat.Rank() != 1 || len(countMat.data) != 1 {
 						Errorf("rot: count must be small integer")
 					}
@@ -1171,7 +1171,7 @@ func init() {
 					if !ok {
 						Errorf("rot: count must be small integer")
 					}
-					return v.(Matrix).rotate(int(count))
+					return v.(*Matrix).rotate(int(count))
 				},
 			},
 		},
@@ -1192,7 +1192,7 @@ func init() {
 					return v.(Vector).rotate(int(count))
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					countMat := u.(Matrix)
+					countMat := u.(*Matrix)
 					if countMat.Rank() != 1 || len(countMat.data) != 1 {
 						Errorf("flip: count must be small integer")
 					}
@@ -1200,7 +1200,7 @@ func init() {
 					if !ok {
 						Errorf("flip: count must be small integer")
 					}
-					return v.(Matrix).vrotate(int(count))
+					return v.(*Matrix).vrotate(int(count))
 				},
 			},
 		},

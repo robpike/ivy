@@ -235,7 +235,7 @@ func (b *binary) Eval(context value.Context) value.Value {
 					}
 					A[x] = rhs
 					return Assignment{Value: rhs}
-				case value.Matrix:
+				case *value.Matrix:
 					// TODO: It's annoying that this doesn't work. It would if we had *Matrix here.
 					value.Errorf("cannot assign to element of matrix")
 				}

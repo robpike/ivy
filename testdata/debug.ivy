@@ -83,7 +83,7 @@ sqrt 2
 	141421356237/100000000000
 
 2 3 rho iota 6
-	value.Matrix
+	*value.Matrix
 	1 2 3
 	4 5 6
 

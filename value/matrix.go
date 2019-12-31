@@ -30,7 +30,7 @@ func (m *Matrix) Shape() Vector {
 	return m.shape
 }
 
-func (m Matrix) Rank() int {
+func (m *Matrix) Rank() int {
 	return len(m.shape)
 }
 
@@ -42,7 +42,7 @@ func (m *Matrix) Data() Vector {
 // write2d prints the 2d matrix m into the buffer.
 // value is a slice of already-printed values.
 // The receiver provides only the shape of the matrix.
-func (m Matrix) write2d(b *bytes.Buffer, value []string, width int) {
+func (m *Matrix) write2d(b *bytes.Buffer, value []string, width int) {
 	nrows := int(m.shape[0].(Int))
 	ncols := int(m.shape[1].(Int))
 	for row := 0; row < nrows; row++ {
@@ -68,11 +68,11 @@ func (m Matrix) write2d(b *bytes.Buffer, value []string, width int) {
 	}
 }
 
-func (m Matrix) String() string {
+func (m *Matrix) String() string {
 	return "(" + m.Sprint(debugConf) + ")"
 }
 
-func (m Matrix) Sprint(conf *config.Config) string {
+func (m *Matrix) Sprint(conf *config.Config) string {
 	var b bytes.Buffer
 	switch m.Rank() {
 	case 0:
@@ -152,12 +152,12 @@ func (m Matrix) Sprint(conf *config.Config) string {
 	return b.String()
 }
 
-func (m Matrix) ProgString() string {
+func (m *Matrix) ProgString() string {
 	// There is no such thing as a matrix in program listings.
 	panic("matrix.ProgString - cannot happen")
 }
 
-func (m Matrix) higherDim(conf *config.Config, prefix string, indentation int) string {
+func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) string {
 	if m.Rank() <= 3 {
 		return indent(indentation, m.Sprint(conf))
 	}
@@ -210,13 +210,13 @@ func spaces(n int) string {
 
 // elemSize returns number of elements of the submatrix forming the elements of the matrix.
 // Given shape [a, b, c, ...] it is b*c*....
-func (m Matrix) elemSize() int {
+func (m *Matrix) elemSize() int {
 	return size(m.shape[1:])
 }
 
 // size returns number of elements of the matrix.
 // Given shape [a, b, c, ...] it is b*c*....
-func (m Matrix) size() int {
+func (m *Matrix) size() int {
 	return size(m.shape)
 }
 
@@ -229,7 +229,7 @@ func size(shape []Value) int {
 }
 
 // NewMatrix makes a new matrix. The number of elements must fit in an Int.
-func NewMatrix(shape, data []Value) Matrix {
+func NewMatrix(shape, data []Value) *Matrix {
 	// Check consistency and sanity.
 	nelems := 0
 	if len(shape) > 0 {
@@ -257,21 +257,21 @@ func NewMatrix(shape, data []Value) Matrix {
 	if nelems != len(data) {
 		Errorf("inconsistent shape and data size for new matrix")
 	}
-	return Matrix{
+	return &Matrix{
 		shape: shape,
 		data:  data,
 	}
 }
 
-func (m Matrix) Eval(Context) Value {
+func (m *Matrix) Eval(Context) Value {
 	return m
 }
 
-func (m Matrix) Inner() Value {
+func (m *Matrix) Inner() Value {
 	return m
 }
 
-func (m Matrix) toType(conf *config.Config, which valueType) Value {
+func (m *Matrix) toType(conf *config.Config, which valueType) Value {
 	switch which {
 	case matrixType:
 		return m
@@ -280,7 +280,7 @@ func (m Matrix) toType(conf *config.Config, which valueType) Value {
 	return nil
 }
 
-func (x Matrix) sameShape(y Matrix) {
+func (x *Matrix) sameShape(y *Matrix) {
 	if x.Rank() != y.Rank() {
 		Errorf("rank mismatch: %s != %s", x.shape, y.shape)
 	}
@@ -328,9 +328,9 @@ func reshape(A, B Vector) Value {
 
 // rotate returns a copy of v with elements rotated left by n.
 // Rotation occurs on the rightmost axis.
-func (m Matrix) rotate(n int) Value {
+func (m *Matrix) rotate(n int) Value {
 	if m.Rank() == 0 {
-		return Matrix{}
+		return &Matrix{}
 	}
 	elems := make([]Value, len(m.data))
 	dim := int(m.shape[m.Rank()-1].(Int))
@@ -346,9 +346,9 @@ func (m Matrix) rotate(n int) Value {
 
 // vrotate returns a copy of v with elements rotated down by n.
 // Rotation occurs on the leftmost axis.
-func (m Matrix) vrotate(n int) Value {
+func (m *Matrix) vrotate(n int) Value {
 	if m.Rank() == 0 {
-		return Matrix{}
+		return &Matrix{}
 	}
 	if m.Rank() == 1 {
 		return m

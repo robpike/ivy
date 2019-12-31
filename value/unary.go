@@ -66,7 +66,7 @@ func vectorSelf(c Context, v Value) Value {
 	switch v.(type) {
 	case Vector:
 		Errorf("internal error: vectorSelf of vector")
-	case Matrix:
+	case *Matrix:
 		Errorf("internal error: vectorSelf of matrix")
 	}
 	return NewVector([]Value{v})
@@ -418,7 +418,7 @@ func init() {
 					return Int(len(v.(Vector)))
 				},
 				matrixType: func(c Context, v Value) Value {
-					return v.(Matrix).shape
+					return v.(*Matrix).shape
 				},
 			},
 		},
@@ -433,7 +433,7 @@ func init() {
 				bigFloatType: vectorSelf,
 				vectorType:   self,
 				matrixType: func(c Context, v Value) Value {
-					return v.(Matrix).data
+					return v.(*Matrix).data
 				},
 			},
 		},
@@ -489,7 +489,7 @@ func init() {
 					return x
 				},
 				matrixType: func(c Context, v Value) Value {
-					m := v.(Matrix)
+					m := v.(*Matrix)
 					if m.Rank() == 0 {
 						return m
 					}
@@ -521,7 +521,7 @@ func init() {
 					return c.EvalUnary("rot", v)
 				},
 				matrixType: func(c Context, v Value) Value {
-					m := v.(Matrix)
+					m := v.(*Matrix)
 					if m.Rank() == 0 {
 						return m
 					}
