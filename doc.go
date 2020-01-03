@@ -33,6 +33,9 @@ single rational number, not the expression 1 divided by 3. This can affect prece
 3/6*4 is 2 while 3 / 6*4 is 1/8 since the spacing turns the / into a division
 operator. Use parentheses or spaces to disambiguate: 3/(6*4) or 3 /6*4.
 
+Indexing uses [] notation: x[1], x[1][2], and so on. Indexing by a vector
+selects multiple elements: x[1 2] creates a new item from x[1] and x[2].
+
 Only a subset of APL's functionality is implemented, but the intention is to
 have most numerical operations supported eventually.
 
