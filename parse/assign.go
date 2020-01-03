@@ -57,7 +57,7 @@ func indexedAssignment(context value.Context, lhs *binary, rhsExpr value.Expr, r
 		size := shapeProduct(shape[i+1:])
 		index := indexes[i] - origin
 		if index < 0 || shape[i] <= index {
-			value.Errorf("index of out of range")
+			value.Errorf("index of out of range in assignment")
 		}
 		// We're either going to skip this block, or we're at the
 		// end of the indexes and we're going to assign it.
@@ -151,7 +151,7 @@ func lvalueOf(context value.Context, item value.Expr) value.Value {
 			return lvalueOf(context, lhs.left)
 		}
 	}
-	value.Errorf("cannot index %s for assignment", item.ProgString())
+	value.Errorf("cannot index %s in assignment", item.ProgString())
 	panic("not reached")
 }
 
@@ -169,7 +169,7 @@ func indexesOf(context value.Context, item value.Expr) []int64 {
 		if i, ok := v.(value.Int); ok {
 			return []int64{int64(i)}
 		}
-		value.Errorf("cannot index by %s", item.ProgString())
+		value.Errorf("cannot index by %s in assignment", item.ProgString())
 	}
 	return nil
 }
