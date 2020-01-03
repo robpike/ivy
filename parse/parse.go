@@ -207,69 +207,12 @@ func (b *binary) ProgString() string {
 }
 
 func (b *binary) Eval(context value.Context) value.Value {
-	rhs := b.right.Eval(context).Inner()
 	if b.op == "=" {
-		// Special handling as we cannot evaluate the left.
-		// We know the left is a variableExpr or index expression.
-		switch lhs := b.left.(type) {
-		case variableExpr:
-			context.Assign(lhs.name, rhs)
-			return Assignment{Value: rhs}
-		case *binary:
-			if lhs.op == "[]" {
-				// TODO: Chained indexes don't work because of the l-value/r-value issue.
-				// Do this later with x[1 2 3]
-				if v, ok := lhs.left.(*binary); ok && v.op == "[]" {
-					value.Errorf("cannot assign to %s", b.left.ProgString())
-				}
-				config := context.Config()
-				index := lhs.right.Eval(context)
-				x, ok := index.(value.Int)
-				if !ok {
-					value.Errorf("index must be integer") // TODO: Should allow vectors, as in x[1 2 3] = ...
-				}
-				origin := value.Int(context.Config().Origin())
-				x -= origin
-				val := lhs.left.Eval(context)
-				if rhs.Rank() != val.Rank()-1 {
-					value.Errorf("rank error assigning %s to %s", rhs.Sprint(config), b.left.ProgString())
-				}
-				switch A := val.(type) {
-				case value.Vector:
-					if x < 0 || value.Int(len(A)) <= x {
-						value.Errorf("index %d of out of range", x+origin)
-					}
-					A[x] = rhs
-					return Assignment{Value: rhs}
-				case *value.Matrix:
-					// Rank cannot be 0 due to check above.
-					if x < 0 || A.Shape()[0].(value.Int) <= x {
-						value.Errorf("index %d of out of range", x+origin)
-					}
-					data, ok := rhs.(value.Vector)
-					if !ok {
-						data = rhs.(*value.Matrix).Data()
-					}
-					if len(data) != A.ElemSize() {
-						// TODO: One day we could allow this?
-						value.Errorf("length mismatch assigning %s to %s", rhs.Sprint(config), b.left.ProgString())
-					}
-					copy(A.Data()[int(x)*A.ElemSize():], data)
-					return Assignment{Value: rhs}
-				}
-				value.Errorf("cannot assign to element of %s", lhs.left)
-			}
-		}
+		return assignment(context, b)
 	}
+	rhs := b.right.Eval(context).Inner()
 	lhs := b.left.Eval(context)
 	return context.EvalBinary(lhs, b.op, rhs)
-}
-
-// Assignment is an implementation of Value that is created as the result of an assignment.
-// It can be type-asserted to discover whether the returned value was created by assignment,
-// such as is done in the interpreter to avoid printing the results of assignment expressions.
-type Assignment struct {
-	value.Value
 }
 
 // Parser stores the state for the ivy parser.
