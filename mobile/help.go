@@ -1,4 +1,4 @@
-package mobile // import "robpike.io/ivy/mobile"
+package mobile
 
 // GENERATED; DO NOT EDIT
 const help = `<!-- auto-generated from robpike.io/ivy package doc -->
@@ -47,14 +47,18 @@ Unlike in most other languages, operators always have the same precedence and
 expressions are evaluated in right-associative order. That is, unary operators
 apply to everything to the right, and binary operators apply to the operand
 immediately to the left and to everything to the right.  Thus, 3*4+5 is 27 (it
-groups as 3*(4+5)) and iota 3+2 is 1 2 3 4 5 while 3+iota 2 is 3 4 5. A vector
+groups as 3*(4+5)) and iota 3+2 is 1 2 3 4 5 while 3+iota 2 is 4 5. A vector
 is a single operand, so 1 2 3 + 3 + 3 4 5 is (1 2 3) + 3 + (3 4 5), or 7 9 11.
 </p>
 <p>
 As a special but important case, note that 1/3, with no intervening spaces, is a
 single rational number, not the expression 1 divided by 3. This can affect precedence:
 3/6*4 is 2 while 3 / 6*4 is 1/8 since the spacing turns the / into a division
-operator. Use parentheses or spaces to disabiguate: 3/(6*4) or 3 /6*4.
+operator. Use parentheses or spaces to disambiguate: 3/(6*4) or 3 /6*4.
+</p>
+<p>
+Indexing uses [] notation: x[1], x[1][2], and so on. Indexing by a vector
+selects multiple elements: x[1 2] creates a new item from x[1] and x[2].
 </p>
 <p>
 Only a subset of APL&#39;s functionality is implemented, but the intention is to
@@ -73,7 +77,7 @@ The APL operators, adapted from <a href="https://en.wikipedia.org/wiki/APL_synta
 and their correspondence are listed here. The correspondence is incomplete and inexact.
 </p>
 <p>
-Unary functions.
+Unary operators
 </p>
 <pre>Name              APL   Ivy     Meaning
 Roll              ?B    ?       One integer selected randomly from the first B integers
@@ -107,7 +111,7 @@ Cosine                  cos     cos(A); ditto
 Tangent                 tan     tan(A); ditto
 </pre>
 <p>
-Binary functions.
+Binary operators
 </p>
 <pre>Name                  APL   Ivy     Meaning
 Add                   A+B   +       Sum of A and B
@@ -183,12 +187,10 @@ Outer product       ∘.   o.   A∘.×B        A o.* B      Outer product of A 
 <p>
 Type-converting operations
 </p>
-<pre>Name                  Ivy      Meaning
-Code                  code B   The integer Unicode value of char B
-Char                  char B   The character with integer Unicode value B
-Float                 float B  The floating-point representation of B
-Text                  text B   The textual (vector of Char) representation of B
-Evaluate              ivy B    The result of evaluating B as ivy program text
+<pre>Name              APL   Ivy     Meaning
+Code                    code B  The integer Unicode value of char B
+Char                    char B  The character with integer Unicode value B
+Float                   float B The floating-point representation of B
 </pre>
 <h3 id="hdr-Pre_defined_constants">Pre-defined constants</h3>
 <p>
