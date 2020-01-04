@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"robpike.io/ivy/config"
@@ -122,7 +123,7 @@ Switch:
 			p.printHelpBlock("Pre-defined constants", "Character data")
 		case "char", "character":
 			p.printHelpBlock("Character data", "User-defined operators")
-		case "op", "operator":
+		case "op", "ops", "operator":
 			p.printHelpBlock("User-defined operators", "Special commands")
 		case "special":
 			p.printHelpBlock("Special commands", "$$EOF$$")
@@ -218,7 +219,32 @@ Switch:
 		}
 		max := p.nextDecimalNumber()
 		conf.SetMaxDigits(uint(max))
-	case "op":
+	case "op", "ops": // We keep forgetting whether it's a plural or not.
+		if p.peek().Type == scan.EOF {
+			var unary, binary []string
+			for _, def := range p.context.Defs {
+				if def.IsBinary {
+					binary = append(binary, def.Name)
+				} else {
+					unary = append(binary, def.Name)
+				}
+			}
+			sort.Strings(unary)
+			sort.Strings(binary)
+			if unary != nil {
+				p.Println("\nUnary: \t")
+				for _, s := range unary {
+					p.Println("\t" + s)
+				}
+			}
+			if binary != nil {
+				p.Println("\nBinary: \t")
+				for _, s := range binary {
+					p.Println("\t" + s)
+				}
+			}
+			break Switch
+		}
 		name := p.need(scan.Operator, scan.Identifier).Text
 		fn := p.context.UnaryFn[name]
 		found := false

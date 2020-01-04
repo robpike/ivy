@@ -287,7 +287,8 @@ base 10 and must be non-negative on input.
 		than this many digits, print it using the defined floating-point
 		format. If maxdigits is 0, integers are always printed as integers.
 	) op X
-		Show the definition of the user-defined operator X. Inside the
+		If X is absent, list all user-defined operators. Otherwise,
+		show the definition of the user-defined operator X. Inside the
 		definition, numbers are always shown base 10, ignoring the ibase
 		and obase.
 	) origin 1

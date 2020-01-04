@@ -34,7 +34,7 @@ func assignment(context value.Context, b *binary) value.Value {
 			return indexedAssignment(context, lhs, b.right, rhs)
 		}
 	}
-	value.Errorf("cannot assign %s to %s", b.left.ProgString, b.right.ProgString())
+	value.Errorf("cannot assign %s to %s", b.left.ProgString(), b.right.ProgString())
 	panic("not reached")
 }
 
