@@ -4,7 +4,10 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+	"math/rand"
+)
 
 // Binary operators.
 
@@ -732,6 +735,31 @@ func init() {
 				},
 				bigFloatType: func(c Context, u, v Value) Value {
 					return toInt(!(toBool(u) || toBool(v)))
+				},
+			},
+		},
+
+		{
+			name:        "?",
+			elementwise: false,
+			whichType:   binaryArithType,
+			fn: [numType]binaryFn{
+				intType: func(c Context, u, v Value) Value {
+					A := u.(Int)
+					B := v.(Int)
+					if A < 0 || B < 0 {
+						Errorf("negative operand in %d?%d", A, B)
+					}
+					if A > B {
+						Errorf("left operand larger than right in %d?%d", A, B)
+					}
+					ints := rand.Perm(int(B))
+					origin := c.Config().Origin()
+					res := make([]Value, A)
+					for i := range res {
+						res[i] = Int(ints[i] + origin)
+					}
+					return NewVector(res)
 				},
 			},
 		},

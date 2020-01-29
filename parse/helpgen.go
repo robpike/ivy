@@ -36,7 +36,7 @@ func main() {
 		lines = lines[1:]
 	}
 
-	// Drop text starting with traling comment.'
+	// Drop text starting with trailing comment.
 	for i, line := range lines {
 		if strings.HasPrefix(line, "*/") {
 			lines = lines[:i]

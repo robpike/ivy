@@ -99,7 +99,7 @@ Binary operators
 	                            asin    arcsin(B); ivy uses traditional name.
 	                            acos    arccos(B); ivy uses traditional name.
 	                            atan    arctan(B); ivy uses traditional name.
-	Deal                  A?B           A distinct integers selected randomly from the first B integers
+	Deal                  A?B   ?       A distinct integers selected randomly from the first B integers
 	Membership            A∈B   in      1 for elements of A present in B; 0 where not.
 	Maximum               A⌈B   max     The greater value of A or B
 	Minimum               A⌊B   min     The smaller value of A or B
