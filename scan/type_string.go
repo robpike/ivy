@@ -2,7 +2,31 @@
 
 package scan
 
-import "fmt"
+import "strconv"
+
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[EOF-0]
+	_ = x[Error-1]
+	_ = x[Newline-2]
+	_ = x[Assign-3]
+	_ = x[Char-4]
+	_ = x[GreaterOrEqual-5]
+	_ = x[Identifier-6]
+	_ = x[LeftBrack-7]
+	_ = x[LeftParen-8]
+	_ = x[Number-9]
+	_ = x[Operator-10]
+	_ = x[Op-11]
+	_ = x[Rational-12]
+	_ = x[RightBrack-13]
+	_ = x[RightParen-14]
+	_ = x[Semicolon-15]
+	_ = x[Space-16]
+	_ = x[String-17]
+}
 
 const _Type_name = "EOFErrorNewlineAssignCharGreaterOrEqualIdentifierLeftBrackLeftParenNumberOperatorOpRationalRightBrackRightParenSemicolonSpaceString"
 
@@ -10,7 +34,7 @@ var _Type_index = [...]uint8{0, 3, 8, 15, 21, 25, 39, 49, 58, 67, 73, 81, 83, 91
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_Type_index)-1) {
-		return fmt.Sprintf("Type(%d)", i)
+		return "Type(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 	return _Type_name[_Type_index[i]:_Type_index[i+1]]
 }
