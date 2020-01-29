@@ -11,7 +11,7 @@ import (
 
 // Binary operators.
 
-// To aovid initialization cycles when we refer to the ops from inside
+// To avoid initialization cycles when we refer to the ops from inside
 // themselves, we use an init function to initialize the ops.
 
 // binaryArithType returns the maximum of the two types,
@@ -747,8 +747,8 @@ func init() {
 				intType: func(c Context, u, v Value) Value {
 					A := u.(Int)
 					B := v.(Int)
-					if A < 0 || B < 0 {
-						Errorf("negative operand in %d?%d", A, B)
+					if uint64(A) > maxInt || uint64(B) > maxInt {
+						Errorf("negative or too-large operand in %d?%d", A, B)
 					}
 					if A > B {
 						Errorf("left operand larger than right in %d?%d", A, B)
