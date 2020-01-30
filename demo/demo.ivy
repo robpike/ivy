@@ -235,5 +235,14 @@ op primes N = (not T in T o.* T) sel T = 1 drop iota N
 # The assignment to T gives 2..N. We use outer product to build an array of all products.
 # Then we find all elements of T that appear in the product matrix, invert that, and select from the original.
 primes 100
+# A final trick.
+# The binary ? operator "deals": x?y selects at random x distinct integers from 1..y inclusive.
+5?10
+# We can use this to shuffle a deck of cards. The suits are ♠♡♣♢, the values
+# A234567890JQK (using 0 for 10, for simplicity).
+# Create the deck using outer product with the ravel operator:
+"A234567890JQK" o., "♠♡♣♢"
+# To shuffle it, ravel into into a vector and index that by 1 through 52, shuffled.
+(, "A234567890JQK" o., "♠♡♣♢")[52?52]
 # That's it! Have fun.
 # For more information visit https://godoc.org/robpike.io/ivy
