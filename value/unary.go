@@ -105,6 +105,22 @@ var IvyEval func(context Context, s string) Value
 
 var UnaryOps = make(map[string]UnaryOp)
 
+func factorial(n int64) *big.Int {
+	if n < 0 {
+		Errorf("negative value %d for factorial", n)
+	}
+	fac := big.NewInt(1)
+	if n == 0 {
+		return fac
+	}
+	x := big.NewInt(0)
+	for i := int64(2); i <= n; i++ {
+		x.SetInt64(i)
+		fac.Mul(fac, x)
+	}
+	return fac
+}
+
 func init() {
 	ops := []*unaryOp{
 		{
@@ -217,6 +233,16 @@ func init() {
 				},
 				bigFloatType: func(c Context, v Value) Value {
 					return Int(v.(BigFloat).Sign())
+				},
+			},
+		},
+
+		{
+			name:        "!",
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType: func(c Context, v Value) Value {
+					return BigInt{factorial(int64(v.(Int)))}.shrink()
 				},
 			},
 		},

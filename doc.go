@@ -74,7 +74,7 @@ Unary operators
 	Execute           ⍎B    ivy     Execute an APL (ivy) expression
 	Monadic format    ⍕B    text    A character representation of B
 	Monadic transpose ⍉B            Reverse the axes of B
-	Factorial         !B            Product of integers 1 to B
+	Factorial         !B    !       Product of integers 1 to B
 	Bitwise not             ^       Bitwise complement of B (integer only)
 	Square root       B⋆.5  sqrt    Square root of B.
 	Sine                    sin     sin(A); APL uses binary ○ (see below)
@@ -124,7 +124,7 @@ Binary operators
 	Logarithm             A⍟B   log     Logarithm of B to base A
 	Dyadic format         A⍕B           Format B into a character matrix according to A
 	General transpose     A⍉B           The axes of B are ordered by A
-	Combinations          A!B           Number of combinations of B taken A at a time
+	Combinations          A!B   !       Number of combinations of B taken A at a time
 	Less than             A<B   <       Comparison: 1 if true, 0 if false
 	Less than or equal    A≤B   <=      Comparison: 1 if true, 0 if false
 	Equal                 A=B   ==      Comparison: 1 if true, 0 if false

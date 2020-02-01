@@ -397,6 +397,30 @@ func init() {
 		},
 
 		{
+			name:        "!",
+			elementwise: true,
+			whichType:   binaryArithType,
+			fn: [numType]binaryFn{
+				intType: func(c Context, u, v Value) Value {
+					a := int64(u.(Int))
+					b := int64(v.(Int))
+					if a == 0 || b == 0 || a == b {
+						return bigOne
+					}
+					if a < 0 || b < 0 || a > b {
+						return bigZero
+					}
+					aFac := factorial(a)
+					bFac := factorial(b)
+					bMinusAFac := factorial(b - a)
+					bFac.Div(bFac, aFac)
+					bFac.Div(bFac, bMinusAFac)
+					return BigInt{bFac}.shrink()
+				},
+			},
+		},
+
+		{
 			name:        "&",
 			elementwise: true,
 			whichType:   binaryArithType,

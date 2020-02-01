@@ -671,10 +671,9 @@ func (l *Scanner) isOperator(r rune) bool {
 	case '?', '+', '-', '/', '%', '&', '|', '^', ',':
 		// No follow-on possible.
 	case '!':
-		if l.peek() != '=' {
-			return false
+		if l.peek() == '=' {
+			l.next()
 		}
-		l.next()
 	case '>':
 		switch l.peek() {
 		case '>', '=':
