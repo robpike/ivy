@@ -940,13 +940,40 @@ func init() {
 				matrixType: func(c Context, u, v Value) Value {
 					// A[B]: The successive elements of A with indexes given by elements of B.
 					A, mB := u.(*Matrix), v.(*Matrix)
-					if mB.Rank() != 1 {
-						Errorf("bad index rank %d", mB.Rank())
-					}
 					B := mB.data
+					origin := Int(c.Config().Origin())
+
+					switch mB.Rank() {
+					case 1:
+					case 0:
+						Errorf("bad index rank %d", mB.Rank())
+					default:
+						if A.Rank() != 1 {
+							Errorf("bad index rank %d", mB.Rank())
+						}
+						// We are indexing a vector by an interesting shape.
+						// Special generalization not in APL: If the LHS is vector-like,
+						// the return value has the shape of the RHS. We could
+						// generalize more, but that's hard.
+						values := make(Vector, len(B))
+						for i, b := range B {
+							x, ok := b.(Int)
+							if !ok {
+								Errorf("index must be integer")
+							}
+							x -= origin
+							if x < 0 || Int(A.shape[0].(Int)) <= x {
+								Errorf("index %d out of range (shape %s)", x+origin, A.shape)
+							}
+							values[i] = A.data[x]
+						}
+						newShape := make(Vector, mB.Rank())
+						copy(newShape, mB.shape)
+						return NewMatrix(newShape, values)
+					}
+
 					ElemSize := Int(A.ElemSize())
 					values := make(Vector, 0, ElemSize*Int(len(B)))
-					origin := Int(c.Config().Origin())
 					for _, b := range B {
 						x, ok := b.(Int)
 						if !ok {

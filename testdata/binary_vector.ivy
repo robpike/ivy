@@ -382,7 +382,7 @@
 	0 0 0
 
 23 45 67 iota 23 45 67 3e10 4e10
-	1 2 3 0 0 
+	1 2 3 0 0
 
 23 3 67 min 5
 	5 3 5
@@ -437,6 +437,10 @@
 11 22 33[3 2]
 	33 22
 
+11 22 33 44 [2 3 rho iota 4]
+	11 22 33
+	44 11 22
+
 4 3 2 1[up 4 3 2 1]
 	1 2 3 4
 
@@ -479,6 +483,16 @@
 
 'abcde' in 'hello world'
 	0 0 0 1 1
+
+'abc'[3 4 rho iota 3]
+	abca
+	bcab
+	cabc
+
+" *"[1+x o.>= x=iota 3]
+	*
+	**
+	***
 
 # Encode (the names encode and decode seem backwards to me, but that's APL for ya.)
 2 encode 3
