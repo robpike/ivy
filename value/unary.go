@@ -109,15 +109,11 @@ func factorial(n int64) *big.Int {
 	if n < 0 {
 		Errorf("negative value %d for factorial", n)
 	}
-	fac := big.NewInt(1)
 	if n == 0 {
-		return fac
+		return big.NewInt(1)
 	}
-	x := big.NewInt(0)
-	for i := int64(2); i <= n; i++ {
-		x.SetInt64(i)
-		fac.Mul(fac, x)
-	}
+	fac := new(big.Int)
+	fac.MulRange(1, n)
 	return fac
 }
 
