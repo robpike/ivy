@@ -455,7 +455,7 @@ func init() {
 				bigFloatType: vectorSelf,
 				vectorType:   self,
 				matrixType: func(c Context, v Value) Value {
-					return v.(*Matrix).data
+					return v.(*Matrix).data.Copy()
 				},
 			},
 		},
@@ -511,7 +511,7 @@ func init() {
 					return x
 				},
 				matrixType: func(c Context, v Value) Value {
-					m := v.(*Matrix)
+					m := v.(*Matrix).Copy()
 					if m.Rank() == 0 {
 						return m
 					}
@@ -543,7 +543,7 @@ func init() {
 					return c.EvalUnary("rot", v)
 				},
 				matrixType: func(c Context, v Value) Value {
-					m := v.(*Matrix)
+					m := v.(*Matrix).Copy()
 					if m.Rank() == 0 {
 						return m
 					}

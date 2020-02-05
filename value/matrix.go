@@ -39,6 +39,17 @@ func (m *Matrix) Data() Vector {
 	return m.data
 }
 
+func (m *Matrix) Copy() *Matrix {
+	shape := make([]Value, len(m.shape))
+	data := make([]Value, len(m.data))
+	copy(shape, m.shape)
+	copy(data, m.data)
+	return &Matrix{
+		shape: shape,
+		data:  data,
+	}
+}
+
 // write2d prints the 2d matrix m into the buffer.
 // value is a slice of already-printed values.
 // The receiver provides only the shape of the matrix.
