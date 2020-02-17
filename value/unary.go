@@ -568,6 +568,27 @@ func init() {
 		},
 
 		{
+			name: "transp",
+			fn: [numType]unaryFn{
+				intType:      self,
+				charType:     self,
+				bigIntType:   self,
+				bigRatType:   self,
+				bigFloatType: self,
+				vectorType: func(c Context, v Value) Value {
+					return v.(Vector).Copy()
+				},
+				matrixType: func(c Context, v Value) Value {
+					m := v.(*Matrix)
+					if m.Rank() == 1 {
+						Errorf("transp: matrix is vector")
+					}
+					return m.transpose()
+				},
+			},
+		},
+
+		{
 			name:        "cos",
 			elementwise: true,
 			fn: [numType]unaryFn{

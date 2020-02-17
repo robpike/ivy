@@ -73,7 +73,7 @@ Unary operators
 	Grade down        ⍒B    down    Indices of B which will arrange B in descending order
 	Execute           ⍎B    ivy     Execute an APL (ivy) expression
 	Monadic format    ⍕B    text    A character representation of B
-	Monadic transpose ⍉B            Reverse the axes of B
+	Monadic transpose ⍉B    transp  Reverse the axes of B
 	Factorial         !B    !       Product of integers 1 to B
 	Bitwise not             ^       Bitwise complement of B (integer only)
 	Square root       B⋆.5  sqrt    Square root of B.

@@ -384,3 +384,51 @@ func (m *Matrix) vrotate(n int) Value {
 
 	return NewMatrix(m.shape, elems)
 }
+
+// transpose returns (as a new matrix) the transposition of the argument.
+func (m *Matrix) transpose() *Matrix {
+	rank := m.Rank()
+	if rank < 2 {
+		// Shouldn't happen but easy.
+		return m.Copy()
+	}
+	// Shapes as integers not values are easier here.
+	// The reversed shape of m, that is, shape of m transposed.
+	shape := make([]int64, rank)
+	shapeVector := make([]Value, rank) // For NewMatrix.
+	for i := range shape {
+		v := m.Shape()[i]
+		shape[rank-1-i] = int64(v.(Int))
+		shapeVector[rank-1-i] = v
+	}
+	data := m.Data()
+	result := make([]Value, len(data))
+	sz := len(data) * rank
+	counters := make([]int64, rank)
+	for i, elem := 0, 0; i < sz; i += rank {
+		j := offset(shape, counters)
+		result[j] = data[elem]
+		elem++
+		for k := 0; k < rank; k++ {
+			// Big-endian counter transposes the indexes.
+			counters[k]++
+			if counters[k] < shape[k] {
+				break
+			}
+			counters[k] = 0
+		}
+	}
+	return NewMatrix(shapeVector, result)
+}
+
+// offset returns, given a matrix's shape, the index within the slice holding the
+// data of the element indexed in the full matrix by the successive indexes.
+func offset(shape, indexes []int64) int64 {
+	j := int64(0)
+	sz := int64(1)
+	for i := int64(len(indexes)) - 1; i >= 0; i-- {
+		j += indexes[i] * sz
+		sz *= shape[i]
+	}
+	return j
+}

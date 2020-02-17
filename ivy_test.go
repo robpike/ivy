@@ -20,7 +20,6 @@ const verbose = false
 // Note: These tests share some infrastructure and cannot run in parallel.
 
 func TestAll(t *testing.T) {
-
 	var err error
 	check := func() {
 		if err != nil {

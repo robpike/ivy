@@ -18,7 +18,7 @@
 	       
 		Reversal          ⌽B    rot     Reverse elements of B along last axis
 		Reversal          ⊖B    flip    Reverse elements of B along first axis
-		Monadic transpose ⍉B            Reverse the axes of B
+		Monadic transpose ⍉B    transp  Reverse the axes of B
 
 )help o.
 	 
