@@ -7,6 +7,7 @@ package value
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
 
 	"robpike.io/ivy/config"
@@ -75,6 +76,28 @@ func (m *Matrix) write2d(b *bytes.Buffer, value []string, width int) {
 			}
 			b.WriteString(s)
 			index++
+		}
+	}
+}
+
+func (m *Matrix) fprintf(w io.Writer, format string) {
+	rank := len(m.shape)
+	if rank == 0 || len(m.data) == 0 {
+		return
+	}
+	counters := make([]int, len(m.shape))
+	for i, v := range m.data {
+		formatOne(w, format, v)
+		for k := rank - 1; k >= 0; k-- {
+			// Litte-endian counter iterates the indexes.
+			counters[k]++
+			if counters[k] < int(m.shape[k].(Int)) {
+				break
+			}
+			if i < len(m.data)-1 {
+				w.Write([]byte{'\n'})
+			}
+			counters[k] = 0
 		}
 	}
 }

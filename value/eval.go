@@ -4,7 +4,9 @@
 
 package value
 
-import "strings"
+import (
+	"strings"
+)
 
 type valueType int
 
@@ -81,6 +83,14 @@ func whichType(v Value) valueType {
 }
 
 func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
+	if op.whichType == nil {
+		// At the moment, "text" is the only operator that leaves
+		// both arg types alone. Perhaps more will arrive.
+		if op.name != "text" {
+			Errorf("internal error: nil whichType")
+		}
+		return op.fn[0](c, u, v)
+	}
 	which := op.whichType(whichType(u), whichType(v))
 	conf := c.Config()
 	u = u.toType(conf, which)

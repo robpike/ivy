@@ -5,8 +5,12 @@
 package value
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"math/big"
 	"math/rand"
+	"unicode/utf8"
 )
 
 // Binary operators.
@@ -20,6 +24,11 @@ func binaryArithType(t1, t2 valueType) valueType {
 	if t1 > t2 {
 		return t1
 	}
+	return t2
+}
+
+// rightType returns the type of the right without modification.
+func rightType(t1, t2 valueType) valueType {
 	return t2
 }
 
@@ -126,6 +135,97 @@ func bigIntExpOp(c Context) func(i, j, k *big.Int) *big.Int {
 	return func(i, j, k *big.Int) *big.Int {
 		return bigIntExp(c, i, j, k)
 	}
+}
+
+// fmtText returns a vector of Chars holding the string representation
+// of the value v. The lhs u defines the format:
+// 1 item: number of decimals
+// 2 items: width of field, number of decimals.
+// 3 items: width of field, number of decimals, format char.
+func fmtText(c Context, u, v Value) Value {
+	config := c.Config()
+	format := formatString(u)
+	if format == "" {
+		Errorf("%s illegal for format", u.Sprint(config))
+	}
+	var b bytes.Buffer
+	switch val := v.(type) {
+	case Int, BigInt, BigRat, BigFloat:
+		formatOne(&b, format, val)
+	case Vector:
+		for i, v := range val {
+			if i > 0 {
+				b.WriteByte(' ')
+			}
+			formatOne(&b, format, v)
+		}
+	case *Matrix:
+		val.fprintf(&b, format)
+	default:
+		Errorf("cannot format '%s'", val.Sprint(config))
+	}
+	str := b.String()
+	elem := make([]Value, utf8.RuneCountInString(str))
+	for i, r := range str {
+		elem[i] = Char(r)
+	}
+	return NewVector(elem)
+}
+
+// formatOne prints a scalar value into b with the specified format.
+func formatOne(w io.Writer, format string, v Value) {
+	var f big.Float
+	switch val := v.(type) {
+	case Int:
+		f.SetInt64(int64(val))
+		fmt.Fprintf(w, format, &f)
+	case BigInt:
+		f.SetInt(val.Int)
+		fmt.Fprintf(w, format, &f)
+	case BigRat:
+		f.SetRat(val.Rat)
+		fmt.Fprintf(w, format, &f)
+	case BigFloat:
+		fmt.Fprintf(w, format, val.Float)
+	}
+}
+
+// formatString returns the format string given u, the lhs of a binary text invocation.
+func formatString(u Value) string {
+	switch val := u.(type) {
+	case Int:
+		return fmt.Sprintf("%%.%df", val)
+	case Vector:
+		char := Char('f')
+		switch len(val) {
+		case 1:
+			// Decimal count only.
+			dec, ok := val[0].(Int)
+			if ok {
+				return fmt.Sprintf("%%%d.%df", dec)
+			}
+		case 3:
+			// Width count, and char.
+			var ok bool
+			char, ok = val[2].(Char)
+			if !ok {
+				break
+			}
+			char |= ' '
+			if char != 'e' && char != 'f' && char != 'g' {
+				break
+			}
+			fallthrough
+		case 2:
+			// Width and decimal count.
+			wid, ok1 := val[0].(Int)
+			dec, ok2 := val[1].(Int)
+			if ok1 && ok2 {
+				return fmt.Sprintf("%%%d.%d%c", wid, dec, char)
+			}
+		}
+	}
+	return ""
 }
 
 // toInt turns the boolean into an Int 0 or 1.
@@ -1398,6 +1498,16 @@ func init() {
 					}
 					return NewVector(result)
 				},
+			},
+		},
+
+		{
+			// Special case, handled in EvalBinary: don't modify types.
+			name:        "text",
+			elementwise: true,
+			whichType:   nil,
+			fn: [numType]binaryFn{
+				0: fmtText,
 			},
 		},
 	}

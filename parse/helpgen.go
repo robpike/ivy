@@ -182,10 +182,12 @@ func main() {
 			continue
 		}
 		j := i
-		// If the next line's comment starts, "In ivy", pull it in.
-		next := lines[i+1]
-		if len(next) > 37 && strings.HasPrefix(lines[i+1][37:], "In ivy:") {
-			j++
+		// If the next few lines have no text at the left, they are a continuation. Pull them in.
+		for ; j < len(lines); j++ {
+			next := lines[j+1]
+			if len(next) < 37 || next[1] != ' ' {
+				break
+			}
 		}
 		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, j)
 		i = j

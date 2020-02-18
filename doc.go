@@ -122,7 +122,10 @@ Binary operators
 	Rotation              A⌽B   rot     The elements of B are rotated A positions left
 	Rotation              A⊖B   flip    The elements of B are rotated A positions along the first axis
 	Logarithm             A⍟B   log     Logarithm of B to base A
-	Dyadic format         A⍕B           Format B into a character matrix according to A
+	Dyadic format         A⍕B   text    Format B into a character matrix according to A
+	                                    Result depends on length of A (see format special command):
+	                                    1 gives decimal count, 2 gives width and decimal count,
+	                                    3 gives width, decimal count, and style ('e', 'f', 'g').
 	General transpose     A⍉B           The axes of B are ordered by A
 	Combinations          A!B   !       Number of combinations of B taken A at a time
 	Less than             A<B   <       Comparison: 1 if true, 0 if false
