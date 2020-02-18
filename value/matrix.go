@@ -80,14 +80,14 @@ func (m *Matrix) write2d(b *bytes.Buffer, value []string, width int) {
 	}
 }
 
-func (m *Matrix) fprintf(w io.Writer, format string) {
+func (m *Matrix) fprintf(c Context, w io.Writer, format string) {
 	rank := len(m.shape)
 	if rank == 0 || len(m.data) == 0 {
 		return
 	}
 	counters := make([]int, len(m.shape))
 	for i, v := range m.data {
-		formatOne(w, format, v)
+		formatOne(c, w, format, v)
 		for k := rank - 1; k >= 0; k-- {
 			// Litte-endian counter iterates the indexes.
 			counters[k]++

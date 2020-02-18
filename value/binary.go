@@ -151,16 +151,16 @@ func fmtText(c Context, u, v Value) Value {
 	var b bytes.Buffer
 	switch val := v.(type) {
 	case Int, BigInt, BigRat, BigFloat:
-		formatOne(&b, format, val)
+		formatOne(c, &b, format, val)
 	case Vector:
 		for i, v := range val {
 			if i > 0 {
 				b.WriteByte(' ')
 			}
-			formatOne(&b, format, v)
+			formatOne(c, &b, format, v)
 		}
 	case *Matrix:
-		val.fprintf(&b, format)
+		val.fprintf(c, &b, format)
 	default:
 		Errorf("cannot format '%s'", val.Sprint(config))
 	}
@@ -173,18 +173,18 @@ func fmtText(c Context, u, v Value) Value {
 }
 
 // formatOne prints a scalar value into b with the specified format.
-func formatOne(w io.Writer, format string, v Value) {
-	var f big.Float
+func formatOne(c Context, w io.Writer, format string, v Value) {
+	f := newFloat(c)
 	switch val := v.(type) {
 	case Int:
 		f.SetInt64(int64(val))
-		fmt.Fprintf(w, format, &f)
+		fmt.Fprintf(w, format, f)
 	case BigInt:
 		f.SetInt(val.Int)
-		fmt.Fprintf(w, format, &f)
+		fmt.Fprintf(w, format, f)
 	case BigRat:
 		f.SetRat(val.Rat)
-		fmt.Fprintf(w, format, &f)
+		fmt.Fprintf(w, format, f)
 	case BigFloat:
 		fmt.Fprintf(w, format, val.Float)
 	}
