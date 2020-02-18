@@ -22,12 +22,12 @@ import (
 */
 
 type Matrix struct {
-	shape Vector // Will always be Ints inside.
+	shape []int
 	data  Vector
 }
 
 // Shape returns the shape of the matrix.
-func (m *Matrix) Shape() Vector {
+func (m *Matrix) Shape() []int {
 	return m.shape
 }
 
@@ -41,7 +41,7 @@ func (m *Matrix) Data() Vector {
 }
 
 func (m *Matrix) Copy() *Matrix {
-	shape := make([]Value, len(m.shape))
+	shape := make([]int, len(m.shape))
 	data := make([]Value, len(m.data))
 	copy(shape, m.shape)
 	copy(data, m.data)
@@ -55,8 +55,8 @@ func (m *Matrix) Copy() *Matrix {
 // value is a slice of already-printed values.
 // The receiver provides only the shape of the matrix.
 func (m *Matrix) write2d(b *bytes.Buffer, value []string, width int) {
-	nrows := int(m.shape[0].(Int))
-	ncols := int(m.shape[1].(Int))
+	nrows := m.shape[0]
+	ncols := m.shape[1]
 	for row := 0; row < nrows; row++ {
 		if row > 0 {
 			b.WriteByte('\n')
@@ -91,7 +91,7 @@ func (m *Matrix) fprintf(w io.Writer, format string) {
 		for k := rank - 1; k >= 0; k-- {
 			// Litte-endian counter iterates the indexes.
 			counters[k]++
-			if counters[k] < int(m.shape[k].(Int)) {
+			if counters[k] < m.shape[k] {
 				break
 			}
 			if i < len(m.data)-1 {
@@ -114,8 +114,8 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 	case 1:
 		Errorf("matrix is vector")
 	case 2:
-		nrows := int(m.shape[0].(Int))
-		ncols := int(m.shape[1].(Int))
+		nrows := m.shape[0]
+		ncols := m.shape[1]
 		if nrows == 0 || ncols == 0 {
 			return ""
 		}
@@ -145,9 +145,9 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 	case 3:
 		// If it's all chars, print it without padding or quotes.
 		if m.data.AllChars() {
-			nelems := int(m.shape[0].(Int))
+			nelems := m.shape[0]
 			ElemSize := m.ElemSize()
-			index := 0
+			index := int64(0)
 			for i := 0; i < nelems; i++ {
 				if i > 0 {
 					b.WriteString("\n\n")
@@ -166,9 +166,9 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 				wid = len(s)
 			}
 		}
-		n2d := int(m.shape[0].(Int)) // number of 2d submatrices.
-		size := m.ElemSize()         // number of elems in each submatrix.
-		start := 0
+		n2d := m.shape[0]    // number of 2d submatrices.
+		size := m.ElemSize() // number of elems in each submatrix.
+		start := int64(0)
 		for i := 0; i < n2d; i++ {
 			if i > 0 {
 				b.WriteString("\n\n")
@@ -195,13 +195,13 @@ func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) 
 	if m.Rank() <= 3 {
 		return indent(indentation, m.Sprint(conf))
 	}
-	dim := int(m.shape[0].(Int))
+	dim := m.shape[0]
 	rest := strings.Repeat(" *", m.Rank()-1)[1:]
 	var b bytes.Buffer
 	for i := 0; i < dim; i++ {
 		inner := Matrix{
 			shape: m.shape[1:],
-			data:  m.data[i*m.ElemSize():],
+			data:  m.data[int64(i)*m.ElemSize():],
 		}
 		if i > 0 {
 			b.WriteString("\n")
@@ -244,49 +244,38 @@ func spaces(n int) string {
 
 // Size returns number of elements of the matrix.
 // Given shape [a, b, c, ...] it is a*b*c*....
-func (m *Matrix) Size() int {
+func (m *Matrix) Size() int64 {
 	return size(m.shape)
 }
 
 // ElemSize returns the size of each top-level element of the matrix.
 // Given shape [a, b, c, ...] it is b*c*....
-func (m *Matrix) ElemSize() int {
+func (m *Matrix) ElemSize() int64 {
 	return size(m.shape[1:])
 }
 
-func size(shape []Value) int {
-	size := 1
+func size(shape []int) int64 {
+	size := int64(1)
 	for _, i := range shape {
-		size *= int(i.(Int))
+		size *= int64(i)
 	}
 	return size
 }
 
 // NewMatrix makes a new matrix. The number of elements must fit in an Int.
-func NewMatrix(shape, data []Value) *Matrix {
+func NewMatrix(shape []int, data []Value) *Matrix {
 	// Check consistency and sanity.
 	nelems := 0
 	if len(shape) > 0 {
-		// While we're here, demote the shape vector to its Inner values.
-		// Thus after NewMatrix shape is always guaranteed to be only Ints.
-		nshape := make([]Value, len(shape))
-		for i := 0; i < len(shape); i++ {
-			nshape[i] = shape[i].Inner()
-			_, ok := nshape[i].(Int)
-			if !ok {
-				Errorf("non-integral shape for new matrix")
-			}
-		}
 		// Can't use size function here: must avoid overflow.
-		n := nshape[0].(Int)
+		n := int64(shape[0])
 		for i := 1; i < len(shape); i++ {
-			n *= nshape[i].(Int)
+			n *= int64(shape[i])
 			if n > maxInt {
 				Errorf("matrix too large")
 			}
 		}
 		nelems = int(n)
-		shape = nshape
 	}
 	if nelems != len(data) {
 		Errorf("inconsistent shape and data size for new matrix")
@@ -316,11 +305,11 @@ func (m *Matrix) toType(conf *config.Config, which valueType) Value {
 
 func (x *Matrix) sameShape(y *Matrix) {
 	if x.Rank() != y.Rank() {
-		Errorf("rank mismatch: %s != %s", x.shape, y.shape)
+		Errorf("rank mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
 	}
 	for i, d := range x.shape {
 		if d != y.shape[i] {
-			Errorf("rank mismatch: %s != %s", x.shape, y.shape)
+			Errorf("rank mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
 		}
 	}
 }
@@ -335,6 +324,7 @@ func reshape(A, B Vector) Value {
 		return Vector{}
 	}
 	nelems := Int(1)
+	shape := make([]int, len(A))
 	for i := range A {
 		n, ok := A[i].Inner().(Int)
 		if !ok || n < 0 || maxInt < n {
@@ -344,6 +334,7 @@ func reshape(A, B Vector) Value {
 		if nelems > maxInt {
 			Errorf("rho has too many elements")
 		}
+		shape[i] = int(n)
 	}
 	values := make([]Value, nelems)
 	j := 0
@@ -357,7 +348,7 @@ func reshape(A, B Vector) Value {
 	if len(A) == 1 {
 		return NewVector(values)
 	}
-	return NewMatrix(A, NewVector(values))
+	return NewMatrix(shape, NewVector(values))
 }
 
 // rotate returns a copy of v with elements rotated left by n.
@@ -367,7 +358,7 @@ func (m *Matrix) rotate(n int) Value {
 		return &Matrix{}
 	}
 	elems := make([]Value, len(m.data))
-	dim := int(m.shape[m.Rank()-1].(Int))
+	dim := m.shape[m.Rank()-1]
 	n %= dim
 	if n < 0 {
 		n += dim
@@ -389,7 +380,7 @@ func (m *Matrix) vrotate(n int) Value {
 	}
 
 	elems := make([]Value, len(m.data))
-	dim := len(m.data) / int(m.shape[0].(Int))
+	dim := len(m.data) / m.shape[0]
 
 	n *= dim
 	n %= len(m.data)
@@ -417,17 +408,15 @@ func (m *Matrix) transpose() *Matrix {
 	}
 	// Shapes as integers not values are easier here.
 	// The reversed shape of m, that is, shape of m transposed.
-	shape := make([]int64, rank)
-	shapeVector := make([]Value, rank) // For NewMatrix.
+	shape := make([]int, rank)
 	for i := range shape {
 		v := m.Shape()[i]
-		shape[rank-1-i] = int64(v.(Int))
-		shapeVector[rank-1-i] = v
+		shape[rank-1-i] = v
 	}
 	data := m.Data()
 	result := make([]Value, len(data))
 	sz := len(data) * rank
-	counters := make([]int64, rank)
+	counters := make([]int, rank)
 	for i, elem := 0, 0; i < sz; i += rank {
 		j := offset(shape, counters)
 		result[j] = data[elem]
@@ -441,14 +430,14 @@ func (m *Matrix) transpose() *Matrix {
 			counters[k] = 0
 		}
 	}
-	return NewMatrix(shapeVector, result)
+	return NewMatrix(shape, result)
 }
 
 // offset returns, given a matrix's shape, the index within the slice holding the
 // data of the element indexed in the full matrix by the successive indexes.
-func offset(shape, indexes []int64) int64 {
-	j := int64(0)
-	sz := int64(1)
+func offset(shape, indexes []int) int {
+	j := 0
+	sz := 1
 	for i := int64(len(indexes)) - 1; i >= 0; i-- {
 		j += indexes[i] * sz
 		sz *= shape[i]

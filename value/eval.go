@@ -150,17 +150,17 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		// The result is a square matrix with each dimension the number of columns of the lhs.
 		v := v.(*Matrix)
 		if u.Rank() != 2 || v.Rank() != 2 {
-			Errorf("can't do inner product on shape %s times %s", u.shape, v.shape)
+			Errorf("can't do inner product on shape %s times %s", NewIntVector(u.shape), NewIntVector(v.shape))
 		}
-		urows := int(u.shape[0].(Int))
-		ucols := int(u.shape[1].(Int))
-		vrows := int(v.shape[0].(Int))
-		vcols := int(v.shape[1].(Int))
+		urows := u.shape[0]
+		ucols := u.shape[1]
+		vrows := v.shape[0]
+		vcols := v.shape[1]
 		if vrows != ucols || vcols != urows {
-			Errorf("shape mismatch for inner product %s times %s", u.shape, v.shape)
+			Errorf("shape mismatch for inner product %s times %s", NewIntVector(u.shape), NewIntVector(v.shape))
 		}
 		data := make(Vector, urows*urows)
-		shape := NewVector([]Value{u.shape[0], u.shape[0]})
+		shape := []int{u.shape[0], u.shape[0]}
 		row, col := 0, 0
 		for i := range data {
 			acc := c.EvalBinary(u.data[row*ucols], right, v.data[col])
@@ -187,7 +187,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 	case Vector:
 		v := v.(Vector)
 		m := Matrix{
-			shape: NewVector([]Value{Int(len(u)), Int(len(v))}),
+			shape: []int{len(u), len(v)},
 			data:  NewVector(make(Vector, len(u)*len(v))),
 		}
 		index := 0
@@ -201,7 +201,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 	case *Matrix:
 		v := v.(*Matrix)
 		m := Matrix{
-			shape: NewVector(append(u.Shape(), v.Shape()...)),
+			shape: append(u.Shape(), v.Shape()...),
 			data:  NewVector(make(Vector, len(u.Data())*len(v.Data()))),
 		}
 		index := 0
@@ -235,11 +235,11 @@ func Reduce(c Context, op string, v Value) Value {
 		return acc
 	case *Matrix:
 		if v.Rank() < 2 {
-			Errorf("shape for matrix is degenerate: %s", v.shape)
+			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
 		}
-		stride := int(v.shape[v.Rank()-1].(Int))
+		stride := v.shape[v.Rank()-1]
 		if stride == 0 {
-			Errorf("shape for matrix is degenerate: %s", v.shape)
+			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
 		}
 		shape := v.shape[:v.Rank()-1]
 		data := make(Vector, size(shape))
@@ -285,18 +285,18 @@ func Scan(c Context, op string, v Value) Value {
 		return NewVector(values)
 	case *Matrix:
 		if v.Rank() < 2 {
-			Errorf("shape for matrix is degenerate: %s", v.shape)
+			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
 		}
-		stride := int(v.shape[v.Rank()-1].(Int))
+		stride := v.shape[v.Rank()-1]
 		if stride == 0 {
-			Errorf("shape for matrix is degenerate: %s", v.shape)
+			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
 		}
 		data := make(Vector, len(v.data))
 		index := 0
 		nrows := 1
 		for i := 0; i < v.Rank()-1; i++ {
 			// Guaranteed by NewMatrix not to overflow.
-			nrows *= int(v.shape[i].(Int))
+			nrows *= v.shape[i]
 		}
 		for i := 0; i < nrows; i++ {
 			acc := v.data[index]
@@ -382,7 +382,7 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 		// Vector op Matrix.
 		shape = v.shape
 		n = make([]Value, len(v.data))
-		dim := int(u.shape[0].(Int))
+		dim := u.shape[0]
 		index := 0
 		for k := range v.data {
 			n[k] = c.EvalBinary(u.data[index], op, v.data[k])
@@ -394,7 +394,7 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 	case isVector(v, u.shape):
 		// Vector op Matrix.
 		n = make([]Value, len(u.data))
-		dim := int(v.shape[0].(Int))
+		dim := v.shape[0]
 		index := 0
 		for k := range u.data {
 			n[k] = c.EvalBinary(v.data[index], op, u.data[k])
@@ -417,7 +417,7 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 // isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.
 func isScalar(u *Matrix) bool {
 	for _, dim := range u.shape {
-		if dim.(Int) != 1 {
+		if dim != 1 {
 			return false
 		}
 	}
@@ -426,12 +426,12 @@ func isScalar(u *Matrix) bool {
 
 // isVector reports whether u is an 1x1x...xn item where n is the last dimension
 // of the shape, that is, an n-vector promoted to matrix.
-func isVector(u *Matrix, shape Vector) bool {
+func isVector(u *Matrix, shape []int) bool {
 	if u.Rank() == 0 || len(shape) == 0 || u.shape[0] != shape[len(shape)-1] {
 		return false
 	}
 	for _, dim := range u.shape[1:] {
-		if dim.(Int) != 1 {
+		if dim != 1 {
 			return false
 		}
 	}

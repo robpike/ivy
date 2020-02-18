@@ -440,7 +440,7 @@ func init() {
 					return Int(len(v.(Vector)))
 				},
 				matrixType: func(c Context, v Value) Value {
-					return v.(*Matrix).shape
+					return NewIntVector(v.(*Matrix).shape)
 				},
 			},
 		},
@@ -518,8 +518,8 @@ func init() {
 					if m.Rank() == 1 {
 						Errorf("rot: matrix is vector")
 					}
-					size := m.Size()
-					ncols := int(m.shape[m.Rank()-1].(Int))
+					size := int(m.Size())
+					ncols := m.shape[m.Rank()-1]
 					x := m.data
 					for index := 0; index <= size-ncols; index += ncols {
 						for i, j := 0, ncols-1; i < j; i, j = i+1, j-1 {
@@ -550,8 +550,8 @@ func init() {
 					if m.Rank() == 1 {
 						Errorf("flip: matrix is vector")
 					}
-					elemSize := m.ElemSize()
-					size := m.Size()
+					elemSize := int(m.ElemSize())
+					size := int(m.Size())
 					x := m.data
 					lo := 0
 					hi := size - elemSize

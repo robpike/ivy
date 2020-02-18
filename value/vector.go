@@ -57,8 +57,16 @@ func (v Vector) AllChars() bool {
 	return true
 }
 
-func NewVector(elem []Value) Vector {
-	return Vector(elem)
+func NewVector(elems []Value) Vector {
+	return Vector(elems)
+}
+
+func NewIntVector(elems []int) Vector {
+	vec := make([]Value, len(elems))
+	for i, elem := range elems {
+		vec[i] = Int(elem)
+	}
+	return Vector(vec)
 }
 
 func (v Vector) Eval(Context) Value {
@@ -80,7 +88,7 @@ func (v Vector) toType(conf *config.Config, which valueType) Value {
 	case vectorType:
 		return v
 	case matrixType:
-		return NewMatrix([]Value{Int(len(v))}, v)
+		return NewMatrix([]int{len(v)}, v)
 	}
 	Errorf("cannot convert vector to %s", which)
 	return nil

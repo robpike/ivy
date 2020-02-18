@@ -202,7 +202,7 @@ func formatString(u Value) string {
 			// Decimal count only.
 			dec, ok := val[0].(Int)
 			if ok {
-				return fmt.Sprintf("%%%d.%df", dec)
+				return fmt.Sprintf("%%.%df", dec)
 			}
 		case 3:
 			// Width count, and char.
@@ -984,7 +984,7 @@ func init() {
 					// 0 1 1
 					// 1 0 1
 					elems := make([]Value, len(A)*len(B))
-					shape := []Value{Int(len(A)), Int(len(B))}
+					shape := []int{len(A), len(B)}
 					for j := range B {
 						b := B[j]
 						for i := len(A) - 1; i >= 0; i-- {
@@ -1062,12 +1062,12 @@ func init() {
 								Errorf("index must be integer")
 							}
 							x -= origin
-							if x < 0 || Int(A.shape[0].(Int)) <= x {
-								Errorf("index %d out of range (shape %s)", x+origin, A.shape)
+							if x < 0 || Int(A.shape[0]) <= x {
+								Errorf("index %d out of range (shape %s)", x+origin, NewIntVector(A.shape))
 							}
 							values[i] = A.data[x]
 						}
-						newShape := make(Vector, mB.Rank())
+						newShape := make([]int, mB.Rank())
 						copy(newShape, mB.shape)
 						return NewMatrix(newShape, values)
 					}
@@ -1080,8 +1080,8 @@ func init() {
 							Errorf("index must be integer")
 						}
 						x -= origin
-						if x < 0 || Int(A.shape[0].(Int)) <= x {
-							Errorf("index %d out of range (shape %s)", x+origin, A.shape)
+						if x < 0 || Int(A.shape[0]) <= x {
+							Errorf("index %d out of range (shape %s)", x+origin, NewIntVector(A.shape))
 						}
 						start := ElemSize * x
 						values = append(values, A.data[start:start+ElemSize]...)
@@ -1095,13 +1095,13 @@ func init() {
 							return values
 						}
 						// Matrix of one less degree.
-						newShape := make(Vector, A.Rank()-1)
+						newShape := make([]int, A.Rank()-1)
 						copy(newShape, A.shape[1:])
 						return NewMatrix(newShape, values)
 					}
-					newShape := make(Vector, A.Rank())
+					newShape := make([]int, A.Rank())
 					copy(newShape, A.shape)
-					newShape[0] = Int(len(B))
+					newShape[0] = len(B)
 					return NewMatrix(newShape, values)
 				},
 			},
@@ -1246,15 +1246,15 @@ func init() {
 						Errorf("empty matrix for ,")
 					}
 					if A.Rank() != B.Rank()+1 || A.ElemSize() != B.Size() {
-						Errorf("catenate rank mismatch: %s != %s", A.shape[1:], B.shape)
+						Errorf("catenate rank mismatch: %s != %s", NewIntVector(A.shape[1:]), NewIntVector(B.shape))
 					}
 					ElemSize := A.ElemSize()
-					newShape := make(Vector, A.Rank())
+					newShape := make([]int, A.Rank())
 					copy(newShape, A.shape)
-					newData := make(Vector, len(A.data), len(A.data)+ElemSize)
+					newData := make(Vector, len(A.data), int64(len(A.data))+ElemSize)
 					copy(newData, A.data)
 					newData = append(newData, B.data...)
-					newShape[0] = newShape[0].(Int) + 1
+					newShape[0] = newShape[0] + 1
 					return NewMatrix(newShape, newData)
 				},
 			},

@@ -52,7 +52,7 @@ func (c Char) toType(conf *config.Config, which valueType) Value {
 	case vectorType:
 		return NewVector([]Value{c})
 	case matrixType:
-		return NewMatrix([]Value{one}, []Value{c})
+		return NewMatrix([]int{1}, []Value{c})
 	}
 	Errorf("cannot convert %s to char", which)
 	return nil

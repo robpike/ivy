@@ -18,7 +18,7 @@ type Assignment struct {
 	value.Value
 }
 
-var scalarShape = []int64{1} // The assignment shape vector for a scalar value.
+var scalarShape = []int{1} // The assignment shape vector for a scalar value.
 
 func assignment(context value.Context, b *binary) value.Value {
 	// We know the left is a variableExpr or index expression.
@@ -47,8 +47,8 @@ func indexedAssignment(context value.Context, lhs *binary, rhsExpr value.Expr, r
 	// rhsExpr is for diagnostics (only), as it gives a better error print.
 	slice, shape := dataAndShape(true, lhs, lvalueOf(context, lhs.left))
 	indexes := indexesOf(context, lhs)
-	origin := int64(value.Int(context.Config().Origin()))
-	offset := int64(0)
+	origin := int(value.Int(context.Config().Origin()))
+	offset := 0
 	var i int
 	for i = range shape {
 		if i >= len(indexes) {
@@ -85,12 +85,12 @@ func indexedAssignment(context value.Context, lhs *binary, rhsExpr value.Expr, r
 	panic("not reached")
 }
 
-func dataAndShape(mustBeLvalue bool, expr value.Expr, val value.Value) ([]value.Value, []int64) {
+func dataAndShape(mustBeLvalue bool, expr value.Expr, val value.Value) ([]value.Value, []int) {
 	switch v := val.(type) {
 	case value.Vector:
-		return v, toInt64([]value.Value{value.Int(len(v))})
+		return v, toInt([]value.Value{value.Int(len(v))})
 	case *value.Matrix:
-		return v.Data(), toInt64(v.Shape())
+		return v.Data(), v.Shape()
 	default:
 		if mustBeLvalue {
 			return nil, nil
@@ -99,8 +99,8 @@ func dataAndShape(mustBeLvalue bool, expr value.Expr, val value.Value) ([]value.
 	}
 }
 
-func shapeProduct(shape []int64) int64 {
-	elemSize := int64(1)
+func shapeProduct(shape []int) int {
+	elemSize := 1
 	for _, v := range shape {
 		elemSize *= v
 	}
@@ -110,7 +110,7 @@ func shapeProduct(shape []int64) int64 {
 // sameShape reports whether the two assignment shape vectors are equivalent.
 // The lhs in particular can be empty if we have exhausted the indexes, but that
 // just means we are assigning to a scalar element, and is OK.
-func sameShape(a, b []int64) bool {
+func sameShape(a, b []int) bool {
 	if len(a) == 0 {
 		a = scalarShape
 	}
@@ -128,10 +128,10 @@ func sameShape(a, b []int64) bool {
 	return true
 }
 
-func toInt64(v []value.Value) []int64 {
-	res := make([]int64, len(v))
+func toInt(v []value.Value) []int {
+	res := make([]int, len(v))
 	for i, val := range v {
-		res[i] = int64(val.(value.Int))
+		res[i] = int(val.(value.Int))
 	}
 	return res
 }
@@ -155,7 +155,7 @@ func lvalueOf(context value.Context, item value.Expr) value.Value {
 	panic("not reached")
 }
 
-func indexesOf(context value.Context, item value.Expr) []int64 {
+func indexesOf(context value.Context, item value.Expr) []int {
 	switch v := item.(type) {
 	case *binary:
 		if v.op == "[]" {
@@ -167,7 +167,7 @@ func indexesOf(context value.Context, item value.Expr) []int64 {
 	default:
 		v = v.Eval(context)
 		if i, ok := v.(value.Int); ok {
-			return []int64{int64(i)}
+			return []int{int(i)}
 		}
 		value.Errorf("cannot index by %s in assignment", item.ProgString())
 	}

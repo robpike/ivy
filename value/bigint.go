@@ -158,7 +158,7 @@ func (i BigInt) toType(conf *config.Config, which valueType) Value {
 	case vectorType:
 		return NewVector([]Value{i})
 	case matrixType:
-		return NewMatrix([]Value{one}, []Value{i})
+		return NewMatrix([]int{1}, []Value{i})
 	}
 	Errorf("cannot convert big int to %s", which)
 	return nil
