@@ -11,6 +11,8 @@ import (
 	"math/big"
 	"math/rand"
 	"unicode/utf8"
+
+	"robpike.io/ivy/config"
 )
 
 // Binary operators.
@@ -139,12 +141,12 @@ func bigIntExpOp(c Context) func(i, j, k *big.Int) *big.Int {
 
 // fmtText returns a vector of Chars holding the string representation
 // of the value v. The lhs u defines the format:
-// 1 item: number of decimals
+// 1 item: number of decimals, or if textual, the complete format.
 // 2 items: width of field, number of decimals.
 // 3 items: width of field, number of decimals, format char.
 func fmtText(c Context, u, v Value) Value {
 	config := c.Config()
-	format := formatString(u)
+	format := formatString(config, u)
 	if format == "" {
 		Errorf("%s illegal for format", u.Sprint(config))
 	}
@@ -191,11 +193,20 @@ func formatOne(c Context, w io.Writer, format string, v Value) {
 }
 
 // formatString returns the format string given u, the lhs of a binary text invocation.
-func formatString(u Value) string {
+func formatString(c *config.Config, u Value) string {
 	switch val := u.(type) {
 	case Int:
 		return fmt.Sprintf("%%.%df", val)
 	case Vector:
+		if val.AllChars() {
+			// This is the format, but it might want a percent char.
+			for _, v := range val {
+				if v.(Char) == '%' {
+					return val.Sprint(c)
+				}
+			}
+			return "%" + val.Sprint(c)
+		}
 		char := Char('f')
 		switch len(val) {
 		case 1:

@@ -94,6 +94,9 @@ func (m *Matrix) fprintf(c Context, w io.Writer, format string) {
 			if counters[k] < m.shape[k] {
 				break
 			}
+			// Each time a counter overflows, add a newline.
+			// This puts 0 lines between rows, 1 between
+			// each 2-d block, 2 between each 3-d block, etc.
 			if i < len(m.data)-1 {
 				w.Write([]byte{'\n'})
 			}
