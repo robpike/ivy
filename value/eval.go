@@ -147,7 +147,8 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 	case *Matrix:
 		// Say we're doing +.*
 		// result[i,j] = +/(u[row i] * v[column j])
-		// The result is a square matrix with each dimension the number of columns of the lhs.
+		// Number of columns of u must be the number of rows of v.
+		// The result is has shape (urows, vcols).
 		v := v.(*Matrix)
 		if u.Rank() != 2 || v.Rank() != 2 {
 			Errorf("can't do inner product on shape %s times %s", NewIntVector(u.shape), NewIntVector(v.shape))
@@ -156,22 +157,20 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		ucols := u.shape[1]
 		vrows := v.shape[0]
 		vcols := v.shape[1]
-		if vrows != ucols || vcols != urows {
-			Errorf("shape mismatch for inner product %s times %s", NewIntVector(u.shape), NewIntVector(v.shape))
+		if vrows != ucols {
+			Errorf("inner product; column count of left (%d) not equal to row count on right (%d)", ucols, vrows)
 		}
-		data := make(Vector, urows*urows)
-		shape := []int{u.shape[0], u.shape[0]}
-		row, col := 0, 0
-		for i := range data {
-			acc := c.EvalBinary(u.data[row*ucols], right, v.data[col])
-			for j := 1; j < ucols; j++ {
-				acc = c.EvalBinary(acc, left, c.EvalBinary(u.data[row*ucols+j], right, v.data[j*vcols+col]))
-			}
-			data[i] = acc
-			col++
-			if col >= urows {
-				row++
-				col = 0
+		data := make(Vector, urows*vcols)
+		shape := []int{urows, vcols}
+		i := 0
+		for urow := 0; urow < urows; urow++ {
+			for vcol := 0; vcol < vcols; vcol++ {
+				acc := c.EvalBinary(u.data[urow*ucols], right, v.data[vcol])
+				for vrow := 1; vrow < vrows; vrow++ {
+					acc = c.EvalBinary(acc, left, c.EvalBinary(u.data[urow*ucols+vrow], right, v.data[vrow*vcols+vcol]))
+				}
+				data[i] = acc
+				i++
 			}
 		}
 		return NewMatrix(shape, data)
