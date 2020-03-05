@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"robpike.io/ivy/mobile"
@@ -44,4 +45,5 @@ func TestDemo(t *testing.T) {
 		err = ioutil.WriteFile("demo.bad", buf.Bytes(), 0666)
 		t.Fatal("test output differs; run\n\tdiff demo.bad demo/demo.out\nfor details")
 	}
+	os.Remove("demo.bad")
 }
