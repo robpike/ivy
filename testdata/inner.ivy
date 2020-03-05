@@ -32,6 +32,10 @@
 2 3 4 min.max 1 2 3
 	2
 
+# Lexical corner case.
+2 3 4 -.max 1 2 3
+	-5
+
 # Matrices
 
 x = 3 3 rho iota 10

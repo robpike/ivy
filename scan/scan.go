@@ -265,6 +265,10 @@ func lexAny(l *Scanner) stateFn {
 				l.emit(Operator)
 				return lexAny
 			}
+			// Ugly corner case: inner product starting with '-'. We assume ASCII here, but it's OK.
+			if l.peek() == '.' && l.pos < len(l.input)-1 && !l.isNumeral(rune(l.input[l.pos+1])) {
+				return lexOperator
+			}
 		}
 		fallthrough
 	case r == '.' || '0' <= r && r <= '9':
@@ -452,7 +456,7 @@ func lexNumber(l *Scanner) stateFn {
 			l.emit(Operator)
 			return lexAny
 		}
-		if r != '.' && !isNumeral(r, l.context.Config().InputBase()) {
+		if r != '.' && !l.isNumeral(r) {
 			l.emit(Operator)
 			return lexAny
 		}
@@ -468,7 +472,7 @@ func lexNumber(l *Scanner) stateFn {
 	// Might be a rational.
 	l.accept("/")
 
-	if r := l.peek(); r != '.' && !isNumeral(r, l.context.Config().InputBase()) {
+	if r := l.peek(); r != '.' && !l.isNumeral(r) {
 		// Oops, not a number. Hack!
 		l.pos-- // back up before '/'
 		l.emit(Number)
@@ -624,14 +628,15 @@ func isDigit(r rune) bool {
 	return '0' <= r && r <= '9'
 }
 
-// isNumeral reports whether r is a numeral in the specified base.
+// isNumeral reports whether r is a numeral in the input base.
 // A decimal digit is always taken as a numeral, because otherwise parsing
 // would be muddled. (In base 8, 039 shouldn't be scanned as two numbers.)
 // The parser will check that the scanned number is legal.
-func isNumeral(r rune, base int) bool {
+func (l *Scanner) isNumeral(r rune) bool {
 	if '0' <= r && r <= '9' {
 		return true
 	}
+	base := l.context.Config().InputBase()
 	if base < 10 {
 		return false
 	}
