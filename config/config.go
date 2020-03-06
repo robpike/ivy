@@ -37,6 +37,7 @@ type Config struct {
 	formatFloat bool // Whether format is floating-point.
 	origin      int
 	bigOrigin   *big.Int
+	seed        int64
 	debug       [len(DebugFlags)]bool
 	source      rand.Source
 	random      *rand.Rand
@@ -54,7 +55,8 @@ func (c *Config) init() {
 		c.output = os.Stdout
 		c.errOutput = os.Stderr
 		c.origin = 1
-		c.source = rand.NewSource(time.Now().UnixNano())
+		c.seed = time.Now().UnixNano()
+		c.source = rand.NewSource(c.seed)
 		c.random = rand.New(c.source)
 		c.maxBits = 1e6
 		c.maxDigits = 1e4
@@ -192,9 +194,15 @@ func (c *Config) Random() *rand.Rand {
 	return c.random
 }
 
+// RandomSeed returns the seed used to initialize the random number generator.
+func (c *Config) RandomSeed() int64 {
+	return c.seed
+}
+
 // SetRandomSeed sets the seed for the random number generator.
 func (c *Config) SetRandomSeed(seed int64) {
 	c.init()
+	c.seed = seed
 	c.source.Seed(seed)
 }
 

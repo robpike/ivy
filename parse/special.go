@@ -297,7 +297,7 @@ Switch:
 		}
 	case "seed":
 		if p.peek().Type == scan.EOF {
-			p.Println(conf.Origin())
+			p.Println(conf.RandomSeed())
 			break Switch
 		}
 		conf.SetRandomSeed(p.nextDecimalNumber64())
