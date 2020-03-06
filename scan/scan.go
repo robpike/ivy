@@ -129,6 +129,17 @@ func (l *Scanner) peek() rune {
 	return r
 }
 
+// peek2 returns the next two runes ahead, but does not consume anything.
+func (l *Scanner) peek2() (rune, rune) {
+	pos := l.pos
+	width := l.width
+	r1 := l.next()
+	r2 := l.next()
+	l.pos = pos
+	l.width = width
+	return r1, r2
+}
+
 // backup steps back one rune. Can only be called once per call of next.
 func (l *Scanner) backup() {
 	l.pos -= l.width
@@ -265,8 +276,8 @@ func lexAny(l *Scanner) stateFn {
 				l.emit(Operator)
 				return lexAny
 			}
-			// Ugly corner case: inner product starting with '-'. We assume ASCII here, but it's OK.
-			if l.peek() == '.' && l.pos < len(l.input)-1 && !l.isNumeral(rune(l.input[l.pos+1])) {
+			// Ugly corner case: inner product starting with '-'.
+			if r1, r2 := l.peek2(); r1 == '.' && !l.isNumeral(r2) {
 				return lexOperator
 			}
 		}
