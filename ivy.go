@@ -21,14 +21,16 @@ import (
 )
 
 var (
-	execute   = flag.Bool("e", false, "execute arguments as a single expression")
-	format    = flag.String("format", "", "use `fmt` as format for printing numbers; empty sets default format")
-	gformat   = flag.Bool("g", false, `shorthand for -format="%.12g"`)
-	maxbits   = flag.Uint("maxbits", 1e9, "maximum size of an integer, in bits; 0 means no limit")
-	maxdigits = flag.Uint("maxdigits", 1e4, "above this many `digits`, integers print as floating point; 0 disables")
-	origin    = flag.Int("origin", 1, "set index origin to `n` (must be 0 or 1)")
-	prompt    = flag.String("prompt", "", "command `prompt`")
-	debugFlag = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
+	execute         = flag.String("e", "", "execute `argument` and quit")
+	executeContinue = flag.String("i", "", "execute `argument` and continue")
+	file            = flag.String("f", "", "execute `file` before input")
+	format          = flag.String("format", "", "use `fmt` as format for printing numbers; empty sets default format")
+	gformat         = flag.Bool("g", false, `shorthand for -format="%.12g"`)
+	maxbits         = flag.Uint("maxbits", 1e9, "maximum size of an integer, in bits; 0 means no limit")
+	maxdigits       = flag.Uint("maxdigits", 1e4, "above this many `digits`, integers print as floating point; 0 disables")
+	origin          = flag.Int("origin", 1, "set index origin to `n` (must be 0 or 1)")
+	prompt          = flag.String("prompt", "", "command `prompt`")
+	debugFlag       = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
 )
 
 var (
@@ -54,6 +56,7 @@ func main() {
 	conf.SetMaxDigits(*maxdigits)
 	conf.SetOrigin(*origin)
 	conf.SetPrompt(*prompt)
+
 	if len(*debugFlag) > 0 {
 		for _, debug := range strings.Split(*debugFlag, ",") {
 			if !conf.SetDebug(debug, true) {
@@ -65,32 +68,29 @@ func main() {
 
 	context = exec.NewContext(&conf)
 
-	if *execute {
-		runArgs(context)
+	if *file != "" {
+		if !runFile(context, *file) {
+			os.Exit(1)
+		}
+	}
+
+	if *executeContinue != "" {
+		if !runString(context, *executeContinue) {
+			os.Exit(1)
+		}
+	}
+
+	if *execute != "" {
+		if !runString(context, *execute) {
+			os.Exit(1)
+		}
 		return
 	}
 
 	if flag.NArg() > 0 {
 		for i := 0; i < flag.NArg(); i++ {
-			name := flag.Arg(i)
-			var fd io.Reader
-			var err error
-			interactive := false
-			if name == "-" {
-				interactive = true
-				fd = os.Stdin
-			} else {
-				interactive = false
-				fd, err = os.Open(name)
-			}
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "ivy: %s\n", err)
+			if !runFile(context, flag.Arg(i)) {
 				os.Exit(1)
-			}
-			scanner := scan.New(context, name, bufio.NewReader(fd))
-			parser := parse.NewParser(name, scanner, context)
-			if !run.Run(parser, context, interactive) {
-				break
 			}
 		}
 		return
@@ -102,11 +102,32 @@ func main() {
 	}
 }
 
-// runArgs executes the text of the command-line arguments as an ivy program.
-func runArgs(context value.Context) {
-	scanner := scan.New(context, "<args>", strings.NewReader(strings.Join(flag.Args(), " ")))
+// runFile executes the contents of the file as an ivy program.
+func runFile(context value.Context, file string) bool {
+	var fd io.Reader
+	var err error
+	interactive := false
+	if file == "-" {
+		interactive = true
+		fd = os.Stdin
+	} else {
+		interactive = false
+		fd, err = os.Open(file)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ivy: %s\n", err)
+		os.Exit(1)
+	}
+	scanner := scan.New(context, file, bufio.NewReader(fd))
+	parser := parse.NewParser(file, scanner, context)
+	return run.Run(parser, context, interactive)
+}
+
+// runString executes the string, typically a command-line argument, as an ivy program.
+func runString(context value.Context, str string) bool {
+	scanner := scan.New(context, "<args>", strings.NewReader(str))
 	parser := parse.NewParser("<args>", scanner, context)
-	run.Run(parser, context, false)
+	return run.Run(parser, context, false)
 }
 
 func usage() {
