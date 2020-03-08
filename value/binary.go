@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
 	"unicode/utf8"
 
 	"robpike.io/ivy/config"
@@ -888,7 +887,7 @@ func init() {
 					if A > B {
 						Errorf("left operand larger than right in %d?%d", A, B)
 					}
-					ints := rand.Perm(int(B))
+					ints := c.Config().Random().Perm(int(B))
 					origin := c.Config().Origin()
 					res := make([]Value, A)
 					for i := range res {

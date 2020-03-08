@@ -16,7 +16,7 @@ import (
 
 /*
 To update demo/demo.out:
-	(echo ')seed 0'; cat demo/demo.ivy) | ivy | sed 1d > demo/demo.out
+	ivy -i ')seed 0' demo/demo.ivy > demo/demo.out
 */
 func TestDemo(t *testing.T) {
 	data, err := ioutil.ReadFile("demo/demo.ivy")
