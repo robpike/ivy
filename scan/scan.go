@@ -68,20 +68,18 @@ type stateFn func(*Scanner) stateFn
 
 // Scanner holds the state of the scanner.
 type Scanner struct {
-	tokens     chan Token // channel of scanned items
-	context    value.Context
-	r          io.ByteReader
-	done       bool
-	name       string // the name of the input; used only for error reports
-	buf        []byte
-	input      string  // the line of text being scanned.
-	leftDelim  string  // start of action; unused but here for symmetry.
-	rightDelim string  // end of action
-	state      stateFn // the next lexing function to enter
-	line       int     // line number in input
-	pos        int     // current position in the input
-	start      int     // start position of this item
-	width      int     // width of last rune read from input
+	tokens  chan Token // channel of scanned items
+	context value.Context
+	r       io.ByteReader
+	done    bool
+	name    string // the name of the input; used only for error reports
+	buf     []byte
+	input   string  // the line of text being scanned.
+	state   stateFn // the next lexing function to enter
+	line    int     // line number in input
+	pos     int     // current position in the input
+	start   int     // start position of this item
+	width   int     // width of last rune read from input
 }
 
 // loadLine reads the next line of input and stores it in (appends it to) the input.
@@ -416,12 +414,6 @@ func lexOperator(l *Scanner) stateFn {
 func (l *Scanner) atTerminator() bool {
 	r := l.peek()
 	if r == eof || isSpace(r) || isEndOfLine(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
-		return true
-	}
-	// Does r start the delimiter? This can be ambiguous (with delim=="//", $x/2 will
-	// succeed but should fail) but only in extremely rare cases caused by willfully
-	// bad choice of delimiter.
-	if rd, _ := utf8.DecodeRuneInString(l.rightDelim); rd == r {
 		return true
 	}
 	// It could be a compound operator like o.*. Ugly!
