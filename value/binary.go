@@ -28,11 +28,6 @@ func binaryArithType(t1, t2 valueType) valueType {
 	return t2
 }
 
-// rightType returns the type of the right without modification.
-func rightType(t1, t2 valueType) valueType {
-	return t2
-}
-
 // divType is like binaryArithType but never returns smaller than BigInt,
 // because the only implementation of exponentiation we have is in big.Int.
 func divType(t1, t2 valueType) valueType {
@@ -983,9 +978,7 @@ func init() {
 						elems := make([]Value, len(B))
 						a := A[0]
 						for i := range B {
-							b := B[i]
-							elems[i] = mod(b, a)
-							b = div(b, a)
+							elems[i] = mod(B[i], a)
 						}
 						return NewVector(elems)
 					}

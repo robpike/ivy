@@ -217,16 +217,13 @@ func (b *binary) Eval(context value.Context) value.Value {
 
 // Parser stores the state for the ivy parser.
 type Parser struct {
-	scanner    *scan.Scanner
-	tokens     []scan.Token    // Points to tokenBuf.
-	tokenBuf   [100]scan.Token // Reusable.
-	fileName   string
-	lineNum    int
-	errorCount int // Number of errors.
-	context    *exec.Context
+	scanner  *scan.Scanner
+	tokens   []scan.Token    // Points to tokenBuf.
+	tokenBuf [100]scan.Token // Reusable.
+	fileName string
+	lineNum  int
+	context  *exec.Context
 }
-
-var zero = value.Int(0)
 
 // NewParser returns a new parser that will read from the scanner.
 // The context must have have been created by this package's NewContext function.
@@ -284,8 +281,6 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 	p.tokens = p.tokenBuf[:0]
 	value.Errorf(format, args...)
 }
-
-var newParser = true
 
 // Line reads a line of input and returns the values it evaluates.
 // A nil returned slice means there were no values.

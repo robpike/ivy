@@ -119,7 +119,6 @@ func (r BigRat) floatString(verb byte, prec int) string {
 	return ""
 }
 
-var bigRatOne = big.NewRat(1, 1)
 var bigRatTen = big.NewRat(10, 1)
 var bigRatBillion = big.NewRat(1e9, 1)
 

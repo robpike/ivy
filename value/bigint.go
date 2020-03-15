@@ -115,7 +115,6 @@ func (i BigInt) floatString(verb byte, prec int) string {
 
 var (
 	bigIntTen     = big.NewInt(10)
-	bigIntMillion = big.NewInt(1e6)
 	bigIntBillion = big.NewInt(1e9)
 	MaxBigInt63   = big.NewInt(int64(^uint64(0) >> 1))
 )

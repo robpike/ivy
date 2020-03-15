@@ -75,7 +75,7 @@ type Scanner struct {
 	name       string // the name of the input; used only for error reports
 	buf        []byte
 	input      string  // the line of text being scanned.
-	leftDelim  string  // start of action
+	leftDelim  string  // start of action; unused but here for symmetry.
 	rightDelim string  // end of action
 	state      stateFn // the next lexing function to enter
 	line       int     // line number in input
@@ -167,7 +167,7 @@ func (l *Scanner) ignore() {
 
 // accept consumes the next rune if it's from the valid set.
 func (l *Scanner) accept(valid string) bool {
-	if strings.IndexRune(valid, l.next()) >= 0 {
+	if strings.ContainsRune(valid, l.next()) {
 		return true
 	}
 	l.backup()
@@ -176,7 +176,7 @@ func (l *Scanner) accept(valid string) bool {
 
 // acceptRun consumes a run of runes from the valid set.
 func (l *Scanner) acceptRun(valid string) {
-	for strings.IndexRune(valid, l.next()) >= 0 {
+	for strings.ContainsRune(valid, l.next()) {
 	}
 	l.backup()
 }

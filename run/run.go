@@ -67,7 +67,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 			if interactive {
 				start := time.Now()
 				values = context.Eval(exprs)
-				conf.SetCPUTime(time.Now().Sub(start))
+				conf.SetCPUTime(time.Since(start))
 			} else {
 				values = context.Eval(exprs)
 			}

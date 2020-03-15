@@ -128,8 +128,6 @@ func zeros(prec int) string {
 	return manyZeros[:prec]
 }
 
-var buf []byte
-
 func (i Int) Eval(Context) Value {
 	return i
 }

@@ -75,13 +75,13 @@ func vectorSelf(c Context, v Value) Value {
 // floatSelf promotes v to type BigFloat.
 func floatSelf(c Context, v Value) Value {
 	conf := c.Config()
-	switch v.(type) {
+	switch v := v.(type) {
 	case Int:
-		return v.(Int).toType(conf, bigFloatType)
+		return v.toType(conf, bigFloatType)
 	case BigInt:
-		return v.(BigInt).toType(conf, bigFloatType)
+		return v.toType(conf, bigFloatType)
 	case BigRat:
-		return v.(BigRat).toType(conf, bigFloatType)
+		return v.toType(conf, bigFloatType)
 	case BigFloat:
 		return v
 	}

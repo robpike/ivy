@@ -14,11 +14,6 @@ import (
 
 type Char rune
 
-const (
-	sQuote = '\''
-	dQuote = "\""
-)
-
 func (c Char) String() string {
 	return "(" + string(c) + ")"
 }
