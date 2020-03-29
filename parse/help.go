@@ -228,7 +228,7 @@ var helpLines = []string{
 	"Example: primes less than N (unary):",
 	"\top primes N = (not T in T o.* T) sel T = 1 drop iota N",
 	"\tprimes 50",
-	"\t2 3 5 7 11 13 17 19 23 29 31 37 41 43 47",
+	"\tresult: 2 3 5 7 11 13 17 19 23 29 31 37 41 43 47",
 	"",
 	"To declare an operator but not define it, omit the equals sign and what follows.",
 	"\top foo x",

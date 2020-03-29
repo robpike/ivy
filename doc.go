@@ -233,7 +233,7 @@ Example: multiline operator definition (binary):
 Example: primes less than N (unary):
 	op primes N = (not T in T o.* T) sel T = 1 drop iota N
 	primes 50
-	2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
+	result: 2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
 
 To declare an operator but not define it, omit the equals sign and what follows.
 	op foo x

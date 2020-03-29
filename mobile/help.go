@@ -102,8 +102,8 @@ Grade up          ⍋B    up      Indices of B which will arrange B in ascending
 Grade down        ⍒B    down    Indices of B which will arrange B in descending order
 Execute           ⍎B    ivy     Execute an APL (ivy) expression
 Monadic format    ⍕B    text    A character representation of B
-Monadic transpose ⍉B            Reverse the axes of B
-Factorial         !B            Product of integers 1 to B
+Monadic transpose ⍉B    transp  Reverse the axes of B
+Factorial         !B    !       Product of integers 1 to B
 Bitwise not             ^       Bitwise complement of B (integer only)
 Square root       B⋆.5  sqrt    Square root of B.
 Sine                    sin     sin(A); APL uses binary ○ (see below)
@@ -129,7 +129,7 @@ Circle                A○B           Trigonometric functions of B selected by A
                             asin    arcsin(B); ivy uses traditional name.
                             acos    arccos(B); ivy uses traditional name.
                             atan    arctan(B); ivy uses traditional name.
-Deal                  A?B           A distinct integers selected randomly from the first B integers
+Deal                  A?B   ?       A distinct integers selected randomly from the first B integers
 Membership            A∈B   in      1 for elements of A present in B; 0 where not.
 Maximum               A⌈B   max     The greater value of A or B
 Minimum               A⌊B   min     The smaller value of A or B
@@ -152,9 +152,13 @@ Matrix divide         A⌹B           Solution to system of linear equations Ax 
 Rotation              A⌽B   rot     The elements of B are rotated A positions left
 Rotation              A⊖B   flip    The elements of B are rotated A positions along the first axis
 Logarithm             A⍟B   log     Logarithm of B to base A
-Dyadic format         A⍕B           Format B into a character matrix according to A
+Dyadic format         A⍕B   text    Format B into a character matrix according to A
+                                    A is the textual format (see format special command);
+                                    otherwise result depends on length of A:
+                                    1 gives decimal count, 2 gives width and decimal count,
+                                    3 gives width, decimal count, and style (&#39;e&#39;, &#39;f&#39;, &#39;g&#39;).
 General transpose     A⍉B           The axes of B are ordered by A
-Combinations          A!B           Number of combinations of B taken A at a time
+Combinations          A!B   !       Number of combinations of B taken A at a time
 Less than             A&lt;B   &lt;       Comparison: 1 if true, 0 if false
 Less than or equal    A≤B   &lt;=      Comparison: 1 if true, 0 if false
 Equal                 A=B   ==      Comparison: 1 if true, 0 if false
@@ -274,7 +278,7 @@ Example: primes less than N (unary):
 </p>
 <pre>op primes N = (not T in T o.* T) sel T = 1 drop iota N
 primes 50
-2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
+result: 2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
 </pre>
 <p>
 To declare an operator but not define it, omit the equals sign and what follows.
@@ -310,6 +314,7 @@ base 10 and must be non-negative on input.
 	any identifier formed from valid numerals in the base system, such
 	as abe for base 16, is taken to be a number. TODO: To output
 	large integers and rationals, base must be one of 0 2 8 10 16.
+	Floats are always printed base 10.
 ) cpu
 	Print the duration of the last interactive calculation.
 ) debug name 0|1
@@ -335,7 +340,8 @@ base 10 and must be non-negative on input.
 	than this many digits, print it using the defined floating-point
 	format. If maxdigits is 0, integers are always printed as integers.
 ) op X
-	Show the definition of the user-defined operator X. Inside the
+	If X is absent, list all user-defined operators. Otherwise,
+	show the definition of the user-defined operator X. Inside the
 	definition, numbers are always shown base 10, ignoring the ibase
 	and obase.
 ) origin 1
