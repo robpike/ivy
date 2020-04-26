@@ -173,10 +173,13 @@ func (l *Scanner) accept(valid string) bool {
 }
 
 // acceptRun consumes a run of runes from the valid set.
-func (l *Scanner) acceptRun(valid string) {
+func (l *Scanner) acceptRun(valid string) int {
+	var nums int
 	for strings.ContainsRune(valid, l.next()) {
+		nums++
 	}
 	l.backup()
+	return nums
 }
 
 // errorf returns an error token, replaces the input line with a
@@ -504,13 +507,18 @@ func (l *Scanner) scanNumber(followingSlashOK bool) bool {
 		// Otherwise leave it decimal (0); strconv.ParseInt will take care of it.
 		// We can't set it to 8 in case it's a leading-0 float like 0.69 or 09e4.
 	}
-	l.acceptRun(digits)
+	n := l.acceptRun(digits)
 	if l.accept(".") {
-		l.acceptRun(digits)
+		if l.acceptRun(digits) == 0 && n == 0 {
+			return false
+		}
 	}
 	if l.accept("eE") {
+		// If scientific notation, there must be an integer exponent
 		l.accept("+-")
-		l.acceptRun("0123456789")
+		if l.acceptRun("0123456789") == 0 {
+			return false
+		}
 	}
 	r := l.peek()
 	if followingSlashOK && r == '/' {
