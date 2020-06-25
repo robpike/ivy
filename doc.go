@@ -257,7 +257,8 @@ is not specified. For these commands, numbers are always read and printed
 base 10 and must be non-negative on input.
 
 	) help
-		Print this list of special commands.
+		Describe the special commands. Run )help <topic> to learn more
+		about a topic, )help <op> to learn more about an operator.
 	) base 0
 		Set the number base for input and output. The commands ibase and
 		obase control setting of the base for input and output alone,
