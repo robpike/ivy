@@ -117,7 +117,7 @@ Switch:
 			p.printHelpBlock("Binary operators", "Operators and axis indicator")
 		case "axis":
 			p.printHelpBlock("Operators and axis indicator", "Type-converting operations")
-		case "type", "conversion":
+		case "type", "types", "conversion", "conversions":
 			p.printHelpBlock("Type-converting operations", "Pre-defined constants")
 		case "constant":
 			p.printHelpBlock("Pre-defined constants", "Character data")

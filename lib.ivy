@@ -22,6 +22,9 @@ op m2ft m = 0 12 encode ceil m*1000/25.4
 # Miles to kilometers
 op mi2km m = float m*1.609344
 
+# Celsius to Fahrenheit.
+op c2f c = float 32 + c * 9/5
+
 # Kilometers to miles
 op km2mi m = float m/1.609344
 
