@@ -126,7 +126,7 @@ Binary operators
 	                                    A is the textual format (see format special command);
 	                                    otherwise result depends on length of A:
 	                                    1 gives decimal count, 2 gives width and decimal count,
-	                                    3 gives width, decimal count, and style ('e', 'f', 'g').
+	                                    3 gives width, decimal count, and style ('d', 'e', 'f', etc.).
 	General transpose     A⍉B           The axes of B are ordered by A
 	Combinations          A!B   !       Number of combinations of B taken A at a time
 	Less than             A<B   <       Comparison: 1 if true, 0 if false

@@ -5,13 +5,7 @@
 package value
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"math/big"
-	"unicode/utf8"
-
-	"robpike.io/ivy/config"
 )
 
 // Binary operators.
@@ -131,106 +125,6 @@ func bigIntExpOp(c Context) func(i, j, k *big.Int) *big.Int {
 	return func(i, j, k *big.Int) *big.Int {
 		return bigIntExp(c, i, j, k)
 	}
-}
-
-// fmtText returns a vector of Chars holding the string representation
-// of the value v. The lhs u defines the format:
-// 1 item: number of decimals, or if textual, the complete format.
-// 2 items: width of field, number of decimals.
-// 3 items: width of field, number of decimals, format char.
-func fmtText(c Context, u, v Value) Value {
-	config := c.Config()
-	format := formatString(config, u)
-	if format == "" {
-		Errorf("%s illegal for format", u.Sprint(config))
-	}
-	var b bytes.Buffer
-	switch val := v.(type) {
-	case Int, BigInt, BigRat, BigFloat:
-		formatOne(c, &b, format, val)
-	case Vector:
-		for i, v := range val {
-			if i > 0 {
-				b.WriteByte(' ')
-			}
-			formatOne(c, &b, format, v)
-		}
-	case *Matrix:
-		val.fprintf(c, &b, format)
-	default:
-		Errorf("cannot format '%s'", val.Sprint(config))
-	}
-	str := b.String()
-	elem := make([]Value, utf8.RuneCountInString(str))
-	for i, r := range str {
-		elem[i] = Char(r)
-	}
-	return NewVector(elem)
-}
-
-// formatOne prints a scalar value into b with the specified format.
-func formatOne(c Context, w io.Writer, format string, v Value) {
-	f := newFloat(c)
-	switch val := v.(type) {
-	case Int:
-		f.SetInt64(int64(val))
-		fmt.Fprintf(w, format, f)
-	case BigInt:
-		f.SetInt(val.Int)
-		fmt.Fprintf(w, format, f)
-	case BigRat:
-		f.SetRat(val.Rat)
-		fmt.Fprintf(w, format, f)
-	case BigFloat:
-		fmt.Fprintf(w, format, val.Float)
-	}
-}
-
-// formatString returns the format string given u, the lhs of a binary text invocation.
-func formatString(c *config.Config, u Value) string {
-	switch val := u.(type) {
-	case Int:
-		return fmt.Sprintf("%%.%df", val)
-	case Vector:
-		if val.AllChars() {
-			// This is the format, but it might want a percent char.
-			for _, v := range val {
-				if v.(Char) == '%' {
-					return val.Sprint(c)
-				}
-			}
-			return "%" + val.Sprint(c)
-		}
-		char := Char('f')
-		switch len(val) {
-		case 1:
-			// Decimal count only.
-			dec, ok := val[0].(Int)
-			if ok {
-				return fmt.Sprintf("%%.%df", dec)
-			}
-		case 3:
-			// Width count, and char.
-			var ok bool
-			char, ok = val[2].(Char)
-			if !ok {
-				break
-			}
-			char |= ' '
-			if char != 'e' && char != 'f' && char != 'g' {
-				break
-			}
-			fallthrough
-		case 2:
-			// Width and decimal count.
-			wid, ok1 := val[0].(Int)
-			dec, ok2 := val[1].(Int)
-			if ok1 && ok2 {
-				return fmt.Sprintf("%%%d.%d%c", wid, dec, char)
-			}
-		}
-	}
-	return ""
 }
 
 // toInt turns the boolean into an Int 0 or 1.

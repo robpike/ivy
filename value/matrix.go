@@ -86,8 +86,14 @@ func (m *Matrix) fprintf(c Context, w io.Writer, format string) {
 		return
 	}
 	counters := make([]int, len(m.shape))
+	verb := verbOf(format)
+	printSpace := false
 	for i, v := range m.data {
-		formatOne(c, w, format, v)
+		if printSpace {
+			fmt.Fprint(w, " ")
+		}
+		formatOne(c, w, format, verb, v)
+		printSpace = true
 		for k := rank - 1; k >= 0; k-- {
 			// Litte-endian counter iterates the indexes.
 			counters[k]++
@@ -99,6 +105,7 @@ func (m *Matrix) fprintf(c Context, w io.Writer, format string) {
 			// each 2-d block, 2 between each 3-d block, etc.
 			if i < len(m.data)-1 {
 				w.Write([]byte{'\n'})
+				printSpace = false
 			}
 			counters[k] = 0
 		}
