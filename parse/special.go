@@ -226,7 +226,7 @@ Switch:
 				if def.IsBinary {
 					binary = append(binary, def.Name)
 				} else {
-					unary = append(binary, def.Name)
+					unary = append(unary, def.Name)
 				}
 			}
 			sort.Strings(unary)

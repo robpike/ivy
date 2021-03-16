@@ -35,3 +35,7 @@ op primes N = (not T in T o.* T) sel T = 1 drop iota N
 
 # Approximations to pi.
 op approxPi N = sqrt 6*+/ /(iota N)**2
+
+# A much more efficient version found by PSLQ. See Nature, Vol 590, page 69.
+op PSLQpiTerm N = (/16**N)* (4 / 1+8*N)-(2 / 4+8*N)+(/5+8*N)+(/6+8*N)
+op PSLQpi N = +/PSLQpiTerm -1 + iota N
