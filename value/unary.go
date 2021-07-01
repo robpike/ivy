@@ -100,7 +100,7 @@ func text(c Context, v Value) Value {
 	return NewVector(elem)
 }
 
-// Implemented in main, handled as a func to avoid a dependency loop.
+// Implemented in package run, handled as a func to avoid a dependency loop.
 var IvyEval func(context Context, s string) Value
 
 var UnaryOps = make(map[string]UnaryOp)

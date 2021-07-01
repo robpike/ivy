@@ -28,6 +28,10 @@ func init() {
 func IvyEval(context value.Context, str string) value.Value {
 	scanner := scan.New(context, "<ivy>", strings.NewReader(str))
 	parser := parse.NewParser("<ivy>", scanner, context)
+	v := eval(parser, context)
+	if v == nil {
+		value.Errorf("bad or empty expression for ivy operator")
+	}
 	return eval(parser, context)
 }
 
