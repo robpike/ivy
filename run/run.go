@@ -30,9 +30,9 @@ func IvyEval(context value.Context, str string) value.Value {
 	parser := parse.NewParser("<ivy>", scanner, context)
 	v := eval(parser, context)
 	if v == nil {
-		value.Errorf("bad or empty expression for ivy operator")
+		v = value.NewIntVector([]int{}) // Must return something, so make it an empty vector.
 	}
-	return eval(parser, context)
+	return v
 }
 
 // Run runs the parser/evaluator until EOF or error.
