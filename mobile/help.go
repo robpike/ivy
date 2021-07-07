@@ -239,9 +239,8 @@ The syntax of a definition is the &#39;op&#39; keyword, the operator and formal
 arguments, an equals sign, and then the body. The names of the operator and its
 arguments must be identifiers.  For unary operators, write &#34;op name arg&#34;; for
 binary write &#34;op leftarg name rightarg&#34;. The final expression in the body is the
-return value. Operators may have recursive definitions, but since there are
-no conditional or looping constructs (yet), such operators are problematic
-when executed.
+return value. Operators may have recursive definitions; see the paragraph
+about conditional execution for an example.
 </p>
 <p>
 The body may be a single line (possibly containing semicolons) on the same line
