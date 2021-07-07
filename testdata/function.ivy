@@ -59,7 +59,7 @@ op a x b = a + b
 	op a x b = a + b
 
 # Character escapes and other formatting details.
-op x a = 
+op x a =
  'abc\u0001\U0010FFFF\\\'\a\b\f\n\r\t\v\n'
  'a'
  1.5
@@ -170,3 +170,41 @@ sumdigits '23 skidoo'
 op primes N = (not T in T o.* T) sel T = 1 drop iota N
 primes 100
 	2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 59 61 67 71 73 79 83 89 97
+
+# Conditional execution
+# Factorial and gcd
+op fac n =
+ n <= 1 : 1
+ n * fac n - 1
+ 
+op a gcd b =
+ a == b: a
+ a > b: b gcd a-b
+ a gcd b-a
+ 
+fac 10
+1562 gcd fac 11
+	3628800
+	22
+
+# Char and big scalars as guard expression.
+# Big integers and rationals always succeed: because of
+# value shrinking zero is always a simple Int or Char.
+op a test b =
+ a:b
+ "fail"
+ 
+0 test "succeed"
+1 test "succeed"
+"a" test "succeed"
+(char 0) test "succeed"
+(!10) test "succeed"
+1/10 test "succeed"
+	fail
+	succeed
+	succeed
+	fail
+	succeed
+	succeed
+
+

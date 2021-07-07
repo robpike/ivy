@@ -28,6 +28,7 @@ var (
 	gformat         = flag.Bool("g", false, `shorthand for -format="%.12g"`)
 	maxbits         = flag.Uint("maxbits", 1e9, "maximum size of an integer, in bits; 0 means no limit")
 	maxdigits       = flag.Uint("maxdigits", 1e4, "above this many `digits`, integers print as floating point; 0 disables")
+	maxstack        = flag.Uint("stack", 100000, "maximum call stack `depth` allowed")
 	origin          = flag.Int("origin", 1, "set index origin to `n` (must be 0 or 1)")
 	prompt          = flag.String("prompt", "", "command `prompt`")
 	debugFlag       = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
@@ -54,6 +55,7 @@ func main() {
 	conf.SetFormat(*format)
 	conf.SetMaxBits(*maxbits)
 	conf.SetMaxDigits(*maxdigits)
+	conf.SetMaxStack(*maxstack)
 	conf.SetOrigin(*origin)
 	conf.SetPrompt(*prompt)
 

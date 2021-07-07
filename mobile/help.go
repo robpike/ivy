@@ -250,6 +250,14 @@ newline after the &#39;=&#39; and the definition ends at the first blank line (i
 spaces).
 </p>
 <p>
+Conditional execution is done with the &#34;:&#34; binary conditional return operator,
+which is valid only within the code for a user-defined operator. The left
+operand must be a scalar. If it is non-zero, the right operand is returned as
+the value of the function. Otherwise, execution continues normally. The &#34;:&#34;
+operator has a lower precedence than any other operator; in effect it breaks
+the line into two separate expressions.
+</p>
+<p>
 Example: average of a vector (unary):
 </p>
 <pre>op avg x = (+/x)/rho x
@@ -279,6 +287,17 @@ Example: primes less than N (unary):
 <pre>op primes N = (not T in T o.* T) sel T = 1 drop iota N
 primes 50
 result: 2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
+</pre>
+<p>
+Example: greatest common divisor (binary):
+</p>
+<pre>op a gcd b =
+	a == b: a
+	a &gt; b: b gcd a-b
+	a gcd b-a
+
+1562 gcd !11
+result: 22
 </pre>
 <p>
 To declare an operator but not define it, omit the equals sign and what follows.
@@ -340,6 +359,9 @@ base 10 and must be non-negative on input.
 	To avoid overwhelming amounts of output, if an integer has more
 	than this many digits, print it using the defined floating-point
 	format. If maxdigits is 0, integers are always printed as integers.
+) maxstack 1e5
+	To avoid using too much stack, the number of nested active calls to
+	user-defined operators is limited to maxstack.
 ) op X
 	If X is absent, list all user-defined operators. Otherwise,
 	show the definition of the user-defined operator X. Inside the

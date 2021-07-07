@@ -251,5 +251,12 @@ primes 100
 "A234567890JQK" o., "♠♡♣♢"
 # To shuffle it, ravel into into a vector and index that by 1 through 52, shuffled.
 (, "A234567890JQK" o., "♠♡♣♢")[52?52]
+# There is no looping construct in ivy, but there is a conditional evaluator.
+# Within a user-defined operator, one can write a condition expression
+# using a binary operator, ":". If the left-hand operand is true (integer non-zero),
+# the user-defined operator will return the right-hand operand as its
+# result; otherwise execution continues.
+op a gcd b = a == b: a; a > b: b gcd a-b; a gcd b-a
+1562 gcd !11
 # That's it! Have fun.
-# For more information visit https://godoc.org/robpike.io/ivy
+# For more information visit https://pkg.go.dev/robpike.io/ivy

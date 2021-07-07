@@ -40,13 +40,13 @@ func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Va
 	}
 	// It's known to be an exec.Context.
 	c := context.(*Context)
+	if uint(len(c.Stack)) >= c.config.MaxStack() {
+		value.Errorf("stack overflow calling %q", fn.Name)
+	}
 	c.push()
 	defer c.pop()
 	c.assignLocal(fn.Right, right)
-	var v value.Value
-	for _, e := range fn.Body {
-		v = e.Eval(c)
-	}
+	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
 	if v == nil {
 		value.Errorf("no value returned by %q", fn.Name)
 	}
@@ -59,14 +59,14 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	}
 	// It's known to be an exec.Context.
 	c := context.(*Context)
+	if uint(len(c.Stack)) >= c.config.MaxStack() {
+		value.Errorf("stack overflow calling %q", fn.Name)
+	}
 	c.push()
 	defer c.pop()
 	c.assignLocal(fn.Left, left)
 	c.assignLocal(fn.Right, right)
-	var v value.Value
-	for _, e := range fn.Body {
-		v = e.Eval(c)
-	}
+	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
 	if v == nil {
 		value.Errorf("no value returned by %q", fn.Name)
 	}

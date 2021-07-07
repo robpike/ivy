@@ -436,3 +436,38 @@ func isVector(u *Matrix, shape []int) bool {
 	}
 	return true
 }
+
+// EvalFunctionBody evaluates the list of expressions inside a function,
+// possibly with conditionals that generate an early return.
+func EvalFunctionBody(context Context, fnName string, body []Expr) Value {
+	var v Value
+	for _, e := range body {
+		if d, ok := e.(Decomposable); ok && d.Operator() == ":" {
+			left, right := d.Operands()
+			if isTrue(fnName, left.Eval(context)) {
+				return right.Eval(context)
+			}
+			continue
+		}
+		v = e.Eval(context)
+	}
+	return v
+}
+
+// isTrue reports whether v represents boolean truth. If v is not
+// a scalar, an error results.
+func isTrue(fnName string, v Value) bool {
+	switch i := v.(type) {
+	case Char:
+		return i != 0
+	case Int:
+		return i != 0
+	case BigInt:
+		return true // If it's a BigInt, it can't be 0 - that's an Int.
+	case BigRat:
+		return true // If it's a BigRat, it can't be 0 - that's an Int.
+	default:
+		Errorf("invalid expression %s for conditional inside %q", v, fnName)
+		return false
+	}
+}

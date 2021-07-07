@@ -114,12 +114,6 @@ func (p *Parser) functionDefn() {
 	}
 	p.context.Define(fn)
 	succeeded = true
-	for _, ref := range references(p.context, fn.Body) {
-		// One day this will work, but until we have ifs and such, warn.
-		if ref.Name == fn.Name && ref.IsBinary == fn.IsBinary {
-			p.Printf("warning: definition of %s is recursive\n", fn.Name)
-		}
-	}
 	if p.context.Config().Debug("parse") {
 		p.Printf("op %s %s %s = %s\n", fn.Left, fn.Name, fn.Right, tree(fn.Body))
 	}
@@ -143,12 +137,10 @@ func doReferences(c *exec.Context, refs *[]exec.OpDef, expr value.Expr) {
 			addReference(refs, e.op, false)
 		}
 		doReferences(c, refs, e.right)
+	case conditional:
+		doBinaryReferences(c, refs, e.binary)
 	case *binary:
-		if c.BinaryFn[e.op] != nil {
-			addReference(refs, e.op, true)
-		}
-		doReferences(c, refs, e.left)
-		doReferences(c, refs, e.right)
+		doBinaryReferences(c, refs, e)
 	case variableExpr:
 	case sliceExpr:
 		for _, v := range e {
@@ -162,8 +154,16 @@ func doReferences(c *exec.Context, refs *[]exec.OpDef, expr value.Expr) {
 	case value.Vector:
 	case *value.Matrix:
 	default:
-		fmt.Printf("unknown %T\n", e)
+		fmt.Printf("unknown %T in references\n", e)
 	}
+}
+
+func doBinaryReferences(c *exec.Context, refs *[]exec.OpDef, e *binary) {
+	if c.BinaryFn[e.op] != nil {
+		addReference(refs, e.op, true)
+	}
+	doReferences(c, refs, e.left)
+	doReferences(c, refs, e.right)
 }
 
 func addReference(refs *[]exec.OpDef, name string, isBinary bool) {

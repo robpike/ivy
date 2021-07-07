@@ -43,6 +43,7 @@ type Config struct {
 	random      *rand.Rand
 	maxBits     uint          // Maximum length of an integer; 0 means no limit.
 	maxDigits   uint          // Above this size, ints print in floating format.
+	maxStack    uint          // Maximum call stack depth.
 	floatPrec   uint          // Length of mantissa of a BigFloat.
 	cpuTime     time.Duration // Elapsed time of last interactive command.
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
@@ -60,6 +61,7 @@ func (c *Config) init() {
 		c.random = rand.New(c.source)
 		c.maxBits = 1e6
 		c.maxDigits = 1e4
+		c.maxStack = 1e5
 		c.floatPrec = 256
 	}
 }
@@ -228,6 +230,18 @@ func (c *Config) MaxDigits() uint {
 func (c *Config) SetMaxDigits(digits uint) {
 	c.init()
 	c.maxDigits = digits
+}
+
+// MaxStack returns the maximum call stack depth.
+func (c *Config) MaxStack() uint {
+	c.init()
+	return c.maxStack
+}
+
+// SetMaxStack sets the maximum call stack depth.
+func (c *Config) SetMaxStack(depth uint) {
+	c.init()
+	c.maxStack = depth
 }
 
 // FloatPrec returns the floating-point precision in bits.

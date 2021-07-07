@@ -47,6 +47,7 @@ const (
 	Semicolon      // ';'
 	Space          // run of spaces separating
 	String         // quoted string (includes quotes)
+	Colon          // ':'
 )
 
 func (i Token) String() string {
@@ -299,6 +300,9 @@ func lexAny(l *Scanner) stateFn {
 		return lexIdentifier
 	case r == '[':
 		l.emit(LeftBrack)
+		return lexAny
+	case r == ':':
+		l.emit(Colon)
 		return lexAny
 	case r == ']':
 		l.emit(RightBrack)

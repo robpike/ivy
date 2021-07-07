@@ -219,6 +219,13 @@ Switch:
 		}
 		max := p.nextDecimalNumber()
 		conf.SetMaxDigits(uint(max))
+	case "maxstack":
+		if p.peek().Type == scan.EOF {
+			p.Printf("%d\n", conf.MaxStack())
+			break Switch
+		}
+		max := p.nextDecimalNumber()
+		conf.SetMaxStack(uint(max))
 	case "op", "ops": // We keep forgetting whether it's a plural or not.
 		if p.peek().Type == scan.EOF {
 			var unary, binary []string

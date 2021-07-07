@@ -43,6 +43,8 @@ func tree(e interface{}) string {
 			return fmt.Sprintf("(%s[%s])", tree(e.left), tree(e.right))
 		}
 		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.op, tree(e.right))
+	case conditional:
+		return tree(e.binary)
 	case []value.Expr:
 		if len(e) == 1 {
 			return tree(e[0])
@@ -215,6 +217,21 @@ func (b *binary) Eval(context value.Context) value.Value {
 	return context.EvalBinary(lhs, b.op, rhs)
 }
 
+// conditional is a conditional executor: expression ":" expression
+type conditional struct {
+	*binary // Implements Expr through embedding.
+}
+
+var _ = value.Decomposable(conditional{})
+
+func (c conditional) Operator() string {
+	return ":"
+}
+
+func (c conditional) Operands() (left, right value.Expr) {
+	return c.left, c.right
+}
+
 // Parser stores the state for the ivy parser.
 type Parser struct {
 	scanner  *scan.Scanner
@@ -355,10 +372,19 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 }
 
 // statementList:
-//	expr
-//	expr ';' expr
+//	expr [':' expr] [';' statementList]
 func (p *Parser) statementList() ([]value.Expr, bool) {
 	expr := p.expr()
+	if expr != nil && p.peek().Type == scan.Colon {
+		tok := p.next()
+		expr = conditional{
+			&binary{
+				left:  expr,
+				op:    tok.Text,
+				right: p.expr(),
+			},
+		}
+	}
 	var exprs []value.Expr
 	if expr != nil {
 		exprs = []value.Expr{expr}
@@ -384,7 +410,7 @@ func (p *Parser) expr() value.Expr {
 	expr := p.operand(tok, true)
 	tok = p.peek()
 	switch tok.Type {
-	case scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon:
+	case scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon, scan.Colon:
 		return expr
 	case scan.Identifier:
 		if p.context.DefinedBinary(tok.Text) {
@@ -405,7 +431,7 @@ func (p *Parser) expr() value.Expr {
 				right: p.expr(),
 			}
 		case *binary:
-			return &binary{
+			return &binary{ // An indexing operator? x[1] = 2
 				left:  lhs,
 				op:    tok.Text,
 				right: p.expr(),
