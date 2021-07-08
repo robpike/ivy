@@ -32,7 +32,7 @@ func (p *Parser) helpOverview() {
 	p.Println("Specific op:")
 	p.Println("\t)help <op>")
 	p.Println()
-	p.Println("More at: https://godoc.org/robpike.io/ivy")
+	p.Println("More at: https://pkg.go.dev/robpike.io/ivy")
 }
 
 func (p *Parser) printHelpBlock(start, end string) {

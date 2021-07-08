@@ -241,7 +241,7 @@ Search docs:
 Specific op:
 	)help <op>
 
-More at: https://godoc.org/robpike.io/ivy
+More at: https://pkg.go.dev/robpike.io/ivy
 ibase	16
 obase	16
 7fffffffffffffff
