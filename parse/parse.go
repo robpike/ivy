@@ -404,9 +404,6 @@ func (p *Parser) statementList() ([]value.Expr, bool) {
 //	operand binop expr
 func (p *Parser) expr() value.Expr {
 	tok := p.next()
-	if p.peek().Type == scan.Assign && tok.Type != scan.Identifier {
-		p.errorf("cannot assign to %s", tok)
-	}
 	expr := p.operand(tok, true)
 	tok = p.peek()
 	switch tok.Type {
