@@ -200,11 +200,13 @@ op a test b =
 (char 0) test "succeed"
 (!10) test "succeed"
 1/10 test "succeed"
+(sqrt 2) test "succeed"
+(float 0) test "succeed"
 	fail
 	succeed
 	succeed
 	fail
 	succeed
 	succeed
-
-
+	succeed
+	fail

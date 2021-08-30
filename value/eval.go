@@ -466,6 +466,8 @@ func isTrue(fnName string, v Value) bool {
 		return true // If it's a BigInt, it can't be 0 - that's an Int.
 	case BigRat:
 		return true // If it's a BigRat, it can't be 0 - that's an Int.
+	case BigFloat:
+		return i.Float.Sign() != 0
 	default:
 		Errorf("invalid expression %s for conditional inside %q", v, fnName)
 		return false
