@@ -9,13 +9,13 @@ package parse // import "robpike.io/ivy/parse"
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"robpike.io/ivy/config"
+	"robpike.io/ivy/demo"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
@@ -119,11 +119,11 @@ Switch:
 			p.printHelpBlock("Operators and axis indicator", "Type-converting operations")
 		case "type", "types", "conversion", "conversions":
 			p.printHelpBlock("Type-converting operations", "Pre-defined constants")
-		case "constant":
+		case "constant", "constants":
 			p.printHelpBlock("Pre-defined constants", "Character data")
 		case "char", "character":
 			p.printHelpBlock("Character data", "User-defined operators")
-		case "op", "ops", "operator":
+		case "op", "ops", "operator", "operators":
 			p.printHelpBlock("User-defined operators", "Special commands")
 		case "special":
 			p.printHelpBlock("Special commands", "$$EOF$$")
@@ -185,14 +185,13 @@ Switch:
 		}
 	case "demo":
 		p.need(scan.EOF)
-		cmd := exec.Command("go", "run", pathTo("demo.go"))
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = conf.Output()
-		cmd.Stdout = conf.ErrOutput()
-		err := cmd.Run()
+		// Use a default configuration.
+		var conf config.Config
+		err := demo.Run(os.Stdin, p.demoRunner(), conf.Output())
 		if err != nil {
 			p.errorf("%v", err)
 		}
+		p.Println("Demo finished")
 	case "format":
 		if p.peek().Type == scan.EOF {
 			p.Printf("%q\n", conf.Format())
@@ -328,6 +327,42 @@ var runDepth = 0
 
 // runFromFile executes the contents of the named file.
 func (p *Parser) runFromFile(context value.Context, name string) {
+	fd, err := os.Open(name)
+	if err != nil {
+		p.errorf("%s", err)
+	}
+	p.runFromReader(context, name, fd, true)
+}
+
+// runFromReader executes the contents of the io.Reader, identified by name.
+func (p *Parser) runFromReader(context value.Context, name string, reader io.Reader, stopOnError bool) {
+	runDepth++
+	if runDepth > 10 {
+		p.errorf("get %q nested too deep", name)
+	}
+	defer func() {
+		runDepth--
+		err := recover()
+		if err == nil {
+			return
+		}
+		if err, ok := err.(value.Error); ok {
+			fmt.Println("ERROR", err)
+			fmt.Fprintf(p.context.Config().ErrOutput(), "%s%s\n", p.Loc(), err)
+			return
+		}
+		panic(err)
+	}()
+	scanner := scan.New(context, name, bufio.NewReader(reader))
+	parser := NewParser(name, scanner, p.context)
+	for parser.runUntilError(name) != io.EOF {
+		if stopOnError {
+			break
+		}
+	}
+}
+
+func (p *Parser) runUntilError(name string) error {
 	runDepth++
 	if runDepth > 10 {
 		p.errorf("get %q nested too deep", name)
@@ -344,15 +379,8 @@ func (p *Parser) runFromFile(context value.Context, name string) {
 		}
 		panic(err)
 	}()
-	fd, err := os.Open(name)
-	if err != nil {
-		p.errorf("%s", err)
-	}
-	scanner := scan.New(context, name, bufio.NewReader(fd))
-	parser := NewParser(name, scanner, p.context)
-	out := p.context.Config().Output()
 	for {
-		exprs, ok := parser.Line()
+		exprs, ok := p.Line()
 		for _, expr := range exprs {
 			val := expr.Eval(p.context)
 			if val == nil {
@@ -361,31 +389,39 @@ func (p *Parser) runFromFile(context value.Context, name string) {
 			if _, ok := val.(Assignment); ok {
 				continue
 			}
-			fmt.Fprintf(out, "%v\n", val.Sprint(context.Config()))
+			p.context.Assign("_", val)
+			fmt.Fprintf(p.context.Config().Output(), "%v\n", val.Sprint(p.context.Config()))
 		}
 		if !ok {
-			return
+			return io.EOF
 		}
 	}
 }
 
-func exists(file string) bool {
-	info, err := os.Stat(file)
-	return err == nil && !info.IsDir()
+// A simple way to connect the user's input to the interpreter.
+// Sending one byte at a time is slow but very easy, and
+// it's just for a demo.
+type demoIO chan byte
+
+func (dio demoIO) Write(b []byte) (int, error) {
+	for _, c := range b {
+		dio <- c
+	}
+	return len(b), nil
 }
 
-func pathTo(file string) string {
-	if exists(file) {
-		return file
-	}
-	for _, dir := range filepath.SplitList(os.Getenv("GOPATH")) {
-		if dir == "" {
-			continue
-		}
-		name := filepath.Join(dir, "src", "robpike.io", "ivy", "demo", file)
-		if exists(name) {
-			return name
+func (dio demoIO) Read(b []byte) (int, error) {
+	for i := range b {
+		b[i] = <-dio
+		if b[i] == '\n' {
+			return i + 1, nil
 		}
 	}
-	return file // We'll get an error when we try to open it.
+	return len(b), nil
+}
+
+func (p *Parser) demoRunner() io.Writer {
+	dio := demoIO(make(chan byte, 1000))
+	go p.runFromReader(p.context, "demo", dio, false)
+	return dio
 }

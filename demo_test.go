@@ -11,6 +11,7 @@ import (
 	"os"
 	"testing"
 
+	"robpike.io/ivy/demo"
 	"robpike.io/ivy/mobile"
 )
 
@@ -19,15 +20,9 @@ To update demo/demo.out:
 	ivy -i ')seed 0' demo/demo.ivy > demo/demo.out
 */
 func TestDemo(t *testing.T) {
-	data, err := ioutil.ReadFile("demo/demo.ivy")
-	check := func() {
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	check()
 	var buf bytes.Buffer
-	demo := mobile.NewDemo(string(data))
+	demoText := demo.Text()
+	demo := mobile.NewDemo(demoText)
 	for {
 		result, err := demo.Next()
 		if err == io.EOF {
@@ -39,8 +34,10 @@ func TestDemo(t *testing.T) {
 		buf.WriteString(result)
 	}
 	result := buf.String()
-	data, err = ioutil.ReadFile("demo/demo.out")
-	check()
+	data, err := ioutil.ReadFile("demo/demo.out")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if string(data) != result {
 		err = ioutil.WriteFile("demo.bad", buf.Bytes(), 0666)
 		t.Fatal("test output differs; run\n\tdiff demo.bad demo/demo.out\nfor details")

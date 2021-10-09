@@ -1,4 +1,5 @@
-# This is ivy. Type a newline to advance to each new step. Type one now.
+# This is a demo of ivy. Type a newline to advance to each new step.
+# Type the word "quit" or EOF to end the demo and return to ivy.
 # Each step in the demo is one line of input followed by some output from ivy. Type a newline now to see.
 2+2
 # The first line you see above (2+2) is input; the next (4) is output from a running ivy.
