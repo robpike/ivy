@@ -185,6 +185,10 @@ Switch:
 		}
 	case "demo":
 		p.need(scan.EOF)
+		if conf.Mobile() {
+			p.Printf("For a demo on mobile platforms, use the Demo button in the UI.\n")
+			break
+		}
 		// Use a default configuration.
 		var conf config.Config
 		err := demo.Run(os.Stdin, p.demoRunner(), conf.Output())

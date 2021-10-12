@@ -31,9 +31,18 @@ func Text() string {
 // line from the file is delivered to ivy. If the user's input line has text, that
 // is delivered instead and the file does not advance.
 func Run(userInput io.Reader, toIvy io.Writer, output io.Writer) error {
-	fmt.Println(`# Type a newline.`)
 	text := demoText // Don't overwrite the global!
 	scan := bufio.NewScanner(userInput)
+	nextLine := func() (line []byte) {
+		nl := bytes.IndexByte(text, '\n')
+		if nl < 0 { // EOF or incomplete line.
+			return nil
+		}
+		line, text = text[:nl+1], text[nl+1:]
+		return line
+	}
+	// Show first line, with instructions, before accepting user input.
+	output.Write(nextLine())
 	for scan.Scan() {
 		// User typed something; step back across the newline.
 		if len(scan.Bytes()) > 0 {
@@ -48,15 +57,14 @@ func Run(userInput io.Reader, toIvy io.Writer, output io.Writer) error {
 			}
 		} else {
 			// User typed newline; send next line of file's text.
-			nl := bytes.IndexByte(text, '\n')
-			if nl < 0 { // EOF or incomplete line.
+			line := nextLine()
+			if line == nil {
 				break
 			}
-			output.Write(text[:nl+1]) // Show the line from the file.
-			if _, err := toIvy.Write(text[:nl+1]); err != nil {
+			output.Write(line)
+			if _, err := toIvy.Write(line); err != nil {
 				return err
 			}
-			text = text[nl+1:]
 		}
 	}
 	return scan.Err()

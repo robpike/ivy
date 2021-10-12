@@ -49,6 +49,7 @@ type Config struct {
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
 	outputBase int
+	mobile     bool // Running on a mobile platform.
 }
 
 func (c *Config) init() {
@@ -63,6 +64,7 @@ func (c *Config) init() {
 		c.maxDigits = 1e4
 		c.maxStack = 1e5
 		c.floatPrec = 256
+		c.mobile = false
 	}
 }
 
@@ -311,4 +313,15 @@ func (c *Config) SetBase(inputBase, outputBase int) {
 	c.init()
 	c.inputBase = inputBase
 	c.outputBase = outputBase
+}
+
+// Mobile reports whether we are running on a mobile platform.
+func (c *Config) Mobile() bool {
+	return c.mobile
+}
+
+// SetMobile sets the Mobile bit as specified.
+func (c *Config) SetMobile(mobile bool) {
+	c.init()
+	c.mobile = mobile
 }

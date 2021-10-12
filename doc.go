@@ -289,7 +289,8 @@ base 10 and must be non-negative on input.
 		Toggle or set the named debugging flag. With no argument, lists
 		the settings.
 	) demo
-		Run a line-by-line interactive demo. Requires a Go installation.
+		Run a line-by-line interactive demo. On mobile platforms,
+		use the Demo menu option instead.
 	) format ""
 		Set the format for printing values. If empty, the output is printed
 		using the output base. If non-empty, the format determines the

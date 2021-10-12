@@ -51,6 +51,7 @@ func Eval(expr string) (result string, errors error) {
 
 	conf.SetOutput(stdout)
 	conf.SetErrOutput(stderr)
+	conf.SetMobile(true)
 
 	scanner := scan.New(context, " ", reader)
 	parser := parse.NewParser(" ", scanner, context)
