@@ -30,9 +30,13 @@ func Text() string {
 // demo.ivy but embedded in the package). When the user hits a blank line, the next
 // line from the file is delivered to ivy. If the user's input line has text, that
 // is delivered instead and the file does not advance.
+// A nil userInput ignores the user and just runs the script.
 func Run(userInput io.Reader, toIvy io.Writer, output io.Writer) error {
 	text := demoText // Don't overwrite the global!
-	scan := bufio.NewScanner(userInput)
+	var scan *bufio.Scanner
+	if userInput != nil {
+		scan = bufio.NewScanner(userInput)
+	}
 	nextLine := func() (line []byte) {
 		nl := bytes.IndexByte(text, '\n')
 		if nl < 0 { // EOF or incomplete line.
@@ -43,9 +47,8 @@ func Run(userInput io.Reader, toIvy io.Writer, output io.Writer) error {
 	}
 	// Show first line, with instructions, before accepting user input.
 	output.Write(nextLine())
-	for scan.Scan() {
-		// User typed something; step back across the newline.
-		if len(scan.Bytes()) > 0 {
+	for userInput == nil || scan.Scan() {
+		if userInput != nil && len(scan.Bytes()) > 0 {
 			// User typed a non-empty line of text; send that.
 			line := []byte(fmt.Sprintf("%s\n", scan.Bytes()))
 			// "quit" terminates.
@@ -66,6 +69,9 @@ func Run(userInput io.Reader, toIvy io.Writer, output io.Writer) error {
 				return err
 			}
 		}
+	}
+	if scan == nil {
+		return nil
 	}
 	return scan.Err()
 }

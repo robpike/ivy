@@ -5,14 +5,17 @@
 package main_test
 
 import (
+	"bufio"
 	"bytes"
-	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
+	"robpike.io/ivy/config"
 	"robpike.io/ivy/demo"
-	"robpike.io/ivy/mobile"
+	"robpike.io/ivy/exec"
+	"robpike.io/ivy/run"
 )
 
 /*
@@ -20,26 +23,25 @@ To update demo/demo.out:
 	ivy -i ')seed 0' demo/demo.ivy > demo/demo.out
 */
 func TestDemo(t *testing.T) {
-	var buf bytes.Buffer
-	demoText := demo.Text()
-	demo := mobile.NewDemo(demoText)
-	for {
-		result, err := demo.Next()
-		if err == io.EOF {
-			break
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	var conf config.Config
+	conf.SetRandomSeed(0)
+	context := exec.NewContext(&conf)
+	scan := bufio.NewScanner(strings.NewReader(demo.Text()))
+	for scan.Scan() {
+		run.Ivy(context, scan.Text(), stdout, stderr)
+		if stderr.Len() > 0 {
+			t.Fatal(stderr.String())
 		}
-		if err != nil {
-			t.Fatalf("demo execution error: %s", err)
-		}
-		buf.WriteString(result)
 	}
-	result := buf.String()
+	result := stdout.String()
 	data, err := ioutil.ReadFile("demo/demo.out")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(data) != result {
-		err = ioutil.WriteFile("demo.bad", buf.Bytes(), 0666)
+		err = ioutil.WriteFile("demo.bad", stdout.Bytes(), 0666)
 		t.Fatal("test output differs; run\n\tdiff demo.bad demo/demo.out\nfor details")
 	}
 	os.Remove("demo.bad")

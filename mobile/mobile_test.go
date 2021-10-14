@@ -32,6 +32,7 @@ func TestEval(t *testing.T) {
 			t.Errorf("evaluating %q: %v", test.input, err)
 			continue
 		}
+		out = escaper.Replace(out)
 		if out != test.output {
 			t.Errorf("%q: expected %q; got %q", test.input, test.output, out)
 		}
@@ -67,10 +68,10 @@ iota 10
 iota 10 # Keep going
 `
 
-const demoOut = `23
+var demoOut = escaper.Replace(`23
 1 2 3 4 5 6 7 8 9 10
 1 2 3 4 5 6 7 8 9 10
-`
+`)
 
 const demoErr = " :1: zero denominator in rational\n"
 

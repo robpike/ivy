@@ -5,6 +5,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,10 +13,14 @@ import (
 	"strings"
 	"testing"
 
-	"robpike.io/ivy/mobile" // The mobile package has the handy Eval function.
+	"robpike.io/ivy/config"
+	"robpike.io/ivy/exec"
+	"robpike.io/ivy/run"
 )
 
 const verbose = false
+
+var testConf config.Config
 
 // Note: These tests share some infrastructure and cannot run in parallel.
 
@@ -34,6 +39,7 @@ func TestAll(t *testing.T) {
 		if !strings.HasSuffix(name, ".ivy") {
 			continue
 		}
+		t.Log(name)
 		var data []byte
 		path := filepath.Join("testdata", name)
 		data, err = ioutil.ReadFile(path)
@@ -69,21 +75,24 @@ func TestAll(t *testing.T) {
 
 func runTest(t *testing.T, name string, lineNum int, input, output []string) bool {
 	shouldFail := strings.HasSuffix(name, "_fail.ivy")
-	mobile.Reset()
+	reset()
 	in := strings.Join(input, "\n")
-	result, err := mobile.Eval(in)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	run.Ivy(exec.NewContext(&testConf), in, stdout, stderr)
 	if shouldFail {
-		if err == nil {
+		if stderr.Len() == 0 {
 			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, in)
 		}
 		return true
 	}
-	if err != nil {
-		t.Fatalf("\nexecution failure (%s) at %s:%d:\n%s", err, name, lineNum, in)
+	if stderr.Len() != 0 {
+		t.Fatalf("\nexecution failure (%s) at %s:%d:\n%s", stderr, name, lineNum, in)
 	}
 	if shouldFail {
 		return true
 	}
+	result := stdout.String()
 	if !equal(strings.Split(result, "\n"), output) {
 		t.Errorf("\n%s:%d:\n%s\ngot:\n%swant:\n%s",
 			name, lineNum,
@@ -140,4 +149,14 @@ func getText(t *testing.T, fileName string, lineNum int, lines []string) (input,
 		output = append(output, line[1:])
 	}
 	return // Will return nil if no more tests exist.
+}
+
+func reset() {
+	testConf.SetFormat("")
+	testConf.SetMaxBits(1e9)
+	testConf.SetMaxDigits(1e4)
+	testConf.SetOrigin(1)
+	testConf.SetPrompt("")
+	testConf.SetBase(0, 0)
+	testConf.SetRandomSeed(0)
 }

@@ -16,6 +16,7 @@ import (
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/demo"
+	"robpike.io/ivy/exec"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
@@ -191,7 +192,7 @@ Switch:
 		}
 		// Use a default configuration.
 		var conf config.Config
-		err := demo.Run(os.Stdin, p.demoRunner(), conf.Output())
+		err := demo.Run(os.Stdin, DemoRunner(os.Stdin, conf.Output()), conf.Output())
 		if err != nil {
 			p.errorf("%v", err)
 		}
@@ -342,7 +343,7 @@ func (p *Parser) runFromFile(context value.Context, name string) {
 func (p *Parser) runFromReader(context value.Context, name string, reader io.Reader, stopOnError bool) {
 	runDepth++
 	if runDepth > 10 {
-		p.errorf("get %q nested too deep", name)
+		p.errorf("invocations of %q nested too deep", name)
 	}
 	defer func() {
 		runDepth--
@@ -351,7 +352,6 @@ func (p *Parser) runFromReader(context value.Context, name string, reader io.Rea
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			fmt.Println("ERROR", err)
 			fmt.Fprintf(p.context.Config().ErrOutput(), "%s%s\n", p.Loc(), err)
 			return
 		}
@@ -424,8 +424,13 @@ func (dio demoIO) Read(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func (p *Parser) demoRunner() io.Writer {
+func DemoRunner(userInput io.Reader, userOutput io.Writer) io.Writer {
+	conf := &config.Config{}
+	conf.SetOutput(userOutput)
+	conf.SetRandomSeed(0)
+	context := exec.NewContext(conf)
 	dio := demoIO(make(chan byte, 1000))
-	go p.runFromReader(p.context, "demo", dio, false)
+	parser := NewParser("demo", nil, context) // Only needed for error prints in runFromReader.
+	go parser.runFromReader(context, "demo", dio, false)
 	return dio
 }

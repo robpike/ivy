@@ -299,6 +299,12 @@ Example: greatest common divisor (binary):
 result: 22
 </pre>
 <p>
+On mobile platforms only, due to I/O restrictions, user-defined operators
+must be presented on a single line. Use semicolons to separate expressions:
+</p>
+<pre>op a gcd b = a == b: a; a &gt; b: b gcd a-b; a gcd b-a
+</pre>
+<p>
 To declare an operator but not define it, omit the equals sign and what follows.
 </p>
 <pre>op foo x

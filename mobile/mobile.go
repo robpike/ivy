@@ -22,9 +22,7 @@ import (
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
-	"robpike.io/ivy/parse"
 	"robpike.io/ivy/run"
-	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
 
@@ -37,32 +35,25 @@ func init() {
 	Reset()
 }
 
+// On mobile platforms, the output gets turned into HTML.
+// Some characters go wrong there (< and > are handled in
+// Objective C or Java, but not all characters), tabs don't appear
+// at all, and runs of spaces are collapsed. Also for some reason
+// backslashes are trouble. Here is the hacky fix.
+var escaper = strings.NewReplacer(" ", "\u00A0", "\t", "    ", "\\", "&#92;")
+
 // Eval evaluates the input string and returns its output.
-// If execution caused errors, they will be returned concatenated
-// together in the error value returned.
-// TODO: Should it stop at first error?
-func Eval(expr string) (result string, errors error) {
-	if !strings.HasSuffix(expr, "\n") {
-		expr += "\n"
-	}
-	reader := strings.NewReader(expr)
+// The output is HTML-safe, suitable for mobile platforms.
+func Eval(expr string) (string, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-
-	conf.SetOutput(stdout)
 	conf.SetErrOutput(stderr)
-	conf.SetMobile(true)
-
-	scanner := scan.New(context, " ", reader)
-	parser := parse.NewParser(" ", scanner, context)
-
-	for !run.Run(parser, context, false) {
-	}
-	var err error
+	run.Ivy(context, expr, stdout, stderr)
+	result := escaper.Replace(stdout.String())
 	if stderr.Len() > 0 {
-		err = fmt.Errorf("%s", stderr)
+		return result, fmt.Errorf(stderr.String())
 	}
-	return stdout.String(), err
+	return result, nil
 }
 
 // Demo represents a running line-by-line demonstration.
@@ -81,7 +72,7 @@ func NewDemo(input string) *Demo {
 }
 
 // Next returns the result (and error) produced by the next line of
-// input. It returns ("", io.EOF) at EOF.
+// input. It returns ("", io.EOF) at EOF. The output is escaped.
 func (d *Demo) Next() (result string, err error) {
 	if !d.scanner.Scan() {
 		if err := d.scanner.Err(); err != nil {
@@ -101,6 +92,7 @@ func Reset() {
 	conf.SetPrompt("")
 	conf.SetBase(0, 0)
 	conf.SetRandomSeed(0)
+	conf.SetMobile(true)
 	context = exec.NewContext(&conf)
 }
 

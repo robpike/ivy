@@ -8,6 +8,7 @@
 package run // import "robpike.io/ivy/run"
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -150,4 +151,25 @@ func printValues(conf *config.Config, writer io.Writer, values []value.Value) bo
 		fmt.Fprintln(writer)
 	}
 	return printed
+}
+
+// Ivy evaluates the input string, appending standard output
+// and error output to the provided buffers, which it does by
+// calling context.Config.SetOutput and SetError.
+// If execution caused errors, they will be returned concatenated
+// together in the error value returned.
+func Ivy(context value.Context, expr string, stdout, stderr *bytes.Buffer) {
+	if !strings.HasSuffix(expr, "\n") {
+		expr += "\n"
+	}
+	reader := strings.NewReader(expr)
+
+	scanner := scan.New(context, " ", reader)
+	parser := parse.NewParser(" ", scanner, context)
+
+	conf := context.Config()
+	conf.SetOutput(stdout)
+	conf.SetErrOutput(stderr)
+	for !Run(parser, context, false) {
+	}
 }
