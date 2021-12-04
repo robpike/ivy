@@ -1134,7 +1134,9 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					return append(u.(Vector), v.(Vector)...)
+					uu := u.(Vector)
+					uu = uu[:len(uu):len(uu)]
+					return append(uu, v.(Vector)...)
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					A := u.(*Matrix)
@@ -1178,14 +1180,14 @@ func init() {
 						if -n > len {
 							panic(bad)
 						}
-						i = i[len+n : len]
+						i = i[len+n : len : len]
 					case n == 0:
 						return NewVector(nil)
 					case n > 0:
 						if n > len {
 							panic(bad)
 						}
-						i = i[0:n]
+						i = i[0:n:n]
 					}
 					return i
 				},
