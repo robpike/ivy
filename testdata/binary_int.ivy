@@ -542,3 +542,10 @@
 
 1 in 1
 	1
+
+# used to append into x[:2]!
+x = 1 2 3 4 5
+(2 take x), 6 7
+x
+	1 2 6 7
+	1 2 3 4 5
