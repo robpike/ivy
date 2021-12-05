@@ -906,10 +906,15 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					return membership(c, u.(Vector), v.(Vector))
+					return NewVector(membership(c, u.(Vector), v.(Vector))).shrink()
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					return membership(c, u.(*Matrix).data, v.(*Matrix).data)
+					m := u.(*Matrix)
+					data := membership(c, m.data, v.(*Matrix).data)
+					if m.Rank() <= 1 {
+						return NewVector(data).shrink()
+					}
+					return NewMatrix(m.shape, data)
 				},
 			},
 		},

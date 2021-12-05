@@ -633,6 +633,11 @@ x[3 2 1]
 'abcde' in 3 4 rho 'hello world'
 	0 0 0 1 1
 
+3 4 rho 'hello world' in 'abcde'
+	0 1 0 0
+	0 0 0 0
+	0 0 1 0
+
 -1 flip 4 3 rho iota 12
 	10 11 12
 	 1  2  3

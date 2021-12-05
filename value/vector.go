@@ -150,7 +150,7 @@ func (v Vector) grade(c Context) Vector {
 // membership creates a vector of size len(u) reporting
 // whether each element is an element of v.
 // TODO: N*M algorithm - can we do better?
-func membership(c Context, u, v Vector) Value {
+func membership(c Context, u, v Vector) []Value {
 	values := make([]Value, len(u))
 	for i, x := range u {
 		values[i] = Int(0)
@@ -161,7 +161,7 @@ func membership(c Context, u, v Vector) Value {
 			}
 		}
 	}
-	return NewVector(values).shrink()
+	return values
 }
 
 func (v Vector) shrink() Value {
