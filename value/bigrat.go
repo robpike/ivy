@@ -174,7 +174,7 @@ func (r BigRat) Inner() Value {
 	return r
 }
 
-func (r BigRat) toType(conf *config.Config, which valueType) Value {
+func (r BigRat) toType(op string, conf *config.Config, which valueType) Value {
 	switch which {
 	case bigRatType:
 		return r
@@ -186,7 +186,7 @@ func (r BigRat) toType(conf *config.Config, which valueType) Value {
 	case matrixType:
 		return NewMatrix([]int{1, 1}, []Value{r})
 	}
-	Errorf("cannot convert rational to %s", which)
+	Errorf("%s: cannot convert rational to %s", op, which)
 	return nil
 }
 

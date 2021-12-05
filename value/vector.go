@@ -83,14 +83,14 @@ func (v Vector) Copy() Vector {
 	return NewVector(elem)
 }
 
-func (v Vector) toType(conf *config.Config, which valueType) Value {
+func (v Vector) toType(op string, conf *config.Config, which valueType) Value {
 	switch which {
 	case vectorType:
 		return v
 	case matrixType:
 		return NewMatrix([]int{len(v)}, v)
 	}
-	Errorf("cannot convert vector to %s", which)
+	Errorf("%s: cannot convert vector to %s", op, which)
 	return nil
 }
 

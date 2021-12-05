@@ -93,8 +93,8 @@ func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 	}
 	whichU, whichV := op.whichType(whichType(u), whichType(v))
 	conf := c.Config()
-	u = u.toType(conf, whichU)
-	v = v.toType(conf, whichV)
+	u = u.toType(op.name, conf, whichU)
+	v = v.toType(op.name, conf, whichV)
 	fn := op.fn[whichV]
 	if fn == nil {
 		if op.elementwise {
@@ -119,8 +119,8 @@ func Product(c Context, u Value, op string, v Value) Value {
 	left := op[:dot]
 	right := op[dot+1:]
 	which, _ := atLeastVectorType(whichType(u), whichType(v))
-	u = u.toType(c.Config(), which)
-	v = v.toType(c.Config(), which)
+	u = u.toType(op, c.Config(), which)
+	v = v.toType(op, c.Config(), which)
 	if left == "o" {
 		return outerProduct(c, u, right, v)
 	}

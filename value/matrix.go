@@ -304,12 +304,12 @@ func (m *Matrix) Inner() Value {
 	return m
 }
 
-func (m *Matrix) toType(conf *config.Config, which valueType) Value {
+func (m *Matrix) toType(op string, conf *config.Config, which valueType) Value {
 	switch which {
 	case matrixType:
 		return m
 	}
-	Errorf("cannot convert matrix to %s", which)
+	Errorf("%s: cannot convert matrix to %s", op, which)
 	return nil
 }
 

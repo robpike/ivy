@@ -343,7 +343,7 @@ func init() {
 						if u.(BigInt).Sign() == 0 {
 							Errorf("negative exponent of zero")
 						}
-						v = c.EvalUnary("abs", v).toType(c.Config(), bigIntType)
+						v = c.EvalUnary("abs", v).toType("**", c.Config(), bigIntType)
 						return c.EvalUnary("/", binaryBigIntOp(u, bigIntExpOp(c), v))
 					}
 					x := u.(BigInt).Int
@@ -364,7 +364,7 @@ func init() {
 							Errorf("negative exponent of zero")
 						}
 						positive = false
-						rexp = c.EvalUnary("-", v).toType(c.Config(), bigRatType).(BigRat)
+						rexp = c.EvalUnary("-", v).toType("**", c.Config(), bigRatType).(BigRat)
 					}
 					if !rexp.IsInt() {
 						// Lift to float.

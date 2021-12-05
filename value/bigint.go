@@ -144,7 +144,7 @@ func (i BigInt) Inner() Value {
 	return i
 }
 
-func (i BigInt) toType(conf *config.Config, which valueType) Value {
+func (i BigInt) toType(op string, conf *config.Config, which valueType) Value {
 	switch which {
 	case bigIntType:
 		return i
@@ -159,7 +159,7 @@ func (i BigInt) toType(conf *config.Config, which valueType) Value {
 	case matrixType:
 		return NewMatrix([]int{1}, []Value{i})
 	}
-	Errorf("cannot convert big int to %s", which)
+	Errorf("%s: cannot convert big int to %s", op, which)
 	return nil
 }
 
