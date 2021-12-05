@@ -618,3 +618,97 @@ func (m *Matrix) sel(c Context, v Vector) *Matrix {
 
 	return NewMatrix(shape, result)
 }
+
+// take returns v take m.
+func (m *Matrix) take(c Context, v Vector) *Matrix {
+	// Extend short vector to full rank using shape.
+	if len(v) > m.Rank() {
+		Errorf("take: bad length %d for shape %s", len(v), NewIntVector(m.Shape()))
+	}
+	if len(v) < m.Rank() {
+		ext := make(Vector, m.Rank())
+		copy(ext, v)
+		for i := len(v); i < m.Rank(); i++ {
+			ext[i] = Int(m.Shape()[i])
+		}
+		v = ext
+	}
+
+	// All lhs values must be small integers in range for m's shape.
+	// Compute new shape.
+	shape := make([]int, m.Rank())
+	count := int64(1)
+	for i, x := range v {
+		y, ok := x.(Int)
+		if !ok {
+			Errorf("take: left operand must be small integers")
+		}
+		if y < 0 {
+			y = -y
+		}
+		if y > Int(m.Shape()[i]) {
+			Errorf("take: left operand %v out of range for %d in shape %v", x, m.Shape()[i], NewIntVector(m.Shape()))
+		}
+		shape[i] = int(y)
+		count *= int64(y)
+	}
+
+	result := make(Vector, 0, count)
+	result = appendTake(result, v, m.Data(), m.Shape())
+	return NewMatrix(shape, result)
+}
+
+func appendTake(result, take, data Vector, dshape []int) Vector {
+	if len(take) == 0 {
+		return append(result, data...)
+	}
+	n := Int(len(data) / dshape[0])
+	t := take[0].(Int)
+	if t >= 0 {
+		data = data[:t*n]
+	} else {
+		data = data[Int(len(data))-(-t)*n:]
+	}
+	for ; len(data) > 0; data = data[n:] {
+		result = appendTake(result, take[1:], data[:n], dshape[1:])
+	}
+	return result
+}
+
+// drop returns v drop m.
+func (m *Matrix) drop(c Context, v Vector) *Matrix {
+	// Extend short vector to full rank using zeros.
+	if len(v) > m.Rank() {
+		Errorf("drop: bad length %d for shape %s", len(v), NewIntVector(m.Shape()))
+	}
+	if !v.AllInts() {
+		Errorf("drop: left operand must be small integers")
+	}
+	if len(v) < m.Rank() {
+		ext := make(Vector, m.Rank())
+		copy(ext, v)
+		for i := len(v); i < m.Rank(); i++ {
+			ext[i] = Int(0)
+		}
+		v = ext
+	}
+
+	// All lhs values must be small integers in range for m's shape.
+	// Convert to parameters for take.
+	//	1 drop x = (1 - N) take x
+	//	-1 drop x = (N - 1) take x
+	take := make(Vector, len(v))
+	for i, x := range v {
+		x := x.(Int)
+		if x < -Int(m.Shape()[i]) || x > Int(m.Shape()[i]) {
+			Errorf("drop: left operand %v out of range for %d in shape %v", x, m.Shape()[i], NewIntVector(m.Shape()))
+		}
+		if x >= 0 {
+			take[i] = x - Int(m.Shape()[i])
+		} else {
+			take[i] = Int(m.Shape()[i]) + x
+		}
+	}
+
+	return m.take(c, take)
+}

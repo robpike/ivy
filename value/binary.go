@@ -1165,7 +1165,7 @@ func init() {
 
 		{
 			name:      "take",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					const bad = Error("bad count for take")
@@ -1195,12 +1195,15 @@ func init() {
 					}
 					return i
 				},
+				matrixType: func(c Context, u, v Value) Value {
+					return v.(*Matrix).take(c, u.(Vector))
+				},
 			},
 		},
 
 		{
 			name:      "drop",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					const bad = Error("bad count for drop")
@@ -1228,6 +1231,9 @@ func init() {
 						i = i[n:]
 					}
 					return i
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					return v.(*Matrix).drop(c, u.(Vector))
 				},
 			},
 		},
