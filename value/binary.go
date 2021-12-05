@@ -1144,22 +1144,7 @@ func init() {
 					return append(uu, v.(Vector)...)
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					A := u.(*Matrix)
-					B := v.(*Matrix)
-					if A.Rank() == 0 || B.Rank() == 0 {
-						Errorf("empty matrix for ,")
-					}
-					if A.Rank() != B.Rank()+1 || A.ElemSize() != B.Size() {
-						Errorf("catenate rank mismatch: %s != %s", NewIntVector(A.shape[1:]), NewIntVector(B.shape))
-					}
-					ElemSize := A.ElemSize()
-					newShape := make([]int, A.Rank())
-					copy(newShape, A.shape)
-					newData := make(Vector, len(A.data), int64(len(A.data))+ElemSize)
-					copy(newData, A.data)
-					newData = append(newData, B.data...)
-					newShape[0] = newShape[0] + 1
-					return NewMatrix(newShape, newData)
+					return u.(*Matrix).catenate(v.(*Matrix))
 				},
 			},
 		},

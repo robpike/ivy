@@ -314,14 +314,21 @@ func (m *Matrix) toType(conf *config.Config, which valueType) Value {
 }
 
 func (x *Matrix) sameShape(y *Matrix) {
-	if x.Rank() != y.Rank() {
+	if !sameShape(x.Shape(), y.Shape()) {
 		Errorf("rank mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
 	}
-	for i, d := range x.shape {
-		if d != y.shape[i] {
-			Errorf("rank mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
+}
+
+func sameShape(x, y []int) bool {
+	if len(x) != len(y) {
+		return false
+	}
+	for i := range x {
+		if x[i] != y[i] {
+			return false
 		}
 	}
+	return true
 }
 
 // reshape implements binary rho
@@ -487,5 +494,77 @@ func (m *Matrix) binaryTranspose(c Context, v Vector) *Matrix {
 		}
 	}
 
+	return NewMatrix(shape, data)
+}
+
+// catenate returns the catenation x, y.
+// It handles the following shape combinations:
+//
+//	(n ...), (...) -> (n+1 ...)  # list, elem
+//	(...), (n ...) -> (n+1 ...)  # elem, list
+//	(n ...), (m ...) -> (n+m ...)  # list, list
+//	(1), (n ...) -> (n+1 ...)  # scalar (extended), list
+//	(n ...), (1) -> (n+1 ...)  # list, scalar (extended)
+//
+func (x *Matrix) catenate(y *Matrix) *Matrix {
+	if x.Rank() == 0 || y.Rank() == 0 {
+		Errorf("empty matrix for ,")
+	}
+	var shape []int
+	var data Vector
+	switch {
+	default:
+		Errorf("catenate shape mismatch: %s != %s", NewIntVector(x.shape[1:]), NewIntVector(y.shape))
+
+	case x.Rank() == y.Rank() && sameShape(x.shape[1:], y.shape[1:]):
+		// list, list
+		shape = make([]int, x.Rank())
+		copy(shape, x.shape)
+		shape[0] = x.shape[0] + y.shape[0]
+
+	case x.Rank() == y.Rank()+1 && sameShape(x.shape[1:], y.shape):
+		// list, elem
+		shape = make([]int, x.Rank())
+		copy(shape, x.shape)
+		shape[0]++
+
+	case x.Rank()+1 == y.Rank() && sameShape(x.shape, y.shape[1:]):
+		// elem, list
+		shape = make([]int, y.Rank())
+		copy(shape, y.shape)
+		shape[0]++
+
+	case x.Rank() == 1 && x.shape[0] == 1 && y.Rank() > 1:
+		// scalar extension, list
+		shape = make([]int, y.Rank())
+		copy(shape, y.shape)
+		shape[0]++
+		elem := y.ElemSize()
+		a := x.Data()[0]
+		data = make(Vector, elem+int64(len(y.Data())))
+		for i := int64(0); i < elem; i++ {
+			data[i] = a
+		}
+		copy(data[elem:], y.Data())
+
+	case x.Rank() > 1 && y.Rank() == 1 && y.shape[0] == 1:
+		// list, scalar extension
+		shape = make([]int, x.Rank())
+		copy(shape, x.shape)
+		shape[0]++
+		elem := x.ElemSize()
+		b := y.Data()[0]
+		data = make(Vector, elem+int64(len(x.Data())))
+		copy(data, x.Data())
+		ext := data[len(x.Data()):]
+		for i := int64(0); i < elem; i++ {
+			ext[i] = b
+		}
+	}
+	if data == nil {
+		data = make(Vector, len(x.Data())+len(y.Data()))
+		copy(data, x.Data())
+		copy(data[len(x.Data()):], y.Data())
+	}
 	return NewMatrix(shape, data)
 }
