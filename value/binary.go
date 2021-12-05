@@ -15,16 +15,16 @@ import (
 
 // binaryArithType returns the maximum of the two types,
 // so the smaller value is appropriately up-converted.
-func binaryArithType(t1, t2 valueType) valueType {
+func binaryArithType(t1, t2 valueType) (valueType, valueType) {
 	if t1 > t2 {
-		return t1
+		return t1, t1
 	}
-	return t2
+	return t2, t2
 }
 
 // divType is like binaryArithType but never returns smaller than BigInt,
 // because the only implementation of exponentiation we have is in big.Int.
-func divType(t1, t2 valueType) valueType {
+func divType(t1, t2 valueType) (valueType, valueType) {
 	if t1 == intType {
 		t1 = bigIntType
 	}
@@ -32,7 +32,7 @@ func divType(t1, t2 valueType) valueType {
 }
 
 // rationalType promotes scalars to rationals so we can do rational division.
-func rationalType(t1, t2 valueType) valueType {
+func rationalType(t1, t2 valueType) (valueType, valueType) {
 	if t1 < bigRatType {
 		t1 = bigRatType
 	}
@@ -40,11 +40,16 @@ func rationalType(t1, t2 valueType) valueType {
 }
 
 // atLeastVectorType promotes both arguments to at least vectors.
-func atLeastVectorType(t1, t2 valueType) valueType {
+func atLeastVectorType(t1, t2 valueType) (valueType, valueType) {
 	if t1 < matrixType && t2 < matrixType {
-		return vectorType
+		return vectorType, vectorType
 	}
-	return matrixType
+	return matrixType, matrixType
+}
+
+// vectorAndMatrixType promotes the left arg to vector and the right arg to matrix.
+func vectorAndMatrixType(t1, t2 valueType) (valueType, valueType) {
+	return vectorType, matrixType
 }
 
 // shiftCount converts x to an unsigned integer.
@@ -1396,6 +1401,20 @@ func init() {
 						}
 					}
 					return NewVector(result)
+				},
+			},
+		},
+
+		{
+			name:      "transp",
+			whichType: vectorAndMatrixType,
+			fn: [numType]binaryFn{
+				matrixType: func(c Context, u, v Value) Value {
+					m := v.(*Matrix).binaryTranspose(c, u.(Vector))
+					if m.Rank() <= 1 {
+						return m.Data()
+					}
+					return m
 				},
 			},
 		},

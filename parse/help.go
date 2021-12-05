@@ -122,7 +122,7 @@ var helpLines = []string{
 	"\t                                    otherwise result depends on length of A:",
 	"\t                                    1 gives decimal count, 2 gives width and decimal count,",
 	"\t                                    3 gives width, decimal count, and style ('d', 'e', 'f', etc.).",
-	"\tGeneral transpose     A⍉B           The axes of B are ordered by A",
+	"\tGeneral transpose     A⍉B   transp  The axes of B are ordered by A",
 	"\tCombinations          A!B   !       Number of combinations of B taken A at a time",
 	"\tLess than             A<B   <       Comparison: 1 if true, 0 if false",
 	"\tLess than or equal    A≤B   <=      Comparison: 1 if true, 0 if false",

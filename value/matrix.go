@@ -410,47 +410,82 @@ func (m *Matrix) vrotate(n int) Value {
 }
 
 // transpose returns (as a new matrix) the transposition of the argument.
-func (m *Matrix) transpose() *Matrix {
-	rank := m.Rank()
-	if rank < 2 {
-		// Shouldn't happen but easy.
-		return m.Copy()
+func (m *Matrix) transpose(c Context) *Matrix {
+	v := make(Vector, m.Rank())
+	origin := c.Config().Origin()
+	for i := range v {
+		v[len(v)-1-i] = Int(i + origin)
 	}
-	// Shapes as integers not values are easier here.
-	// The reversed shape of m, that is, shape of m transposed.
-	shape := make([]int, rank)
-	for i := range shape {
-		v := m.Shape()[i]
-		shape[rank-1-i] = v
-	}
-	data := m.Data()
-	result := make([]Value, len(data))
-	sz := len(data) * rank
-	counters := make([]int, rank)
-	for i, elem := 0, 0; i < sz; i += rank {
-		j := offset(shape, counters)
-		result[j] = data[elem]
-		elem++
-		for k := 0; k < rank; k++ {
-			// Big-endian counter transposes the indexes.
-			counters[k]++
-			if counters[k] < shape[k] {
-				break
-			}
-			counters[k] = 0
-		}
-	}
-	return NewMatrix(shape, result)
+	return m.binaryTranspose(c, v)
 }
 
-// offset returns, given a matrix's shape, the index within the slice holding the
-// data of the element indexed in the full matrix by the successive indexes.
-func offset(shape, indexes []int) int {
-	j := 0
-	sz := 1
-	for i := int64(len(indexes)) - 1; i >= 0; i-- {
-		j += indexes[i] * sz
-		sz *= shape[i]
+// binaryTranspose returns the transposition of m specified by v,
+// defined by (v transp m)[i] = m[i[v]] (i is in general an index vector).
+// APL calls this operator the dyadic transpose.
+func (m *Matrix) binaryTranspose(c Context, v Vector) *Matrix {
+	origin := c.Config().Origin()
+	if len(v) != m.Rank() {
+		Errorf("transp: vector length %d != matrix rank %d", len(v), m.Rank())
 	}
-	return j
+
+	// Extract old-to-new index mapping and determine rank.
+	oldToNew := make([]int, len(v))
+	rank := -1
+	for i := range v {
+		vi, ok := v[i].(Int)
+		if !ok {
+			Errorf("transp: non-int index %v", v[i])
+		}
+		if vi < Int(origin) || vi >= Int(origin+m.Rank()) {
+			Errorf("transp: out-of-range index %v", vi)
+		}
+		vi -= Int(origin)
+		oldToNew[i] = int(vi)
+		if rank <= int(vi) {
+			rank = int(vi) + 1
+		}
+	}
+
+	// Determine shape of result.
+	// Each dimension is the min of the old dimensions mapping to it.
+	oldShape := m.Shape()
+	shape := make([]int, rank)
+	for i := range shape {
+		shape[i] = -1
+	}
+	for oi, dim := range oldShape {
+		if i := oldToNew[oi]; shape[i] == -1 || shape[i] > dim {
+			shape[i] = dim
+		}
+	}
+	sz := 1
+	for i, dim := range shape {
+		if dim == -1 {
+			Errorf("transp: partial index: missing %v", i+origin)
+		}
+		sz *= dim
+	}
+
+	old := m.Data()
+	data := make([]Value, sz)
+	index := make([]int, rank)
+	for i := range data {
+		// Compute old index for this new entry.
+		oi := 0
+		for j := range v {
+			oi = oi*m.Shape()[j] + index[oldToNew[j]]
+		}
+
+		data[i] = old[oi]
+
+		// Increment index.
+		for j := rank - 1; j >= 0; j-- {
+			if index[j]++; index[j] < shape[j] {
+				break
+			}
+			index[j] = 0
+		}
+	}
+
+	return NewMatrix(shape, data)
 }

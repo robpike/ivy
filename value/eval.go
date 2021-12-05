@@ -57,7 +57,7 @@ type binaryFn func(Context, Value, Value) Value
 type binaryOp struct {
 	name        string
 	elementwise bool // whether the operation applies elementwise to vectors and matrices
-	whichType   func(a, b valueType) valueType
+	whichType   func(a, b valueType) (valueType, valueType)
 	fn          [numType]binaryFn
 }
 
@@ -91,21 +91,21 @@ func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 		}
 		return op.fn[0](c, u, v)
 	}
-	which := op.whichType(whichType(u), whichType(v))
+	whichU, whichV := op.whichType(whichType(u), whichType(v))
 	conf := c.Config()
-	u = u.toType(conf, which)
-	v = v.toType(conf, which)
-	fn := op.fn[which]
+	u = u.toType(conf, whichU)
+	v = v.toType(conf, whichV)
+	fn := op.fn[whichV]
 	if fn == nil {
 		if op.elementwise {
-			switch which {
+			switch whichV {
 			case vectorType:
 				return binaryVectorOp(c, u, op.name, v)
 			case matrixType:
 				return binaryMatrixOp(c, u, op.name, v)
 			}
 		}
-		Errorf("binary %s not implemented on type %s", op.name, which)
+		Errorf("binary %s not implemented on type %s", op.name, whichV)
 	}
 	return fn(c, u, v)
 }
@@ -118,7 +118,7 @@ func Product(c Context, u Value, op string, v Value) Value {
 	dot := strings.IndexByte(op, '.')
 	left := op[:dot]
 	right := op[dot+1:]
-	which := atLeastVectorType(whichType(u), whichType(v))
+	which, _ := atLeastVectorType(whichType(u), whichType(v))
 	u = u.toType(c.Config(), which)
 	v = v.toType(c.Config(), which)
 	if left == "o" {

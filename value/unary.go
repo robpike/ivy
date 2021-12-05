@@ -583,7 +583,7 @@ func init() {
 					if m.Rank() == 1 {
 						Errorf("transp: matrix is vector")
 					}
-					return m.transpose()
+					return m.transpose(c)
 				},
 			},
 		},
