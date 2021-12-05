@@ -52,6 +52,15 @@ func vectorAndMatrixType(t1, t2 valueType) (valueType, valueType) {
 	return vectorType, matrixType
 }
 
+// vectorAndAtLeastVectorType promotes the left arg to vector
+// and the right arg to at least vector.
+func vectorAndAtLeastVectorType(t1, t2 valueType) (valueType, valueType) {
+	if t2 < vectorType {
+		t2 = vectorType
+	}
+	return vectorType, t2
+}
+
 // shiftCount converts x to an unsigned integer.
 func shiftCount(x Value) uint {
 	switch count := x.(type) {
@@ -1294,7 +1303,7 @@ func init() {
 					for _, x := range i {
 						y, ok := x.(Int)
 						if !ok {
-							Errorf("left operand of fill must be small integers")
+							Errorf("fill: left operand must be small integers")
 						}
 						switch {
 						case y == 0:
@@ -1343,7 +1352,7 @@ func init() {
 
 		{
 			name:      "sel",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					i := u.(Vector)
@@ -1356,7 +1365,7 @@ func init() {
 					for _, x := range i {
 						y, ok := x.(Int)
 						if !ok {
-							Errorf("left operand of sel must be small integers")
+							Errorf("sel: left operand must be small integers")
 						}
 						if y < 0 {
 							count -= int64(y)
@@ -1391,6 +1400,9 @@ func init() {
 						}
 					}
 					return NewVector(result)
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					return v.(*Matrix).sel(c, u.(Vector))
 				},
 			},
 		},

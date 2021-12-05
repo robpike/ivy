@@ -57,6 +57,16 @@ func (v Vector) AllChars() bool {
 	return true
 }
 
+// AllInts reports whether the vector contains only Ints.
+func (v Vector) AllInts() bool {
+	for _, c := range v {
+		if _, ok := c.Inner().(Int); !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func NewVector(elems []Value) Vector {
 	return Vector(elems)
 }

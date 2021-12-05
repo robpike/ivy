@@ -742,3 +742,10 @@ i = iota 6
 1 1 2 transp 2 3 4 rho iota 24
 	 1  2  3  4
 	17 18 19 20
+
+2 0 1 sel (2 3 rho iota 6)
+	1 1 3
+	4 4 6
+
+transp 0 1 sel transp (2 3 rho iota 6)
+	4 5 6

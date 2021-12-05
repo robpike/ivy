@@ -315,7 +315,7 @@ func (m *Matrix) toType(op string, conf *config.Config, which valueType) Value {
 
 func (x *Matrix) sameShape(y *Matrix) {
 	if !sameShape(x.Shape(), y.Shape()) {
-		Errorf("rank mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
+		Errorf("shape mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
 	}
 }
 
@@ -567,4 +567,54 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 		copy(data[len(x.Data()):], y.Data())
 	}
 	return NewMatrix(shape, data)
+}
+
+// sel returns the selection of m according to v.
+// The selection applies to the final axis.
+func (m *Matrix) sel(c Context, v Vector) *Matrix {
+	// All lhs values must be small integers.
+	if !v.AllInts() {
+		Errorf("sel: left operand must be small integers")
+	}
+
+	var count int64
+	for _, x := range v {
+		x := x.(Int)
+		if x < 0 {
+			count -= int64(x)
+		} else {
+			count += int64(x)
+		}
+	}
+	if len(v) != 1 && len(v) != m.Shape()[len(m.Shape())-1] {
+		Errorf("sel: bad length %d for shape %s", len(v), NewIntVector(m.Shape()))
+	}
+	if len(v) == 1 {
+		count *= int64(m.Shape()[len(m.Shape())-1])
+	}
+
+	shape := make([]int, len(m.Shape()))
+	copy(shape, m.Shape())
+	shape[len(shape)-1] = int(count)
+
+	for _, dim := range shape[:len(shape)-1] {
+		count *= int64(dim)
+	}
+	if count > 1e8 {
+		Errorf("sel: result too large: %d elements", count)
+	}
+
+	result := make(Vector, 0, count)
+	for i, y := range m.Data() {
+		c := v[i%len(v)].(Int)
+		if c < 0 {
+			c = -c
+			y = Int(0)
+		}
+		for ; c > 0; c-- {
+			result = append(result, y)
+		}
+	}
+
+	return NewMatrix(shape, result)
 }
