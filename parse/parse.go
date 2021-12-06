@@ -165,11 +165,16 @@ func (e variableExpr) ProgString() string {
 // isCompound reports whether the item is a non-trivial expression tree, one that
 // may require parentheses around it when printed to maintain correct evaluation order.
 func isCompound(x interface{}) bool {
-	switch x.(type) {
+	switch x := x.(type) {
 	case value.Char, value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Vector, value.Matrix:
 		return false
 	case sliceExpr, variableExpr:
 		return false
+	case *binary:
+		if x.op == "[]" {
+			return isCompound(x.left)
+		}
+		return true
 	default:
 		return true
 	}
