@@ -304,24 +304,31 @@ func (m *Matrix) Inner() Value {
 	return m
 }
 
-func (m *Matrix) toType(conf *config.Config, which valueType) Value {
+func (m *Matrix) toType(op string, conf *config.Config, which valueType) Value {
 	switch which {
 	case matrixType:
 		return m
 	}
-	Errorf("cannot convert matrix to %s", which)
+	Errorf("%s: cannot convert matrix to %s", op, which)
 	return nil
 }
 
 func (x *Matrix) sameShape(y *Matrix) {
-	if x.Rank() != y.Rank() {
-		Errorf("rank mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
+	if !sameShape(x.Shape(), y.Shape()) {
+		Errorf("shape mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
 	}
-	for i, d := range x.shape {
-		if d != y.shape[i] {
-			Errorf("rank mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
+}
+
+func sameShape(x, y []int) bool {
+	if len(x) != len(y) {
+		return false
+	}
+	for i := range x {
+		if x[i] != y[i] {
+			return false
 		}
 	}
+	return true
 }
 
 // reshape implements binary rho
@@ -410,47 +417,298 @@ func (m *Matrix) vrotate(n int) Value {
 }
 
 // transpose returns (as a new matrix) the transposition of the argument.
-func (m *Matrix) transpose() *Matrix {
-	rank := m.Rank()
-	if rank < 2 {
-		// Shouldn't happen but easy.
-		return m.Copy()
+func (m *Matrix) transpose(c Context) *Matrix {
+	v := make(Vector, m.Rank())
+	origin := c.Config().Origin()
+	for i := range v {
+		v[len(v)-1-i] = Int(i + origin)
 	}
-	// Shapes as integers not values are easier here.
-	// The reversed shape of m, that is, shape of m transposed.
-	shape := make([]int, rank)
-	for i := range shape {
-		v := m.Shape()[i]
-		shape[rank-1-i] = v
+	return m.binaryTranspose(c, v)
+}
+
+// binaryTranspose returns the transposition of m specified by v,
+// defined by (v transp m)[i] = m[i[v]] (i is in general an index vector).
+// APL calls this operator the dyadic transpose.
+func (m *Matrix) binaryTranspose(c Context, v Vector) *Matrix {
+	origin := c.Config().Origin()
+	if len(v) != m.Rank() {
+		Errorf("transp: vector length %d != matrix rank %d", len(v), m.Rank())
 	}
-	data := m.Data()
-	result := make([]Value, len(data))
-	sz := len(data) * rank
-	counters := make([]int, rank)
-	for i, elem := 0, 0; i < sz; i += rank {
-		j := offset(shape, counters)
-		result[j] = data[elem]
-		elem++
-		for k := 0; k < rank; k++ {
-			// Big-endian counter transposes the indexes.
-			counters[k]++
-			if counters[k] < shape[k] {
-				break
-			}
-			counters[k] = 0
+
+	// Extract old-to-new index mapping and determine rank.
+	oldToNew := make([]int, len(v))
+	rank := -1
+	for i := range v {
+		vi, ok := v[i].(Int)
+		if !ok {
+			Errorf("transp: non-int index %v", v[i])
+		}
+		if vi < Int(origin) || vi >= Int(origin+m.Rank()) {
+			Errorf("transp: out-of-range index %v", vi)
+		}
+		vi -= Int(origin)
+		oldToNew[i] = int(vi)
+		if rank <= int(vi) {
+			rank = int(vi) + 1
 		}
 	}
+
+	// Determine shape of result.
+	// Each dimension is the min of the old dimensions mapping to it.
+	oldShape := m.Shape()
+	shape := make([]int, rank)
+	for i := range shape {
+		shape[i] = -1
+	}
+	for oi, dim := range oldShape {
+		if i := oldToNew[oi]; shape[i] == -1 || shape[i] > dim {
+			shape[i] = dim
+		}
+	}
+	sz := 1
+	for i, dim := range shape {
+		if dim == -1 {
+			Errorf("transp: partial index: missing %v", i+origin)
+		}
+		sz *= dim
+	}
+
+	old := m.Data()
+	data := make([]Value, sz)
+	index := make([]int, rank)
+	for i := range data {
+		// Compute old index for this new entry.
+		oi := 0
+		for j := range v {
+			oi = oi*m.Shape()[j] + index[oldToNew[j]]
+		}
+
+		data[i] = old[oi]
+
+		// Increment index.
+		for j := rank - 1; j >= 0; j-- {
+			if index[j]++; index[j] < shape[j] {
+				break
+			}
+			index[j] = 0
+		}
+	}
+
+	return NewMatrix(shape, data)
+}
+
+// catenate returns the catenation x, y.
+// It handles the following shape combinations:
+//
+//	(n ...), (...) -> (n+1 ...)  # list, elem
+//	(...), (n ...) -> (n+1 ...)  # elem, list
+//	(n ...), (m ...) -> (n+m ...)  # list, list
+//	(1), (n ...) -> (n+1 ...)  # scalar (extended), list
+//	(n ...), (1) -> (n+1 ...)  # list, scalar (extended)
+//
+func (x *Matrix) catenate(y *Matrix) *Matrix {
+	if x.Rank() == 0 || y.Rank() == 0 {
+		Errorf("empty matrix for ,")
+	}
+	var shape []int
+	var data Vector
+	switch {
+	default:
+		Errorf("catenate shape mismatch: %s != %s", NewIntVector(x.shape[1:]), NewIntVector(y.shape))
+
+	case x.Rank() == y.Rank() && sameShape(x.shape[1:], y.shape[1:]):
+		// list, list
+		shape = make([]int, x.Rank())
+		copy(shape, x.shape)
+		shape[0] = x.shape[0] + y.shape[0]
+
+	case x.Rank() == y.Rank()+1 && sameShape(x.shape[1:], y.shape):
+		// list, elem
+		shape = make([]int, x.Rank())
+		copy(shape, x.shape)
+		shape[0]++
+
+	case x.Rank()+1 == y.Rank() && sameShape(x.shape, y.shape[1:]):
+		// elem, list
+		shape = make([]int, y.Rank())
+		copy(shape, y.shape)
+		shape[0]++
+
+	case x.Rank() == 1 && x.shape[0] == 1 && y.Rank() > 1:
+		// scalar extension, list
+		shape = make([]int, y.Rank())
+		copy(shape, y.shape)
+		shape[0]++
+		elem := y.ElemSize()
+		a := x.Data()[0]
+		data = make(Vector, elem+int64(len(y.Data())))
+		for i := int64(0); i < elem; i++ {
+			data[i] = a
+		}
+		copy(data[elem:], y.Data())
+
+	case x.Rank() > 1 && y.Rank() == 1 && y.shape[0] == 1:
+		// list, scalar extension
+		shape = make([]int, x.Rank())
+		copy(shape, x.shape)
+		shape[0]++
+		elem := x.ElemSize()
+		b := y.Data()[0]
+		data = make(Vector, elem+int64(len(x.Data())))
+		copy(data, x.Data())
+		ext := data[len(x.Data()):]
+		for i := int64(0); i < elem; i++ {
+			ext[i] = b
+		}
+	}
+	if data == nil {
+		data = make(Vector, len(x.Data())+len(y.Data()))
+		copy(data, x.Data())
+		copy(data[len(x.Data()):], y.Data())
+	}
+	return NewMatrix(shape, data)
+}
+
+// sel returns the selection of m according to v.
+// The selection applies to the final axis.
+func (m *Matrix) sel(c Context, v Vector) *Matrix {
+	// All lhs values must be small integers.
+	if !v.AllInts() {
+		Errorf("sel: left operand must be small integers")
+	}
+
+	var count int64
+	for _, x := range v {
+		x := x.(Int)
+		if x < 0 {
+			count -= int64(x)
+		} else {
+			count += int64(x)
+		}
+	}
+	if len(v) != 1 && len(v) != m.Shape()[len(m.Shape())-1] {
+		Errorf("sel: bad length %d for shape %s", len(v), NewIntVector(m.Shape()))
+	}
+	if len(v) == 1 {
+		count *= int64(m.Shape()[len(m.Shape())-1])
+	}
+
+	shape := make([]int, len(m.Shape()))
+	copy(shape, m.Shape())
+	shape[len(shape)-1] = int(count)
+
+	for _, dim := range shape[:len(shape)-1] {
+		count *= int64(dim)
+	}
+	if count > 1e8 {
+		Errorf("sel: result too large: %d elements", count)
+	}
+
+	result := make(Vector, 0, count)
+	for i, y := range m.Data() {
+		c := v[i%len(v)].(Int)
+		if c < 0 {
+			c = -c
+			y = Int(0)
+		}
+		for ; c > 0; c-- {
+			result = append(result, y)
+		}
+	}
+
 	return NewMatrix(shape, result)
 }
 
-// offset returns, given a matrix's shape, the index within the slice holding the
-// data of the element indexed in the full matrix by the successive indexes.
-func offset(shape, indexes []int) int {
-	j := 0
-	sz := 1
-	for i := int64(len(indexes)) - 1; i >= 0; i-- {
-		j += indexes[i] * sz
-		sz *= shape[i]
+// take returns v take m.
+func (m *Matrix) take(c Context, v Vector) *Matrix {
+	// Extend short vector to full rank using shape.
+	if len(v) > m.Rank() {
+		Errorf("take: bad length %d for shape %s", len(v), NewIntVector(m.Shape()))
 	}
-	return j
+	if len(v) < m.Rank() {
+		ext := make(Vector, m.Rank())
+		copy(ext, v)
+		for i := len(v); i < m.Rank(); i++ {
+			ext[i] = Int(m.Shape()[i])
+		}
+		v = ext
+	}
+
+	// All lhs values must be small integers in range for m's shape.
+	// Compute new shape.
+	shape := make([]int, m.Rank())
+	count := int64(1)
+	for i, x := range v {
+		y, ok := x.(Int)
+		if !ok {
+			Errorf("take: left operand must be small integers")
+		}
+		if y < 0 {
+			y = -y
+		}
+		if y > Int(m.Shape()[i]) {
+			Errorf("take: left operand %v out of range for %d in shape %v", x, m.Shape()[i], NewIntVector(m.Shape()))
+		}
+		shape[i] = int(y)
+		count *= int64(y)
+	}
+
+	result := make(Vector, 0, count)
+	result = appendTake(result, v, m.Data(), m.Shape())
+	return NewMatrix(shape, result)
+}
+
+func appendTake(result, take, data Vector, dshape []int) Vector {
+	if len(take) == 0 {
+		return append(result, data...)
+	}
+	n := Int(len(data) / dshape[0])
+	t := take[0].(Int)
+	if t >= 0 {
+		data = data[:t*n]
+	} else {
+		data = data[Int(len(data))-(-t)*n:]
+	}
+	for ; len(data) > 0; data = data[n:] {
+		result = appendTake(result, take[1:], data[:n], dshape[1:])
+	}
+	return result
+}
+
+// drop returns v drop m.
+func (m *Matrix) drop(c Context, v Vector) *Matrix {
+	// Extend short vector to full rank using zeros.
+	if len(v) > m.Rank() {
+		Errorf("drop: bad length %d for shape %s", len(v), NewIntVector(m.Shape()))
+	}
+	if !v.AllInts() {
+		Errorf("drop: left operand must be small integers")
+	}
+	if len(v) < m.Rank() {
+		ext := make(Vector, m.Rank())
+		copy(ext, v)
+		for i := len(v); i < m.Rank(); i++ {
+			ext[i] = Int(0)
+		}
+		v = ext
+	}
+
+	// All lhs values must be small integers in range for m's shape.
+	// Convert to parameters for take.
+	//	1 drop x = (1 - N) take x
+	//	-1 drop x = (N - 1) take x
+	take := make(Vector, len(v))
+	for i, x := range v {
+		x := x.(Int)
+		if x < -Int(m.Shape()[i]) || x > Int(m.Shape()[i]) {
+			Errorf("drop: left operand %v out of range for %d in shape %v", x, m.Shape()[i], NewIntVector(m.Shape()))
+		}
+		if x >= 0 {
+			take[i] = x - Int(m.Shape()[i])
+		} else {
+			take[i] = Int(m.Shape()[i]) + x
+		}
+	}
+
+	return m.take(c, take)
 }

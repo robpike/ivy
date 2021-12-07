@@ -105,6 +105,11 @@ op f x = (iota x)[1]
 )op f
 	op f x = (iota x)[1]
 
+# Don't introduce unnecessary parens in x[1].
+op f x = x[1] + x[2]
+)op f
+	op f x = x[1] + x[2]
+
 # We can define a function with the same name as a zero variable.
 x = 0
 op x n = n

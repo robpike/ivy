@@ -77,11 +77,11 @@ func floatSelf(c Context, v Value) Value {
 	conf := c.Config()
 	switch v := v.(type) {
 	case Int:
-		return v.toType(conf, bigFloatType)
+		return v.toType("float", conf, bigFloatType)
 	case BigInt:
-		return v.toType(conf, bigFloatType)
+		return v.toType("float", conf, bigFloatType)
 	case BigRat:
-		return v.toType(conf, bigFloatType)
+		return v.toType("float", conf, bigFloatType)
 	case BigFloat:
 		return v
 	}
@@ -583,7 +583,7 @@ func init() {
 					if m.Rank() == 1 {
 						Errorf("transp: matrix is vector")
 					}
-					return m.transpose()
+					return m.transpose(c)
 				},
 			},
 		},

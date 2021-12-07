@@ -15,16 +15,16 @@ import (
 
 // binaryArithType returns the maximum of the two types,
 // so the smaller value is appropriately up-converted.
-func binaryArithType(t1, t2 valueType) valueType {
+func binaryArithType(t1, t2 valueType) (valueType, valueType) {
 	if t1 > t2 {
-		return t1
+		return t1, t1
 	}
-	return t2
+	return t2, t2
 }
 
 // divType is like binaryArithType but never returns smaller than BigInt,
 // because the only implementation of exponentiation we have is in big.Int.
-func divType(t1, t2 valueType) valueType {
+func divType(t1, t2 valueType) (valueType, valueType) {
 	if t1 == intType {
 		t1 = bigIntType
 	}
@@ -32,7 +32,7 @@ func divType(t1, t2 valueType) valueType {
 }
 
 // rationalType promotes scalars to rationals so we can do rational division.
-func rationalType(t1, t2 valueType) valueType {
+func rationalType(t1, t2 valueType) (valueType, valueType) {
 	if t1 < bigRatType {
 		t1 = bigRatType
 	}
@@ -40,11 +40,25 @@ func rationalType(t1, t2 valueType) valueType {
 }
 
 // atLeastVectorType promotes both arguments to at least vectors.
-func atLeastVectorType(t1, t2 valueType) valueType {
+func atLeastVectorType(t1, t2 valueType) (valueType, valueType) {
 	if t1 < matrixType && t2 < matrixType {
-		return vectorType
+		return vectorType, vectorType
 	}
-	return matrixType
+	return matrixType, matrixType
+}
+
+// vectorAndMatrixType promotes the left arg to vector and the right arg to matrix.
+func vectorAndMatrixType(t1, t2 valueType) (valueType, valueType) {
+	return vectorType, matrixType
+}
+
+// vectorAndAtLeastVectorType promotes the left arg to vector
+// and the right arg to at least vector.
+func vectorAndAtLeastVectorType(t1, t2 valueType) (valueType, valueType) {
+	if t2 < vectorType {
+		t2 = vectorType
+	}
+	return vectorType, t2
 }
 
 // shiftCount converts x to an unsigned integer.
@@ -338,7 +352,7 @@ func init() {
 						if u.(BigInt).Sign() == 0 {
 							Errorf("negative exponent of zero")
 						}
-						v = c.EvalUnary("abs", v).toType(c.Config(), bigIntType)
+						v = c.EvalUnary("abs", v).toType("**", c.Config(), bigIntType)
 						return c.EvalUnary("/", binaryBigIntOp(u, bigIntExpOp(c), v))
 					}
 					x := u.(BigInt).Int
@@ -359,7 +373,7 @@ func init() {
 							Errorf("negative exponent of zero")
 						}
 						positive = false
-						rexp = c.EvalUnary("-", v).toType(c.Config(), bigRatType).(BigRat)
+						rexp = c.EvalUnary("-", v).toType("**", c.Config(), bigRatType).(BigRat)
 					}
 					if !rexp.IsInt() {
 						// Lift to float.
@@ -901,10 +915,15 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					return membership(c, u.(Vector), v.(Vector))
+					return NewVector(membership(c, u.(Vector), v.(Vector))).shrink()
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					return membership(c, u.(*Matrix).data, v.(*Matrix).data)
+					m := u.(*Matrix)
+					data := membership(c, m.data, v.(*Matrix).data)
+					if m.Rank() <= 1 {
+						return NewVector(data).shrink()
+					}
+					return NewMatrix(m.shape, data)
 				},
 			},
 		},
@@ -1139,29 +1158,14 @@ func init() {
 					return append(uu, v.(Vector)...)
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					A := u.(*Matrix)
-					B := v.(*Matrix)
-					if A.Rank() == 0 || B.Rank() == 0 {
-						Errorf("empty matrix for ,")
-					}
-					if A.Rank() != B.Rank()+1 || A.ElemSize() != B.Size() {
-						Errorf("catenate rank mismatch: %s != %s", NewIntVector(A.shape[1:]), NewIntVector(B.shape))
-					}
-					ElemSize := A.ElemSize()
-					newShape := make([]int, A.Rank())
-					copy(newShape, A.shape)
-					newData := make(Vector, len(A.data), int64(len(A.data))+ElemSize)
-					copy(newData, A.data)
-					newData = append(newData, B.data...)
-					newShape[0] = newShape[0] + 1
-					return NewMatrix(newShape, newData)
+					return u.(*Matrix).catenate(v.(*Matrix))
 				},
 			},
 		},
 
 		{
 			name:      "take",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					const bad = Error("bad count for take")
@@ -1191,12 +1195,15 @@ func init() {
 					}
 					return i
 				},
+				matrixType: func(c Context, u, v Value) Value {
+					return v.(*Matrix).take(c, u.(Vector))
+				},
 			},
 		},
 
 		{
 			name:      "drop",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					const bad = Error("bad count for drop")
@@ -1224,6 +1231,9 @@ func init() {
 						i = i[n:]
 					}
 					return i
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					return v.(*Matrix).drop(c, u.(Vector))
 				},
 			},
 		},
@@ -1299,7 +1309,7 @@ func init() {
 					for _, x := range i {
 						y, ok := x.(Int)
 						if !ok {
-							Errorf("left operand of fill must be small integers")
+							Errorf("fill: left operand must be small integers")
 						}
 						switch {
 						case y == 0:
@@ -1348,7 +1358,7 @@ func init() {
 
 		{
 			name:      "sel",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					i := u.(Vector)
@@ -1361,7 +1371,7 @@ func init() {
 					for _, x := range i {
 						y, ok := x.(Int)
 						if !ok {
-							Errorf("left operand of sel must be small integers")
+							Errorf("sel: left operand must be small integers")
 						}
 						if y < 0 {
 							count -= int64(y)
@@ -1396,6 +1406,23 @@ func init() {
 						}
 					}
 					return NewVector(result)
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					return v.(*Matrix).sel(c, u.(Vector))
+				},
+			},
+		},
+
+		{
+			name:      "transp",
+			whichType: vectorAndMatrixType,
+			fn: [numType]binaryFn{
+				matrixType: func(c Context, u, v Value) Value {
+					m := v.(*Matrix).binaryTranspose(c, u.(Vector))
+					if m.Rank() <= 1 {
+						return m.Data()
+					}
+					return m
 				},
 			},
 		},

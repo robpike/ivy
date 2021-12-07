@@ -57,6 +57,16 @@ func (v Vector) AllChars() bool {
 	return true
 }
 
+// AllInts reports whether the vector contains only Ints.
+func (v Vector) AllInts() bool {
+	for _, c := range v {
+		if _, ok := c.Inner().(Int); !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func NewVector(elems []Value) Vector {
 	return Vector(elems)
 }
@@ -83,14 +93,14 @@ func (v Vector) Copy() Vector {
 	return NewVector(elem)
 }
 
-func (v Vector) toType(conf *config.Config, which valueType) Value {
+func (v Vector) toType(op string, conf *config.Config, which valueType) Value {
 	switch which {
 	case vectorType:
 		return v
 	case matrixType:
 		return NewMatrix([]int{len(v)}, v)
 	}
-	Errorf("cannot convert vector to %s", which)
+	Errorf("%s: cannot convert vector to %s", op, which)
 	return nil
 }
 
@@ -150,7 +160,7 @@ func (v Vector) grade(c Context) Vector {
 // membership creates a vector of size len(u) reporting
 // whether each element is an element of v.
 // TODO: N*M algorithm - can we do better?
-func membership(c Context, u, v Vector) Value {
+func membership(c Context, u, v Vector) []Value {
 	values := make([]Value, len(u))
 	for i, x := range u {
 		values[i] = Int(0)
@@ -161,7 +171,7 @@ func membership(c Context, u, v Vector) Value {
 			}
 		}
 	}
-	return NewVector(values).shrink()
+	return values
 }
 
 func (v Vector) shrink() Value {

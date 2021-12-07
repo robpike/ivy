@@ -34,7 +34,7 @@ type Value interface {
 	// puts quotes on chars, guaranteeing a correct representation.
 	ProgString() string
 
-	toType(*config.Config, valueType) Value
+	toType(string, *config.Config, valueType) Value
 }
 
 // Error is the type we recognize as a recoverable run-time error.
@@ -69,11 +69,11 @@ func Parse(conf *config.Config, s string) (Value, error) {
 			return bigRatTwoInt64s(int64(num.(Int)), int64(den.(Int))).shrink(), nil
 		}
 		// General mix-em-up.
-		rden := den.toType(conf, bigRatType)
+		rden := den.toType("rat", conf, bigRatType)
 		if rden.(BigRat).Sign() == 0 {
 			Errorf("zero denominator in rational")
 		}
-		return binaryBigRatOp(num.toType(conf, bigRatType), (*big.Rat).Quo, rden), nil
+		return binaryBigRatOp(num.toType("rat", conf, bigRatType), (*big.Rat).Quo, rden), nil
 	}
 	// Not a rational, but might be something like 1.3e-2 and therefore
 	// become a rational.
