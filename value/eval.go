@@ -396,7 +396,7 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 		dim := v.shape[0]
 		index := 0
 		for k := range u.data {
-			n[k] = c.EvalBinary(v.data[index], op, u.data[k])
+			n[k] = c.EvalBinary(u.data[k], op, v.data[index])
 			index++
 			if index >= dim {
 				index = 0
