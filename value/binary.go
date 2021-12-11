@@ -167,6 +167,19 @@ func toBool(t Value) bool {
 	panic("not reached")
 }
 
+// andBool is like toBool but handles vectors by and'ing the values together.
+func andBool(t Value) bool {
+	if v, ok := t.(Vector); ok {
+		for _, x := range v {
+			if !toBool(x) {
+				return false
+			}
+		}
+		return true
+	}
+	return toBool(t)
+}
+
 var (
 	zero        = Int(0)
 	one         = Int(1)
@@ -1093,17 +1106,43 @@ func init() {
 					indices := make([]Value, len(B))
 					// TODO: This is n^2.
 					origin := c.Config().Origin()
-				Outer:
 					for i, b := range B {
+						indices[i] = zero
 						for j, a := range A {
 							if toBool(c.EvalBinary(a, "==", b)) {
 								indices[i] = Int(j + origin)
-								continue Outer
+								break
 							}
 						}
-						indices[i] = zero
 					}
 					return NewVector(indices)
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					A, B := u.(*Matrix), v.(*Matrix)
+					origin := c.Config().Origin()
+					// TODO: This is n^2.
+					if A.Rank()-1 > B.Rank() || !sameShape(A.shape[1:], B.shape[B.Rank()-(A.Rank()-1):]) {
+						Errorf("iota: mismatched shapes %s and %s", NewIntVector(A.shape), NewIntVector(B.shape))
+					}
+					shape := B.shape[:B.Rank()-(A.Rank()-1)]
+					if len(shape) == 0 {
+						shape = []int{1}
+					}
+					n := len(A.data) / A.shape[0] // elements in each comparison
+					indices := make([]Value, len(B.data)/n)
+					for i := 0; i < len(B.data); i += n {
+						indices[i/n] = zero
+						for j := 0; j < len(A.data); j += n {
+							if andBool(c.EvalBinary(A.data[j:j+n], "==", B.data[i:i+n])) {
+								indices[i/n] = Int(j/n + origin)
+								break
+							}
+						}
+					}
+					if len(shape) == 1 {
+						return NewVector(indices)
+					}
+					return NewMatrix(shape, indices)
 				},
 			},
 		},
