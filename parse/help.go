@@ -393,6 +393,7 @@ var helpBinary = map[string]helpIndexPair{
 	"flip":   {112, 112},
 	"log":    {113, 113},
 	"text":   {114, 118},
+	"transp": {119, 119},
 	"!":      {120, 120},
 	"<":      {121, 121},
 	"<=":     {122, 122},

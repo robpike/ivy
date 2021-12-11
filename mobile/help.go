@@ -157,7 +157,7 @@ Dyadic format         A⍕B   text    Format B into a character matrix according
                                     otherwise result depends on length of A:
                                     1 gives decimal count, 2 gives width and decimal count,
                                     3 gives width, decimal count, and style (&#39;d&#39;, &#39;e&#39;, &#39;f&#39;, etc.).
-General transpose     A⍉B           The axes of B are ordered by A
+General transpose     A⍉B   transp  The axes of B are ordered by A
 Combinations          A!B   !       Number of combinations of B taken A at a time
 Less than             A&lt;B   &lt;       Comparison: 1 if true, 0 if false
 Less than or equal    A≤B   &lt;=      Comparison: 1 if true, 0 if false
