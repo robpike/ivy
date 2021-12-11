@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/pprof"
 	"strings"
 
 	"robpike.io/ivy/config"
@@ -42,6 +43,10 @@ var (
 func main() {
 	flag.Usage = usage
 	flag.Parse()
+
+	f, _ := os.Create("/tmp/ivy.prof")
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
 
 	if *origin != 0 && *origin != 1 {
 		fmt.Fprintf(os.Stderr, "ivy: illegal origin value %d\n", *origin)

@@ -803,7 +803,7 @@ func init() {
 
 		{
 			name:      "decode",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					// A decode B is the result of polyomial B at x=A.
@@ -836,12 +836,47 @@ func init() {
 					}
 					return nil
 				},
+				matrixType: func(c Context, u, v Value) Value {
+					A, B := u.(Vector), v.(*Matrix)
+					if len(A) != 1 && B.shape[0] != 1 && len(A) != B.shape[0] {
+						Errorf("decode of length %d and shape %s", len(A), NewIntVector(B.shape))
+					}
+					shape := B.shape[1:]
+					elems := make([]Value, len(B.data)/B.shape[0])
+					get := func(v Vector, i int) Value {
+						if len(v) == 1 {
+							return v[0]
+						}
+						return v[i]
+					}
+					for j := range elems {
+						result := Value(Int(0))
+						prod := Value(Int(1))
+						n := len(A)
+						if B.shape[0] > n {
+							n = B.shape[0]
+						}
+						for i := n - 1; i >= 0; i-- {
+							Bslice := B.data
+							if B.shape[0] > 1 {
+								Bslice = B.data[i*len(elems) : (i+1)*len(elems)]
+							}
+							result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", Bslice[j]))
+							prod = c.EvalBinary(prod, "*", get(A, i))
+						}
+						elems[j] = result
+					}
+					if len(shape) == 1 {
+						return NewVector(elems)
+					}
+					return NewMatrix(shape, elems)
+				},
 			},
 		},
 
 		{
 			name:      "encode",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					// A encode B is a matrix of len(A) rows and len(B) columns.
@@ -901,6 +936,31 @@ func init() {
 						for i := len(A) - 1; i >= 0; i-- {
 							a := A[i]
 							elems[j+i*len(B)] = mod(b, a)
+							b = div(b, a)
+						}
+					}
+					return NewMatrix(shape, elems)
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					mod := func(b, a Value) Value {
+						if z, ok := a.(Int); ok && z == 0 {
+							return b
+						}
+						return c.EvalBinary(b, "mod", a)
+					}
+					div := func(b, a Value) Value {
+						if z, ok := a.(Int); ok && z == 0 {
+							return b
+						}
+						return c.EvalBinary(b, "div", a)
+					}
+					A, B := u.(Vector), v.(*Matrix)
+					elems := make([]Value, len(A)*len(B.data))
+					shape := append([]int{len(A)}, B.Shape()...)
+					for j, b := range B.data {
+						for i := len(A) - 1; i >= 0; i-- {
+							a := A[i]
+							elems[j+i*len(B.data)] = mod(b, a)
 							b = div(b, a)
 						}
 					}
