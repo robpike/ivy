@@ -202,7 +202,12 @@ Operators and axis indicator
 	Scan (first axis)   ⍀    \%   +⍀B                       Running sum down B
 	Inner product       .    .    A+.×B        A +.* B      Matrix product of A and B
 	Outer product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B
-	                                                       (lower case o; may need preceding space)
+	                                                        (lower case o;
+	                                                        may need preceding space)
+	Each left                @f                A @f B       (A[1] f B), (A[2] f B), ...
+	                                                        as vector or matrix
+	Each right          f¨   f@   A f¨ B       A f@ B       (A f B[1]), (A f B[2]), ...
+	                                                        as vector or matrix
 
 Type-converting operations
 

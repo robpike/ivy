@@ -143,6 +143,8 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 					return value.ScanFirst(c, op[:len(op)-2], right)
 				}
 			}
+		case '@':
+			return value.Each(c, op, right)
 		}
 	}
 	fn := c.Unary(op)
@@ -180,6 +182,9 @@ func (c *Context) EvalBinary(left value.Value, op string, right value.Value) val
 		if ok {
 			return v
 		}
+	}
+	if strings.Trim(op, "@") != op {
+		return value.BinaryEach(c, left, op, right)
 	}
 	if strings.Contains(op, ".") {
 		return value.Product(c, left, op, right)
