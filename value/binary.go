@@ -1041,7 +1041,7 @@ func init() {
 								continue Outer
 							}
 						}
-						indices[i] = zero
+						indices[i] = Int(len(A) + origin)
 					}
 					return NewVector(indices)
 				},
