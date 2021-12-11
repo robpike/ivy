@@ -198,7 +198,12 @@ var helpLines = []string{
 	"\tScan (first axis)   ⍀    \\%   +⍀B                       Running sum down B",
 	"\tInner product       .    .    A+.×B        A +.* B      Matrix product of A and B",
 	"\tOuter product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B",
-	"\t                                                       (lower case o; may need preceding space)",
+	"\t                                                        (lower case o;",
+	"\t                                                        may need preceding space)",
+	"\tEach left                @f                A @f B       (A[1] f B), (A[2] f B), ...",
+	"\t                                                        as vector or matrix",
+	"\tEach right          f¨   f@   A f¨ B       A f@ B       (A f B[1]), (A f B[2]), ...",
+	"\t                                                        as vector or matrix",
 	"",
 	"Type-converting operations",
 	"",
@@ -463,9 +468,9 @@ var helpUnary = map[string]helpIndexPair{
 	"phase":   {112, 112},
 	"conj":    {113, 113},
 	"sys":     {114, 114},
-	"code":    {200, 200},
-	"char":    {201, 201},
-	"float":   {202, 204},
+	"code":    {205, 205},
+	"char":    {206, 206},
+	"float":   {207, 209},
 }
 
 var helpBinary = map[string]helpIndexPair{
@@ -524,4 +529,6 @@ var helpAxis = map[string]helpIndexPair{
 	"\\%": {192, 192},
 	".":   {193, 193},
 	"o.":  {194, 194},
+	"@f":  {197, 197},
+	"f@":  {199, 199},
 }
