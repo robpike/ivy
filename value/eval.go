@@ -470,6 +470,143 @@ func ScanFirst(c Context, op string, v Value) Value {
 
 }
 
+// dataShape returns the data shape of v.
+// The data shape of a scalar is []int{}, to distinguish from a vector of length 1.
+func dataShape(v Value) []int {
+	switch v := v.(type) {
+	case Vector:
+		return []int{len(v)}
+	case *Matrix:
+		return v.Shape()
+	}
+	return []int{}
+}
+
+// appendData appends the underlying data of v to list.
+func appendData(list Vector, v Value) Vector {
+	switch v := v.(type) {
+	case Vector:
+		return append(list, v...)
+	case *Matrix:
+		return append(list, v.data...)
+	}
+	return append(list, v)
+}
+
+// BinaryMap computes the result of mapping op between lv and rv.
+func BinaryMap(c Context, lv Value, op string, rv Value) Value {
+	l := lv.toType(op, c.Config(), matrixType).(*Matrix)
+	r := rv.toType(op, c.Config(), matrixType).(*Matrix)
+	lsize := len(l.data)
+	rsize := len(r.data)
+	ln := 0
+	for ln < len(op) && op[ln] == '@' {
+		if l.shape[ln] > 0 {
+			lsize /= l.shape[ln]
+		}
+		ln++
+	}
+	rn := 0
+	for rn < len(op) && op[len(op)-1-rn] == '@' {
+		if r.shape[rn] > 0 {
+			rsize /= r.shape[rn]
+		}
+		rn++
+	}
+	var shape []int
+	var result Vector
+	for i := 0; i < len(l.data); i += lsize {
+		for j := 0; j < len(r.data); j += rsize {
+			var x Value = l.data[i : i+lsize]
+			var y Value = r.data[j : j+rsize]
+			if len(l.shape)-ln > 1 {
+				x = NewMatrix(l.shape[ln:], x.(Vector))
+			} else if len(l.shape)-ln == 0 {
+				x = x.(Vector).shrink()
+			}
+			if len(r.shape)-rn > 1 {
+				y = NewMatrix(r.shape[rn:], y.(Vector))
+			} else if len(r.shape)-rn == 0 {
+				y = y.(Vector).shrink()
+			}
+			a := c.EvalBinary(x, op[ln:len(op)-rn], y)
+			if shape == nil {
+				shape = dataShape(a)
+			} else {
+				if !sameShape(shape, dataShape(a)) {
+					Errorf("map %s: conflicting result shapes %s and %s",
+						op, NewIntVector(shape...), NewIntVector(dataShape(a)...))
+				}
+			}
+			result = appendData(result, a)
+		}
+	}
+	var mshape []int
+	mshape = append(mshape, l.shape[:ln]...)
+	mshape = append(mshape, r.shape[:rn]...)
+	if len(shape) > 1 || len(shape) == 1 && shape[0] > 1 {
+		mshape = append(mshape, shape...)
+	}
+	if len(mshape) == 1 {
+		return result
+	}
+	return NewMatrix(mshape, result)
+}
+
+// Map computes the result of mapping op onto v.
+// The trailing @ has been removed.
+func Map(c Context, op string, v Value) Value {
+	var shape []int
+	var result Vector
+	var n int
+	switch v := v.(type) {
+	default:
+		Errorf("can't map %s| on %s", op, whichType(v))
+
+	case Vector:
+		n = len(v)
+		for _, x := range v {
+			a := c.EvalUnary(op, x)
+			if shape == nil {
+				shape = dataShape(a)
+			} else {
+				if !sameShape(shape, dataShape(a)) {
+					Errorf("map %s|: conflicting result shapes %s and %s",
+						op, NewIntVector(shape...), NewIntVector(dataShape(a)...))
+				}
+			}
+			result = appendData(result, a)
+		}
+
+	case *Matrix:
+		elem := len(v.data) / v.shape[0]
+		n = v.shape[0]
+		for i := 0; i < len(v.data); i += elem {
+			var x Value
+			if len(v.shape) == 2 {
+				x = v.data[i : i+elem]
+			} else {
+				x = NewMatrix(v.shape[1:], v.data[i:i+elem])
+			}
+			a := c.EvalUnary(op, x)
+			if shape == nil {
+				shape = dataShape(a)
+			} else {
+				if !sameShape(shape, dataShape(a)) {
+					Errorf("map %s@: conflicting result shapes %s and %s",
+						op, NewIntVector(shape...), NewIntVector(dataShape(a)...))
+				}
+			}
+			result = appendData(result, a)
+		}
+	}
+
+	if len(shape) == 0 || len(shape) == 1 && shape[0] == 1 {
+		return result
+	}
+	return NewMatrix(append([]int{n}, shape...), result)
+}
+
 // unaryVectorOp applies op elementwise to i.
 func unaryVectorOp(c Context, op string, i Value) Value {
 	u := i.(Vector)
