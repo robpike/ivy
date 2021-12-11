@@ -470,6 +470,178 @@ func ScanFirst(c Context, op string, v Value) Value {
 
 }
 
+// dataShape returns the data shape of v.
+// The data shape of a scalar is []int{}, to distinguish from a vector of length 1.
+func dataShape(v Value) []int {
+	switch v := v.(type) {
+	case Vector:
+		return []int{len(v)}
+	case *Matrix:
+		return v.Shape()
+	}
+	return []int{}
+}
+
+// TODO: When we update to Go 1.23, Edit ,s/iterSeq/iter.Seq[Value]/g
+type iterSeq[T any] func(yield func(T) bool)
+
+// eachOne returns an iterator that yields v once.
+func eachOne(v Value) iterSeq[Value] {
+	return func(yield func(Value) bool) {
+		yield(v)
+	}
+}
+
+// eachVector returns an iterator that yields each element of v.
+func eachVector(v Vector) iterSeq[Value] {
+	return func(yield func(Value) bool) {
+		for _, x := range v {
+			if !yield(x) {
+				break
+			}
+		}
+	}
+}
+
+// eachMatrix returns an iterator that yields subparts of m,
+// iterating over the first dim dimensions of m.
+// If dim == len(m.shape), the iterator yields each value in m.
+// If dim == len(m.shape)-1, the iterator yields each innermost row of m.
+// Otherwise the iterator yields each submatrix obtained by indexing
+// the first dim dimensions of m.
+func eachMatrix(m *Matrix, dim int) iterSeq[Value] {
+	if dim == len(m.shape) {
+		return eachVector(m.data)
+	}
+	size := len(m.data)
+	for d := 0; d < dim; d++ {
+		size /= m.shape[d]
+	}
+	return func(yield func(Value) bool) {
+		for i := 0; i < len(m.data); i += size {
+			var v Value
+			if dim == len(m.shape)-1 {
+				v = m.data[i : i+size]
+			} else {
+				v = NewMatrix(m.shape[dim:], m.data[i:i+size])
+			}
+			if !yield(v) {
+				break
+			}
+		}
+	}
+}
+
+// eachAny returns an iterator that yields subparts of v
+// iterating over the first dim dimensions of v.
+// The caller has checked that dim is in range for v.
+func eachValue(v Value, dim int) iterSeq[Value] {
+	if dim == 0 {
+		return eachOne(v)
+	}
+	switch v := v.(type) {
+	default:
+		return eachOne(v)
+	case Vector:
+		if dim != 1 {
+			panic("impossible eachValue")
+		}
+		return eachVector(v)
+	case *Matrix:
+		if dim > len(v.shape) {
+			panic("impossible eachValue")
+		}
+		return eachMatrix(v, dim)
+	}
+}
+
+// BinaryEach computes the result of applying op to lv and rv,
+// applying the "each" expansion depending on how many times
+// @ appears on the left and right ends of op.
+func BinaryEach(c Context, lv Value, op string, rv Value) Value {
+	// Count as many @s as possible for the left side.
+	// Must strip at least one if present, but don't have to strip all,
+	// in case we are doing @ of vector of vectors.
+	l := lv.toType(op, c.Config(), matrixType).(*Matrix)
+	lmax := len(l.shape)
+	ld := 0
+	for ld < len(op) && ld < lmax && op[ld] == '@' {
+		ld++
+	}
+	if ld == 0 && op[0] == '@' {
+		Errorf("%s: left side is scalar", op)
+	}
+	lhs := eachValue(lv, ld)
+
+	// Count as many @s as possible for the right side.
+	// Must strip at least one if present, but don't have to strip all,
+	// in case we are doing @ of vector of vectors.
+	r := rv.toType(op, c.Config(), matrixType).(*Matrix)
+	rmax := len(r.shape)
+	rd := 0
+	for rd < len(op) && rd < rmax && op[len(op)-1-rd] == '@' {
+		rd++
+	}
+	if rd == 0 && op[len(op)-1] == '@' {
+		Errorf("%s: right side is scalar", op)
+	}
+	rhs := eachValue(rv, rd)
+
+	innerOp := op[ld : len(op)-rd]
+	data := []Value{}
+
+	/*TODO: When we update to Go 1.23:
+	for x := range lhs {
+		for y := range rhs {
+			data = append(data, c.EvalBinary(x, innerOp, y))
+		}
+	}
+	*/
+	lhs(func(x Value) bool {
+		rhs(func(y Value) bool {
+			data = append(data, c.EvalBinary(x, innerOp, y))
+			return true
+		})
+		return true
+	})
+
+	if ld+rd == 1 {
+		return Vector(data)
+	}
+	shape := append(append([]int{}, l.shape[:ld]...), r.shape[:rd]...)
+	return NewMatrix(shape, data)
+}
+
+// Each computes the result of running op on each element of v.
+// The trailing @ has been removed.
+func Each(c Context, op string, v Value) Value {
+	m := v.toType(op, c.Config(), matrixType).(*Matrix)
+	max := len(m.shape)
+	d := 0
+	for d < len(op) && d < max && op[len(op)-1-d] == '@' {
+		d++
+	}
+	if d == 0 {
+		Errorf("%s: arg is scalar", op)
+	}
+
+	data := []Value{}
+	/*TODO: When we update to Go 1.23:
+	for x := range eachValue(v, d) {
+		data = append(data, c.EvalUnary(op[:len(op)-d], x))
+	}
+	*/
+	eachValue(v, d)(func(x Value) bool {
+		data = append(data, c.EvalUnary(op[:len(op)-d], x))
+		return true
+	})
+
+	if d == 1 {
+		return Vector(data)
+	}
+	return NewMatrix(m.shape[:d], data)
+}
+
 // unaryVectorOp applies op elementwise to i.
 func unaryVectorOp(c Context, op string, i Value) Value {
 	u := i.(Vector)
