@@ -391,7 +391,7 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 			}
 		}
 	case isVector(v, u.shape):
-		// Vector op Matrix.
+		// Matrix op Vector.
 		n = make([]Value, len(u.data))
 		dim := v.shape[0]
 		index := 0
