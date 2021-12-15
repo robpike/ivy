@@ -122,6 +122,7 @@ Unary operators
 	Phase                   phase   Phase of the value in the complex plane (-π to π)
 	Conjugate         +B    conj    Complex conjugate of the value
 	System functions  ⎕     sys     Argument is a string; run "sys 'help'" for details
+	Print                   print   Print and evaluate to argument; useful for debugging
 
 Binary operators
 

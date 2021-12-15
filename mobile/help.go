@@ -129,6 +129,7 @@ Imaginary part          imag    Imaginary component of the value
 Phase                   phase   Phase of the value in the complex plane (-π to π)
 Conjugate         +B    conj    Complex conjugate of the value
 System functions  ⎕     sys     Argument is a string; run &quot;sys &apos;help&apos;&quot; for details
+Print                   print   Print and evaluate to argument; useful for debugging
 </pre>
 <p>Binary operators
 <pre>Name                  APL   Ivy       Meaning
