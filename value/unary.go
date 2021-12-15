@@ -5,6 +5,7 @@
 package value
 
 import (
+	"fmt"
 	"math/big"
 	"unicode/utf8"
 )
@@ -120,6 +121,11 @@ func text(c Context, v Value) Value {
 var IvyEval func(context Context, s string) Value
 
 var UnaryOps = make(map[string]UnaryOp)
+
+func printValue(c Context, v Value) Value {
+	fmt.Printf("%s\n\n", v.Sprint(c.Config()))
+	return v
+}
 
 func init() {
 	ops := []*unaryOp{
@@ -695,6 +701,19 @@ func init() {
 				matrixType: func(c Context, v Value) Value {
 					return c.EvalUnary("flatten", NewVector(v.(*Matrix).data))
 				},
+			},
+		},
+
+		{
+			name: "print",
+			fn: [numType]unaryFn{
+				intType:      printValue,
+				charType:     printValue,
+				bigIntType:   printValue,
+				bigRatType:   printValue,
+				bigFloatType: printValue,
+				vectorType:   printValue,
+				matrixType:   printValue,
 			},
 		},
 
