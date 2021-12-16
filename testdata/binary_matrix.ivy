@@ -791,6 +791,10 @@ transp 0 1 sel transp (2 3 rho iota 6)
 (2 3 rho iota 6) iota (3 3 rho iota 9)[3 2 1]
 	0 2 1
 
+)origin 0
+(2 3 rho iota 6) iota (3 3 rho iota 9)[2 1 0]
+	-1 1 0
+
 (iota 9) iota (3 3 rho iota 9)[3 2 1]
 	7 8 9
 	4 5 6

@@ -1107,7 +1107,7 @@ func init() {
 					// TODO: This is n^2.
 					origin := c.Config().Origin()
 					for i, b := range B {
-						indices[i] = zero
+						indices[i] = Int(origin - 1)
 						for j, a := range A {
 							if toBool(c.EvalBinary(a, "==", b)) {
 								indices[i] = Int(j + origin)
@@ -1131,7 +1131,7 @@ func init() {
 					n := len(A.data) / A.shape[0] // elements in each comparison
 					indices := make([]Value, len(B.data)/n)
 					for i := 0; i < len(B.data); i += n {
-						indices[i/n] = zero
+						indices[i/n] = Int(origin - 1)
 						for j := 0; j < len(A.data); j += n {
 							if andBool(c.EvalBinary(A.data[j:j+n], "==", B.data[i:i+n])) {
 								indices[i/n] = Int(j/n + origin)
