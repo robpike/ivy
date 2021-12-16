@@ -447,6 +447,34 @@
 1 2 3 4[down 1 2 3 4]
 	4 3 2 1
 
+rho 11 22 33[3 2 1]
+	3
+
+rho 11 22 33[2 3]
+	2
+
+rho 11 22 33[2]
+	0
+
+rho 11 22 33[1 rho 2]
+	1
+
+(6 2 rho "abcdefghijkl") [3 2 rho iota 6]
+	ab
+	cd
+	
+	ef
+	gh
+	
+	ij
+	kl
+
+rho (6 2 rho "abcdefghijkl") [3 2 rho iota 6]
+	3 2 2
+
+x = 1 rho 1; rho x[up x]
+	1
+
 3 sel 1
 	1 1 1
 

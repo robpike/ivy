@@ -31,3 +31,19 @@ x
 # invalid code points in string
 '\x80'
 	X
+
+# cannot index int
+1[1]
+	X
+
+# cannot index rational
+1/2 [1]
+	X
+
+# cannot index float
+(log 2)[1]
+	X
+
+# index must be integer
+1 2[1 2 log 2]
+	X
