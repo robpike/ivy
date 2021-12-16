@@ -216,45 +216,43 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 	case Vector:
 		v := v.(Vector)
 		u.sameLength(v)
-		var x Value
-		for k, e := range u {
-			tmp := c.EvalBinary(e, right, v[k])
-			if k == 0 {
-				x = tmp
-			} else {
-				x = c.EvalBinary(x, left, tmp)
-			}
+		n := len(u)
+		if n == 0 {
+			Errorf("empty inner product")
+		}
+		x := c.EvalBinary(u[n-1], right, v[n-1])
+		for k := n - 2; k >= 0; k-- {
+			x = c.EvalBinary(c.EvalBinary(u[k], right, v[k]), left, x)
 		}
 		return x
 	case *Matrix:
 		// Say we're doing +.*
 		// result[i,j] = +/(u[row i] * v[column j])
-		// Number of columns of u must be the number of rows of v.
-		// The result is has shape (urows, vcols).
+		// Number of columns of u must be the number of rows of v: (-1 take rho u) == (1 take rho v)
+		// The result is has shape (-1 drop rho u), (1 drop rho v)
 		v := v.(*Matrix)
-		if u.Rank() != 2 || v.Rank() != 2 {
-			Errorf("can't do inner product on shape %s times %s", NewIntVector(u.shape), NewIntVector(v.shape))
+		if u.Rank() < 1 || v.Rank() < 1 || u.shape[len(u.shape)-1] != v.shape[0] {
+			Errorf("inner product: mismatched shapes %s and %s", NewIntVector(u.shape), NewIntVector(v.shape))
 		}
-		urows := u.shape[0]
-		ucols := u.shape[1]
-		vrows := v.shape[0]
-		vcols := v.shape[1]
-		if vrows != ucols {
-			Errorf("inner product; column count of left (%d) not equal to row count on right (%d)", ucols, vrows)
-		}
-		data := make(Vector, urows*vcols)
-		shape := []int{urows, vcols}
-		i := 0
-		for urow := 0; urow < urows; urow++ {
-			for vcol := 0; vcol < vcols; vcol++ {
-				acc := c.EvalBinary(u.data[urow*ucols], right, v.data[vcol])
-				for vrow := 1; vrow < vrows; vrow++ {
-					acc = c.EvalBinary(acc, left, c.EvalBinary(u.data[urow*ucols+vrow], right, v.data[vrow*vcols+vcol]))
+		n := v.shape[0]
+		vstride := len(v.data) / n
+		data := make(Vector, len(u.data)/n*vstride)
+		for i := 0; i < len(u.data); i += n {
+			for j := 0; j < vstride; j++ {
+				acc := c.EvalBinary(u.data[i+n-1], right, v.data[j+(n-1)*vstride])
+				for k := n - 2; k >= 0; k-- {
+					acc = c.EvalBinary(c.EvalBinary(u.data[i+k], right, v.data[j+k*vstride]), left, acc)
 				}
-				data[i] = acc
-				i++
+				data[i/n*vstride+j] = acc
 			}
 		}
+		rank := len(u.shape) + len(v.shape) - 2
+		if rank == 1 {
+			return data
+		}
+		shape := make([]int, rank)
+		copy(shape, u.shape[:len(u.shape)-1])
+		copy(shape[len(u.shape)-1:], v.shape[1:])
 		return NewMatrix(shape, data)
 	}
 	Errorf("can't do inner product on %s", whichType(u))

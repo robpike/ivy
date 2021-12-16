@@ -143,18 +143,23 @@ func (v Vector) grade(c Context) Vector {
 	for i := range x {
 		x[i] = i
 	}
-	sort.Sort(&gradeIndex{c: c, v: v, x: x})
+	sort.Slice(x, func(i, j int) bool {
+		return toBool(c.EvalBinary(v[x[i]], "<", v[x[j]]))
+	})
 	origin := c.Config().Origin()
-	result := make([]Value, len(v))
-	for i, index := range x {
-		n := origin + index
-		if n > maxInt { // Unlikely but be careful.
-			result[i] = bigInt64(int64(n))
-		} else {
-			result[i] = Int(n)
-		}
+	for i := range x {
+		x[i] += origin
 	}
-	return NewVector(result)
+	return NewIntVector(x)
+}
+
+// reverse returns the reversal of a vector.
+func (v Vector) reverse() Vector {
+	r := v.Copy()
+	for i, j := 0, len(r)-1; i < j; i, j = i+1, j-1 {
+		r[i], r[j] = r[j], r[i]
+	}
+	return r
 }
 
 // membership creates a vector of size len(u) reporting
@@ -179,22 +184,4 @@ func (v Vector) shrink() Value {
 		return v[0]
 	}
 	return v
-}
-
-type gradeIndex struct {
-	c Context
-	v Vector
-	x []int
-}
-
-func (g *gradeIndex) Len() int {
-	return len(g.v)
-}
-
-func (g *gradeIndex) Less(i, j int) bool {
-	return toBool(g.c.EvalBinary(g.v[g.x[i]], "<", g.v[g.x[j]]))
-}
-
-func (g *gradeIndex) Swap(i, j int) {
-	g.x[i], g.x[j] = g.x[j], g.x[i]
 }

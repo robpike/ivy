@@ -172,6 +172,19 @@ func toBool(t Value) bool {
 	panic("not reached")
 }
 
+// andBool is like toBool but handles vectors by and'ing the values together.
+func andBool(t Value) bool {
+	if v, ok := t.(Vector); ok {
+		for _, x := range v {
+			if !toBool(x) {
+				return false
+			}
+		}
+		return true
+	}
+	return toBool(t)
+}
+
 var (
 	zero        = Int(0)
 	one         = Int(1)
@@ -808,7 +821,7 @@ func init() {
 
 		{
 			name:      "decode",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					// A decode B is the result of polyomial B at x=A.
@@ -841,12 +854,47 @@ func init() {
 					}
 					return nil
 				},
+				matrixType: func(c Context, u, v Value) Value {
+					A, B := u.(Vector), v.(*Matrix)
+					if len(A) != 1 && B.shape[0] != 1 && len(A) != B.shape[0] {
+						Errorf("decode of length %d and shape %s", len(A), NewIntVector(B.shape))
+					}
+					shape := B.shape[1:]
+					elems := make([]Value, len(B.data)/B.shape[0])
+					get := func(v Vector, i int) Value {
+						if len(v) == 1 {
+							return v[0]
+						}
+						return v[i]
+					}
+					for j := range elems {
+						result := Value(Int(0))
+						prod := Value(Int(1))
+						n := len(A)
+						if B.shape[0] > n {
+							n = B.shape[0]
+						}
+						for i := n - 1; i >= 0; i-- {
+							Bslice := B.data
+							if B.shape[0] > 1 {
+								Bslice = B.data[i*len(elems) : (i+1)*len(elems)]
+							}
+							result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", Bslice[j]))
+							prod = c.EvalBinary(prod, "*", get(A, i))
+						}
+						elems[j] = result
+					}
+					if len(shape) == 1 {
+						return NewVector(elems)
+					}
+					return NewMatrix(shape, elems)
+				},
 			},
 		},
 
 		{
 			name:      "encode",
-			whichType: atLeastVectorType,
+			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					// A encode B is a matrix of len(A) rows and len(B) columns.
@@ -911,6 +959,31 @@ func init() {
 					}
 					return NewMatrix(shape, elems)
 				},
+				matrixType: func(c Context, u, v Value) Value {
+					mod := func(b, a Value) Value {
+						if z, ok := a.(Int); ok && z == 0 {
+							return b
+						}
+						return c.EvalBinary(b, "mod", a)
+					}
+					div := func(b, a Value) Value {
+						if z, ok := a.(Int); ok && z == 0 {
+							return b
+						}
+						return c.EvalBinary(b, "div", a)
+					}
+					A, B := u.(Vector), v.(*Matrix)
+					elems := make([]Value, len(A)*len(B.data))
+					shape := append([]int{len(A)}, B.Shape()...)
+					for j, b := range B.data {
+						for i := len(A) - 1; i >= 0; i-- {
+							a := A[i]
+							elems[j+i*len(B.data)] = mod(b, a)
+							b = div(b, a)
+						}
+					}
+					return NewMatrix(shape, elems)
+				},
 			},
 		},
 
@@ -954,17 +1027,43 @@ func init() {
 					indices := make([]Value, len(B))
 					// TODO: This is n^2.
 					origin := c.Config().Origin()
-				Outer:
 					for i, b := range B {
+						indices[i] = Int(origin - 1)
 						for j, a := range A {
 							if toBool(c.EvalBinary(a, "==", b)) {
 								indices[i] = Int(j + origin)
-								continue Outer
+								break
 							}
 						}
-						indices[i] = zero
 					}
 					return NewVector(indices)
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					A, B := u.(*Matrix), v.(*Matrix)
+					origin := c.Config().Origin()
+					// TODO: This is n^2.
+					if A.Rank()-1 > B.Rank() || !sameShape(A.shape[1:], B.shape[B.Rank()-(A.Rank()-1):]) {
+						Errorf("iota: mismatched shapes %s and %s", NewIntVector(A.shape), NewIntVector(B.shape))
+					}
+					shape := B.shape[:B.Rank()-(A.Rank()-1)]
+					if len(shape) == 0 {
+						shape = []int{1}
+					}
+					n := len(A.data) / A.shape[0] // elements in each comparison
+					indices := make([]Value, len(B.data)/n)
+					for i := 0; i < len(B.data); i += n {
+						indices[i/n] = Int(origin - 1)
+						for j := 0; j < len(A.data); j += n {
+							if andBool(c.EvalBinary(A.data[j:j+n], "==", B.data[i:i+n])) {
+								indices[i/n] = Int(j/n + origin)
+								break
+							}
+						}
+					}
+					if len(shape) == 1 {
+						return NewVector(indices)
+					}
+					return NewMatrix(shape, indices)
 				},
 			},
 		},

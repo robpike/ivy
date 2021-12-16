@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"robpike.io/ivy/config"
@@ -711,4 +712,31 @@ func (m *Matrix) drop(c Context, v Vector) *Matrix {
 	}
 
 	return m.take(c, take)
+}
+
+// grade returns as a Vector the indexes that sort the rows of m
+// into increasing order.
+func (m *Matrix) grade(c Context) Vector {
+	x := make([]int, m.shape[0])
+	for i := range x {
+		x[i] = i
+	}
+	v := m.data
+	stride := len(v) / m.shape[0]
+	sort.Slice(x, func(i, j int) bool {
+		i = x[i] * stride
+		j = x[j] * stride
+		for k := 0; k < stride; k++ {
+			if toBool(c.EvalBinary(v[i+k], "==", v[j+k])) {
+				continue
+			}
+			return toBool(c.EvalBinary(v[i+k], "<", v[j+k]))
+		}
+		return false
+	})
+	origin := c.Config().Origin()
+	for i := range x {
+		x[i] += origin
+	}
+	return NewIntVector(x)
 }

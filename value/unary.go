@@ -469,10 +469,10 @@ func init() {
 				bigRatType:   self,
 				bigFloatType: self,
 				vectorType: func(c Context, v Value) Value {
-					if c == nil {
-						panic("NIL IN gradeUP")
-					}
 					return v.(Vector).grade(c)
+				},
+				matrixType: func(c Context, v Value) Value {
+					return v.(*Matrix).grade(c)
 				},
 			},
 		},
@@ -486,11 +486,10 @@ func init() {
 				bigRatType:   self,
 				bigFloatType: self,
 				vectorType: func(c Context, v Value) Value {
-					x := v.(Vector).grade(c)
-					for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
-						x[i], x[j] = x[j], x[i]
-					}
-					return x
+					return v.(Vector).grade(c).reverse()
+				},
+				matrixType: func(c Context, v Value) Value {
+					return v.(*Matrix).grade(c).reverse()
 				},
 			},
 		},
@@ -504,11 +503,7 @@ func init() {
 				bigRatType:   self,
 				bigFloatType: self,
 				vectorType: func(c Context, v Value) Value {
-					x := v.(Vector).Copy()
-					for i, j := 0, len(x)-1; i < j; i, j = i+1, j-1 {
-						x[i], x[j] = x[j], x[i]
-					}
-					return x
+					return v.(Vector).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix).Copy()
