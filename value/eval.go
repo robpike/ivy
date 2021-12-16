@@ -275,11 +275,14 @@ func Scan(c Context, op string, v Value) Value {
 			return v
 		}
 		values := make(Vector, len(v))
-		acc := v[0]
-		values[0] = acc
-		// TODO: This is n^2.
+		// TODO: For some operations this is n^2.
+		values[0] = v[0]
 		for i := 1; i < len(v); i++ {
-			values[i] = Reduce(c, op, v[:i+1])
+			if fastOp := fastScanOp(op, i); fastOp != "" {
+				values[i] = c.EvalBinary(values[i-1], fastOp, v[i])
+			} else {
+				values[i] = Reduce(c, op, v[:i+1])
+			}
 		}
 		return NewVector(values)
 	case *Matrix:
@@ -298,11 +301,14 @@ func Scan(c Context, op string, v Value) Value {
 			nrows *= v.shape[i]
 		}
 		for i := 0; i < nrows; i++ {
-			acc := v.data[index]
-			data[index] = acc
-			// TODO: This is n^2.
+			data[index] = v.data[index]
+			// TODO: For some operations this is n^2.
 			for j := 1; j < stride; j++ {
-				data[index+j] = Reduce(c, op, v.data[index:index+j+1])
+				if fastOp := fastScanOp(op, j); fastOp != "" {
+					data[index+j] = c.EvalBinary(data[index+j-1], fastOp, v.data[index+j])
+				} else {
+					data[index+j] = Reduce(c, op, v.data[index:index+j+1])
+				}
 			}
 			index += stride
 		}
@@ -472,4 +478,26 @@ func isTrue(fnName string, v Value) bool {
 		Errorf("invalid expression %s for conditional inside %q", v, fnName)
 		return false
 	}
+}
+
+// fastScanOp returns the appropriate scan op, according to it, the iteration
+// variable. When no fast scan operation is available, an empty string is
+// returned. Fast scan op is available for all associative ops and for some
+// inassociative ops (such as "-" and "/").
+func fastScanOp(op string, it int) string {
+	switch op {
+	case "+", "-", "*", "/", ",", "|", "&", "^", "or", "and", "xor":
+	default:
+		// All the rest of the ops are not optimized, and need full reduction.
+		return ""
+	}
+	if it%2 == 0 {
+		switch op {
+		case "-":
+			return "+"
+		case "/":
+			return "*"
+		}
+	}
+	return op
 }
