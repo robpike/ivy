@@ -13,6 +13,11 @@ import (
 // To avoid initialization cycles when we refer to the ops from inside
 // themselves, we use an init function to initialize the ops.
 
+// noPromoteType leaves the types as they are.
+func noPromoteType(t1, t2 valueType) (valueType, valueType) {
+	return t1, t2
+}
+
 // binaryArithType returns the maximum of the two types,
 // so the smaller value is appropriately up-converted.
 func binaryArithType(t1, t2 valueType) (valueType, valueType) {
@@ -930,96 +935,12 @@ func init() {
 
 		{
 			name:      "[]",
-			whichType: binaryArithType,
+			whichType: noPromoteType,
 			fn: [numType]binaryFn{
-				vectorType: func(c Context, u, v Value) Value {
-					// A[B]: The successive elements of A with indexes elements of B.
-					A, B := u.(Vector), v.(Vector)
-					values := make([]Value, len(B))
-					origin := Int(c.Config().Origin())
-					for i, b := range B {
-						x, ok := b.(Int)
-						if !ok {
-							Errorf("index must be integer")
-						}
-						x -= origin
-						if x < 0 || Int(len(A)) <= x {
-							Errorf("index %d out of range", x+origin)
-						}
-						values[i] = A[x]
-					}
-					if len(values) == 1 {
-						return values[0]
-					}
-					return NewVector(values).shrink()
-				},
-				matrixType: func(c Context, u, v Value) Value {
-					// A[B]: The successive elements of A with indexes given by elements of B.
-					A, mB := u.(*Matrix), v.(*Matrix)
-					B := mB.data
-					origin := Int(c.Config().Origin())
-
-					switch mB.Rank() {
-					case 1:
-					case 0:
-						Errorf("bad index rank %d", mB.Rank())
-					default:
-						if A.Rank() != 1 {
-							Errorf("bad index rank %d", mB.Rank())
-						}
-						// We are indexing a vector by an interesting shape.
-						// Special generalization not in APL: If the LHS is vector-like,
-						// the return value has the shape of the RHS. We could
-						// generalize more, but that's hard.
-						values := make(Vector, len(B))
-						for i, b := range B {
-							x, ok := b.(Int)
-							if !ok {
-								Errorf("index must be integer")
-							}
-							x -= origin
-							if x < 0 || Int(A.shape[0]) <= x {
-								Errorf("index %d out of range (shape %s)", x+origin, NewIntVector(A.shape))
-							}
-							values[i] = A.data[x]
-						}
-						newShape := make([]int, mB.Rank())
-						copy(newShape, mB.shape)
-						return NewMatrix(newShape, values)
-					}
-
-					ElemSize := Int(A.ElemSize())
-					values := make(Vector, 0, ElemSize*Int(len(B)))
-					for _, b := range B {
-						x, ok := b.(Int)
-						if !ok {
-							Errorf("index must be integer")
-						}
-						x -= origin
-						if x < 0 || Int(A.shape[0]) <= x {
-							Errorf("index %d out of range (shape %s)", x+origin, NewIntVector(A.shape))
-						}
-						start := ElemSize * x
-						values = append(values, A.data[start:start+ElemSize]...)
-					}
-					if len(B) == 1 {
-						// Special considerations. The result might need type reduction.
-						// TODO: Should this be Matrix.shrink?
-						// TODO: In some cases, can get a scalar.
-						// Is the result a vector?
-						if A.Rank() == 2 {
-							return values
-						}
-						// Matrix of one less degree.
-						newShape := make([]int, A.Rank()-1)
-						copy(newShape, A.shape[1:])
-						return NewMatrix(newShape, values)
-					}
-					newShape := make([]int, A.Rank())
-					copy(newShape, A.shape)
-					newShape[0] = len(B)
-					return NewMatrix(newShape, values)
-				},
+				// index is type inside [ ]
+				intType:    index,
+				vectorType: index,
+				matrixType: index,
 			},
 		},
 
