@@ -155,21 +155,23 @@ func lvalueOf(context value.Context, item value.Expr) value.Value {
 	panic("not reached")
 }
 
-func indexesOf(context value.Context, item value.Expr) []int {
-	switch v := item.(type) {
+func indexesOf(context value.Context, item value.Expr) (result []int) {
+	switch lhs := item.(type) {
+	case variableExpr:
+		return nil
 	case *binary:
-		if v.op == "[]" {
-			if _, ok := v.left.(variableExpr); ok {
-				return indexesOf(context, v.right)
-			}
-			return append(indexesOf(context, v.left), indexesOf(context, v.right)...)
+		if lhs.op == "[]" {
+			return append(indexesOf(context, lhs.left), intOf(context, lhs.right))
 		}
-	default:
-		v = v.Eval(context)
-		if i, ok := v.(value.Int); ok {
-			return []int{int(i)}
-		}
+	}
+	value.Errorf("cannot index by %s in assignment", item.ProgString())
+	panic("not reached")
+}
+
+func intOf(context value.Context, item value.Expr) int {
+	i, ok := item.Eval(context).(value.Int)
+	if !ok {
 		value.Errorf("cannot index by %s in assignment", item.ProgString())
 	}
-	return nil
+	return int(i)
 }
