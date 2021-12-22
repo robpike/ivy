@@ -166,13 +166,34 @@ func (v Vector) reverse() Vector {
 // whether each element is an element of v.
 // TODO: N*M algorithm - can we do better?
 func membership(c Context, u, v Vector) []Value {
+	have := make(map[Value]bool)
+	var extra []Value
+	for _, y := range v {
+		switch y.(type) {
+		case Char, Int:
+			have[y] = true
+		default:
+			extra = append(extra, y)
+		}
+	}
+
 	values := make([]Value, len(u))
 	for i, x := range u {
+		if shrinker, ok := x.(interface{ shrink() Value }); ok {
+			x = shrinker.shrink()
+		}
 		values[i] = Int(0)
-		for _, y := range v {
-			if c.EvalBinary(x, "==", y) == Int(1) {
+		switch x.(type) {
+		case Char, Int:
+			if have[x] {
 				values[i] = Int(1)
-				break
+			}
+		default:
+			for _, y := range extra {
+				if c.EvalBinary(x, "==", y) == Int(1) {
+					values[i] = Int(1)
+					break
+				}
 			}
 		}
 	}

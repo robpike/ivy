@@ -644,3 +644,7 @@ circle 10
 
 10 decode 3 3 rho iota 9
 	147 258 369
+
+# takes 30 seconds if quadratic
++/ (iota 30000) in iota 30000
+	30000
