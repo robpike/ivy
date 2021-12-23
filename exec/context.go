@@ -62,13 +62,7 @@ func (c *Context) SetConstants() {
 
 // Lookup returns the value of a symbol.
 func (c *Context) Lookup(name string) value.Value {
-	for i := len(c.Stack) - 1; i >= 0; i-- {
-		v := c.Stack[i][name]
-		if v != nil {
-			return v
-		}
-	}
-	return nil
+	return c.varFrame(name, false)[name]
 }
 
 // assignLocal binds a value to the name in the current function.
@@ -80,23 +74,27 @@ func (c *Context) assignLocal(name string, value value.Value) {
 // be defined either in the current function or globally.
 // Inside a function, new variables become locals.
 func (c *Context) Assign(name string, val value.Value) {
+	c.varFrame(name, true)[name] = val
+}
+
+// varFrame returns the stack frame for the named variable.
+func (c *Context) varFrame(name string, assign bool) Symtab {
 	n := len(c.Stack)
 	if n == 0 {
 		value.Errorf("empty stack; cannot happen")
 	}
-	globals := c.Stack[0]
 	if n > 1 {
 		// In this function?
 		frame := c.Stack[n-1]
-		_, globallyDefined := globals[name]
+		_, globallyDefined := c.Stack[0][name]
 		if _, ok := frame[name]; ok || !globallyDefined {
-			frame[name] = val
-			return
+			return frame
 		}
 	}
-	// Assign global variable.
-	c.noOp(name)
-	globals[name] = val
+	if assign {
+		c.noOp(name)
+	}
+	return c.Stack[0] // globals
 }
 
 // push pushes a new frame onto the context stack.

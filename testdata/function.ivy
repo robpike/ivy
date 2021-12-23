@@ -28,6 +28,15 @@ op double u = x = u; x*2
 double 3; x
 	6 3
 
+# in g calling f, f used to assign to global y but read from g's y.
+op f x = y = 99; y
+op g y = f y
+g 42
+y = 10
+g 42
+	99
+	99
+
 # Declare unary before use
 op foo x
 op bar x = foo x
