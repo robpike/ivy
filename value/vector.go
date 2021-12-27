@@ -164,19 +164,33 @@ func (v Vector) reverse() Vector {
 
 // membership creates a vector of size len(u) reporting
 // whether each element is an element of v.
-// TODO: N*M algorithm - can we do better?
+// Algorithm is O(nV log nV + nU log nV) where nU==len(u) and nV==len(V).
 func membership(c Context, u, v Vector) []Value {
 	values := make([]Value, len(u))
+	sortedV := v.sortedCopy(c)
 	for i, x := range u {
-		values[i] = Int(0)
-		for _, y := range v {
-			if c.EvalBinary(x, "==", y) == Int(1) {
-				values[i] = Int(1)
-				break
-			}
-		}
+		values[i] = toInt(sortedV.contains(c, x))
 	}
 	return values
+}
+
+// sortedCopy returns a copy of v, in ascending sorted order.
+func (v Vector) sortedCopy(c Context) Vector {
+	sortedV := make([]Value, len(v))
+	copy(sortedV, v)
+	sort.Slice(sortedV, func(i, j int) bool {
+		return c.EvalBinary(sortedV[i], "<", sortedV[j]) == Int(1)
+	})
+	return sortedV
+}
+
+// contains reports whether x is in v, which must be already in ascending
+// sorted order.
+func (v Vector) contains(c Context, x Value) bool {
+	pos := sort.Search(len(v), func(j int) bool {
+		return c.EvalBinary(v[j], ">=", x) == Int(1)
+	})
+	return pos < len(v) && c.EvalBinary(v[pos], "==", x) == Int(1)
 }
 
 func (v Vector) shrink() Value {
