@@ -6,6 +6,7 @@ package value
 
 import (
 	"math/big"
+	"sort"
 )
 
 // Binary operators.
@@ -173,16 +174,17 @@ func toBool(t Value) bool {
 }
 
 // andBool is like toBool but handles vectors by and'ing the values together.
+// The results are known to be Ints, as they come from comparison operations.
 func andBool(t Value) bool {
 	if v, ok := t.(Vector); ok {
 		for _, x := range v {
-			if !toBool(x) {
+			if x == Int(0) {
 				return false
 			}
 		}
 		return true
 	}
-	return toBool(t)
+	return t.(Int) == Int(1)
 }
 
 var (
@@ -1024,16 +1026,26 @@ func init() {
 				vectorType: func(c Context, u, v Value) Value {
 					// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
 					A, B := u.(Vector), v.(Vector)
-					indices := make([]Value, len(B))
-					// TODO: This is n^2.
+					type indexed struct {
+						v     Value
+						index int
+					}
 					origin := c.Config().Origin()
+					sortedA := make([]indexed, len(A))
+					for i, a := range A {
+						sortedA[i] = indexed{a, i + origin}
+					}
+					sort.Slice(sortedA, func(i, j int) bool {
+						return c.EvalBinary(sortedA[i].v, "<", sortedA[j].v) == Int(1)
+					})
+					indices := make([]Value, len(B))
 					for i, b := range B {
 						indices[i] = Int(origin - 1)
-						for j, a := range A {
-							if toBool(c.EvalBinary(a, "==", b)) {
-								indices[i] = Int(j + origin)
-								break
-							}
+						pos := sort.Search(len(sortedA), func(j int) bool {
+							return c.EvalBinary(sortedA[j].v, ">=", b) == Int(1)
+						})
+						if pos < len(sortedA) && c.EvalBinary(sortedA[pos].v, "==", b) == Int(1) {
+							indices[i] = Int(sortedA[pos].index)
 						}
 					}
 					return NewVector(indices)
@@ -1041,10 +1053,11 @@ func init() {
 				matrixType: func(c Context, u, v Value) Value {
 					A, B := u.(*Matrix), v.(*Matrix)
 					origin := c.Config().Origin()
-					// TODO: This is n^2.
 					if A.Rank()-1 > B.Rank() || !sameShape(A.shape[1:], B.shape[B.Rank()-(A.Rank()-1):]) {
 						Errorf("iota: mismatched shapes %s and %s", NewIntVector(A.shape), NewIntVector(B.shape))
 					}
+					// TODO: This is n^2. Use an algorithm similar to the Vector case, or perhaps use hashing.
+					// However, one of the n's is the dimension of a matrix, so it is likely to be small.
 					shape := B.shape[:B.Rank()-(A.Rank()-1)]
 					if len(shape) == 0 {
 						shape = []int{1}
