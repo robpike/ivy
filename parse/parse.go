@@ -24,6 +24,8 @@ func tree(e interface{}) string {
 		return fmt.Sprintf("<bigint %s>", e)
 	case value.BigRat:
 		return fmt.Sprintf("<rat %s>", e)
+	case value.Complex:
+		return fmt.Sprintf("<complex %s>", e)
 	case sliceExpr:
 		s := "<"
 		for i, x := range e {
@@ -500,7 +502,7 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 			break
 		}
 		fallthrough
-	case scan.Number, scan.Rational, scan.String, scan.LeftParen:
+	case scan.Number, scan.Rational, scan.Imaginary, scan.String, scan.LeftParen:
 		expr = p.numberOrVector(tok)
 	default:
 		p.errorf("unexpected %s", tok)
@@ -538,6 +540,7 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 // number
 //	integer
 //	rational
+//	complex
 //	string
 //	variable
 //	'(' Expr ')'
@@ -552,6 +555,8 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 		str = value.ParseString(text)
 	case scan.Number, scan.Rational:
 		expr, err = value.Parse(p.context.Config(), text)
+	case scan.Imaginary:
+		expr, err = value.ParseImaginary(p.context.Config(), text)
 	case scan.LeftParen:
 		expr = p.expr()
 		tok := p.next()

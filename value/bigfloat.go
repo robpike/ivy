@@ -139,6 +139,8 @@ func (f BigFloat) toType(op string, conf *config.Config, which valueType) Value 
 	switch which {
 	case bigFloatType:
 		return f
+	case complexType:
+		return newComplex(f)
 	case vectorType:
 		return NewVector([]Value{f})
 	case matrixType:

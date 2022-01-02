@@ -12,18 +12,20 @@ import (
 
 type valueType int
 
+// The ordering of valueType is used for up-conversion.
 const (
 	intType valueType = iota
 	charType
 	bigIntType
 	bigRatType
 	bigFloatType
+	complexType
 	vectorType
 	matrixType
 	numType
 )
 
-var typeName = [...]string{"int", "char", "big int", "rational", "float", "vector", "matrix"}
+var typeName = [...]string{"int", "char", "big int", "rational", "float", "complex", "vector", "matrix"}
 
 func (t valueType) String() string {
 	return typeName[t]
@@ -75,6 +77,8 @@ func whichType(v Value) valueType {
 		return bigRatType
 	case BigFloat:
 		return bigFloatType
+	case Complex:
+		return complexType
 	case Vector:
 		return vectorType
 	case *Matrix:

@@ -109,6 +109,11 @@ func binaryBigFloatOp(c Context, u Value, op func(*big.Float, *big.Float, *big.F
 	return z.shrink()
 }
 
+func binaryComplexOp(c Context, u Value, op func(Complex, Context, Complex) Complex, v Value) Value {
+	i, j := u.(Complex), v.(Complex)
+	return op(i, c, j).shrink()
+}
+
 // bigIntExp is the "op" for exp on *big.Int. Different signature for Exp means we can't use *big.Exp directly.
 // Also we need a context (really a config); see the bigIntExpOp function below.
 // We know this is not 0**negative.
@@ -169,6 +174,8 @@ func toBool(t Value) bool {
 		return t.Sign() != 0
 	case BigFloat:
 		return t.Sign() != 0
+	case Complex:
+		return toBool(t.real) || toBool(t.imag)
 	}
 	Errorf("cannot convert %T to bool", t)
 	panic("not reached")
@@ -221,6 +228,9 @@ func init() {
 				bigFloatType: func(c Context, u, v Value) Value {
 					return binaryBigFloatOp(c, u, (*big.Float).Add, v)
 				},
+				complexType: func(c Context, u, v Value) Value {
+					return binaryComplexOp(c, u, (Complex).Add, v)
+				},
 			},
 		},
 
@@ -243,6 +253,9 @@ func init() {
 				bigFloatType: func(c Context, u, v Value) Value {
 					return binaryBigFloatOp(c, u, (*big.Float).Sub, v)
 				},
+				complexType: func(c Context, u, v Value) Value {
+					return binaryComplexOp(c, u, (Complex).Sub, v)
+				},
 			},
 		},
 
@@ -264,6 +277,9 @@ func init() {
 				bigFloatType: func(c Context, u, v Value) Value {
 					return binaryBigFloatOp(c, u, (*big.Float).Mul, v)
 				},
+				complexType: func(c Context, u, v Value) Value {
+					return binaryComplexOp(c, u, (Complex).Mul, v)
+				},
 			},
 		},
 
@@ -280,6 +296,9 @@ func init() {
 				},
 				bigFloatType: func(c Context, u, v Value) Value {
 					return binaryBigFloatOp(c, u, (*big.Float).Quo, v)
+				},
+				complexType: func(c Context, u, v Value) Value {
+					return binaryComplexOp(c, u, (Complex).Quo, v)
 				},
 			},
 		},
@@ -303,6 +322,7 @@ func init() {
 				},
 				bigRatType:   nil, // Not defined for rationals. Use div.
 				bigFloatType: nil,
+				complexType:  nil,
 			},
 		},
 
@@ -325,6 +345,7 @@ func init() {
 				},
 				bigRatType:   nil, // Not defined for rationals. Use mod.
 				bigFloatType: nil,
+				complexType:  nil,
 			},
 		},
 
@@ -341,6 +362,7 @@ func init() {
 				},
 				bigRatType:   nil, // Not defined for rationals. Use div.
 				bigFloatType: nil,
+				complexType:  nil,
 			},
 		},
 
@@ -357,6 +379,7 @@ func init() {
 				},
 				bigRatType:   nil, // Not defined for rationals. Use mod.
 				bigFloatType: nil,
+				complexType:  nil,
 			},
 		},
 
@@ -549,6 +572,10 @@ func init() {
 					i, j := u.(BigFloat), v.(BigFloat)
 					return toInt(i.Cmp(j.Float) == 0)
 				},
+				complexType: func(c Context, u, v Value) Value {
+					i, j := u.(Complex), v.(Complex)
+					return toInt(i.Cmp(c, j))
+				},
 			},
 		},
 
@@ -574,6 +601,10 @@ func init() {
 				bigFloatType: func(c Context, u, v Value) Value {
 					i, j := u.(BigFloat), v.(BigFloat)
 					return toInt(i.Cmp(j.Float) != 0)
+				},
+				complexType: func(c Context, u, v Value) Value {
+					i, j := u.(Complex), v.(Complex)
+					return toInt(!i.Cmp(c, j))
 				},
 			},
 		},
@@ -702,6 +733,9 @@ func init() {
 				bigFloatType: func(c Context, u, v Value) Value {
 					return toInt(toBool(u) && toBool(v))
 				},
+				complexType: func(c Context, u, v Value) Value {
+					return toInt(toBool(u) && toBool(v))
+				},
 			},
 		},
 
@@ -723,6 +757,9 @@ func init() {
 					return toInt(toBool(u) || toBool(v))
 				},
 				bigFloatType: func(c Context, u, v Value) Value {
+					return toInt(toBool(u) || toBool(v))
+				},
+				complexType: func(c Context, u, v Value) Value {
 					return toInt(toBool(u) || toBool(v))
 				},
 			},
@@ -771,6 +808,9 @@ func init() {
 				bigFloatType: func(c Context, u, v Value) Value {
 					return toInt(!(toBool(u) && toBool(v)))
 				},
+				complexType: func(c Context, u, v Value) Value {
+					return toInt(!(toBool(u) && toBool(v)))
+				},
 			},
 		},
 
@@ -792,6 +832,9 @@ func init() {
 					return toInt(!(toBool(u) || toBool(v)))
 				},
 				bigFloatType: func(c Context, u, v Value) Value {
+					return toInt(!(toBool(u) || toBool(v)))
+				},
+				complexType: func(c Context, u, v Value) Value {
 					return toInt(!(toBool(u) || toBool(v)))
 				},
 			},

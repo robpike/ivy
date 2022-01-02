@@ -1,0 +1,28 @@
+# Copyright 2022 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Binary operations on complex numbers.
+
+(2+3i)+5+7i
+	(7+10i)
+
+(2+3i)-5+7i
+	(-3-4i)
+
+(2+3i)*5+7i
+	(-11+29i)
+
+(2+3i)/5+7i
+	(31/74+1/74i)
+
+# Potential confusion; this input looks like a 2-element vector.
+2+3i 4+5i
+	(2+8i) (6+5i)
+
+# This is how the previous input parses.
+(2) + ((3i) (4)) + (5i)
+	(2+8i) (6+5i)
+
+(iota 10) + 1i * 90 drop iota 100
+	(1+91i) (2+92i) (3+93i) (4+94i) (5+95i) (6+96i) (7+97i) (8+98i) (9+99i) (10+100i)

@@ -34,8 +34,8 @@ const (
 	// Interesting things
 	Assign         // '='
 	Char           // printable ASCII character; grab bag for comma etc.
-	GreaterOrEqual // '>='
 	Identifier     // alphanumeric identifier
+	Imaginary     // imaginary part of a complex number like 1i or 1/2i
 	LeftBrack      // '['
 	LeftParen      // '('
 	Number         // simple number
@@ -468,8 +468,12 @@ func lexNumber(l *Scanner) stateFn {
 			return lexAny
 		}
 	}
-	if !l.scanNumber(true) {
+	if !l.scanNumber(true, true) {
 		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
+	}
+	if l.accept("i") {
+		l.emit(Imaginary)
+		return lexAny
 	}
 	r := l.peek()
 	if r != '/' {
@@ -487,17 +491,21 @@ func lexNumber(l *Scanner) stateFn {
 		l.emit(Operator)
 		return lexAny
 	}
-	if !l.scanNumber(false) {
+	if !l.scanNumber(false, true) {
 		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
 	}
 	if l.peek() == '.' {
 		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos+1])
 	}
+	if l.accept("i") {
+		l.emit(Imaginary)
+		return lexAny
+	}
 	l.emit(Rational)
 	return lexAny
 }
 
-func (l *Scanner) scanNumber(followingSlashOK bool) bool {
+func (l *Scanner) scanNumber(followingSlashOK, followingImagOK bool) bool {
 	base := l.context.Config().InputBase()
 	digits := digitsForBase(base)
 	// If base 0, acccept octal for 0 or hex for 0x or 0X.
@@ -518,6 +526,9 @@ func (l *Scanner) scanNumber(followingSlashOK bool) bool {
 	}
 	r := l.peek()
 	if followingSlashOK && r == '/' {
+		return true
+	}
+	if followingImagOK && r == 'i' {
 		return true
 	}
 	// Next thing mustn't be alphanumeric except possibly an o for outer product (3o.+2).
