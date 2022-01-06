@@ -5,6 +5,7 @@
 package value
 
 import (
+	"math"
 	"math/big"
 	"sort"
 )
@@ -869,23 +870,25 @@ func init() {
 						}
 						return v[i]
 					}
-					for j := range elems {
-						result := Value(Int(0))
-						prod := Value(Int(1))
-						n := len(A)
-						if B.shape[0] > n {
-							n = B.shape[0]
-						}
-						for i := n - 1; i >= 0; i-- {
-							Bslice := B.data
-							if B.shape[0] > 1 {
-								Bslice = B.data[i*len(elems) : (i+1)*len(elems)]
-							}
-							result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", Bslice[j]))
-							prod = c.EvalBinary(prod, "*", get(A, i))
-						}
-						elems[j] = result
+					n := len(A)
+					if B.shape[0] > n {
+						n = B.shape[0]
 					}
+					pfor(true, n, len(elems), func(lo, hi int) {
+						for j := lo; j < hi; j++ {
+							result := Value(Int(0))
+							prod := Value(Int(1))
+							for i := n - 1; i >= 0; i-- {
+								Bslice := B.data
+								if B.shape[0] > 1 {
+									Bslice = B.data[i*len(elems) : (i+1)*len(elems)]
+								}
+								result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", Bslice[j]))
+								prod = c.EvalBinary(prod, "*", get(A, i))
+							}
+							elems[j] = result
+						}
+					})
 					if len(shape) == 1 {
 						return NewVector(elems)
 					}
@@ -951,14 +954,16 @@ func init() {
 					// 1 0 1
 					elems := make([]Value, len(A)*len(B))
 					shape := []int{len(A), len(B)}
-					for j := range B {
-						b := B[j]
-						for i := len(A) - 1; i >= 0; i-- {
-							a := A[i]
-							elems[j+i*len(B)] = mod(b, a)
-							b = div(b, a)
+					pfor(true, len(A), len(B), func(lo, hi int) {
+						for j := lo; j < hi; j++ {
+							b := B[j]
+							for i := len(A) - 1; i >= 0; i-- {
+								a := A[i]
+								elems[j+i*len(B)] = mod(b, a)
+								b = div(b, a)
+							}
 						}
-					}
+					})
 					return NewMatrix(shape, elems)
 				},
 				matrixType: func(c Context, u, v Value) Value {
@@ -977,13 +982,16 @@ func init() {
 					A, B := u.(Vector), v.(*Matrix)
 					elems := make([]Value, len(A)*len(B.data))
 					shape := append([]int{len(A)}, B.Shape()...)
-					for j, b := range B.data {
-						for i := len(A) - 1; i >= 0; i-- {
-							a := A[i]
-							elems[j+i*len(B.data)] = mod(b, a)
-							b = div(b, a)
+					pfor(true, len(A), len(B.data), func(lo, hi int) {
+						for j := lo; j < hi; j++ {
+							b := B.data[j]
+							for i := len(A) - 1; i >= 0; i-- {
+								a := A[i]
+								elems[j+i*len(B.data)] = mod(b, a)
+								b = div(b, a)
+							}
 						}
-					}
+					})
 					return NewMatrix(shape, elems)
 				},
 			},
@@ -1039,15 +1047,19 @@ func init() {
 						return c.EvalBinary(sortedA[i].v, "<", sortedA[j].v) == Int(1)
 					})
 					indices := make([]Value, len(B))
-					for i, b := range B {
-						indices[i] = Int(origin - 1)
-						pos := sort.Search(len(sortedA), func(j int) bool {
-							return c.EvalBinary(sortedA[j].v, ">=", b) == Int(1)
-						})
-						if pos < len(sortedA) && c.EvalBinary(sortedA[pos].v, "==", b) == Int(1) {
-							indices[i] = Int(sortedA[pos].index)
+					work := 2 * (1 + int(math.Log2(float64(len(A)))))
+					pfor(true, work, len(B), func(lo, hi int) {
+						for i := lo; i < hi; i++ {
+							b := B[i]
+							indices[i] = Int(origin - 1)
+							pos := sort.Search(len(sortedA), func(j int) bool {
+								return c.EvalBinary(sortedA[j].v, ">=", b) == Int(1)
+							})
+							if pos < len(sortedA) && c.EvalBinary(sortedA[pos].v, "==", b) == Int(1) {
+								indices[i] = Int(sortedA[pos].index)
+							}
 						}
-					}
+					})
 					return NewVector(indices)
 				},
 				matrixType: func(c Context, u, v Value) Value {
@@ -1064,15 +1076,17 @@ func init() {
 					}
 					n := len(A.data) / A.shape[0] // elements in each comparison
 					indices := make([]Value, len(B.data)/n)
-					for i := 0; i < len(B.data); i += n {
-						indices[i/n] = Int(origin - 1)
-						for j := 0; j < len(A.data); j += n {
-							if andBool(c.EvalBinary(A.data[j:j+n], "==", B.data[i:i+n])) {
-								indices[i/n] = Int(j/n + origin)
-								break
+					pfor(true, n, len(B.data)/n, func(lo, hi int) {
+						for i := lo; i < hi; i++ {
+							indices[i] = Int(origin - 1)
+							for j := 0; j < len(A.data); j += n {
+								if andBool(c.EvalBinary(A.data[j:j+n], "==", B.data[i*n:(i+1)*n])) {
+									indices[i] = Int(j/n + origin)
+									break
+								}
 							}
 						}
-					}
+					})
 					if len(shape) == 1 {
 						return NewVector(indices)
 					}

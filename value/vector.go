@@ -7,6 +7,7 @@ package value
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"sort"
 
 	"robpike.io/ivy/config"
@@ -128,13 +129,8 @@ func (v Vector) rotate(n int) Value {
 }
 
 func doRotate(dst, src []Value, j int) {
-	for i := range dst {
-		dst[i] = src[j]
-		j++
-		if j >= len(src) {
-			j = 0
-		}
-	}
+	n := copy(dst, src[j:])
+	copy(dst[n:n+j], src[:j])
 }
 
 // grade returns as a Vector the indexes that sort the vector into increasing order
@@ -168,9 +164,12 @@ func (v Vector) reverse() Vector {
 func membership(c Context, u, v Vector) []Value {
 	values := make([]Value, len(u))
 	sortedV := v.sortedCopy(c)
-	for i, x := range u {
-		values[i] = toInt(sortedV.contains(c, x))
-	}
+	work := 2 * (1 + int(math.Log2(float64(len(v)))))
+	pfor(true, work, len(values), func(lo, hi int) {
+		for i := lo; i < hi; i++ {
+			values[i] = toInt(sortedV.contains(c, u[i]))
+		}
+	})
 	return values
 }
 
