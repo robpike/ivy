@@ -29,10 +29,8 @@ func assignment(context value.Context, b *binary) value.Value {
 	case variableExpr:
 		context.Assign(lhs.name, rhs)
 		return Assignment{Value: rhs}
-	case *binary:
-		if lhs.op == "[]" {
-			return indexedAssignment(context, lhs, b.right, rhs)
-		}
+	case *index:
+		return indexedAssignment(context, lhs, b.right, rhs)
 	}
 	value.Errorf("cannot assign %s to %s", b.left.ProgString(), b.right.ProgString())
 	panic("not reached")
@@ -40,14 +38,14 @@ func assignment(context value.Context, b *binary) value.Value {
 
 // indexedAssignment handles general assignment to indexed expressions on the LHS.
 // The LHS must be derived from a variable to make sure it is an l-value.
-func indexedAssignment(context value.Context, lhs *binary, rhsExpr value.Expr, rhs value.Value) value.Value {
+func indexedAssignment(context value.Context, lhs *index, rhsExpr value.Expr, rhs value.Value) value.Value {
 	// We walk down the index chain evaluating indexes and
 	// comparing them to the shape vector of the LHS.
 	// Once we're there, we copy the rhs to the lhs, doing a slice copy.
 	// rhsExpr is for diagnostics (only), as it gives a better error print.
-	slice, shape := dataAndShape(true, lhs, lvalueOf(context, lhs.left))
+	slice, shape := dataAndShape(true, lhs, lvalueOf(context, lhs.left, lhs))
 	indexes := indexesOf(context, lhs)
-	origin := int(value.Int(context.Config().Origin()))
+	origin := value.Int(context.Config().Origin())
 	offset := 0
 	var i int
 	for i = range shape {
@@ -55,15 +53,16 @@ func indexedAssignment(context value.Context, lhs *binary, rhsExpr value.Expr, r
 			value.Errorf("rank error assigning %s to %s", rhs, lhs.ProgString())
 		}
 		size := shapeProduct(shape[i+1:])
-		index := indexes[i] - origin
-		if index < 0 || shape[i] <= index {
+		index := indexes[i]
+		if index < origin || value.Int(shape[i]) <= index-origin {
 			value.Errorf("index of out of range in assignment")
 		}
+		index -= origin
+		offset += int(index) * size
 		// We're either going to skip this block, or we're at the
 		// end of the indexes and we're going to assign it.
 		if i < len(indexes)-1 {
 			// Skip.
-			offset += index * size
 			continue
 		}
 		// Assign.
@@ -73,7 +72,6 @@ func indexedAssignment(context value.Context, lhs *binary, rhsExpr value.Expr, r
 		if !sameShape(shape[i+1:], rhsShape) {
 			value.Errorf("data size/shape mismatch assigning %s to %s", rhs, lhs.ProgString())
 		}
-		offset += index * size
 		if dataSize == 1 {
 			slice[offset] = rhsData[0]
 		} else {
@@ -138,40 +136,41 @@ func toInt(v []value.Value) []int {
 
 // lvalueOf walks the index tree to find the variable that roots it.
 // It must evaluate to a non-scalar to be indexable.
-func lvalueOf(context value.Context, item value.Expr) value.Value {
-	switch lhs := item.(type) {
-	case variableExpr:
-		lvalue := lhs.Eval(context)
-		if lvalue.Rank() == 0 {
-			break
-		}
-		return lvalue
-	case *binary:
-		if lhs.op == "[]" {
-			return lvalueOf(context, lhs.left)
-		}
-	}
-	value.Errorf("cannot index %s in assignment", item.ProgString())
-	panic("not reached")
-}
-
-func indexesOf(context value.Context, item value.Expr) (result []int) {
-	switch lhs := item.(type) {
-	case variableExpr:
-		return nil
-	case *binary:
-		if lhs.op == "[]" {
-			return append(indexesOf(context, lhs.left), intOf(context, lhs.right))
-		}
-	}
-	value.Errorf("cannot index by %s in assignment", item.ProgString())
-	panic("not reached")
-}
-
-func intOf(context value.Context, item value.Expr) int {
-	i, ok := item.Eval(context).(value.Int)
+func lvalueOf(context value.Context, item value.Expr, top *index) value.Value {
+	lhs, ok := item.(variableExpr)
 	if !ok {
-		value.Errorf("cannot index by %s in assignment", item.ProgString())
+		if _, ok := item.(*index); ok {
+			// Old x[i][j]. Show new syntax.
+			n := 0
+			for x := top; x != nil; x, _ = x.left.(*index) {
+				n += len(x.right)
+			}
+			list := make([]value.Expr, n)
+			last := top.left
+			for x := top; x != nil; x, _ = x.left.(*index) {
+				n -= len(x.right)
+				copy(list[n:], x.right)
+				last = x.left
+			}
+			fixed := &index{left: last, right: list}
+			value.Errorf("cannot assign to %v; use %v", top.ProgString(), fixed.ProgString())
+		}
+		value.Errorf("cannot index %s in assignment", item.ProgString())
 	}
-	return int(i)
+	lvalue := lhs.Eval(context)
+	if lvalue.Rank() == 0 {
+		value.Errorf("cannot index %s (rank 0) in assignment", item.ProgString())
+	}
+	return lvalue
+}
+
+func indexesOf(context value.Context, item *index) (result []value.Int) {
+	for _, x := range item.right {
+		i, ok := x.Eval(context).(value.Int)
+		if !ok {
+			value.Errorf("cannot index by %s in assignment", x.ProgString())
+		}
+		result = append(result, i)
+	}
+	return result
 }

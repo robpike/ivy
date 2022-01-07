@@ -111,85 +111,89 @@ func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 }
 
 // index computes u[v].
-// v is known to be an int, vector, or matrix.
-// u could be anything.
-// The rank of the result depends only on the rank of u and v,
+// v is a list of successive semicolon-separated index expressions.
+// The rank of the result depends only on the rank of u and each value in v,
 // not on the actual data.
-// For example, if u is a vector and v is a vector,
-// then u[v] is always a vector, even if v has only one element.
+// For example, if u is a vector and v holds a single a vector,
+// then u[v] is always a vector, even if v[0] has only one element.
 // Giving each expression a rank that depends only on the
 // input ranks, and not on the actual indexes, is important
 // for avoiding indexing problems in user-defined operators.
-func index(c Context, u, v Value) Value {
-	var Astride Int
-	var Adata Vector
-	switch A := u.(type) {
-	case Vector:
-		Astride = 1
-		Adata = A
-	case *Matrix:
-		Astride = Int(len(A.data) / A.shape[0])
-		Adata = A.data
-	default:
-		Errorf("cannot index %v", whichType(u))
-	}
-
-	// Collect indexed values.
-	origin := Int(c.Config().Origin())
-	var data Vector
-	switch v.(type) {
-	default:
-		Errorf("index must be integer")
-	case Int:
-		B := v.(Int)
-		B -= origin
-		if B < 0 || B >= Int(len(Adata))/Astride {
-			Errorf("index %d out of range", B+origin)
+// expr is for use in error messages.
+func Index(c Context, u Value, v []Value, expr Expr) Value {
+	// TODO: Fix for multiple dimensions of vector-indexed indexes, like v = [1 2; 3 4].
+	for _, v := range v {
+		var Astride Int
+		var Adata Vector
+		switch A := u.(type) {
+		case Vector:
+			Astride = 1
+			Adata = A
+		case *Matrix:
+			Astride = Int(len(A.data) / A.shape[0])
+			Adata = A.data
+		default:
+			Errorf("cannot index %v", whichType(u))
 		}
-		data = append(data, Adata[B*Astride:(B+1)*Astride]...)
-	case Vector, *Matrix:
-		var Bdata []Value
+
+		// Collect indexed values.
+		origin := Int(c.Config().Origin())
+		var data Vector
+		switch v.(type) {
+		default:
+			Errorf("index must be integer")
+		case Int:
+			B := v.(Int)
+			B -= origin
+			if B < 0 || B >= Int(len(Adata))/Astride {
+				Errorf("index %d out of range", B+origin)
+			}
+			data = append(data, Adata[B*Astride:(B+1)*Astride]...)
+		case Vector, *Matrix:
+			var Bdata []Value
+			switch B := v.(type) {
+			case Vector:
+				Bdata = B
+			case *Matrix:
+				Bdata = B.data
+			}
+			data = make([]Value, 0, Int(len(Bdata))*Astride)
+			for i := range Bdata {
+				b, ok := Bdata[i].(Int)
+				if !ok {
+					Errorf("index must be integer")
+				}
+				b -= origin
+				if b < 0 || b >= Int(len(Adata))/Astride {
+					Errorf("index %d out of range", b+origin)
+				}
+				data = append(data, Adata[b*Astride:(b+1)*Astride]...)
+			}
+		}
+
+		// Shape of result of A[B] is the shape of B + shape of A[i].
+		var shape []int
 		switch B := v.(type) {
 		case Vector:
-			Bdata = B
+			shape = []int{len(B)}
 		case *Matrix:
-			Bdata = B.data
+			shape = append(shape, B.shape...)
 		}
-		data = make([]Value, 0, Int(len(Bdata))*Astride)
-		for i := range Bdata {
-			b, ok := Bdata[i].(Int)
-			if !ok {
-				Errorf("index must be integer")
-			}
-			b -= origin
-			if b < 0 || b >= Int(len(Adata))/Astride {
-				Errorf("index %d out of range", b+origin)
-			}
-			data = append(data, Adata[b*Astride:(b+1)*Astride]...)
+		switch A := u.(type) {
+		case *Matrix:
+			shape = append(shape, A.shape[1:]...)
+		}
+
+		switch len(shape) {
+		case 0:
+			u = data[0]
+		case 1:
+			u = data // vector
+		default:
+			u = NewMatrix(shape, data)
 		}
 	}
-
-	// Shape of result of A[B] is the shape of B + shape of A[i].
-	var shape []int
-	switch B := v.(type) {
-	case Vector:
-		shape = []int{len(B)}
-	case *Matrix:
-		shape = append(shape, B.shape...)
-	}
-	switch A := u.(type) {
-	case *Matrix:
-		shape = append(shape, A.shape[1:]...)
-	}
-
-	switch len(shape) {
-	case 0:
-		return data[0]
-	case 1:
-		return data // vector
-	default:
-		return NewMatrix(shape, data)
-	}
+	return u
 }
 
 // Product computes a compound product, such as an inner product
