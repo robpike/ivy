@@ -44,6 +44,18 @@ not sqrt 2
 log 1
 	0
 
+(2 log 8) - 3
+	0
+
+(5 log 5**12345) - 12345
+	0
+
+0, (-12345 + 5 log 5**12345) rho 1
+	0
+
+(2 log 8) rho 1
+	1 1 1
+
 sin 1e4
 	-0.305614388888
 
@@ -126,7 +138,7 @@ rho sqrt 2
 
 # Results should be integers (the cutover is defined in BigFloat.shrink and is arbitrary).
 sqrt 1e10 1e20 1e40 1e60
-	100000 10000000000 100000000000000000000 1000000000000000000000000000000 
+	100000 10000000000 100000000000000000000 1000000000000000000000000000000
 
 # Results should be floats.
 sqrt 1e80 1e100

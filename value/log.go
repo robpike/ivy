@@ -4,14 +4,90 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+)
 
 func logn(c Context, v Value) Value {
 	return evalFloatFunc(c, v, floatLog)
 }
 
 func logBaseU(c Context, u, v Value) Value {
-	return c.EvalBinary(logn(c, v), "/", logn(c, u))
+	// Handle the integer part exactly when the arguments are exact.
+	var i Int
+	switch u := u.(type) {
+	case Int:
+		i, v = intLog(u, v.(Int))
+		if v.(Int) == 1 {
+			return i
+		}
+	case BigInt:
+		i, v = bigIntLog(u, v.(BigInt))
+		if v.(BigInt).Cmp(bigOne.Int) == 0 {
+			return i
+		}
+	}
+	f := c.EvalBinary(logn(c, v), "/", logn(c, u))
+	if i != 0 {
+		f = c.EvalBinary(f, "+", i)
+	}
+	return f
+}
+
+// intLog returns the integer portion i of log base b of v
+// along with the remaining portion v / b^i.
+func intLog(b, v Int) (i, r Int) {
+	if b <= 1 || v < 0 {
+		return 0, v
+	}
+	iu, ru := uint64Log(uint64(b), uint64(v))
+	return Int(iu), Int(ru)
+}
+
+// uint64Log is like intLog, but for uint64.
+// Working in uint64 makes the overflow check easy.
+func uint64Log(b, v uint64) (i, r uint64) {
+	// Log by repeated squaring produces a single bit at a time, high to low.
+	// The algorithm is the reverse of exponentiation by repeated squaring,
+	if b <= 1 || v < b || v%b != 0 {
+		return 0, v
+	}
+	// u doesn't fit in 32 bits, then b*b will both overflow the uint64
+	// and be larger than v (if not for the overflow),
+	// so only recurse when b does fit in 32 bits
+	if uint64(uint32(b)) == b {
+		i, v = uint64Log(b*b, v)
+		i <<= 1
+	}
+	if v >= b {
+		v /= b
+		i |= 1
+	}
+	return i, v
+}
+
+// bigIntLog is like intLog, but for BigInt.
+// Note that the integer log portion always fits in an Int:
+// any non-trivial result is using base b ≥ 2,
+// bounding the result by the number of bits in v.
+func bigIntLog(b, v BigInt) (i Int, r BigInt) {
+	if b.Cmp(bigOne.Int) <= 0 || v.Cmp(b.Int) < 0 {
+		return 0, v
+	}
+	if z := new(big.Int).Mod(v.Int, b.Int); z.Cmp(bigZero.Int) != 0 {
+		return 0, v
+	}
+
+	// Only compute b*b if it can be smaller than v.
+	if 2*b.BitLen()-1 <= v.BitLen() {
+		i, v = bigIntLog(BigInt{new(big.Int).Mul(b.Int, b.Int)}, v)
+		i <<= 1
+	}
+	if v.Cmp(b.Int) >= 0 {
+		v = BigInt{new(big.Int).Div(v.Int, b.Int)}
+		i |= 1
+	}
+	return i, v
 }
 
 // floatLog computes natural log(x) using the Maclaurin series for log(1-x).
