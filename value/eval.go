@@ -143,6 +143,15 @@ func safeUnary(op string) bool {
 	return UnaryOps[op] != nil && op != "?"
 }
 
+// knownAssoc reports whether the binary op is known to be associative.
+func knownAssoc(op string) bool {
+	switch op {
+	case "+", "*", "min", "max", "or", "and", "xor", "|", "&", "^":
+		return true
+	}
+	return false
+}
+
 var pforMinWork = 100
 
 func MaxParallelismForTesting() {
@@ -329,12 +338,17 @@ func Scan(c Context, op string, v Value) Value {
 			return v
 		}
 		values := make(Vector, len(v))
-		acc := v[0]
-		// TODO: This is fundamentally O(n²) in the general case.
-		// We could make it O(n) for known associative ops.
-		values[0] = acc
-		for i := 1; i < len(v); i++ {
-			values[i] = Reduce(c, op, v[:i+1])
+		// This is fundamentally O(n²) in the general case.
+		// We make it O(n) for known associative ops.
+		values[0] = v[0]
+		if knownAssoc(op) {
+			for i := 1; i < len(v); i++ {
+				values[i] = c.EvalBinary(values[i-1], op, v[i])
+			}
+		} else {
+			for i := 1; i < len(v); i++ {
+				values[i] = Reduce(c, op, v[:i+1])
+			}
 		}
 		return NewVector(values)
 	case *Matrix:
@@ -354,12 +368,17 @@ func Scan(c Context, op string, v Value) Value {
 		pfor(safeBinary(op), stride, nrows, func(lo, hi int) {
 			for i := lo; i < hi; i++ {
 				index := i * stride
-				acc := v.data[index]
-				// TODO: This is fundamentally O(n²) in the general case.
-				// We could make it O(n) for known associative ops.
-				data[index] = acc
-				for j := 1; j < stride; j++ {
-					data[index+j] = Reduce(c, op, v.data[index:index+j+1])
+				// This is fundamentally O(n²) in the general case.
+				// We make it O(n) for known associative ops.
+				data[index] = v.data[index]
+				if knownAssoc(op) {
+					for j := 1; j < stride; j++ {
+						data[index+j] = c.EvalBinary(data[index+j-1], op, v.data[index+j])
+					}
+				} else {
+					for j := 1; j < stride; j++ {
+						data[index+j] = Reduce(c, op, v.data[index:index+j+1])
+					}
 				}
 			}
 		})
