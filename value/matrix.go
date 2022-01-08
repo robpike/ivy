@@ -355,13 +355,10 @@ func reshape(A, B Vector) Value {
 		shape[i] = int(n)
 	}
 	values := make([]Value, nelems)
-	j := 0
-	for i := range values {
-		if j >= len(B) {
-			j = 0
-		}
-		values[i] = B[j]
-		j++
+	n := copy(values, B)
+	// replicate as needed by doubling in values.
+	for n < len(values) {
+		n += copy(values[n:], values[:n])
 	}
 	if len(A) == 1 {
 		return NewVector(values)
@@ -381,9 +378,12 @@ func (m *Matrix) rotate(n int) Value {
 	if n < 0 {
 		n += dim
 	}
-	for i := 0; i < len(m.data); i += dim {
-		doRotate(elems[i:i+dim], m.data[i:i+dim], n)
-	}
+	pfor(true, dim, len(m.data)/dim, func(lo, hi int) {
+		for i := lo; i < hi; i++ {
+			j := i * dim
+			doRotate(elems[j:j+dim], m.data[j:j+dim], n)
+		}
+	})
 	return NewMatrix(m.shape, elems)
 }
 
@@ -406,13 +406,13 @@ func (m *Matrix) vrotate(n int) Value {
 		n += len(m.data)
 	}
 
-	for i := 0; i < len(m.data); i += dim {
-		copy(elems[i:i+dim], m.data[n:n+dim])
-		n += dim
-		if n >= len(m.data) {
-			n = 0
+	pfor(true, dim, len(m.data)/dim, func(lo, hi int) {
+		for i := lo; i < hi; i++ {
+			j := i * dim
+			n := (n + j) % len(m.data)
+			copy(elems[j:j+dim], m.data[n:n+dim])
 		}
-	}
+	})
 
 	return NewMatrix(m.shape, elems)
 }
@@ -476,24 +476,32 @@ func (m *Matrix) binaryTranspose(c Context, v Vector) *Matrix {
 
 	old := m.Data()
 	data := make([]Value, sz)
-	index := make([]int, rank)
-	for i := range data {
-		// Compute old index for this new entry.
-		oi := 0
-		for j := range v {
-			oi = oi*m.Shape()[j] + index[oldToNew[j]]
-		}
-
-		data[i] = old[oi]
-
-		// Increment index.
+	pfor(true, 1, len(data), func(lo, hi int) {
+		// Compute starting index
+		index := make([]int, rank)
+		i := lo
 		for j := rank - 1; j >= 0; j-- {
-			if index[j]++; index[j] < shape[j] {
-				break
-			}
-			index[j] = 0
+			index[j] = i % shape[j]
+			i /= shape[j]
 		}
-	}
+		for i := lo; i < hi; i++ {
+			// Compute old index for this new entry.
+			oi := 0
+			for j := range v {
+				oi = oi*m.Shape()[j] + index[oldToNew[j]]
+			}
+
+			data[i] = old[oi]
+
+			// Increment index.
+			for j := rank - 1; j >= 0; j-- {
+				if index[j]++; index[j] < shape[j] {
+					break
+				}
+				index[j] = 0
+			}
+		}
+	})
 
 	return NewMatrix(shape, data)
 }
@@ -659,6 +667,8 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 	return NewMatrix(shape, result)
 }
 
+// TODO(rsc): Use pfor, but will probably require
+// avoiding recursion and definitely avoiding append.
 func appendTake(result, take, data Vector, dshape []int) Vector {
 	if len(take) == 0 {
 		return append(result, data...)
