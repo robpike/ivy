@@ -240,7 +240,7 @@ func pfor(ok bool, size, n int, f func(lo, hi int)) {
 	var p int
 	if ok {
 		p = runtime.GOMAXPROCS(-1)
-		if p == 1 || n <= 1 || n*size < pforMinWork*3/2 {
+		if p == 1 || n <= 1 || n*size < pforMinWork*2 {
 			ok = false
 		}
 	}
