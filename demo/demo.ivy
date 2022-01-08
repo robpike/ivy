@@ -127,6 +127,8 @@ x
 # Indexing is easy.
 x[1]
 x[1 19 3]  # You can index with a vector.
+# Multiple index dimensions are separated by semicolons.
+(5 5 rho iota 25)[rot iota 5; iota 5]
 # The up and down operators generate index vectors that would sort the input.
 up x
 x[up x]

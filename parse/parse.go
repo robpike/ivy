@@ -249,12 +249,7 @@ func (x *index) ProgString() string {
 }
 
 func (x *index) Eval(context value.Context) value.Value {
-	rhs := make([]value.Value, len(x.right))
-	for i := len(rhs) - 1; i >= 0; i-- {
-		rhs[i] = x.right[i].Eval(context).Inner()
-	}
-	lhs := x.left.Eval(context)
-	return value.Index(context, lhs, rhs, x)
+	return value.Index(context, x, x.left, x.right)
 }
 
 // conditional is a conditional executor: expression ":" expression
