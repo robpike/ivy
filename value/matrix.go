@@ -485,8 +485,10 @@ func (m *Matrix) binaryTranspose(c Context, v Vector) *Matrix {
 		index := make([]int, rank)
 		i := lo
 		for j := rank - 1; j >= 0; j-- {
-			index[j] = i % shape[j]
-			i /= shape[j]
+			if shape[j] > 0 {
+				index[j] = i % shape[j]
+				i /= shape[j]
+			}
 		}
 		for i := lo; i < hi; i++ {
 			// Compute old index for this new entry.
