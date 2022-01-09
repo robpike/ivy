@@ -216,7 +216,7 @@ func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) 
 			data:  m.data[int64(i)*m.ElemSize():],
 		}
 		if i > 0 {
-			b.WriteString("\n")
+			b.WriteString("\n\n")
 		}
 		innerPrefix := fmt.Sprintf("%s%d ", prefix, i+conf.Origin())
 		b.WriteString(indent(indentation, "%s%s]:\n", innerPrefix, rest))
@@ -232,7 +232,7 @@ func indent(indentation int, format string, args ...interface{}) string {
 		return s
 	}
 	var b bytes.Buffer
-	lines := strings.Split(s, "\n")
+	lines := strings.SplitAfter(s, "\n")
 	if len(lines) > 0 && lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1]
 	}
@@ -241,7 +241,6 @@ func indent(indentation int, format string, args ...interface{}) string {
 			b.WriteString(spaces(indentation))
 		}
 		b.WriteString(line)
-		b.WriteByte('\n')
 	}
 	return b.String()
 }
