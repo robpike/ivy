@@ -29,149 +29,28 @@ func assignment(context value.Context, b *binary) value.Value {
 	case variableExpr:
 		context.Assign(lhs.name, rhs)
 		return Assignment{Value: rhs}
-	case *binary:
-		if lhs.op == "[]" {
-			return indexedAssignment(context, lhs, b.right, rhs)
+	case *index:
+		switch lhs.left.(type) {
+		case variableExpr:
+			value.IndexAssign(context, lhs, lhs.left, lhs.right, b.right, rhs)
+			return Assignment{Value: rhs}
+		case *index:
+			// Old x[i][j]. Show new syntax.
+			n := 0
+			for x := lhs; x != nil; x, _ = x.left.(*index) {
+				n += len(x.right)
+			}
+			list := make([]value.Expr, n)
+			last := lhs.left
+			for x := lhs; x != nil; x, _ = x.left.(*index) {
+				n -= len(x.right)
+				copy(list[n:], x.right)
+				last = x.left
+			}
+			fixed := &index{left: last, right: list}
+			value.Errorf("cannot assign to %s; use %v", b.left.ProgString(), fixed.ProgString())
 		}
 	}
-	value.Errorf("cannot assign %s to %s", b.left.ProgString(), b.right.ProgString())
+	value.Errorf("cannot assign to %s", b.left.ProgString())
 	panic("not reached")
-}
-
-// indexedAssignment handles general assignment to indexed expressions on the LHS.
-// The LHS must be derived from a variable to make sure it is an l-value.
-func indexedAssignment(context value.Context, lhs *binary, rhsExpr value.Expr, rhs value.Value) value.Value {
-	// We walk down the index chain evaluating indexes and
-	// comparing them to the shape vector of the LHS.
-	// Once we're there, we copy the rhs to the lhs, doing a slice copy.
-	// rhsExpr is for diagnostics (only), as it gives a better error print.
-	slice, shape := dataAndShape(true, lhs, lvalueOf(context, lhs.left))
-	indexes := indexesOf(context, lhs)
-	origin := int(value.Int(context.Config().Origin()))
-	offset := 0
-	var i int
-	for i = range shape {
-		if i >= len(indexes) {
-			value.Errorf("rank error assigning %s to %s", rhs, lhs.ProgString())
-		}
-		size := shapeProduct(shape[i+1:])
-		index := indexes[i] - origin
-		if index < 0 || shape[i] <= index {
-			value.Errorf("index of out of range in assignment")
-		}
-		// We're either going to skip this block, or we're at the
-		// end of the indexes and we're going to assign it.
-		if i < len(indexes)-1 {
-			// Skip.
-			offset += index * size
-			continue
-		}
-		// Assign.
-		rhsData, rhsShape := dataAndShape(false, rhsExpr, rhs)
-		dataSize := shapeProduct(rhsShape)
-		// Shapes must match.
-		if !sameShape(shape[i+1:], rhsShape) {
-			value.Errorf("data size/shape mismatch assigning %s to %s", rhs, lhs.ProgString())
-		}
-		offset += index * size
-		if dataSize == 1 {
-			slice[offset] = rhsData[0]
-		} else {
-			copy(slice[offset:offset+size], rhsData)
-		}
-		return Assignment{Value: rhs}
-	}
-	value.Errorf("cannot assign to element of %s", lhs.left.ProgString())
-	panic("not reached")
-}
-
-func dataAndShape(mustBeLvalue bool, expr value.Expr, val value.Value) ([]value.Value, []int) {
-	switch v := val.(type) {
-	case value.Vector:
-		return v, toInt([]value.Value{value.Int(len(v))})
-	case *value.Matrix:
-		return v.Data(), v.Shape()
-	default:
-		if mustBeLvalue {
-			return nil, nil
-		}
-		return []value.Value{val}, scalarShape
-	}
-}
-
-func shapeProduct(shape []int) int {
-	elemSize := 1
-	for _, v := range shape {
-		elemSize *= v
-	}
-	return elemSize
-}
-
-// sameShape reports whether the two assignment shape vectors are equivalent.
-// The lhs in particular can be empty if we have exhausted the indexes, but that
-// just means we are assigning to a scalar element, and is OK.
-func sameShape(a, b []int) bool {
-	if len(a) == 0 {
-		a = scalarShape
-	}
-	if len(b) == 0 {
-		b = scalarShape
-	}
-	if len(a) != len(b) {
-		return false
-	}
-	for i, av := range a {
-		if av != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func toInt(v []value.Value) []int {
-	res := make([]int, len(v))
-	for i, val := range v {
-		res[i] = int(val.(value.Int))
-	}
-	return res
-}
-
-// lvalueOf walks the index tree to find the variable that roots it.
-// It must evaluate to a non-scalar to be indexable.
-func lvalueOf(context value.Context, item value.Expr) value.Value {
-	switch lhs := item.(type) {
-	case variableExpr:
-		lvalue := lhs.Eval(context)
-		if lvalue.Rank() == 0 {
-			break
-		}
-		return lvalue
-	case *binary:
-		if lhs.op == "[]" {
-			return lvalueOf(context, lhs.left)
-		}
-	}
-	value.Errorf("cannot index %s in assignment", item.ProgString())
-	panic("not reached")
-}
-
-func indexesOf(context value.Context, item value.Expr) (result []int) {
-	switch lhs := item.(type) {
-	case variableExpr:
-		return nil
-	case *binary:
-		if lhs.op == "[]" {
-			return append(indexesOf(context, lhs.left), intOf(context, lhs.right))
-		}
-	}
-	value.Errorf("cannot index by %s in assignment", item.ProgString())
-	panic("not reached")
-}
-
-func intOf(context value.Context, item value.Expr) int {
-	i, ok := item.Eval(context).(value.Int)
-	if !ok {
-		value.Errorf("cannot index by %s in assignment", item.ProgString())
-	}
-	return int(i)
 }

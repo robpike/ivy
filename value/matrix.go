@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/bits"
 	"sort"
 	"strings"
 
@@ -256,19 +257,23 @@ func spaces(n int) string {
 // Size returns number of elements of the matrix.
 // Given shape [a, b, c, ...] it is a*b*c*....
 func (m *Matrix) Size() int64 {
-	return size(m.shape)
+	return int64(size(m.shape))
 }
 
 // ElemSize returns the size of each top-level element of the matrix.
 // Given shape [a, b, c, ...] it is b*c*....
 func (m *Matrix) ElemSize() int64 {
-	return size(m.shape[1:])
+	return int64(size(m.shape[1:]))
 }
 
-func size(shape []int) int64 {
-	size := int64(1)
+func size(shape []int) int {
+	size := 1
 	for _, i := range shape {
-		size *= int64(i)
+		hi, lo := bits.Mul(uint(size), uint(i))
+		if int(lo) < 0 || hi != 0 {
+			Errorf("matrix too large")
+		}
+		size = int(lo)
 	}
 	return size
 }

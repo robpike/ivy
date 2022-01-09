@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/scan"
@@ -38,13 +39,19 @@ func tree(e interface{}) string {
 	case *unary:
 		return fmt.Sprintf("(%s %s)", e.op, tree(e.right))
 	case *binary:
-		// Special case for [].
-		if e.op == "[]" {
-			return fmt.Sprintf("(%s[%s])", tree(e.left), tree(e.right))
-		}
 		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.op, tree(e.right))
 	case conditional:
 		return tree(e.binary)
+	case *index:
+		s := fmt.Sprintf("(%s[", tree(e.left))
+		for i, v := range e.right {
+			if i > 0 {
+				s += "; "
+			}
+			s += tree(v)
+		}
+		s += "])"
+		return s
 	case []value.Expr:
 		if len(e) == 1 {
 			return tree(e[0])
@@ -170,11 +177,8 @@ func isCompound(x interface{}) bool {
 		return false
 	case sliceExpr, variableExpr:
 		return false
-	case *binary:
-		if x.op == "[]" {
-			return isCompound(x.left)
-		}
-		return true
+	case *index:
+		return isCompound(x.left)
 	default:
 		return true
 	}
@@ -206,10 +210,6 @@ func (b *binary) ProgString() string {
 	} else {
 		left = b.left.ProgString()
 	}
-	// Special case for indexing.
-	if b.op == "[]" {
-		return fmt.Sprintf("%s[%s]", left, b.right.ProgString())
-	}
 	return fmt.Sprintf("%s %s %s", left, b.op, b.right.ProgString())
 }
 
@@ -220,6 +220,36 @@ func (b *binary) Eval(context value.Context) value.Value {
 	rhs := b.right.Eval(context).Inner()
 	lhs := b.left.Eval(context)
 	return context.EvalBinary(lhs, b.op, rhs)
+}
+
+type index struct {
+	op    string
+	left  value.Expr
+	right []value.Expr
+}
+
+func (x *index) ProgString() string {
+	var s strings.Builder
+	if isCompound(x.left) {
+		s.WriteString("(")
+		s.WriteString(x.left.ProgString())
+		s.WriteString(")")
+	} else {
+		s.WriteString(x.left.ProgString())
+	}
+	s.WriteString("[")
+	for i, v := range x.right {
+		if i > 0 {
+			s.WriteString("; ")
+		}
+		s.WriteString(v.ProgString())
+	}
+	s.WriteString("]")
+	return s.String()
+}
+
+func (x *index) Eval(context value.Context) value.Value {
+	return value.Index(context, x, x.left, x.right)
 }
 
 // conditional is a conditional executor: expression ":" expression
@@ -426,14 +456,8 @@ func (p *Parser) expr() value.Expr {
 	case scan.Assign:
 		p.next()
 		switch lhs := expr.(type) {
-		case variableExpr:
+		case variableExpr, *index:
 			return &binary{
-				left:  lhs,
-				op:    tok.Text,
-				right: p.expr(),
-			}
-		case *binary:
-			return &binary{ // An indexing operator? x[1] = 2
 				left:  lhs,
 				op:    tok.Text,
 				right: p.expr(),
@@ -494,15 +518,18 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 func (p *Parser) index(expr value.Expr) value.Expr {
 	for p.peek().Type == scan.LeftBrack {
 		p.next()
-		index := p.expr()
+		list := []value.Expr{p.expr()}
 		tok := p.next()
+		for tok.Type == scan.Semicolon {
+			list = append(list, p.expr())
+			tok = p.next()
+		}
 		if tok.Type != scan.RightBrack {
 			p.errorf("expected right bracket, found %s", tok)
 		}
-		expr = &binary{
-			op:    "[]",
+		expr = &index{
 			left:  expr,
-			right: index,
+			right: list,
 		}
 	}
 	return expr

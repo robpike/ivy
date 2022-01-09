@@ -57,7 +57,7 @@ single rational number, not the expression 1 divided by 3. This can affect prece
 operator. Use parentheses or spaces to disambiguate: 3/(6*4) or 3 /6*4.
 </p>
 <p>
-Indexing uses [] notation: x[1], x[1][2], and so on. Indexing by a vector
+Indexing uses [] notation: x[1], x[1; 2], and so on. Indexing by a vector
 selects multiple elements: x[1 2] creates a new item from x[1] and x[2].
 </p>
 <p>

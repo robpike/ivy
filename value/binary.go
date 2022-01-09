@@ -1017,17 +1017,6 @@ func init() {
 		},
 
 		{
-			name:      "[]",
-			whichType: noPromoteType,
-			fn: [numType]binaryFn{
-				// index is type inside [ ]
-				intType:    index,
-				vectorType: index,
-				matrixType: index,
-			},
-		},
-
-		{
 			name:      "iota",
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
