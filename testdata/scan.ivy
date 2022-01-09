@@ -23,6 +23,10 @@
 -\iota 10
 	1 -1 2 -2 3 -3 4 -4 5 -5
 
+# associative scan should run in linear time - this takes ~10m if quadratic
++/ +\ iota 100000
+	166671666700000
+
 # Matrices
 
 +\3 4 rho iota 100
