@@ -23,7 +23,7 @@ ivy x
 # Can evaluate ) commands, even without a newline.
 ivy ")format '%.2f'"
 3
-	
+	#
 	3.00
 
 x = text 345
@@ -34,9 +34,9 @@ x = text 345
 ivy 'x=iota 10'
 ivy 'op average v = (+/v)/rho v'
 average iota 10
-	
+	#
 	11/2
 
 # Error case, issue 66.
 ivy ivy ''
-	
+	#

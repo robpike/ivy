@@ -38,13 +38,13 @@ c`
 	c
 
 ''
-	
+	#
 
 ""
-	
+	#
 
 ``
-	
+	#
 
 # Comparison.
 
@@ -129,7 +129,7 @@ c`
 	abcd
 	efgh
 	ijkl
-		
+
 	mnop
 	qrst
 	uvwx
@@ -155,7 +155,7 @@ x[up x]
 
 x = 'now is the time'
 x[down x]
-	wttsonmiihee   
+	wttsonmiihee
 
 x = 'now is the time'
 'e' iota x
@@ -200,7 +200,7 @@ x=text iota 10; x[up x]
 	         01123456789
 
 x=text iota 10; x[down x]
-	98765432110   
+	98765432110
 
 6 text 1 2 3
 	1.000000 2.000000 3.000000
@@ -221,7 +221,7 @@ x=text iota 10; x[down x]
 	     1     2     3     4
 	     5     6     7     8
 	     9    10    11    12
-	
+
 	    13    14    15    16
 	    17    18    19    20
 	    21    22    23    24

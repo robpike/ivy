@@ -56,7 +56,7 @@ op a x b =
  y = a*b
  y = y*y
  y
- 
+
 3 x 4
 	144
 
@@ -74,7 +74,7 @@ op x a =
  1.5
  1.5 'a'
  'a' 'b' 'c'
- 
+
 )op x
 	op x a =
 		'abc\u0001\U0010ffff\\\'\a\b\f\n\r\t\v\n'
@@ -190,12 +190,12 @@ primes 100
 op fac n =
  n <= 1 : 1
  n * fac n - 1
- 
+
 op a gcd b =
  a == b: a
  a > b: b gcd a-b
  a gcd b-a
- 
+
 fac 10
 1562 gcd fac 11
 	3628800
@@ -207,7 +207,7 @@ fac 10
 op a test b =
  a:b
  "fail"
- 
+
 0 test "succeed"
 1 test "succeed"
 "a" test "succeed"
