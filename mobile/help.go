@@ -33,8 +33,8 @@ progress.
 <p>
 Unlike APL, the input is ASCII and the results are exact (but see the next paragraph).
 It uses exact rational arithmetic so it can handle arbitrary precision. Values to be
-input may be integers (3, -1), rationals (1/3, -45/67) or floating point values (1e3,
--1.5 (representing 1000 and -3/2)).
+input may be integers (3, -1), rationals (1/3, -45/67), complex numbers (1i, 2+3i) or
+floating point values (1e3, -1.5 (representing 1000 and -3/2)).
 </p>
 <p>
 Some functions such as sqrt are irrational. When ivy evaluates an irrational
@@ -106,9 +106,18 @@ Monadic transpose ⍉B    transp  Reverse the axes of B
 Factorial         !B    !       Product of integers 1 to B
 Bitwise not             ^       Bitwise complement of B (integer only)
 Square root       B⋆.5  sqrt    Square root of B.
-Sine                    sin     sin(A); APL uses binary ○ (see below)
-Cosine                  cos     cos(A); ditto
-Tangent                 tan     tan(A); ditto
+
+APL uses the binary circle operator ○ to select unary trigonometric and complex functions:
+
+Sine              1○B   sin     sin(B)
+Cosine            2○B   cos     cos(B)
+Tangent           3○B   tan     tan(B)
+Inverse sine      ¯1○B  asin    arcsin(B)
+Inverse cosine    ¯2○B  acos    arccos(B)
+Inverse tangent   ¯3○B  atan    arctan(B)
+Real part         9○B   real    Real part of a complex number.
+Imaginary part    11○B  imag    Imaginary part of a complex number.
+Phase angle       12○B  phase   Phase angle (argument) of a complex number.
 </pre>
 <p>
 Binary operators
@@ -121,14 +130,6 @@ Divide                A÷B   /       A divided by B (exact rational division)
                             div     A divided by B (Euclidean)
                             idiv    A divided by B (Go)
 Exponentiation        A⋆B   **      A raised to the B power
-Circle                A○B           Trigonometric functions of B selected by A
-                                    A=1: sin(B) A=2: cos(B) A=3: tan(B); ¯A for inverse
-                            sin     sin(B); ivy uses traditional name.
-                            cos     cos(B); ivy uses traditional name.
-                            tan     tan(B); ivy uses traditional name.
-                            asin    arcsin(B); ivy uses traditional name.
-                            acos    arccos(B); ivy uses traditional name.
-                            atan    arctan(B); ivy uses traditional name.
 Deal                  A?B   ?       A distinct integers selected randomly from the first B integers
 Membership            A∈B   in      1 for elements of A present in B; 0 where not.
 Maximum               A⌈B   max     The greater value of A or B
@@ -195,6 +196,7 @@ Type-converting operations
 Code                    code B  The integer Unicode value of char B
 Char                    char B  The character with integer Unicode value B
 Float                   float B The floating-point representation of B
+Imaginary unit    AJB   A+Bi    Imaginary part of a complex number
 </pre>
 <h3 id="hdr-Pre_defined_constants">Pre-defined constants</h3>
 <p>

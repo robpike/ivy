@@ -83,9 +83,9 @@ Unary operators
 	Sine              1○B   sin     sin(B)
 	Cosine            2○B   cos     cos(B)
 	Tangent           3○B   tan     tan(B)
-	Inverse sine      -1○B  asin    arcsin(B)
-	Inverse cosine    -2○B  acos    arccos(B)
-	Inverse tangent   -3○B  atan    arctan(B)
+	Inverse sine      ¯1○B  asin    arcsin(B)
+	Inverse cosine    ¯2○B  acos    arccos(B)
+	Inverse tangent   ¯3○B  atan    arctan(B)
 	Real part         9○B   real    Real part of a complex number.
 	Imaginary part    11○B  imag    Imaginary part of a complex number.
 	Phase angle       12○B  phase   Phase angle (argument) of a complex number.
