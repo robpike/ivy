@@ -26,10 +26,13 @@ const (
 	constPrecisionInDigits = 3011
 )
 
-const (
-	zero     Int = 0
-	one      Int = 1
-	minusOne Int = -1
+// Note: These are pre-allocated Values (interfaces) so that
+// code that needs to return a Value can 'return zero'
+// instead of 'return Int(0)' and avoid an allocation.
+var (
+	zero     Value = Int(0)
+	one      Value = Int(1)
+	minusOne Value = Int(-1)
 )
 
 var (

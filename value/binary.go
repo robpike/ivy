@@ -188,7 +188,7 @@ func andBool(t Value) bool {
 		}
 		return true
 	}
-	return t.(Int) == one
+	return t.(Int) == 1
 }
 
 var BinaryOps = make(map[string]BinaryOp)
@@ -221,6 +221,14 @@ func init() {
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
 				intType: func(c Context, u, v Value) Value {
+					// Avoid Int->Value interface allocation;
+					// especially effective for sparse matrices.
+					if u.(Int) == 0 {
+						return v
+					}
+					if v.(Int) == 0 {
+						return u
+					}
 					return (u.(Int) + v.(Int)).maybeBig()
 				},
 				bigIntType: func(c Context, u, v Value) Value {
@@ -246,6 +254,11 @@ func init() {
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
 				intType: func(c Context, u, v Value) Value {
+					// Avoid Int->Value interface allocation;
+					// especially effective for sparse matrices.
+					if v.(Int) == 0 {
+						return u
+					}
 					return (u.(Int) - v.(Int)).maybeBig()
 				},
 				bigIntType: func(c Context, u, v Value) Value {
@@ -271,6 +284,14 @@ func init() {
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
 				intType: func(c Context, u, v Value) Value {
+					// Avoid Int->Value interface allocation;
+					// especially effective for sparse matrices.
+					if u.(Int) == 1 || v.(Int) == 0 {
+						return v
+					}
+					if v.(Int) == 1 || u.(Int) == 0 {
+						return u
+					}
 					return (u.(Int) * v.(Int)).maybeBig()
 				},
 				bigIntType: func(c Context, u, v Value) Value {
@@ -515,6 +536,14 @@ func init() {
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
 				intType: func(c Context, u, v Value) Value {
+					// Avoid Int->Value interface allocation;
+					// especially effective for sparse matrices.
+					if u.(Int) == 0 || v.(Int) == -1 {
+						return u
+					}
+					if v.(Int) == 0 || u.(Int) == -1 {
+						return v
+					}
 					return u.(Int) & v.(Int)
 				},
 				bigIntType: func(c Context, u, v Value) Value {
@@ -529,6 +558,14 @@ func init() {
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
 				intType: func(c Context, u, v Value) Value {
+					// Avoid Int->Value interface allocation;
+					// especially effective for sparse matrices.
+					if u.(Int) == 0 || v.(Int) == -1 {
+						return v
+					}
+					if v.(Int) == 0 || u.(Int) == -1 {
+						return u
+					}
 					return u.(Int) | v.(Int)
 				},
 				bigIntType: func(c Context, u, v Value) Value {
@@ -543,6 +580,14 @@ func init() {
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
 				intType: func(c Context, u, v Value) Value {
+					// Avoid Int->Value interface allocation;
+					// especially effective for sparse matrices.
+					if u.(Int) == 0 {
+						return v
+					}
+					if v.(Int) == 0 {
+						return u
+					}
 					return u.(Int) ^ v.(Int)
 				},
 				bigIntType: func(c Context, u, v Value) Value {
