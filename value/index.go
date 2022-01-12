@@ -200,31 +200,42 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 
 	copySize := int(size(ix.shape[len(ix.indexes):]))
 	n := ix.xsize / copySize
-	coord := make([]int, len(ix.indexes))
-	for i := 0; i < n; i++ {
-		// Copy data for indexes[coord].
-		offset := 0
-		for j := 0; j < len(ix.indexes); j++ {
-			if j > 0 {
-				offset *= ix.shape[j]
+	pfor(true, copySize, n, func(lo, hi int) {
+		// Compute starting coordinate index.
+		coord := make([]int, len(ix.indexes))
+		i := lo
+		for j := len(coord) - 1; j >= 0; j-- {
+			if n := len(ix.indexes[j]); n > 0 {
+				coord[j] = i % n
+				i /= n
 			}
-			offset += int(ix.indexes[j][coord[j]].(Int) - origin)
-		}
-		dst := ix.slice[offset*copySize : (offset+1)*copySize]
-		if rscalar != nil {
-			for i := range dst {
-				dst[i] = rscalar
-			}
-		} else {
-			copy(dst, rslice[i*copySize:(i+1)*copySize])
 		}
 
-		// Increment coord.
-		for j := len(coord) - 1; j >= 0; j-- {
-			if coord[j]++; coord[j] < len(ix.indexes[j]) {
-				break
+		for i := lo; i < hi; i++ {
+			// Copy data for indexes[coord].
+			offset := 0
+			for j := 0; j < len(ix.indexes); j++ {
+				if j > 0 {
+					offset *= ix.shape[j]
+				}
+				offset += int(ix.indexes[j][coord[j]].(Int) - origin)
 			}
-			coord[j] = 0
+			dst := ix.slice[offset*copySize : (offset+1)*copySize]
+			if rscalar != nil {
+				for i := range dst {
+					dst[i] = rscalar
+				}
+			} else {
+				copy(dst, rslice[i*copySize:(i+1)*copySize])
+			}
+
+			// Increment coord.
+			for j := len(coord) - 1; j >= 0; j-- {
+				if coord[j]++; coord[j] < len(ix.indexes[j]) {
+					break
+				}
+				coord[j] = 0
+			}
 		}
-	}
+	})
 }
