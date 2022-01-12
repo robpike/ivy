@@ -36,6 +36,10 @@ func IvyEval(context value.Context, str string) value.Value {
 	return v
 }
 
+// cpuTime reports user and system time.
+// It is replaced by system-specific files, like time_unix.go.
+var cpuTime = func() (user, sys time.Duration) { return 0, 0 }
+
 // Run runs the parser/evaluator until EOF or error.
 // The return value says whether we completed without error. If the return
 // value is true, it means we ran out of data (EOF) and the run was successful.
@@ -71,8 +75,10 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		if exprs != nil {
 			if interactive {
 				start := time.Now()
+				user, sys := cpuTime()
 				values = context.Eval(exprs)
-				conf.SetCPUTime(time.Since(start))
+				user2, sys2 := cpuTime()
+				conf.SetCPUTime(time.Since(start), user2-user, sys2-sys)
 			} else {
 				values = context.Eval(exprs)
 			}
@@ -84,8 +90,10 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 			return true
 		}
 		if interactive {
-			if exprs != nil && conf.Debug("cpu") && conf.CPUTime() != 0 {
-				fmt.Printf("(%s)\n", conf.PrintCPUTime())
+			if exprs != nil && conf.Debug("cpu") {
+				if real, _, _ := conf.CPUTime(); real != 0 {
+					fmt.Printf("(%s)\n", conf.PrintCPUTime())
+				}
 			}
 			fmt.Fprintln(writer)
 		}
