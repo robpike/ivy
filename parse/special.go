@@ -393,7 +393,7 @@ func (p *Parser) runUntilError(name string) error {
 			if _, ok := val.(Assignment); ok {
 				continue
 			}
-			p.context.Assign("_", val)
+			p.context.AssignGlobal("_", val)
 			fmt.Fprintf(p.context.Config().Output(), "%v\n", val.Sprint(p.context.Config()))
 		}
 		if !ok {

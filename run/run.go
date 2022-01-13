@@ -89,7 +89,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 			}
 		}
 		if printValues(conf, writer, values) {
-			context.Assign("_", values[len(values)-1])
+			context.AssignGlobal("_", values[len(values)-1])
 		}
 		if !ok {
 			return true

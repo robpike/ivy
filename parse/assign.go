@@ -26,12 +26,16 @@ func assignment(context value.Context, b *binary) value.Value {
 	// But we need to process the indexing, if it is an index expression.
 	rhs := b.right.Eval(context).Inner()
 	switch lhs := b.left.(type) {
-	case variableExpr:
-		context.Assign(lhs.name, rhs)
+	case *variableExpr:
+		if lhs.local >= 1 {
+			context.AssignLocal(lhs.local, rhs)
+		} else {
+			context.AssignGlobal(lhs.name, rhs)
+		}
 		return Assignment{Value: rhs}
 	case *index:
 		switch lhs.left.(type) {
-		case variableExpr:
+		case *variableExpr:
 			value.IndexAssign(context, lhs, lhs.left, lhs.right, b.right, rhs)
 			return Assignment{Value: rhs}
 		case *index:

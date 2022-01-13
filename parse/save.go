@@ -110,7 +110,7 @@ func save(c *exec.Context, file string) {
 	}
 
 	// Global variables.
-	syms := c.Stack[0]
+	syms := c.Globals
 	if len(syms) > 0 {
 		// Set the base strictly to 10 for output.
 		fmt.Fprintf(out, "# Set base 10 for parsing numbers.\n)base 10\n")

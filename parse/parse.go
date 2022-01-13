@@ -34,7 +34,7 @@ func tree(e interface{}) string {
 		}
 		s += ">"
 		return s
-	case variableExpr:
+	case *variableExpr:
 		return fmt.Sprintf("<var %s>", e.name)
 	case *unary:
 		return fmt.Sprintf("(%s %s)", e.op, tree(e.right))
@@ -151,18 +151,28 @@ func (s sliceExpr) allChars() bool {
 
 // variableExpr identifies a variable to be looked up and evaluated.
 type variableExpr struct {
-	name string
+	name  string
+	local int // local index, or 0 for global
 }
 
-func (e variableExpr) Eval(context value.Context) value.Value {
-	v := context.Lookup(e.name)
+func (e *variableExpr) Eval(context value.Context) value.Value {
+	var v value.Value
+	if e.local >= 1 {
+		v = context.Local(e.local)
+	} else {
+		v = context.Global(e.name)
+	}
 	if v == nil {
-		value.Errorf("undefined variable %q", e.name)
+		kind := "global"
+		if e.local >= 1 {
+			kind = "local"
+		}
+		value.Errorf("undefined %s variable %q", kind, e.name)
 	}
 	return v
 }
 
-func (e variableExpr) ProgString() string {
+func (e *variableExpr) ProgString() string {
 	return e.name
 }
 
@@ -172,7 +182,7 @@ func isCompound(x interface{}) bool {
 	switch x := x.(type) {
 	case value.Char, value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Vector, value.Matrix:
 		return false
-	case sliceExpr, variableExpr:
+	case sliceExpr, *variableExpr:
 		return false
 	case *index:
 		return isCompound(x.left)
@@ -453,7 +463,7 @@ func (p *Parser) expr() value.Expr {
 	case scan.Assign:
 		p.next()
 		switch lhs := expr.(type) {
-		case variableExpr, *index:
+		case *variableExpr, *index:
 			return &binary{
 				left:  lhs,
 				op:    tok.Text,
@@ -617,8 +627,8 @@ func isScalar(v value.Value) bool {
 	return v.Rank() == 0
 }
 
-func (p *Parser) variable(name string) variableExpr {
-	return variableExpr{
+func (p *Parser) variable(name string) *variableExpr {
+	return &variableExpr{
 		name: name,
 	}
 }

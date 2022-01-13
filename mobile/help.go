@@ -317,10 +317,19 @@ bar 3
 result: 1/3
 </pre>
 <p>
-Within a user-defined operator, identifiers are local to the invocation unless
-they are undefined in the operator but defined globally, in which case they refer to
-the global variable. A mechanism to declare locals may come later.
+Within a user-defined operator body, identifiers are local to the invocation
+if they are assigned before being read, and global if read before being written.
+To write to a global without reading it first, insert an unused read.
 </p>
+<pre>total = 0
+last = 0
+op save x =
+	total = total + x  # total is global because total is read before written
+	last; last = x     # unused read makes last global
+
+total last
+result: 12 3
+</pre>
 <h3 id="hdr-Special_commands">Special commands</h3>
 <p>
 Ivy accepts a number of special commands, introduced by a right paren

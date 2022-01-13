@@ -17,6 +17,8 @@ type Function struct {
 	Left     string
 	Right    string
 	Body     []value.Expr
+	Locals   []string
+	Globals  []string
 }
 
 func (fn *Function) String() string {
@@ -40,12 +42,12 @@ func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Va
 	}
 	// It's known to be an exec.Context.
 	c := context.(*Context)
-	if uint(len(c.Stack)) >= c.config.MaxStack() {
+	if uint(len(c.frameSizes)) >= c.config.MaxStack() {
 		value.Errorf("stack overflow calling %q", fn.Name)
 	}
-	c.push()
+	c.push(fn)
 	defer c.pop()
-	c.assignLocal(fn.Right, right)
+	c.AssignLocal(1, right)
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
 	if v == nil {
 		value.Errorf("no value returned by %q", fn.Name)
@@ -59,13 +61,13 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	}
 	// It's known to be an exec.Context.
 	c := context.(*Context)
-	if uint(len(c.Stack)) >= c.config.MaxStack() {
+	if uint(len(c.frameSizes)) >= c.config.MaxStack() {
 		value.Errorf("stack overflow calling %q", fn.Name)
 	}
-	c.push()
+	c.push(fn)
 	defer c.pop()
-	c.assignLocal(fn.Left, left)
-	c.assignLocal(fn.Right, right)
+	c.AssignLocal(1, left)
+	c.AssignLocal(2, right)
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
 	if v == nil {
 		value.Errorf("no value returned by %q", fn.Name)
