@@ -104,7 +104,7 @@ n = 1 drop iota 10; (floor (rho n)/2) take n
 
 
 iota 0
-	
+	#
 
 iota 1
 	1

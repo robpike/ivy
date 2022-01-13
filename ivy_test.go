@@ -97,11 +97,13 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 	if shouldFail {
 		return true
 	}
-	result := stdout.String()
-	if !equal(strings.Split(result, "\n"), output) {
-		t.Errorf("\n%s:%d:\n%s\ngot:\n%swant:\n%s",
+	result := strings.Split(stdout.String(), "\n")
+	if !equal(result, output) {
+		t.Errorf("\n%s:%d:\n\t%s\ngot:\n\t%s\nwant:\n\t%s",
 			name, lineNum,
-			strings.Join(input, "\n"), result, strings.Join(output, "\n"))
+			strings.Join(input, "\n\t"),
+			strings.Join(result, "\n\t"),
+			strings.Join(output, "\n\t"))
 		return false
 	}
 	return true
@@ -131,28 +133,36 @@ func getText(t *testing.T, fileName string, lineNum int, lines []string) (input,
 		}
 		length++
 	}
-	// Input starts in left column.
+
+	// Input ends at tab-indented line.
 	for _, line := range lines[length:] {
-		if len(line) == 0 {
-			t.Fatalf("%s:%d: unexpected empty line", fileName, lineNum+length)
-		}
+		line = strings.TrimRight(line, " \t")
 		if strings.HasPrefix(line, "\t") {
 			break
 		}
 		input = append(input, line)
 		length++
 	}
-	// Output is indented by a tab.
+
+	// Output ends at non-blank, non-tab-indented line.
+	// Indented "#" is expected blank line in output.
 	for _, line := range lines[length:] {
-		length++
-		if len(line) == 0 {
+		line = strings.TrimRight(line, " \t")
+		if line != "" && !strings.HasPrefix(line, "\t") {
 			break
 		}
-		if !strings.HasPrefix(line, "\t") {
-			t.Fatalf("%s:%d: output not indented", fileName, lineNum+length)
-		}
-		output = append(output, line[1:])
+		output = append(output, strings.TrimPrefix(line, "\t"))
+		length++
 	}
+	for len(output) > 0 && output[len(output)-1] == "" {
+		output = output[:len(output)-1]
+	}
+	for i, line := range output {
+		if line == "#" {
+			output[i] = ""
+		}
+	}
+
 	return // Will return nil if no more tests exist.
 }
 
