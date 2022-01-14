@@ -45,7 +45,9 @@ type Config struct {
 	maxDigits   uint          // Above this size, ints print in floating format.
 	maxStack    uint          // Maximum call stack depth.
 	floatPrec   uint          // Length of mantissa of a BigFloat.
-	cpuTime     time.Duration // Elapsed time of last interactive command.
+	realTime    time.Duration // Elapsed time of last interactive command.
+	userTime    time.Duration // User time of last interactive command.
+	sysTime     time.Duration // System time of last interactive command.
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
 	outputBase int
@@ -264,22 +266,31 @@ func (c *Config) SetFloatPrec(prec uint) {
 }
 
 // CPUTime returns the duration of the last interactive operation.
-func (c *Config) CPUTime() time.Duration {
+func (c *Config) CPUTime() (real, user, sys time.Duration) {
 	c.init()
-	return c.cpuTime
+	return c.realTime, c.userTime, c.sysTime
 }
 
 // SetCPUTime sets the duration of the last interactive operation.
-func (c *Config) SetCPUTime(d time.Duration) {
+func (c *Config) SetCPUTime(real, user, sys time.Duration) {
 	c.init()
-	c.cpuTime = d
+	c.realTime = real
+	c.userTime = user
+	c.sysTime = sys
 }
 
-// PrintCPUTime returns a nicely formatted version of the CPU time, with 3 decimal
-// places in whatever unit best fits. The default String method for Duration prints too
-// many decimals.
+// PrintCPUTime returns a nicely formatted version of the CPU time.
 func (c *Config) PrintCPUTime() string {
-	d := c.cpuTime
+	if c.userTime == 0 && c.sysTime == 0 {
+		return printDuration(c.realTime)
+	}
+	return fmt.Sprintf("%s; %s user+%s sys", printDuration(c.realTime), printDuration(c.userTime), printDuration(c.sysTime))
+}
+
+// printDuration returns a nice formatting of the duration d,
+// with 3 decimal places in whatever unit best fits.
+// The Duration.String method never rounds and is too noisy.
+func printDuration(d time.Duration) string {
 	switch {
 	case d > time.Minute:
 		m := int(d.Minutes())
