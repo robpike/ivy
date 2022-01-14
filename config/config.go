@@ -284,11 +284,12 @@ func (c *Config) PrintCPUTime() string {
 	if c.userTime == 0 && c.sysTime == 0 {
 		return printDuration(c.realTime)
 	}
-	return fmt.Sprintf("%s; %s user+%s sys", printDuration(c.realTime), printDuration(c.userTime), printDuration(c.sysTime))
+	return fmt.Sprintf("%s (%s user, %s sys)", printDuration(c.realTime), printDuration(c.userTime), printDuration(c.sysTime))
 }
 
 // printDuration returns a nice formatting of the duration d,
-// with 3 decimal places in whatever unit best fits.
+// with 3 decimal places in whatever unit best fits, but
+// if all the decimals are zero, drop them.
 // The Duration.String method never rounds and is too noisy.
 func printDuration(d time.Duration) string {
 	switch {
@@ -297,12 +298,23 @@ func printDuration(d time.Duration) string {
 		s := int(d.Seconds()) - 60*m
 		return fmt.Sprintf("%dm%02ds", m, s)
 	case d > time.Second:
-		return fmt.Sprintf("%.3fs", d.Seconds())
+		return formatDuration(d.Seconds(), "s")
 	case d > time.Millisecond:
-		return fmt.Sprintf("%.3fms", float64(d.Nanoseconds())/1e6)
+		return formatDuration(float64(d.Nanoseconds())/1e6, "ms")
 	default:
-		return fmt.Sprintf("%.3fµs", float64(d.Nanoseconds())/1e3)
+		return formatDuration(float64(d.Nanoseconds())/1e3, "µs")
 	}
+}
+
+// formatDuration returns a neatly formatted duration, omitting
+// an all-zero decimal sequence, which is common for small values.
+func formatDuration(d float64, units string) string {
+	s := fmt.Sprintf("%.3f", d)
+	if strings.HasSuffix(s, ".000") {
+		s = s[:len(s)-4]
+	}
+	return s + units
+	
 }
 
 // Base returns the input and output bases.
