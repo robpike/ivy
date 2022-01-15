@@ -17,7 +17,7 @@ func cos(c Context, v Value) Value {
 func tan(c Context, v Value) Value {
 	x := floatSelf(c, v).(BigFloat).Float
 	if x.IsInf() {
-		Errorf("tangent of infinity is undefined")
+		Errorf("tangent of infinity")
 	}
 	negate := false
 	if x.Sign() < 0 {
@@ -40,7 +40,7 @@ func tan(c Context, v Value) Value {
 // floatSin computes sin(x) using argument reduction and a Taylor series.
 func floatSin(c Context, x *big.Float) *big.Float {
 	if x.IsInf() {
-		Errorf("sine of infinity is undefined")
+		Errorf("sine of infinity")
 	}
 	negate := false
 	if x.Sign() < 0 {
@@ -65,7 +65,7 @@ func floatSin(c Context, x *big.Float) *big.Float {
 // floatCos computes cos(x) using argument reduction and a Taylor series.
 func floatCos(c Context, x *big.Float) *big.Float {
 	if x.IsInf() {
-		Errorf("cosine of infinity is undefined")
+		Errorf("cosine of infinity")
 	}
 	twoPiReduce(c, x)
 
