@@ -141,6 +141,11 @@ func doReferences(c *exec.Context, refs *[]exec.OpDef, expr value.Expr) {
 		doBinaryReferences(c, refs, e.binary)
 	case *binary:
 		doBinaryReferences(c, refs, e)
+	case *index:
+		doReferences(c, refs, e.left)
+		for _, v := range e.right {
+			doReferences(c, refs, v)
+		}
 	case variableExpr:
 	case sliceExpr:
 		for _, v := range e {

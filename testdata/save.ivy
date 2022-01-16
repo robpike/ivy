@@ -89,3 +89,42 @@ avg x
 	1 2 3 4 5 6 7
 	4
 
+# Indexing operations
+op g x = x
+op f x = x[1 2; g 3 4; 5 6]
+)save "<conf.out>"
+	)prec 256
+	)maxbits 1000000000
+	)maxdigits 10000
+	)origin 1
+	)prompt ""
+	)format ""
+	op g x = x
+	op f x = x[1 2; g 3 4; 5 6]
+	# Set base 10 for parsing numbers.
+	)base 10
+	)ibase 0
+	)obase 0
+
+# Multiline function definitions.
+op f x =
+ x==1: 2
+ x
+ 
+op g x = x
+)save "<conf.out>"
+	)prec 256
+	)maxbits 1000000000
+	)maxdigits 10000
+	)origin 1
+	)prompt ""
+	)format ""
+	op f x =
+		(x == 1) : 2
+		x
+	
+	op g x = x
+	# Set base 10 for parsing numbers.
+	)base 10
+	)ibase 0
+	)obase 0

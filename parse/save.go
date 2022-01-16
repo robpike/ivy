@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strings"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
@@ -100,7 +101,12 @@ func save(c *exec.Context, file string) {
 			}
 		}
 		printed[def] = true
-		fmt.Fprintln(out, fn) // TODO: Does this need conf?
+		s := fn.String() // TODO: Does this need conf?
+		if strings.Contains(s, "\n") {
+			// Multiline def must end in blank line.
+			s += "\n"
+		}
+		fmt.Fprintln(out, s)
 	}
 
 	// Global variables.
