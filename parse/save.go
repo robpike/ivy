@@ -101,7 +101,7 @@ func save(c *exec.Context, file string) {
 			}
 		}
 		printed[def] = true
-		s := fn.String() // TODO: Does this need conf?
+		s := fn.String()
 		if strings.Contains(s, "\n") {
 			// Multiline def must end in blank line.
 			s += "\n"

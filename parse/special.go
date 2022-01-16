@@ -299,7 +299,7 @@ Switch:
 		}
 		conf.SetPrompt(p.getString())
 	case "save":
-		// Must restore ibase, obase for safe.
+		// Must restore ibase, obase for save.
 		conf.SetBase(ibase, obase)
 		if p.peek().Type == scan.EOF {
 			save(p.context, defaultFile)
