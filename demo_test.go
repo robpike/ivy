@@ -22,6 +22,12 @@ import (
 To update demo/demo.out:
 	ivy -i ')seed 0' demo/demo.ivy > demo/demo.out
 */
+
+const (
+	demoBad = "demo.bad"
+	demoOut = "demo/demo.out"
+)
+
 func TestDemo(t *testing.T) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
@@ -36,13 +42,19 @@ func TestDemo(t *testing.T) {
 		}
 	}
 	result := stdout.String()
-	data, err := ioutil.ReadFile("demo/demo.out")
+	data, err := ioutil.ReadFile(demoOut)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(data) != result {
-		err = ioutil.WriteFile("demo.bad", stdout.Bytes(), 0666)
-		t.Fatal("test output differs; run\n\tdiff demo.bad demo/demo.out\nfor details")
+		err = ioutil.WriteFile(demoBad, stdout.Bytes(), 0666)
+		if err != nil {
+			t.Fatalf("test output differs; error writing bad output to %q: %v", demoBad, err)
+		}
+		t.Fatalf("test output differs; run\n\tdiff %s %s\nfor details", demoBad, demoOut)
 	}
-	os.Remove("demo.bad")
+	err = os.Remove(demoBad)
+	if err != nil {
+		t.Logf("error removing test output file %q: %v", demoBad, err)
+	}
 }
