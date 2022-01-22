@@ -7,7 +7,6 @@ package value
 import (
 	"runtime"
 	"strings"
-	"sync"
 )
 
 type valueType int
@@ -179,16 +178,27 @@ func pfor(ok bool, size, n int, f func(lo, hi int)) {
 	if q := n * size / pforMinWork; q < p {
 		p = q
 	}
-	var wg sync.WaitGroup
+	c := make(chan interface{}, p)
 	for i := 0; i < p; i++ {
 		lo, hi := i*n/p, (i+1)*n/p
-		wg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer sendRecover(c)
 			f(lo, hi)
 		}()
 	}
-	wg.Wait()
+	var bad interface{}
+	for i := 0; i < p; i++ {
+		if e := <-c; e != nil {
+			bad = e
+		}
+	}
+	if bad != nil {
+		panic(bad)
+	}
+}
+
+func sendRecover(c chan<- interface{}) {
+	c <- recover()
 }
 
 // inner product computes an inner product such as "+.*".
