@@ -186,14 +186,14 @@ func pfor(ok bool, size, n int, f func(lo, hi int)) {
 			f(lo, hi)
 		}()
 	}
-	var bad interface{}
+	var err interface{}
 	for i := 0; i < p; i++ {
 		if e := <-c; e != nil {
-			bad = e
+			err = e
 		}
 	}
-	if bad != nil {
-		panic(bad)
+	if err != nil {
+		panic(err)
 	}
 }
 
