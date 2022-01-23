@@ -47,3 +47,9 @@ x
 # index must be integer
 1 2[1 2 log 2]
 	X
+
+1 / 0
+	X
+
+1 / 2 2 rho 0
+	X
