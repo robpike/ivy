@@ -75,15 +75,12 @@ type sliceExpr []value.Expr
 
 func (s sliceExpr) Eval(context value.Context) value.Value {
 	v := make([]value.Value, len(s))
-	// First do all assignments. These two vectors are legal.
-	// y (y=3) and (y=3) y.
-	for i, x := range s {
-		if bin, ok := x.(*binary); ok && bin.op == "=" {
-			s[i] = x.Eval(context)
-		}
-	}
-	for i, x := range s {
-		elem := x.Eval(context)
+	// Evaluate right to left, as is the usual rule.
+	// This also means things like
+	//	x=1000; x + x=2
+	// (yielding 4) work.
+	for i := len(s) - 1; i >= 0; i-- {
+		elem := s[i].Eval(context)
 		// Each element must be a singleton.
 		if !isScalar(elem) {
 			value.Errorf("vector element must be scalar; have %s", elem)

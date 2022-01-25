@@ -145,8 +145,11 @@ y
 	1 1 1
 
 # These odd assigments work in APL (Dyalog at least).
-(zz=3) zz
-	3 3
+zz = 1000; (zz=3) zz
+	3 1000
+
+zz = 1000; zz + zz = 2
+	4
 
 yy (yy=3)
 	3 3
