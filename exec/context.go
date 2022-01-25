@@ -22,9 +22,11 @@ type Context struct {
 	// Accessed through the value.Context Config method.
 	config *config.Config
 
-	// Stack is a stack of symbol tables, one entry per function (op) invocation,
-	// plus the 0th one at the base.
-	Stack []Symtab
+	frameSizes []int // size of each stack frame on the call stack
+	stack      []value.Value
+
+	Globals Symtab
+
 	//  UnaryFn maps the names of unary functions (ops) to their implemenations.
 	UnaryFn map[string]*Function
 	//  BinaryFn maps the names of binary functions (ops) to their implemenations.
@@ -41,7 +43,7 @@ type Context struct {
 func NewContext(conf *config.Config) value.Context {
 	c := &Context{
 		config:   conf,
-		Stack:    []Symtab{make(Symtab)},
+		Globals:  make(Symtab),
 		UnaryFn:  make(map[string]*Function),
 		BinaryFn: make(map[string]*Function),
 	}
@@ -56,55 +58,48 @@ func (c *Context) Config() *config.Config {
 // SetConstants re-assigns the fundamental constant values using the current
 // setting of floating-point precision.
 func (c *Context) SetConstants() {
-	syms := c.Stack[0]
-	syms["e"], syms["pi"] = value.Consts(c)
+	e, pi := value.Consts(c)
+	c.AssignGlobal("e", e)
+	c.AssignGlobal("pi", pi)
 }
 
-// Lookup returns the value of a symbol.
-func (c *Context) Lookup(name string) value.Value {
-	return c.varFrame(name, false)[name]
+// Global returns the value of a global symbol, or nil if the symbol is not defined globally.
+func (c *Context) Global(name string) value.Value {
+	return c.Globals[name]
 }
 
-// assignLocal binds a value to the name in the current function.
-func (c *Context) assignLocal(name string, value value.Value) {
-	c.Stack[len(c.Stack)-1][name] = value
+// Local returns the value of the local variable with index i.
+func (c *Context) Local(i int) value.Value {
+	return c.stack[len(c.stack)-i]
 }
 
-// Assign assigns the variable the value. The variable must
+// AssignLocal assigns the local variable with the given index the value.
+func (c *Context) AssignLocal(i int, value value.Value) {
+	c.stack[len(c.stack)-i] = value
+}
+
+// Assign assigns the global variable the value. The variable must
 // be defined either in the current function or globally.
 // Inside a function, new variables become locals.
-func (c *Context) Assign(name string, val value.Value) {
-	c.varFrame(name, true)[name] = val
+func (c *Context) AssignGlobal(name string, val value.Value) {
+	c.Globals[name] = val
 }
 
-// varFrame returns the stack frame for the named variable.
-func (c *Context) varFrame(name string, assign bool) Symtab {
-	n := len(c.Stack)
-	if n == 0 {
-		value.Errorf("empty stack; cannot happen")
+// push pushes a new local frame onto the context stack.
+func (c *Context) push(fn *Function) {
+	n := len(c.stack)
+	for cap(c.stack) < n+len(fn.Locals) {
+		c.stack = append(c.stack[:cap(c.stack)], nil)
 	}
-	if n > 1 {
-		// In this function?
-		frame := c.Stack[n-1]
-		_, globallyDefined := c.Stack[0][name]
-		if _, ok := frame[name]; ok || !globallyDefined {
-			return frame
-		}
-	}
-	if assign {
-		c.noOp(name)
-	}
-	return c.Stack[0] // globals
-}
-
-// push pushes a new frame onto the context stack.
-func (c *Context) push() {
-	c.Stack = append(c.Stack, make(Symtab))
+	c.frameSizes = append(c.frameSizes, len(fn.Locals))
+	c.stack = c.stack[:n+len(fn.Locals)]
 }
 
 // pop pops the top frame from the stack.
 func (c *Context) pop() {
-	c.Stack = c.Stack[:len(c.Stack)-1]
+	n := c.frameSizes[len(c.frameSizes)-1]
+	c.frameSizes = c.frameSizes[:len(c.frameSizes)-1]
+	c.stack = c.stack[:len(c.stack)-n]
 }
 
 // Eval evaluates a list of expressions.
@@ -219,12 +214,12 @@ func (c *Context) noVar(name string) {
 	if name == "_" || name == "pi" || name == "e" { // Cannot redefine these.
 		value.Errorf(`cannot define op with name %q`, name)
 	}
-	sym := c.Stack[0][name]
+	sym := c.Globals[name]
 	if sym == nil {
 		return
 	}
 	if i, ok := sym.(value.Int); ok && i == 0 {
-		delete(c.Stack[0], name)
+		delete(c.Globals, name)
 		return
 	}
 	value.Errorf("cannot define op %s; it is a variable (%[1]s=0 to clear)", name)

@@ -22,11 +22,22 @@ op i x = iota x
 i 3; x
 	1 2 3 100
 
-# Local non-args are globals
+# Local non-args are locals if assigned first.
 x = 100
 op double u = x = u; x*2
 double 3; x
+	6 100
+
+# Local non-args are globals if read first.
+x = 100
+op double u = x; x = u; x*2
+double 3; x
 	6 3
+
+x = 100
+op double u = x = x + u; x*2
+double 3; x
+	206 103
 
 # in g calling f, f used to assign to global y but read from g's y.
 op f x = y = 99; y

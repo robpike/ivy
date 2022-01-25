@@ -256,6 +256,7 @@ must be presented on a single line. Use semicolons to separate expressions:
 	op a gcd b = a == b: a; a > b: b gcd a-b; a gcd b-a
 
 To declare an operator but not define it, omit the equals sign and what follows.
+
 	op foo x
 	op bar x = foo x
 	op foo x = -x
@@ -265,9 +266,18 @@ To declare an operator but not define it, omit the equals sign and what follows.
 	bar 3
 	result: 1/3
 
-Within a user-defined operator, identifiers are local to the invocation unless
-they are undefined in the operator but defined globally, in which case they refer to
-the global variable. A mechanism to declare locals may come later.
+Within a user-defined operator body, identifiers are local to the invocation
+if they are assigned before being read, and global if read before being written.
+To write to a global without reading it first, insert an unused read.
+
+	total = 0
+	last = 0
+	op save x =
+		total = total + x  # total is global because total is read before written
+		last; last = x     # unused read makes last global
+
+	total last
+	result: 12 3
 
 Special commands
 

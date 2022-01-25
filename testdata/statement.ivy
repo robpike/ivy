@@ -162,3 +162,44 @@ x = 4 4 rho 0; y = 4 4; x[y[1]; y[2]] = 3; x
 	0 0 0 0
 	0 0 0 0
 	0 0 0 3
+
+# Order of evaluation
+tags = 0 rho 0
+op f tag =
+ tags = tags, tag
+ 1
+
+op order x =
+ x = tags
+ tags = 0 rho 0
+ x
+
+m = 1 1 rho 0
+order (f 1) + (f 2)
+order +/ (f 1) (f 2)
+order m[f 1; f 2]
+	2 1
+	2 1
+	2 1
+
+# Globals vs locals
+g = 1
+op f x = g = x+1; g
+f 10
+g
+	11
+	1
+
+g = 1
+op f x = g; g = x+1; g
+f 10
+g
+	11
+	11
+
+g = 1
+op f x = g = g+x; g
+f 100
+g
+	101
+	101

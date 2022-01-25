@@ -50,13 +50,17 @@ type Context interface {
 	// Lookup returns the configuration state for evaluation.
 	Config() *config.Config
 
-	// Lookup returns the value of a symbol.
-	Lookup(name string) Value
+	// Local returns the value of the i'th local variable.
+	Local(i int) Value
 
-	// Assign assigns the variable the value. The variable must
-	// be defined either in the current function or globally.
-	// Inside a function, new variables become locals.
-	Assign(name string, value Value)
+	// AssignLocal assigns to the i'th local variable.
+	AssignLocal(i int, value Value)
+
+	// Global returns the value of the named global variable.
+	Global(name string) Value
+
+	// AssignGlobal assigns to the named global variable.
+	AssignGlobal(name string, value Value)
 
 	// Eval evaluates a list of expressions.
 	Eval(exprs []Expr) []Value

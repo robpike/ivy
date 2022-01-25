@@ -113,6 +113,7 @@ func (p *Parser) functionDefn() {
 		p.errorf("expected newline after function declaration, found %s", tok)
 	}
 	p.context.Define(fn)
+	funcVars(fn)
 	succeeded = true
 	if p.context.Config().Debug("parse") {
 		p.Printf("op %s %s %s = %s\n", fn.Left, fn.Name, fn.Right, tree(fn.Body))
@@ -125,50 +126,20 @@ func (p *Parser) functionDefn() {
 func references(c *exec.Context, body []value.Expr) []exec.OpDef {
 	var refs []exec.OpDef
 	for _, expr := range body {
-		doReferences(c, &refs, expr)
+		walk(expr, false, func(expr value.Expr, _ bool) {
+			switch e := expr.(type) {
+			case *unary:
+				if c.UnaryFn[e.op] != nil {
+					addReference(&refs, e.op, false)
+				}
+			case *binary:
+				if c.BinaryFn[e.op] != nil {
+					addReference(&refs, e.op, true)
+				}
+			}
+		})
 	}
 	return refs
-}
-
-func doReferences(c *exec.Context, refs *[]exec.OpDef, expr value.Expr) {
-	switch e := expr.(type) {
-	case *unary:
-		if c.UnaryFn[e.op] != nil {
-			addReference(refs, e.op, false)
-		}
-		doReferences(c, refs, e.right)
-	case conditional:
-		doBinaryReferences(c, refs, e.binary)
-	case *binary:
-		doBinaryReferences(c, refs, e)
-	case *index:
-		doReferences(c, refs, e.left)
-		for _, v := range e.right {
-			doReferences(c, refs, v)
-		}
-	case variableExpr:
-	case sliceExpr:
-		for _, v := range e {
-			doReferences(c, refs, v)
-		}
-	case value.Char:
-	case value.Int:
-	case value.BigInt:
-	case value.BigFloat:
-	case value.BigRat:
-	case value.Vector:
-	case *value.Matrix:
-	default:
-		fmt.Printf("unknown %T in references\n", e)
-	}
-}
-
-func doBinaryReferences(c *exec.Context, refs *[]exec.OpDef, e *binary) {
-	if c.BinaryFn[e.op] != nil {
-		addReference(refs, e.op, true)
-	}
-	doReferences(c, refs, e.left)
-	doReferences(c, refs, e.right)
 }
 
 func addReference(refs *[]exec.OpDef, name string, isBinary bool) {
@@ -183,4 +154,83 @@ func addReference(refs *[]exec.OpDef, name string, isBinary bool) {
 		IsBinary: isBinary,
 	}
 	*refs = append(*refs, def)
+}
+
+// funcVars sets fn.Locals and fn.Globals
+// to the lists of variables that are local versus global.
+// A variable assigned to before any read is a local.
+// A variable read before any assignment to is a global.
+//
+// A function that wants to assign blindly to a global
+// can first do a throwaway read, as in
+//
+//	_ = x # global x
+//	x = 1
+func funcVars(fn *exec.Function) {
+	known := make(map[string]int)
+	addLocal := func(name string) {
+		fn.Locals = append(fn.Locals, name)
+		known[name] = len(fn.Locals)
+	}
+	if fn.Left != "" {
+		addLocal(fn.Left)
+	}
+	if fn.Right != "" {
+		addLocal(fn.Right)
+	}
+	f := func(expr value.Expr, assign bool) {
+		switch e := expr.(type) {
+		case *variableExpr:
+			x, ok := known[e.name]
+			if !ok {
+				if assign {
+					addLocal(e.name)
+				} else {
+					known[e.name] = 0
+				}
+				x = known[e.name]
+			}
+			e.local = x
+		}
+	}
+	for _, e := range fn.Body {
+		walk(e, false, f)
+	}
+	return
+}
+
+// walk traverses expr in right-to-left order,
+// calling f on all children, with the boolean argument
+// specifying whether the expression is being assigned to,
+// after which it calls f(expr, assign).
+func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
+	switch e := expr.(type) {
+	case *unary:
+		walk(e.right, false, f)
+	case conditional:
+		walk(e.binary, false, f)
+	case *binary:
+		walk(e.right, false, f)
+		walk(e.left, e.op == "=", f)
+	case *index:
+		for i := len(e.right) - 1; i >= 0; i-- {
+			walk(e.right[i], false, f)
+		}
+		walk(e.left, false, f)
+	case *variableExpr:
+	case sliceExpr:
+		for i := len(e) - 1; i >= 0; i-- {
+			walk(e[i], false, f)
+		}
+	case value.Char:
+	case value.Int:
+	case value.BigInt:
+	case value.BigFloat:
+	case value.BigRat:
+	case value.Vector:
+	case *value.Matrix:
+	default:
+		fmt.Printf("unknown %T in references\n", e)
+	}
+	f(expr, assign)
 }
