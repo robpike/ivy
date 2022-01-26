@@ -672,6 +672,39 @@ func init() {
 		},
 
 		{
+			name:        "sinh",
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType:      func(c Context, v Value) Value { return sinh(c, v) },
+				bigIntType:   func(c Context, v Value) Value { return sinh(c, v) },
+				bigRatType:   func(c Context, v Value) Value { return sinh(c, v) },
+				bigFloatType: func(c Context, v Value) Value { return sinh(c, v) },
+			},
+		},
+
+		{
+			name:        "cosh",
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType:      func(c Context, v Value) Value { return cosh(c, v) },
+				bigIntType:   func(c Context, v Value) Value { return cosh(c, v) },
+				bigRatType:   func(c Context, v Value) Value { return cosh(c, v) },
+				bigFloatType: func(c Context, v Value) Value { return cosh(c, v) },
+			},
+		},
+
+		{
+			name:        "tanh",
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType:      func(c Context, v Value) Value { return tanh(c, v) },
+				bigIntType:   func(c Context, v Value) Value { return tanh(c, v) },
+				bigRatType:   func(c Context, v Value) Value { return tanh(c, v) },
+				bigFloatType: func(c Context, v Value) Value { return tanh(c, v) },
+			},
+		},
+
+		{
 			name:        "sqrt",
 			elementwise: true,
 			fn: [numType]unaryFn{

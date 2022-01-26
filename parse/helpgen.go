@@ -103,19 +103,7 @@ func main() {
 		if len(op) == 0 {
 			continue
 		}
-		j := i
-		isCircle := false
-		if s := string(op); s == "sin" || s == "cos" || s == "tan" {
-			isCircle = true
-			op = []rune("sin")
-			j += 2
-		}
-		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, j)
-		if isCircle {
-			fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", "cos", i, j)
-			fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", "tan", i, j)
-		}
-		i = j
+		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, i)
 	}
 
 	// Text-converters are all unary.
@@ -179,7 +167,7 @@ func main() {
 		// Circles are unary.
 		str := string(op)
 		switch str {
-		case "sin", "cos", "tan", "asin", "acos", "atan":
+		case "sin", "cos", "tan":
 			continue
 		}
 		j := i
