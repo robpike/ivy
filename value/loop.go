@@ -57,7 +57,8 @@ func (l *loop) done(z *big.Float) bool {
 	}
 	l.i++
 	if l.i == l.maxIterations {
-		// Users should never see this.
+		// Users should never see this, but they sometimes do.
+		// TODO: Find a better termination condition.
 		Errorf("%s %s: did not converge after %d iterations; prev,last result %s,%s delta %s", l.name, BigFloat{l.arg}, l.maxIterations, BigFloat{z}, BigFloat{l.prevZ}, BigFloat{l.delta})
 	}
 	l.prevZ.Set(z)

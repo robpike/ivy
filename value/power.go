@@ -79,7 +79,7 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 	nFactorial := newF(conf).SetUint64(1)
 	z := newF(conf).SetInt64(1)
 
-	for loop := newLoop(conf, "exponential", x, 4); ; {
+	for loop := newLoop(conf, "exponential", x, 10); ; { // Big exponentials converge slowly.
 		term.Set(xN)
 		term.Quo(term, nFactorial)
 		z.Add(z, term)
@@ -94,7 +94,6 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 	}
 
 	return z
-
 }
 
 // integerPower returns x**exp where exp is an int64 of size <= intBits.
