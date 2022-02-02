@@ -31,50 +31,67 @@ Ivy is an interpreter for an APL-like language. It is a plaything and a work in
 progress.
 </p>
 <p>
-Unlike APL, the input is ASCII and the results are exact (but see the next paragraph).
-It uses exact rational arithmetic so it can handle arbitrary precision. Values to be
-input may be integers (3, -1), rationals (1/3, -45/67) or floating point values (1e3,
--1.5 (representing 1000 and -3/2)).
+Unlike APL, the input is ASCII and the results are exact (but see
+the next paragraph).  It uses exact rational arithmetic so it can
+handle arbitrary precision. Values to be input may be integers (3,
+-1), rationals (1/3, -45/67) or floating point values (1e3, -1.5
+(representing 1000 and -3/2)).
 </p>
 <p>
-Some functions such as sqrt are irrational. When ivy evaluates an irrational
-function, the result is stored in a high-precision floating-point number (default
-256 bits of mantissa). Thus when using irrational functions, the values have high
-precision but are not exact.
+Some functions such as sqrt are irrational. When ivy evaluates an
+irrational function, the result is stored in a high-precision
+floating-point number (default 256 bits of mantissa). Thus when
+using irrational functions, the values have high precision but are
+not exact.
 </p>
 <p>
-Unlike in most other languages, operators always have the same precedence and
-expressions are evaluated in right-associative order. That is, unary operators
-apply to everything to the right, and binary operators apply to the operand
-immediately to the left and to everything to the right.  Thus, 3*4+5 is 27 (it
-groups as 3*(4+5)) and iota 3+2 is 1 2 3 4 5 while 3+iota 2 is 4 5. A vector
-is a single operand, so 1 2 3 + 3 + 3 4 5 is (1 2 3) + 3 + (3 4 5), or 7 9 11.
+Unlike in most other languages, operators always have the same
+precedence and expressions are evaluated in right-associative order.
+That is, unary operators apply to everything to the right, and
+binary operators apply to the operand immediately to the left and
+to everything to the right.  Thus, 3*4+5 is 27 (it groups as 3*(4+5))
+and iota 3+2 is 1 2 3 4 5 while 3+iota 2 is 4 5. A vector is a
+single operand, so 1 2 3 + 3 + 3 4 5 is (1 2 3) + 3 + (3 4 5), or
+7 9 11.
 </p>
 <p>
-As a special but important case, note that 1/3, with no intervening spaces, is a
-single rational number, not the expression 1 divided by 3. This can affect precedence:
-3/6*4 is 2 while 3 / 6*4 is 1/8 since the spacing turns the / into a division
-operator. Use parentheses or spaces to disambiguate: 3/(6*4) or 3 /6*4.
+As a special but important case, note that 1/3, with no intervening
+spaces, is a single rational number, not the expression 1 divided
+by 3. This can affect precedence: 3/6*4 is 2 while 3 / 6*4 is 1/8
+since the spacing turns the / into a division operator. Use parentheses
+or spaces to disambiguate: 3/(6*4) or 3 /6*4.
 </p>
 <p>
-Indexing uses [] notation: x[1], x[1; 2], and so on. Indexing by a vector
-selects multiple elements: x[1 2] creates a new item from x[1] and x[2].
+Ivy has complex numbers, which are constructed using the unary or
+binary j operator. As with rationals, the token 1j2 (the representation
+of 1+2i) is a single token. The individual parts can be rational,
+so 1/2j-3/2 is the complex number 0.5-1.5i and scans as a single
+value.
 </p>
 <p>
-Only a subset of APL&#39;s functionality is implemented, but the intention is to
-have most numerical operations supported eventually.
+Indexing uses [] notation: x[1], x[1; 2], and so on. Indexing by a
+vector selects multiple elements: x[1 2] creates a new item from
+x[1] and x[2].
 </p>
 <p>
-Semicolons separate multiple statements on a line. Variables are alphanumeric and are
-assigned with the = operator. Assignment is an expression.
+Only a subset of APL&#39;s functionality is implemented, but all numerical
+operations are supported.
 </p>
 <p>
-After each successful expression evaluation, the result is stored in the variable
-called _ (underscore) so it can be used in the next expression.
+Semicolons separate multiple statements on a line. Variables are
+alphanumeric and are assigned with the = operator. Assignment is
+an expression.
 </p>
 <p>
-The APL operators, adapted from <a href="https://en.wikipedia.org/wiki/APL_syntax_and_symbols">https://en.wikipedia.org/wiki/APL_syntax_and_symbols</a>,
-and their correspondence are listed here. The correspondence is incomplete and inexact.
+After each successful expression evaluation, the result is stored
+in the variable called _ (underscore) so it can be used in the next
+expression.
+</p>
+<p>
+The APL operators, adapted from
+<a href="https://en.wikipedia.org/wiki/APL_syntax_and_symbols">https://en.wikipedia.org/wiki/APL_syntax_and_symbols</a>, and their
+correspondence are listed here. The correspondence is incomplete
+and inexact.
 </p>
 <p>
 Unary operators
@@ -115,6 +132,10 @@ Arctangent              atan    arctan(B)
 Hyperbolic sine         sinh    sinh(B)
 Hyperbolic cosine       cosh    cosh(B)
 Hyperbolic tangent      tanh    tanh(B)
+Rotation by 90°         j       Multiplication by sqrt(-1)
+Real part               real    Real component of the value
+Imaginary part          imag    Imaginary component of the value
+Phase                   phase   Phase of the value in the complex plane (-π to π)
 </pre>
 <p>
 Binary operators
@@ -178,6 +199,7 @@ Bitwise or                  |       Bitwise A or B (integer only)
 Bitwise xor                 ^       Bitwise A exclusive or B (integer only)
 Left shift                  &lt;&lt;      A shifted left B bits (integer only)
 Right Shift                 &gt;&gt;      A shifted right B bits (integer only)
+Complex construction        j       The complex number A+Bi
 </pre>
 <p>
 Operators and axis indicator
@@ -197,7 +219,9 @@ Type-converting operations
 <pre>Name              APL   Ivy     Meaning
 Code                    code B  The integer Unicode value of char B
 Char                    char B  The character with integer Unicode value B
-Float                   float B The floating-point representation of B
+Float                   float B The floating-point representation of B;
+                                for complex numbers, the result is
+                                (float A)j(float B)
 </pre>
 <h3 id="hdr-Pre_defined_constants">Pre-defined constants</h3>
 <p>
@@ -347,11 +371,9 @@ base 10 and must be non-negative on input.
 	Set the number base for input and output. The commands ibase and
 	obase control setting of the base for input and output alone,
 	respectively.  Base 0 allows C-style input: decimal, with 037 being
-	octal and 0x10 being hexadecimal. If the base is greater than 10,
-	any identifier formed from valid numerals in the base system, such
-	as abe for base 16, is taken to be a number. TODO: To output
-	large integers and rationals, base must be one of 0 2 8 10 16.
-	Floats are always printed base 10.
+	octal and 0x10 being hexadecimal. Bases above 16 are disallowed.
+	To output large integers and rationals, base must be one of
+	0 2 8 10 16. Floats are always printed base 10.
 ) cpu
 	Print the duration of the last interactive calculation.
 ) debug name 0|1

@@ -34,6 +34,10 @@ func fmtText(c Context, u, v Value) Value {
 	switch val := v.(type) {
 	case Int, BigInt, BigRat, BigFloat, Char:
 		formatOne(c, &b, format, verb, val)
+	case Complex:
+		formatOne(c, &b, format, verb, val.real)
+		b.WriteByte('j')
+		formatOne(c, &b, format, verb, val.imag)
 	case Vector:
 		if val.AllChars() && strings.ContainsRune("boOqsvxX", rune(verb)) {
 			// Print the string as a unit.
@@ -165,6 +169,8 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		case BigFloat:
 			i, _ := val.Int64()
 			fmt.Fprintf(w, format, i)
+		case Complex:
+			Errorf("%%%c not implemented for complex: %v", verb, val)
 		}
 		return
 	case 's', 'q':
@@ -182,6 +188,8 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		case BigFloat:
 			i, _ := val.Int64()
 			fmt.Fprintf(w, format, string(int32(i)))
+		case Complex:
+			Errorf("%%%c not implemented for complex: %v", verb, val)
 		}
 		return
 	case 'b', 'd', 'o', 'O', 'x', 'X':
@@ -210,6 +218,10 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 			}
 			i, _ := val.Int(big.NewInt(0)) // TODO: Truncates towards zero. Do rounding?
 			fmt.Fprintf(w, format, i)
+		case Complex:
+			formatOne(c, w, format, verb, val.real)
+			fmt.Fprint(w, "j")
+			formatOne(c, w, format, verb, val.imag)
 		}
 		return
 	case 'e', 'E', 'f', 'F', 'g', 'G':
@@ -229,6 +241,10 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 			fmt.Fprintf(w, format, f)
 		case BigFloat:
 			fmt.Fprintf(w, format, val.Float)
+		case Complex:
+			formatOne(c, w, format, verb, val.real)
+			fmt.Fprint(w, "j")
+			formatOne(c, w, format, verb, val.imag)
 		}
 	default:
 		fmt.Fprintf(w, format, v)

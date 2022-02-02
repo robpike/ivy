@@ -17,12 +17,13 @@ const (
 	bigIntType
 	bigRatType
 	bigFloatType
+	complexType
 	vectorType
 	matrixType
 	numType
 )
 
-var typeName = [...]string{"int", "char", "big int", "rational", "float", "vector", "matrix"}
+var typeName = [...]string{"int", "char", "big int", "rational", "float", "complex", "vector", "matrix"}
 
 func (t valueType) String() string {
 	return typeName[t]
@@ -74,6 +75,8 @@ func whichType(v Value) valueType {
 		return bigRatType
 	case BigFloat:
 		return bigFloatType
+	case Complex:
+		return complexType
 	case Vector:
 		return vectorType
 	case *Matrix:
@@ -293,7 +296,7 @@ func Reduce(c Context, op string, v Value) Value {
 	// We must be right associative; that is the grammar.
 	// -/1 2 3 == 1-2-3 is 1-(2-3) not (1-2)-3. Answer: 2.
 	switch v := v.(type) {
-	case Int, BigInt, BigRat:
+	case Int, BigInt, BigRat, BigFloat, Complex:
 		return v
 	case Vector:
 		if len(v) == 0 {
@@ -341,7 +344,7 @@ func Reduce(c Context, op string, v Value) Value {
 // We must be right associative; that is the grammar.
 func Scan(c Context, op string, v Value) Value {
 	switch v := v.(type) {
-	case Int, BigInt, BigRat:
+	case Int, BigInt, BigRat, BigFloat, Complex:
 		return v
 	case Vector:
 		if len(v) == 0 {
@@ -534,6 +537,38 @@ func isVector(u *Matrix, shape []int) bool {
 	return true
 }
 
+// isZero reports whether u is a numeric zero.
+func isZero(v Value) bool {
+	switch v := v.(type) {
+	case Int:
+		return v == 0
+	case BigInt:
+		return v.Sign() == 0
+	case BigRat:
+		return v.Sign() == 0
+	case BigFloat:
+		return v.Sign() == 0
+	case Complex:
+		return isZero(v.real) && isZero(v.imag)
+	}
+	return false
+}
+
+// isNegative reports whether u is negative
+func isNegative(v Value) bool {
+	switch v := v.(type) {
+	case Int:
+		return v < 0
+	case BigInt:
+		return v.Sign() < 0
+	case BigRat:
+		return v.Sign() < 0
+	case BigFloat:
+		return v.Sign() < 0
+	}
+	return false
+}
+
 // EvalFunctionBody evaluates the list of expressions inside a function,
 // possibly with conditionals that generate an early return.
 func EvalFunctionBody(context Context, fnName string, body []Expr) Value {
@@ -565,6 +600,8 @@ func isTrue(fnName string, v Value) bool {
 		return true // If it's a BigRat, it can't be 0 - that's an Int.
 	case BigFloat:
 		return i.Float.Sign() != 0
+	case Complex:
+		return !isZero(v)
 	default:
 		Errorf("invalid expression %s for conditional inside %q", v, fnName)
 		return false

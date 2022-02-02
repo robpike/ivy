@@ -1,0 +1,131 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Unary operations on complex numbers.
+
+# Test the lexer.
+0j0
+	0j0
+
+1j2
+	1j2
+
+-1j2
+	-1j2
+
+-1j-2
+	-1j-2
+
+-1j+2
+	-1j2
+
+# Make sure we get single tokens for these.
+rho 1j1 -1j1 1j-1 +1j1 -1j-1 1j-1
+	6
+
+# Ditto
+1j-1/2
+	1j-1/2
+
+0x32j077
+	50j63
+
+# Rational complex.
+23/41j2/41+1
+	64/41j2/41
+
+j 1
+	0j1
+
+j 2j3
+	-3j2
+
+j 0j1
+	-1j0
+
++ 1j2
+	1j2
+
+- 1j2
+	-1j-2
+
+/ 1j0
+	1j0
+
+/ 0j1
+	0j-1
+
+/ 1j2
+	1/5j-2/5
+
+not 0j0
+	1
+
+not 1j0
+	0
+
+not 0j1
+	0
+
+not 1j1
+	0
+
+abs 0j1
+	1
+
+abs 1j0
+	1
+
+abs 3j4
+	5
+
+real 3j4
+	3
+
+imag 3j4
+	4
+
+# Phase in -π to π.
+
+phase 1 0 -1 # check the reals while we're here
+	0 0 3.14159265359
+
+phase 0j0 0j1 0j-1 1j0 -1j0
+	0 1.57079632679 -1.57079632679 0 3.14159265359
+
+phase 1j1 -1j1 -1j-1 1j-1
+	0.785398163397 2.35619449019 -2.35619449019 -0.785398163397
+
+rho 3j4
+	0
+
+)format "%.16g"
+sqrt 2j1
+	1.455346690225355j0.3435607497225125
+
+sqrt -1
+	0j1
+
+sqrt 3j4
+	2j1
+
+sqrt 3j-4
+	2j-1
+
+9 1 rho ** 0j-1 0j0 0j1 1j-1 1j0 1j1 -1j-1 -1j0 -1j-1
+	0.540302305868j-0.841470984808
+	1
+	0.540302305868j0.841470984808
+	1.46869393992j-2.28735528718
+	2.71828182846
+	1.46869393992j2.28735528718
+	0.198766110346j-0.309559875653
+	0.367879441171
+	0.198766110346j-0.309559875653
+
+float 7/2j5/2
+	3.5j2.5
+
+text 3j2
+	3j2

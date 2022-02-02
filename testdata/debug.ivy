@@ -32,6 +32,17 @@ op a base b = ((ceil b log a) rho b) encode a
 	:2: emit Newline: "\n"
 	23
 
+# Fixed bugs in lexing: leading + wasn't part of a number, for example, even though - was.
++2
+	:1: emit Number: "+2"
+	:2: emit Newline: "\n"
+	2
+
+-1/2j-5/2
+	:1: emit Number: "-1/2j-5/2"
+	:2: emit Newline: "\n"
+	-1/2j-5/2
+
 op a base b = ((ceil b log a) rho b) encode a
 	 :1: emit Op: "op"
 	 :1: emit Identifier: "a"

@@ -22,6 +22,10 @@ func (c Char) Rank() int {
 	return 0
 }
 
+func (c Char) shrink() Value {
+	return c
+}
+
 func (c Char) Sprint(conf *config.Config) string {
 	// We ignore the format - chars are always textual.
 	// TODO: What about escapes?

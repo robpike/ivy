@@ -106,7 +106,7 @@ func main() {
 		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, i)
 	}
 
-	// Text-converters are all unary.
+	// Text-converters are all unary but float is multi-line.
 	for i = 0; lines[i] != "Type-converting operations"; i++ {
 	}
 	for i++; i < len(lines); i++ {
@@ -129,10 +129,16 @@ func main() {
 				break
 			}
 		}
-		if len(op) == 0 {
-			continue
+		j := i
+		// If the next few lines have no text at the left, they are a continuation. Pull them in.
+		for ; j < len(lines); j++ {
+			next := lines[j+1]
+			if len(next) < 33 || next[1] != ' ' {
+				break
+			}
 		}
-		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, i)
+		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, j)
+		i = j
 	}
 
 	s("}")

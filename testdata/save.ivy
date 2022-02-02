@@ -26,6 +26,7 @@ x5 = 3 4 rho iota 12
 x6 = 'x'
 x7 = 'abc'
 x8 = 1 'x' 2
+x9 = 1j2
 )save "<conf.out>"
 	)prec 256
 	)maxbits 1000000000
@@ -43,6 +44,7 @@ x8 = 1 'x' 2
 	x6 = 'x'
 	x7 = "abc"
 	x8 = 1 'x' 2
+	x9 = 1j2
 	)ibase 0
 	)obase 0
 
@@ -110,7 +112,7 @@ op f x = x[1 2; g 3 4; 5 6]
 op f x =
  x==1: 2
  x
- 
+
 op g x = x
 )save "<conf.out>"
 	)prec 256
@@ -122,7 +124,7 @@ op g x = x
 	op f x =
 		(x == 1) : 2
 		x
-	
+
 	op g x = x
 	# Set base 10 for parsing numbers.
 	)base 10

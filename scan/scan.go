@@ -42,6 +42,7 @@ const (
 	Operator       // known operator
 	Op             // "op", operator definition keyword
 	Rational       // rational number like 2/3
+	Complex        // complex number like 3j2
 	RightBrack     // ']'
 	RightParen     // ')'
 	Semicolon      // ';'
@@ -73,9 +74,11 @@ type Scanner struct {
 	context value.Context
 	r       io.ByteReader
 	done    bool
+	errored bool   // have emitted an error for this token - suppresses duplicate errors
 	name    string // the name of the input; used only for error reports
 	buf     []byte
 	input   string  // the line of text being scanned.
+	readOK  bool    // allow reading of a new line of input
 	state   stateFn // the next lexing function to enter
 	line    int     // line number in input
 	pos     int     // current position in the input
@@ -108,7 +111,14 @@ func (l *Scanner) loadLine() {
 
 // next returns the next rune in the input.
 func (l *Scanner) next() rune {
+	if l.errored {
+		return eof
+	}
 	if !l.done && l.pos == len(l.input) {
+		if !l.readOK { // Token did not end before newline.
+			l.errorf("incomplete token")
+			return eof
+		}
 		l.loadLine()
 	}
 	if len(l.input) == l.pos {
@@ -118,6 +128,7 @@ func (l *Scanner) next() rune {
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.width = w
 	l.pos += l.width
+	l.readOK = false
 	return r
 }
 
@@ -136,12 +147,15 @@ func (l *Scanner) peek2() (rune, rune) {
 	r2 := l.next()
 	l.pos = pos
 	l.width = width
+	l.readOK = true
 	return r1, r2
 }
 
 // backup steps back one rune. Can only be called once per call of next.
 func (l *Scanner) backup() {
-	l.pos -= l.width
+	if l.pos-l.width >= l.start {
+		l.pos -= l.width
+	}
 }
 
 //  passes an item back to the client.
@@ -157,6 +171,7 @@ func (l *Scanner) emit(t Type) {
 	l.tokens <- Token{t, l.line, s}
 	l.start = l.pos
 	l.width = 0
+	l.errored = false
 }
 
 // ignore skips over the pending input before this point.
@@ -184,10 +199,15 @@ func (l *Scanner) acceptRun(valid string) {
 // newline (so the next token will be a newline, skipping the
 // rest of the current line), and continues to scan.
 func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
-	l.tokens <- Token{Error, l.start, fmt.Sprintf(format, args...)}
+	if !l.errored { // Only one error emit per attempted token.
+		l.tokens <- Token{Error, l.start, fmt.Sprintf(format, args...)}
+		l.errored = true
+	}
 	l.start = 0
 	l.pos = 0
+	l.width = 0
 	l.input = "\n"
+	l.readOK = true
 	return lexAny
 }
 
@@ -215,6 +235,7 @@ func (l *Scanner) Next() Token {
 			return tok
 		default:
 			// Run the machine
+			l.readOK = true
 			l.state = l.state(l)
 		}
 	}
@@ -265,17 +286,16 @@ func lexAny(l *Scanner) stateFn {
 		return lexRawQuote
 	case r == '\'':
 		return lexChar
-	case r == '-':
+	case r == '-' || r == '+':
 		// It's an operator if it's preceded immediately (no spaces) by an operand, which is
 		// an identifier, an indexed expression, or a parenthesized expression.
 		// Otherwise it could be a signed number.
 		if l.start > 0 {
 			rr, _ := utf8.DecodeLastRuneInString(l.input[:l.start])
 			if isAlphaNumeric(rr) || rr == ')' || rr == ']' {
-				l.emit(Operator)
-				return lexAny
+				return lexOperator
 			}
-			// Ugly corner case: inner product starting with '-'.
+			// Ugly corner case: inner product starting with '-' or '+'.
 			if r1, r2 := l.peek2(); r1 == '.' && !l.isNumeral(r2) {
 				return lexOperator
 			}
@@ -283,7 +303,7 @@ func lexAny(l *Scanner) stateFn {
 		fallthrough
 	case r == '.' || '0' <= r && r <= '9':
 		l.backup()
-		return lexNumber
+		return lexComplex
 	case r == '=':
 		if l.peek() != '=' {
 			l.emit(Assign)
@@ -355,7 +375,9 @@ Loop:
 			case word == "op":
 				l.emit(Op)
 			case isAllDigits(word, l.context.Config().InputBase()):
-				l.emit(Number)
+				// Mistake: back up and scan it as a number.
+				l.pos = l.start
+				return lexComplex
 			default:
 				l.emit(Identifier)
 			}
@@ -383,8 +405,8 @@ func lexOperator(l *Scanner) stateFn {
 			l.next()               // Accept the '.'.
 			if isDigit(l.peek()) { // Is a number after all, as in 3*.7. Back up.
 				l.backup()
-				l.emit(Operator) // Up to but not including the period.
-				return lexNumber // We know it starts ".7".
+				l.emit(Operator)  // Up to but not including the period.
+				return lexComplex // We know it starts ".7".
 			}
 			startRight := l.pos
 			r := l.next()
@@ -414,7 +436,7 @@ func lexOperator(l *Scanner) stateFn {
 }
 
 // atTerminator reports whether the input is at valid termination character to
-// appear after an identifier.
+// appear after an identifier or number element.
 func (l *Scanner) atTerminator() bool {
 	r := l.peek()
 	if r == eof || isSpace(r) || isEndOfLine(r) || unicode.IsPunct(r) || unicode.IsSymbol(r) {
@@ -448,56 +470,77 @@ Loop:
 	return lexAny
 }
 
-// lexNumber scans a number: decimal, octal, hex, float, or imaginary. This
+func lexComplex(l *Scanner) stateFn {
+	ok, fn := acceptNumber(l, true)
+	if !ok {
+		return fn
+	}
+	if !l.accept("j") {
+		l.emit(Number)
+		return lexAny
+	}
+	ok, fn = acceptNumber(l, true)
+	if !ok {
+		return l.errorf("bad complex number syntax: %s", l.input[l.start:l.pos])
+	}
+	l.emit(Number)
+	return fn
+}
+
+// acceptNumber scans a number: decimal, octal, hex, float. This
 // isn't a perfect number scanner - for instance it accepts "." and "0x0.2"
 // and "089" - but when it's wrong the input is invalid and the parser (via
-// strconv) will notice.
-func lexNumber(l *Scanner) stateFn {
+// strconv) will notice. The realPart boolean says whether this might be
+// the first half of a complex number, permitting a 'j' afterwards. If it's
+// false, we've just seen a 'j' and we need another number.
+// It returns the next lex function to run.
+func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 	// Optional leading sign.
-	if l.accept("-") {
+	if l.accept("+-") && realPart {
 		// Might not be a number.
 		r := l.peek()
 		// Might be a scan or reduction.
 		if r == '/' || r == '\\' {
 			l.next()
 			l.emit(Operator)
-			return lexAny
+			return false, lexAny
 		}
 		if r != '.' && !l.isNumeral(r) {
-			l.emit(Operator)
-			return lexAny
+			return false, lexOperator
 		}
 	}
-	if !l.scanNumber(true) {
-		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
+	if !l.scanNumber(true, realPart) {
+		l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
+		return false, lexAny
 	}
 	r := l.peek()
 	if r != '/' {
-		l.emit(Number)
-		return lexAny
+		return true, lexAny
 	}
 	// Might be a rational.
 	l.accept("/")
 
-	if r := l.peek(); r != '.' && !l.isNumeral(r) {
-		// Oops, not a number. Hack!
-		l.pos-- // back up before '/'
-		l.emit(Number)
-		l.accept("/")
-		l.emit(Operator)
-		return lexAny
+	if realPart {
+		if r := l.peek(); r != '.' && !l.isNumeral(r) {
+			// Oops, not a rational. Back up!
+			l.pos--
+			return true, lexOperator
+		}
 	}
-	if !l.scanNumber(false) {
-		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
+	// Note: No signs here. 1/-2 is (1 / -2) not (-1/2). This differs from 'j' but feels right;
+	// you don't write 1/-2 for -1/2. The sign should be first.
+	if !l.scanNumber(false, realPart) {
+		l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
+		return false, lexAny
 	}
 	if l.peek() == '.' {
-		return l.errorf("bad number syntax: %s", l.input[l.start:l.pos+1])
+		l.errorf("bad number syntax: %s", l.input[l.start:l.pos+1])
+		return false, lexAny
 	}
-	l.emit(Rational)
-	return lexAny
+	return true, lexAny
 }
 
-func (l *Scanner) scanNumber(followingSlashOK bool) bool {
+func (l *Scanner) scanNumber(followingSlashOK, followingJOK bool) bool {
 	base := l.context.Config().InputBase()
 	digits := digitsForBase(base)
 	// If base 0, acccept octal for 0 or hex for 0x or 0X.
@@ -520,7 +563,10 @@ func (l *Scanner) scanNumber(followingSlashOK bool) bool {
 	if followingSlashOK && r == '/' {
 		return true
 	}
-	// Next thing mustn't be alphanumeric except possibly an o for outer product (3o.+2).
+	if followingJOK && r == 'j' {
+		return true
+	}
+	// Next thing mustn't be alphanumeric except possibly an o for outer product (3o.+2) or a complex.
 	if r != 'o' && isAlphaNumeric(r) {
 		l.next()
 		return false
@@ -585,6 +631,7 @@ Loop:
 func lexRawQuote(l *Scanner) stateFn {
 Loop:
 	for {
+		l.readOK = true // Here we do accept a newline mid-token.
 		switch l.next() {
 		case eof:
 			return l.errorf("unterminated raw quoted string")
@@ -657,11 +704,17 @@ func (l *Scanner) isNumeral(r rune) bool {
 	return false
 }
 
-// isAllDigits reports whether s consists of digits in the specified base.
+// isAllDigits reports whether s consists of digits in the specified base,
+// includig possibly one 'j'.
 func isAllDigits(s string, base int) bool {
 	top := 'a' + rune(base-10) - 1
 	TOP := 'A' + rune(base-10) - 1
+	sawJ := false
 	for _, c := range s {
+		if c == 'j' && !sawJ {
+			sawJ = true
+			continue
+		}
 		if '0' <= c && c <= '9' {
 			continue
 		}

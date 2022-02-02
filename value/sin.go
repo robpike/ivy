@@ -15,7 +15,7 @@ func cos(c Context, v Value) Value {
 }
 
 func tan(c Context, v Value) Value {
-	x := floatSelf(c, v).(BigFloat).Float
+	x := floatSelf(c, v).Float
 	if x.IsInf() {
 		Errorf("tangent of infinity")
 	}

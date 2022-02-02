@@ -1,0 +1,75 @@
+# Copyright 2014 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Binary operations with complex numbers.
+
+2 j 3
+	2j3
+
+1 2 3 j 4 5 6
+	1j4 2j5 3j6
+
+2 j 3 4 5
+	2j3 2j4 2j5
+
+2j3 + 4j5
+	6j8
+
+2j3 - 4j5
+	-2j-2
+
+2j3 * 4j5
+	-7j22
+
+2j3 / 4j5
+	23/41j2/41
+
+1j2 == 1j1 1j2 1j3 2j2
+	0 1 0 0
+
+1j2 != 1j1 1j2 1j3 2j2
+	1 0 1 1
+
+0j0 and 0j0 0j1 1j0 1j1
+	0 0 0 0
+
+1j1 and 0j0 0j1 1j0 1j1
+	0 1 1 1
+
+0j0 or 0j0 0j1 1j0 1j1
+	0 1 1 1
+
+1j1 or 0j0 0j1 1j0 1j1
+	1 1 1 1
+
+0j0 xor 0j0 0j1 1j0 1j1
+	0 1 1 1
+
+1j1 xor 0j0 0j1 1j0 1j1
+	1 0 0 0
+
+0j0 nand 0j0 0j1 1j0 1j1
+	1 1 1 1
+
+1j1 nand 0j0 0j1 1j0 1j1
+	1 0 0 0
+
+0j0 nor 0j0 0j1 1j0 1j1
+	1 0 0 0
+
+1j1 nor 0j0 0j1 1j0 1j1
+	0 0 0 0
+
+0j1 ** -1 + iota 4
+	1 0j1 -1j0 0j-1
+
+0j1 ** - -1 + iota 4
+	1 0j-1 -1j0 0j1
+
+1j1 ** -1 + iota 8
+	1 1j1 0j2 -2j2 -4j0 -4j-4 0j-8 8j-8
+
+1j1 ** - -1 + iota 8
+	1 1/2j-1/2 0j-1/2 -1/4j-1/4 -1/4j0 -1/8j1/8 0j1/8 1/16j1/16
+

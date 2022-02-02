@@ -57,6 +57,10 @@ func (i Int) Rank() int {
 	return 0
 }
 
+func (i Int) shrink() Value {
+	return i
+}
+
 func (i Int) floatString(verb byte, prec int) string {
 	switch verb {
 	case 'f', 'F':
@@ -146,6 +150,8 @@ func (i Int) toType(op string, conf *config.Config, which valueType) Value {
 		return bigRatInt64(int64(i))
 	case bigFloatType:
 		return bigFloatInt64(conf, int64(i))
+	case complexType:
+		return newComplex(i, Int(0))
 	case vectorType:
 		return NewVector([]Value{i})
 	case matrixType:

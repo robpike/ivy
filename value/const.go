@@ -30,6 +30,7 @@ var (
 	// set to constPrecision
 	floatE        *big.Float
 	floatPi       *big.Float
+	floatPiBy2    *big.Float
 	floatLog2     *big.Float
 	floatLog10    *big.Float
 	floatZero     *big.Float
@@ -74,6 +75,11 @@ func Consts(c Context) (e, pi BigFloat) {
 	if !ok {
 		panic("setting pi")
 	}
+	floatPiBy2, ok = newF(conf).SetString(strPi)
+	if !ok {
+		panic("setting pi")
+	}
+	floatPiBy2.Quo(floatPiBy2, floatTwo)
 	floatLog2, ok = newF(conf).SetString(strLog2)
 	if !ok {
 		panic("setting log(2)")

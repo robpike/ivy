@@ -29,6 +29,11 @@ type Value interface {
 	// Rank returns the rank of the value: 0 for scalar, 1 for vector, etc.
 	Rank() int
 
+	// shrink returns a simpler form of the value, such as an
+	// integer for an integral BigFloat. For some types it is
+	// the identity. It does not modify the receiver.
+	shrink() Value
+
 	// ProgString is like String, but suitable for program listing.
 	// For instance, it ignores the user format for numbers and
 	// puts quotes on chars, guaranteeing a correct representation.
@@ -49,31 +54,56 @@ func Errorf(format string, args ...interface{}) {
 	panic(Error(fmt.Sprintf(format, args...)))
 }
 
+func parseTwo(conf *config.Config, s string) (Value, Value, string, error) {
+	var elems []string
+	var sep string
+	var typ string
+	if strings.ContainsRune(s, 'j') {
+		sep = "j"
+		typ = "complex"
+	} else if strings.ContainsRune(s, '/') {
+		sep = "/"
+		typ = "rational"
+	} else {
+		return Int(0), Int(0), "", nil
+	}
+	elems = strings.Split(s, sep)
+	if len(elems) != 2 || elems[0] == "" || elems[1] == "" {
+		Errorf("bad %s number syntax: %q", typ, s)
+	}
+	v1, err := Parse(conf, elems[0])
+	if err != nil {
+		return nil, nil, "", err
+	}
+	v2, err := Parse(conf, elems[1])
+	if err != nil {
+		return nil, nil, "", err
+	}
+	return v1, v2, sep, err
+}
+
 func Parse(conf *config.Config, s string) (Value, error) {
-	// Is it a rational? If so, it's tricky.
-	if strings.ContainsRune(s, '/') {
-		elems := strings.Split(s, "/")
-		if len(elems) != 2 {
-			panic("bad rat")
-		}
-		num, err := Parse(conf, elems[0])
-		if err != nil {
-			return nil, err
-		}
-		den, err := Parse(conf, elems[1])
-		if err != nil {
-			return nil, err
-		}
+	// Is it a complex or rational?
+	v1, v2, sep, err := parseTwo(conf, s)
+	if err != nil {
+		return nil, err
+	}
+	switch sep {
+	case "j":
+		// A complex.
+		return newComplex(v1, v2), nil
+	case "/":
+		// A rational. It's tricky.
 		// Common simple case.
-		if whichType(num) == intType && whichType(den) == intType {
-			return bigRatTwoInt64s(int64(num.(Int)), int64(den.(Int))).shrink(), nil
+		if whichType(v1) == intType && whichType(v2) == intType {
+			return bigRatTwoInt64s(int64(v1.(Int)), int64(v2.(Int))).shrink(), nil
 		}
 		// General mix-em-up.
-		rden := den.toType("rat", conf, bigRatType)
+		rden := v2.toType("rat", conf, bigRatType)
 		if rden.(BigRat).Sign() == 0 {
 			Errorf("zero denominator in rational")
 		}
-		return binaryBigRatOp(num.toType("rat", conf, bigRatType), (*big.Rat).Quo, rden), nil
+		return binaryBigRatOp(v1.toType("rat", conf, bigRatType), (*big.Rat).Quo, rden), nil
 	}
 	// Not a rational, but might be something like 1.3e-2 and therefore
 	// become a rational.

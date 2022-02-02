@@ -4,14 +4,47 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+)
 
 func sqrt(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return sqrtComplex(c, u)
+		}
+		v = u.real
+	}
+	if isNegative(v) {
+		return newComplex(Int(0), evalFloatFunc(c, c.EvalUnary("-", v), floatSqrt))
+	}
 	return evalFloatFunc(c, v, floatSqrt)
 }
 
+// sqrtComplex returns sqrt(v) where v is Complex.
+func sqrtComplex(c Context, v Complex) Value {
+	// First turn v into (a + bi) where a and b are big.Floats.
+	a := floatSelf(c, v.real).Float
+	b := floatSelf(c, v.imag).Float
+	a2 := newFloat(c).Mul(a, a)
+	b2 := newFloat(c).Mul(b, b)
+	mag := floatSqrt(c, a2.Add(a2, b2))
+	// The real part is sqrt(mag+a)/2.
+	r := newFloat(c).Add(mag, a)
+	r = floatSqrt(c, r.Quo(r, floatTwo))
+	// The imaginary part is sgn(b)*sqrt(mag-a)/2
+	i := newFloat(c).Sub(mag, a)
+	i.Quo(i, floatTwo)
+	i = floatSqrt(c, i)
+	if b.Sign() < 0 {
+		i.Neg(i)
+	}
+	// As with normal square roots, we only return the positive root.
+	return newComplex(BigFloat{r}.shrink(), BigFloat{i}.shrink())
+}
+
 func evalFloatFunc(c Context, v Value, fn func(Context, *big.Float) *big.Float) Value {
-	return BigFloat{(fn(c, floatSelf(c, v).(BigFloat).Float))}.shrink()
+	return BigFloat{(fn(c, floatSelf(c, v).Float))}.shrink()
 }
 
 // floatSqrt computes the square root of x using Newton's method.
@@ -19,7 +52,7 @@ func evalFloatFunc(c Context, v Value, fn func(Context, *big.Float) *big.Float) 
 func floatSqrt(c Context, x *big.Float) *big.Float {
 	switch x.Sign() {
 	case -1:
-		Errorf("square root of negative number")
+		Errorf("square root of negative number") // Should never happen but be safe.
 	case 0:
 		return newFloat(c)
 	}

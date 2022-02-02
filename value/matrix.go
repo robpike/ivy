@@ -37,6 +37,10 @@ func (m *Matrix) Rank() int {
 	return len(m.shape)
 }
 
+func (m *Matrix) shrink() Value {
+	return m
+}
+
 // Data returns the data of the matrix as a vector.
 func (m *Matrix) Data() Vector {
 	return m.data

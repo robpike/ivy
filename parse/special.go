@@ -107,27 +107,39 @@ Switch:
 			break
 		}
 		str := strings.ToLower(strings.TrimSpace(tok.Text))
+		// Section headers are used to separate the help output.
+		const (
+			unary     = "Unary operators"
+			binary    = "Binary operators"
+			axis      = "Operators and axis indicator"
+			convert   = "Type-converting operations"
+			constant  = "Pre-defined constants"
+			char      = "Character data"
+			operators = "User-defined operators"
+			special   = "Special commands"
+			end       = "$$EOF$$"
+		)
 		switch str {
 		case "help":
 			p.helpOverview()
-		case "intro":
-			p.printHelpBlock("", "Unary operators")
-		case "unary":
-			p.printHelpBlock("Unary operators", "Binary operators")
-		case "binary":
-			p.printHelpBlock("Binary operators", "Operators and axis indicator")
+		case "intro", "introduction":
+			p.printHelpBlock("", unary)
+		case "unary", "monadic":
+			p.printHelpBlock(unary, binary)
+		case "binary", "dyadic":
+			p.printHelpBlock(binary, axis)
 		case "axis":
-			p.printHelpBlock("Operators and axis indicator", "Type-converting operations")
-		case "type", "types", "conversion", "conversions":
-			p.printHelpBlock("Type-converting operations", "Pre-defined constants")
+			p.printHelpBlock(axis, convert)
+		case "type", "types", "conversion", "conversions", "convert":
+			p.printHelpBlock(convert, constant)
 		case "constant", "constants":
-			p.printHelpBlock("Pre-defined constants", "Character data")
+			p.printHelpBlock(constant, char)
 		case "char", "character":
-			p.printHelpBlock("Character data", "User-defined operators")
+			p.printHelpBlock(char, operators)
 		case "op", "ops", "operator", "operators":
-			p.printHelpBlock("User-defined operators", "Special commands")
+			p.printHelpBlock(operators, special)
 		case "special":
-			p.printHelpBlock("Special commands", "$$EOF$$")
+			p.printHelpBlock(special, end)
 		case "about":
 			p.next()
 			tok = p.next()
@@ -147,7 +159,7 @@ Switch:
 			break Switch
 		}
 		base := p.nextDecimalNumber()
-		if base != 0 && (base < 2 || 36 < base) {
+		if base != 0 && (base < 2 || 16 < base) {
 			p.errorf("illegal base %d", base)
 		}
 		switch text {

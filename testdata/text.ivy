@@ -29,45 +29,58 @@
 'x' text sqrt 2
 	0x1.6a09e6p+00
 
+# Floating-point formats on complex values. Check that it works for vectors too, while we're here;
+# that's fmtText vs. formatOne in value/format.go.
+'%e' text 3j2 3j2
+	3.000000e+00j2.000000e+00 3.000000e+00j2.000000e+00
+
+'%.2f' text 3j2 3j2
+	3.00j2.00 3.00j2.00
+
+'%.g' text 3j2 3j2
+	3j2 3j2
+
 # Formats that require conversion to integer.
 
-# Int Char BigInt Rational Float.
-'b' text 1 'a' 9876543210 1/3 (sqrt 10)
-	1 1100001 1001001100101100000001011011101010 1/11 11
+# Int Char BigInt Rational Float Complex
+'b' text 1 'a' 9876543210 1/3 (sqrt 10) 3j2
+	1 1100001 1001001100101100000001011011101010 1/11 11 11j10
 
 # Avoid unprintable chars or ridiculous values here.
 'c' text 0x31 'a' 10001/100 (sqrt 10000)
 	1 a d d
 
-'d' text 1 'a' 9876543210 1/3 (sqrt 10)
-	1 97 9876543210 1/3 3
+'d' text 1 'a' 9876543210 1/3 (sqrt 10) 65j66
+	1 97 9876543210 1/3 3 65j66
 
-'o' text 1 'a' 9876543210 1/3 (sqrt 10)
-	1 141 111454013352 1/3 3
+'o' text 1 'a' 9876543210 1/3 (sqrt 10) 65j66
+	1 141 111454013352 1/3 3 101j102
 
-'O' text 1 'a' 9876543210 1/3 (sqrt 10)
-	0o1 0o141 0o111454013352 0o1/0o3 0o3
+'O' text 1 'a' 9876543210 1/3 (sqrt 10) 65j66
+	0o1 0o141 0o111454013352 0o1/0o3 0o3 0o101j0o102
 
 'U' text 1 'a' 123 1/3 (sqrt 10)
 	U+0001 U+0061 U+007B U+0000 U+0003
 
-'v' text 1 'a' 9876543210 1/3 (sqrt 10) # Default output.
-	1 a 9876543210 1/3 3.16227766017
+'v' text 1 'a' 9876543210 1/3 (sqrt 10)  65j1/66 # Default output.
+	1 a 9876543210 1/3 3.16227766017 65j1/66
 
-'x' text 1 'a' 9876543210 1/3  # Float has its own hex format, above.
+'x' text 1 'a' 9876543210 1/3 # Float has its own hex format, above.
 	1 61 24cb016ea 1/3
 
 'X' text 1 'a' 9876543210 1/3
 	1 61 24CB016EA 1/3
 
+# More tricky cases for complex numbers: big ints, rationals, etc.
+'x' text 1e9j1e9 11/16j3/16 ((sqrt 2) j (sqrt 3))
+	3b9aca00j3b9aca00 b/10j3/10 0x1.6a09e6p+00j0x1.bb67afp+00
+
+'X' text 1e9j1e9 11/16j3/16
+	3B9ACA00j3B9ACA00 B/10j3/10
+
 # Chars and strings.
 
 # Avoid unprintable chars or ridiculous values here.
-'c' text 0x31 'a' 10001/100 (sqrt 10000)
-	1 a d d
-
-'U' text 1 'a' 123 1/3 (sqrt 10)
-	U+0001 U+0061 U+007B U+0000 U+0003
 
 's' text 'a'
 	a

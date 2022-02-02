@@ -181,6 +181,11 @@ func put(conf *config.Config, out io.Writer, val value.Value) {
 		// Probably not important but it would be nice to fix it.
 		digits := int(float64(val.Prec()) * 0.301029995664) // 10 log 2.
 		fmt.Fprintf(out, "%.*g", digits+1, val.Float)       // Add another digit to be sure.
+	case value.Complex:
+		real, imag := val.Components()
+		put(conf, out, real)
+		fmt.Fprintf(out, "j")
+		put(conf, out, imag)
 	case value.Vector:
 		if val.AllChars() {
 			fmt.Fprintf(out, "%q", val.Sprint(conf))
