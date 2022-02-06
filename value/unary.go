@@ -724,6 +724,7 @@ func init() {
 				bigIntType:   func(c Context, v Value) Value { return cos(c, v) },
 				bigRatType:   func(c Context, v Value) Value { return cos(c, v) },
 				bigFloatType: func(c Context, v Value) Value { return cos(c, v) },
+				complexType:  func(c Context, v Value) Value { return cos(c, v) },
 			},
 		},
 
@@ -746,6 +747,7 @@ func init() {
 				bigIntType:   func(c Context, v Value) Value { return sin(c, v) },
 				bigRatType:   func(c Context, v Value) Value { return sin(c, v) },
 				bigFloatType: func(c Context, v Value) Value { return sin(c, v) },
+				complexType:  func(c Context, v Value) Value { return sin(c, v) },
 			},
 		},
 
@@ -757,6 +759,7 @@ func init() {
 				bigIntType:   func(c Context, v Value) Value { return tan(c, v) },
 				bigRatType:   func(c Context, v Value) Value { return tan(c, v) },
 				bigFloatType: func(c Context, v Value) Value { return tan(c, v) },
+				complexType:  func(c Context, v Value) Value { return tan(c, v) },
 			},
 		},
 

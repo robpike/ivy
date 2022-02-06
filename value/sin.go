@@ -4,17 +4,37 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+)
 
 func sin(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return sinComplex(c, u)
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatSin)
 }
 
 func cos(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return cosComplex(c, u)
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatCos)
 }
 
 func tan(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return tanComplex(c, u)
+		}
+		v = u.real
+	}
 	x := floatSelf(c, v).Float
 	if x.IsInf() {
 		Errorf("tangent of infinity")
@@ -134,4 +154,51 @@ func twoPiReduce(c Context, x *big.Float) {
 	for x.Cmp(twoPi) >= 0 {
 		x.Sub(x, twoPi)
 	}
+}
+
+func sinComplex(c Context, v Complex) Value {
+	// Use the formula: sin(x+yi) = sin(x)cosh(y) + i cos(x)sinh(y)
+	// First turn v into (a + bi) where a and b are big.Floats.
+	x := floatSelf(c, v.real).Float
+	y := floatSelf(c, v.imag).Float
+	sinX := floatSin(c, x)
+	coshY := floatCosh(c, y)
+	cosX := floatCos(c, x)
+	sinhY := floatSinh(c, y)
+	lhs := sinX.Mul(sinX, coshY)
+	rhs := cosX.Mul(cosX, sinhY)
+	return newComplex(BigFloat{lhs}, BigFloat{rhs})
+}
+
+func cosComplex(c Context, v Complex) Value {
+	// Use the formula: cos(x+yi) = cos(x)cosh(y) + i sin(x)sinh(y)
+	// First turn v into (a + bi) where a and b are big.Floats.
+	x := floatSelf(c, v.real).Float
+	y := floatSelf(c, v.imag).Float
+	cosX := floatCos(c, x)
+	coshY := floatCosh(c, y)
+	sinX := floatSin(c, x)
+	sinhY := floatSinh(c, y)
+	lhs := cosX.Mul(cosX, coshY)
+	rhs := sinX.Mul(sinX, sinhY)
+	return newComplex(BigFloat{lhs}, BigFloat{rhs.Neg(rhs)})
+}
+
+func tanComplex(c Context, v Complex) Value {
+	// Use the formula: tan(x+yi) = (sin(2x) + i sinh 2y)/(cos(2x) + cosh(2y))
+	// First turn v into (a + bi) where a and b are big.Floats.
+	x := floatSelf(c, v.real).Float
+	y := floatSelf(c, v.imag).Float
+	// Double them - all the arguments are 2X.
+	x.Mul(x, floatTwo)
+	y.Mul(y, floatTwo)
+	sin2X := floatSin(c, x)
+	sinh2Y := floatSinh(c, y)
+	cos2X := floatCos(c, x)
+	cosh2Y := floatCosh(c, y)
+	den := cos2X.Add(cos2X, cosh2Y)
+	if den.Sign() == 0 {
+		Errorf("tangent is infinite")
+	}
+	return newComplex(BigFloat{sin2X.Quo(sin2X, den)}, BigFloat{sinh2Y.Quo(sinh2Y, den)})
 }
