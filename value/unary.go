@@ -816,6 +816,7 @@ func init() {
 				bigIntType:   func(c Context, v Value) Value { return sinh(c, v) },
 				bigRatType:   func(c Context, v Value) Value { return sinh(c, v) },
 				bigFloatType: func(c Context, v Value) Value { return sinh(c, v) },
+				complexType:  func(c Context, v Value) Value { return sinh(c, v) },
 			},
 		},
 
@@ -827,6 +828,7 @@ func init() {
 				bigIntType:   func(c Context, v Value) Value { return cosh(c, v) },
 				bigRatType:   func(c Context, v Value) Value { return cosh(c, v) },
 				bigFloatType: func(c Context, v Value) Value { return cosh(c, v) },
+				complexType:  func(c Context, v Value) Value { return cosh(c, v) },
 			},
 		},
 
@@ -838,6 +840,7 @@ func init() {
 				bigIntType:   func(c Context, v Value) Value { return tanh(c, v) },
 				bigRatType:   func(c Context, v Value) Value { return tanh(c, v) },
 				bigFloatType: func(c Context, v Value) Value { return tanh(c, v) },
+				complexType:  func(c Context, v Value) Value { return tanh(c, v) },
 			},
 		},
 

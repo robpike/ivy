@@ -9,14 +9,32 @@ import (
 )
 
 func sinh(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return sinhComplex(c, u)
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatSinh)
 }
 
 func cosh(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return coshComplex(c, u)
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatCosh)
 }
 
 func tanh(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return tanhComplex(c, u)
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatTanh)
 }
 
@@ -92,4 +110,51 @@ func floatTanh(c Context, x *big.Float) *big.Float {
 	}
 	num := floatSinh(c, x)
 	return num.Quo(num, denom)
+}
+
+func sinhComplex(c Context, v Complex) Value {
+	// Use the formula: sin(x+yi) = sinh(x)cos(y) + i cosh(x)sin(y)
+	// First turn v into (a + bi) where a and b are big.Floats.
+	x := floatSelf(c, v.real).Float
+	y := floatSelf(c, v.imag).Float
+	sinhX := floatSinh(c, x)
+	cosY := floatCos(c, y)
+	coshX := floatCosh(c, x)
+	sinY := floatSin(c, y)
+	lhs := sinhX.Mul(sinhX, cosY)
+	rhs := coshX.Mul(coshX, sinY)
+	return newComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
+}
+
+func coshComplex(c Context, v Complex) Value {
+	// Use the formula: cos(x+yi) = cosh(x)cos(y) + i sinh(x)sin(y)
+	// First turn v into (a + bi) where a and b are big.Floats.
+	x := floatSelf(c, v.real).Float
+	y := floatSelf(c, v.imag).Float
+	coshX := floatCosh(c, x)
+	cosY := floatCos(c, y)
+	sinhX := floatSinh(c, x)
+	sinY := floatSin(c, y)
+	lhs := coshX.Mul(coshX, cosY)
+	rhs := sinhX.Mul(sinhX, sinY)
+	return newComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
+}
+
+func tanhComplex(c Context, v Complex) Value {
+	// Use the formula: tan(x+yi) = (sinh(2x) + i sin(2y)/(cosh(2x) + cos(2y))
+	// First turn v into (a + bi) where a and b are big.Floats.
+	x := floatSelf(c, v.real).Float
+	y := floatSelf(c, v.imag).Float
+	// Double them - all the arguments are 2X.
+	x.Mul(x, floatTwo)
+	y.Mul(y, floatTwo)
+	sinh2X := floatSinh(c, x)
+	sin2Y := floatSin(c, y)
+	cosh2X := floatCosh(c, x)
+	cos2Y := floatCos(c, y)
+	den := cosh2X.Add(cosh2X, cos2Y)
+	if den.Sign() == 0 {
+		Errorf("tangent is infinite")
+	}
+	return newComplex(BigFloat{sinh2X.Quo(sinh2X, den)}, BigFloat{sin2Y.Quo(sin2Y, den)}).shrink()
 }
