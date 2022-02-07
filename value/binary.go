@@ -335,7 +335,7 @@ func init() {
 					}
 					return binaryBigIntOp(u, (*big.Int).Quo, v) // Go-like division.
 				},
-				bigRatType:   nil, // Not defined for rationals. Use div.
+				bigRatType:   nil, // Not defined for rationals.
 				bigFloatType: nil,
 				complexType:  nil,
 			},
@@ -411,7 +411,10 @@ func init() {
 						if u.(BigInt).Sign() == 0 {
 							Errorf("negative exponent of zero")
 						}
-						v = c.EvalUnary("abs", v).toType("**", c.Config(), bigIntType)
+						if isNegative(v) {
+							// Need the absolute value.
+							v = BigInt{big.NewInt(0).Neg(v.(BigInt).Int)}
+						}
 						return c.EvalUnary("/", binaryBigIntOp(u, bigIntExpOp(c), v))
 					}
 					x := u.(BigInt).Int
@@ -979,22 +982,11 @@ func init() {
 					// 1 0 1
 					// If they are negative the answers disagree with APL because
 					// of how modulo arithmetic works.
-					mod := func(b, a Value) Value {
-						if z, ok := a.(Int); ok && z == 0 {
-							return b
-						}
-						return c.EvalBinary(b, "mod", a)
-					}
-					div := func(b, a Value) Value {
-						if z, ok := a.(Int); ok && z == 0 {
-							return b
-						}
-						return c.EvalBinary(b, "div", a)
-					}
+					const op = "encode"
 					A, B := u.(Vector), v.(Vector)
 					// Scalar.
 					if len(A) == 1 && len(B) == 1 {
-						return mod(B[0], A[0])
+						return emod(op, c, B[0], A[0])
 					}
 					// Vector.
 					if len(B) == 1 {
@@ -1003,8 +995,8 @@ func init() {
 						b := B[0]
 						for i := len(A) - 1; i >= 0; i-- {
 							a := A[i]
-							elems[i] = mod(b, a)
-							b = div(b, a)
+							elems[i] = emod(op, c, b, a)
+							b = ediv(op, c, b, a)
 						}
 						return NewVector(elems)
 					}
@@ -1013,7 +1005,7 @@ func init() {
 						elems := make([]Value, len(B))
 						a := A[0]
 						for i := range B {
-							elems[i] = mod(B[i], a)
+							elems[i] = emod(op, c, B[i], a)
 						}
 						return NewVector(elems)
 					}
@@ -1028,36 +1020,25 @@ func init() {
 							b := B[j]
 							for i := len(A) - 1; i >= 0; i-- {
 								a := A[i]
-								elems[j+i*len(B)] = mod(b, a)
-								b = div(b, a)
+								elems[j+i*len(B)] = emod(op, c, b, a)
+								b = ediv(op, c, b, a)
 							}
 						}
 					})
 					return NewMatrix(shape, elems)
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					mod := func(b, a Value) Value {
-						if z, ok := a.(Int); ok && z == 0 {
-							return b
-						}
-						return c.EvalBinary(b, "mod", a)
-					}
-					div := func(b, a Value) Value {
-						if z, ok := a.(Int); ok && z == 0 {
-							return b
-						}
-						return c.EvalBinary(b, "div", a)
-					}
 					A, B := u.(Vector), v.(*Matrix)
 					elems := make([]Value, len(A)*len(B.data))
 					shape := append([]int{len(A)}, B.Shape()...)
+					const op = "encode"
 					pfor(true, len(A), len(B.data), func(lo, hi int) {
 						for j := lo; j < hi; j++ {
 							b := B.data[j]
 							for i := len(A) - 1; i >= 0; i-- {
 								a := A[i]
-								elems[j+i*len(B.data)] = mod(b, a)
-								b = div(b, a)
+								elems[j+i*len(B.data)] = emod(op, c, b, a)
+								b = ediv(op, c, b, a)
 							}
 						}
 					})

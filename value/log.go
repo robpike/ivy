@@ -171,5 +171,5 @@ func floatLog(c Context, x *big.Float) *big.Float {
 func complexLog(c Context, v Complex) Complex {
 	abs := v.abs(c)
 	phase := v.phase(c)
-	return newComplex(c.EvalUnary("log", abs), phase)
+	return newComplex(logn(c, abs), phase)
 }

@@ -644,3 +644,9 @@ circle 10
 
 10 decode 3 3 rho iota 9
 	147 258 369
+
+# Fixed bug: don't use user-defined functions in core calculations.
+op a mod b = 99
+op a div b = 99
+10 decode 3 3 rho iota 9
+	147 258 369

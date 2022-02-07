@@ -240,3 +240,12 @@ float 7/2j5/2
 
 text 3j2
 	3j2
+
+# Fixed bug: don't use user-defined functions in core calculations.
+
+op sqrt x = 99
+op atan x = 99
+abs 1j2  # Uses sqrt internally.
+phase 1j1 # Uses atan internally
+	2.2360679775
+	0.785398163397

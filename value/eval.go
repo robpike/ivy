@@ -5,6 +5,7 @@
 package value
 
 import (
+	"math/big"
 	"runtime"
 	"strings"
 )
@@ -571,23 +572,6 @@ func isNegative(v Value) bool {
 	return false
 }
 
-// EvalFunctionBody evaluates the list of expressions inside a function,
-// possibly with conditionals that generate an early return.
-func EvalFunctionBody(context Context, fnName string, body []Expr) Value {
-	var v Value
-	for _, e := range body {
-		if d, ok := e.(Decomposable); ok && d.Operator() == ":" {
-			left, right := d.Operands()
-			if isTrue(fnName, left.Eval(context)) {
-				return right.Eval(context)
-			}
-			continue
-		}
-		v = e.Eval(context)
-	}
-	return v
-}
-
 // isTrue reports whether v represents boolean truth. If v is not
 // a scalar, an error results.
 func isTrue(fnName string, v Value) bool {
@@ -608,4 +592,43 @@ func isTrue(fnName string, v Value) bool {
 		Errorf("invalid expression %s for conditional inside %q", v, fnName)
 		return false
 	}
+}
+
+// emod is a restricted form of Euclidean integer modulus.
+// Used by encode, and only works for integers.
+func emod(op string, c Context, a, b Value) Value {
+	if z, ok := b.(Int); ok && z == 0 {
+		return a
+	}
+	aa := a.toType(op, c.Config(), bigIntType)
+	bb := b.toType(op, c.Config(), bigIntType)
+	return binaryBigIntOp(aa, (*big.Int).Mod, bb)
+}
+
+// ediv is a restricted form of Euclidean integer division.
+// Used by encode, and only works for integers.
+func ediv(op string, c Context, a, b Value) Value {
+	if z, ok := b.(Int); ok && z == 0 {
+		return a
+	}
+	aa := a.toType(op, c.Config(), bigIntType)
+	bb := b.toType(op, c.Config(), bigIntType)
+	return binaryBigIntOp(aa, (*big.Int).Div, bb)
+}
+
+// EvalFunctionBody evaluates the list of expressions inside a function,
+// possibly with conditionals that generate an early return.
+func EvalFunctionBody(context Context, fnName string, body []Expr) Value {
+	var v Value
+	for _, e := range body {
+		if d, ok := e.(Decomposable); ok && d.Operator() == ":" {
+			left, right := d.Operands()
+			if isTrue(fnName, left.Eval(context)) {
+				return right.Eval(context)
+			}
+			continue
+		}
+		v = e.Eval(context)
+	}
+	return v
 }

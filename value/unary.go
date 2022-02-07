@@ -639,7 +639,7 @@ func init() {
 				bigFloatType: self,
 				complexType:  self,
 				vectorType: func(c Context, v Value) Value {
-					return c.EvalUnary("rot", v)
+					return v.(Vector).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix).Copy()

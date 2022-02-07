@@ -106,7 +106,7 @@ func (c Complex) recip(ctx Context) Complex {
 
 func (c Complex) abs(ctx Context) Value {
 	mag := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", c.real), "+", ctx.EvalBinary(c.imag, "*", c.imag))
-	return ctx.EvalUnary("sqrt", mag)
+	return sqrt(ctx, mag)
 }
 
 // phase returns the phase of the complex number in the range -π to π.
@@ -126,7 +126,7 @@ func (c Complex) phase(ctx Context) Value {
 		piBy2 := newFloat(ctx).Set(floatPiBy2)
 		return BigFloat{piBy2.Neg(piBy2)}
 	}
-	atan := ctx.EvalUnary("atan", ctx.EvalBinary(c.imag, "/", c.real))
+	atan := atan(ctx, ctx.EvalBinary(c.imag, "/", c.real))
 	// Correct the quadrants. We lose sign information in the division.
 	// We want the range to be -π to π. The comments state
 	// the value of atan from above, at 45° within the quadrant.

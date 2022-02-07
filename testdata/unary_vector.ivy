@@ -103,3 +103,9 @@ flip iota 1
 
 flip iota 10
 	10 9 8 7 6 5 4 3 2 1
+
+# Fixed bug: don't use user-defined functions in core calculations.
+op rot x = 99
+flip 1 2 3  # Used rot internally.
+	3 2 1
+
