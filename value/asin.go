@@ -201,7 +201,7 @@ func complexAsin(c Context, v Complex) Complex {
 }
 
 func complexAcos(c Context, v Complex) Value {
-	// Use the formula: acos(v) = pi/2 - asin(v)
+	// Use the formula: acos(v) = π/2 - asin(v)
 	piBy2 := newComplex(BigFloat{newFloat(c).Set(floatPiBy2)}, BigFloat{floatZero})
 	return piBy2.sub(c, complexAsin(c, v))
 }
