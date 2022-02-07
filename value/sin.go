@@ -158,7 +158,6 @@ func twoPiReduce(c Context, x *big.Float) {
 
 func complexSin(c Context, v Complex) Value {
 	// Use the formula: sin(x+yi) = sin(x)cosh(y) + i cos(x)sinh(y)
-	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
 	y := floatSelf(c, v.imag).Float
 	sinX := floatSin(c, x)
@@ -172,7 +171,6 @@ func complexSin(c Context, v Complex) Value {
 
 func complexCos(c Context, v Complex) Value {
 	// Use the formula: cos(x+yi) = cos(x)cosh(y) + i sin(x)sinh(y)
-	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
 	y := floatSelf(c, v.imag).Float
 	cosX := floatCos(c, x)
@@ -186,7 +184,6 @@ func complexCos(c Context, v Complex) Value {
 
 func complexTan(c Context, v Complex) Value {
 	// Use the formula: tan(x+yi) = (sin(2x) + i sinh (2y))/(cos(2x) + cosh(2y))
-	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
 	y := floatSelf(c, v.imag).Float
 	// Double them - all the arguments are 2X.

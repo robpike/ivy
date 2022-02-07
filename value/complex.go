@@ -126,7 +126,7 @@ func (c Complex) phase(ctx Context) Value {
 		piBy2 := newFloat(ctx).Set(floatPiBy2)
 		return BigFloat{piBy2.Neg(piBy2)}
 	}
-	tan := ctx.EvalUnary("atan", ctx.EvalBinary(c.imag, "/", c.real))
+	atan := ctx.EvalUnary("atan", ctx.EvalBinary(c.imag, "/", c.real))
 	// Correct the quadrants. We lose sign information in the division.
 	// We want the range to be -π to π. The comments state
 	// the value of atan from above, at 45° within the quadrant.
@@ -134,11 +134,11 @@ func (c Complex) phase(ctx Context) Value {
 	case rPos && iPos: // Upper right, π/4, OK.
 	case rPos && !iPos: // Lower right, -π/4, OK.
 	case !rPos && !iPos: // Lower left, π/4, subtract π.
-		tan = ctx.EvalBinary(tan, "-", BigFloat{newFloat(ctx).Set(floatPi)})
+		atan = ctx.EvalBinary(atan, "-", BigFloat{newFloat(ctx).Set(floatPi)})
 	case !rPos && iPos: // Upper left, -π/4, add π.
-		tan = ctx.EvalBinary(tan, "+", BigFloat{newFloat(ctx).Set(floatPi)})
+		atan = ctx.EvalBinary(atan, "+", BigFloat{newFloat(ctx).Set(floatPi)})
 	}
-	return tan
+	return atan
 }
 
 func (c Complex) add(ctx Context, d Complex) Complex {

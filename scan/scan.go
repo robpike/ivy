@@ -112,12 +112,12 @@ func (l *Scanner) loadLine() {
 // next returns the next rune in the input.
 func (l *Scanner) next() rune {
 	if l.errored {
-		return eof
+		return '\n'
 	}
 	if !l.done && l.pos == len(l.input) {
 		if !l.readOK { // Token did not end before newline.
 			l.errorf("incomplete token")
-			return eof
+			return '\n'
 		}
 		l.loadLine()
 	}

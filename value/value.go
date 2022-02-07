@@ -115,7 +115,7 @@ func Parse(conf *config.Config, s string) (Value, error) {
 	if err == nil {
 		return b.shrink(), nil
 	}
-	r, err := setBigRatFromFloatString(conf, s) // We know there is no slash.
+	r, err := setBigRatFromFloatString(s) // We know there is no slash.
 	if err == nil {
 		return r.shrink(), nil
 	}

@@ -4,17 +4,37 @@
 
 package value
 
-import "math/big"
+import (
+	"math/big"
+)
 
 func asin(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return complexAsin(c, u)
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatAsin)
 }
 
 func acos(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return complexAcos(c, u)
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatAcos)
 }
 
 func atan(c Context, v Value) Value {
+	if u, ok := v.(Complex); ok {
+		if !isZero(u.imag) {
+			return complexAtan(c, u)
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatAtan)
 }
 
@@ -153,4 +173,43 @@ func floatAtanLarge(c Context, x *big.Float) *big.Float {
 	}
 
 	return z
+}
+
+// -1/2i is remarkably hard to build.
+var minusOneOverTwoI Complex
+
+func init() {
+	num, err := setBigRatFromFloatString("0.0")
+	if err != nil {
+		panic(err)
+	}
+	den, err := setBigRatFromFloatString("-0.5")
+	if err != nil {
+		panic(err)
+	}
+	minusOneOverTwoI = newComplex(num, den)
+}
+
+func complexAsin(c Context, v Complex) Complex {
+	// Use the formula: asin(v) = -i * log(sqrt(1-v²) + i*v)
+	x := newComplex(Int(1), Int(0))
+	x = complexSqrt(c, x.sub(c, v.mul(c, v)))
+	i := newComplex(Int(0), Int(1))
+	x = x.add(c, i.mul(c, v))
+	x = complexLog(c, x)
+	return newComplex(Int(0), Int(-1)).mul(c, x)
+}
+
+func complexAcos(c Context, v Complex) Value {
+	// Use the formula: acos(v) = pi/2 - asin(v)
+	piBy2 := newComplex(BigFloat{newFloat(c).Set(floatPiBy2)}, BigFloat{floatZero})
+	return piBy2.sub(c, complexAsin(c, v))
+}
+
+func complexAtan(c Context, v Complex) Value {
+	// Use the formula: atan(v) = 1/2i * log((1-v)/(1+v))
+	i := newComplex(Int(0), Int(1))
+	res := i.sub(c, v).div(c, i.add(c, v))
+	res = complexLog(c, res)
+	return res.mul(c, minusOneOverTwoI)
 }

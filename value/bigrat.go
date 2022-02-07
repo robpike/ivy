@@ -19,7 +19,7 @@ type BigRat struct {
 
 // The input is known to be in floating-point syntax.
 // If there's a slash, the parsing is done in Parse().
-func setBigRatFromFloatString(_ *config.Config, s string) (br BigRat, err error) {
+func setBigRatFromFloatString(s string) (br BigRat, err error) {
 	// Be safe: Verify that it is floating-point, because otherwise
 	// we need to honor ibase.
 	if !strings.ContainsAny(s, ".eE") {

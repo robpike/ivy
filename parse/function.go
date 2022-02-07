@@ -225,8 +225,9 @@ func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
 	case value.Char:
 	case value.Int:
 	case value.BigInt:
-	case value.BigFloat:
 	case value.BigRat:
+	case value.BigFloat:
+	case value.Complex:
 	case value.Vector:
 	case *value.Matrix:
 	default:

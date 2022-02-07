@@ -11,7 +11,7 @@ import (
 func sqrt(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
 		if !isZero(u.imag) {
-			return sqrtComplex(c, u)
+			return complexSqrt(c, u)
 		}
 		v = u.real
 	}
@@ -21,8 +21,8 @@ func sqrt(c Context, v Value) Value {
 	return evalFloatFunc(c, v, floatSqrt)
 }
 
-// sqrtComplex returns sqrt(v) where v is Complex.
-func sqrtComplex(c Context, v Complex) Value {
+// complexSqrt returns sqrt(v) where v is Complex.
+func complexSqrt(c Context, v Complex) Complex {
 	// First turn v into (a + bi) where a and b are big.Floats.
 	a := floatSelf(c, v.real).Float
 	b := floatSelf(c, v.imag).Float
