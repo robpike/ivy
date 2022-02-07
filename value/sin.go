@@ -11,7 +11,7 @@ import (
 func sin(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
 		if !isZero(u.imag) {
-			return sinComplex(c, u)
+			return complexSin(c, u)
 		}
 		v = u.real
 	}
@@ -21,7 +21,7 @@ func sin(c Context, v Value) Value {
 func cos(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
 		if !isZero(u.imag) {
-			return cosComplex(c, u)
+			return complexCos(c, u)
 		}
 		v = u.real
 	}
@@ -31,7 +31,7 @@ func cos(c Context, v Value) Value {
 func tan(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
 		if !isZero(u.imag) {
-			return tanComplex(c, u)
+			return complexTan(c, u)
 		}
 		v = u.real
 	}
@@ -156,7 +156,7 @@ func twoPiReduce(c Context, x *big.Float) {
 	}
 }
 
-func sinComplex(c Context, v Complex) Value {
+func complexSin(c Context, v Complex) Value {
 	// Use the formula: sin(x+yi) = sin(x)cosh(y) + i cos(x)sinh(y)
 	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
@@ -170,7 +170,7 @@ func sinComplex(c Context, v Complex) Value {
 	return newComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
 }
 
-func cosComplex(c Context, v Complex) Value {
+func complexCos(c Context, v Complex) Value {
 	// Use the formula: cos(x+yi) = cos(x)cosh(y) + i sin(x)sinh(y)
 	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
@@ -184,7 +184,7 @@ func cosComplex(c Context, v Complex) Value {
 	return newComplex(BigFloat{lhs}, BigFloat{rhs.Neg(rhs)}).shrink()
 }
 
-func tanComplex(c Context, v Complex) Value {
+func complexTan(c Context, v Complex) Value {
 	// Use the formula: tan(x+yi) = (sin(2x) + i sinh (2y))/(cos(2x) + cosh(2y))
 	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float

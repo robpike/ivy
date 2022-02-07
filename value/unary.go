@@ -404,35 +404,7 @@ func init() {
 				bigRatType:   realPhase,
 				bigFloatType: realPhase,
 				complexType: func(c Context, v Value) Value {
-					u := v.(Complex)
-					// We would use atan2 if we had it. Maybe we should.
-					// This is fiddlier than you might suspect.
-					if isZero(u.imag) {
-						return realPhase(c, u.real)
-					}
-					rPos := !isNegative(u.real)
-					rZero := isZero(u.real)
-					iPos := !isNegative(u.imag)
-					if rZero {
-						if iPos {
-							return BigFloat{floatPiBy2}
-						}
-						piBy2 := newFloat(c).Set(floatPiBy2)
-						return BigFloat{piBy2.Neg(piBy2)}
-					}
-					tan := c.EvalUnary("atan", c.EvalBinary(u.imag, "/", u.real))
-					// Correct the quadrants. We lose sign information in the division.
-					// We want the range to be -π to π. The comments state
-					// the value of atan from above, at 45° within the quadrant.
-					switch {
-					case rPos && iPos: // Upper right, π/4, OK.
-					case rPos && !iPos: // Lower right, -π/4, OK.
-					case !rPos && !iPos: // Lower left, π/4, subtract π.
-						tan = c.EvalBinary(tan, "-", BigFloat{newFloat(c).Set(floatPi)})
-					case !rPos && iPos: // Upper left, -π/4, add π.
-						tan = c.EvalBinary(tan, "+", BigFloat{newFloat(c).Set(floatPi)})
-					}
-					return tan
+					return v.(Complex).phase(c)
 				},
 			},
 		},
@@ -717,6 +689,18 @@ func init() {
 		},
 
 		{
+			name:        "log",
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType:      func(c Context, v Value) Value { return logn(c, v) },
+				bigIntType:   func(c Context, v Value) Value { return logn(c, v) },
+				bigRatType:   func(c Context, v Value) Value { return logn(c, v) },
+				bigFloatType: func(c Context, v Value) Value { return logn(c, v) },
+				complexType:  func(c Context, v Value) Value { return logn(c, v) },
+			},
+		},
+
+		{
 			name:        "cos",
 			elementwise: true,
 			fn: [numType]unaryFn{
@@ -725,17 +709,6 @@ func init() {
 				bigRatType:   func(c Context, v Value) Value { return cos(c, v) },
 				bigFloatType: func(c Context, v Value) Value { return cos(c, v) },
 				complexType:  func(c Context, v Value) Value { return cos(c, v) },
-			},
-		},
-
-		{
-			name:        "log",
-			elementwise: true,
-			fn: [numType]unaryFn{
-				intType:      func(c Context, v Value) Value { return logn(c, v) },
-				bigIntType:   func(c Context, v Value) Value { return logn(c, v) },
-				bigRatType:   func(c Context, v Value) Value { return logn(c, v) },
-				bigFloatType: func(c Context, v Value) Value { return logn(c, v) },
 			},
 		},
 

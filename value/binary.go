@@ -466,6 +466,7 @@ func init() {
 				bigIntType:   logBaseU,
 				bigRatType:   logBaseU,
 				bigFloatType: logBaseU,
+				complexType:  logBaseU,
 			},
 		},
 

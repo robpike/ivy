@@ -9,6 +9,20 @@ import (
 )
 
 func logn(c Context, v Value) Value {
+	negative := isNegative(v)
+	if negative {
+		// Promote to complex. The Complex type is never negative.
+		v = newComplex(v, Int(0))
+	}
+	if u, ok := v.(Complex); ok {
+		if isNegative(u.real) {
+			negative = true
+		}
+		if !isZero(u.imag) || negative {
+			return complexLog(c, u).shrink()
+		}
+		v = u.real
+	}
 	return evalFloatFunc(c, v, floatLog)
 }
 
@@ -149,4 +163,13 @@ func floatLog(c Context, x *big.Float) *big.Float {
 	z.Add(z, exp)
 
 	return z
+}
+
+// Note: We return a Complex here, not a Value, so the caller
+// might want to call shrink. This is so the binary ** has a Complex
+// on both sides.
+func complexLog(c Context, v Complex) Complex {
+	abs := v.abs(c)
+	phase := v.phase(c)
+	return newComplex(c.EvalUnary("log", abs), phase)
 }

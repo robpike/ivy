@@ -11,7 +11,7 @@ import (
 func sinh(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
 		if !isZero(u.imag) {
-			return sinhComplex(c, u)
+			return complexSinh(c, u)
 		}
 		v = u.real
 	}
@@ -21,7 +21,7 @@ func sinh(c Context, v Value) Value {
 func cosh(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
 		if !isZero(u.imag) {
-			return coshComplex(c, u)
+			return complexCosh(c, u)
 		}
 		v = u.real
 	}
@@ -31,7 +31,7 @@ func cosh(c Context, v Value) Value {
 func tanh(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
 		if !isZero(u.imag) {
-			return tanhComplex(c, u)
+			return complexTanh(c, u)
 		}
 		v = u.real
 	}
@@ -112,8 +112,8 @@ func floatTanh(c Context, x *big.Float) *big.Float {
 	return num.Quo(num, denom)
 }
 
-func sinhComplex(c Context, v Complex) Value {
-	// Use the formula: sin(x+yi) = sinh(x)cos(y) + i cosh(x)sin(y)
+func complexSinh(c Context, v Complex) Value {
+	// Use the formula: sinh(x+yi) = sinh(x)cos(y) + i cosh(x)sin(y)
 	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
 	y := floatSelf(c, v.imag).Float
@@ -126,8 +126,8 @@ func sinhComplex(c Context, v Complex) Value {
 	return newComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
 }
 
-func coshComplex(c Context, v Complex) Value {
-	// Use the formula: cos(x+yi) = cosh(x)cos(y) + i sinh(x)sin(y)
+func complexCosh(c Context, v Complex) Value {
+	// Use the formula: cosh(x+yi) = cosh(x)cos(y) + i sinh(x)sin(y)
 	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
 	y := floatSelf(c, v.imag).Float
@@ -140,8 +140,8 @@ func coshComplex(c Context, v Complex) Value {
 	return newComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
 }
 
-func tanhComplex(c Context, v Complex) Value {
-	// Use the formula: tan(x+yi) = (sinh(2x) + i sin(2y)/(cosh(2x) + cos(2y))
+func complexTanh(c Context, v Complex) Value {
+	// Use the formula: tanh(x+yi) = (sinh(2x) + i sin(2y)/(cosh(2x) + cos(2y))
 	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
 	y := floatSelf(c, v.imag).Float

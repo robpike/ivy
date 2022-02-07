@@ -565,6 +565,8 @@ func isNegative(v Value) bool {
 		return v.Sign() < 0
 	case BigFloat:
 		return v.Sign() < 0
+	case Complex:
+		return false
 	}
 	return false
 }

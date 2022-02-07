@@ -109,6 +109,38 @@ func (c Complex) abs(ctx Context) Value {
 	return ctx.EvalUnary("sqrt", mag)
 }
 
+// phase returns the phase of the complex number in the range -π to π.
+func (c Complex) phase(ctx Context) Value {
+	// We would use atan2 if we had it. Maybe we should.
+	// This is fiddlier than you might suspect.
+	if isZero(c.imag) {
+		return realPhase(ctx, c.real)
+	}
+	rPos := !isNegative(c.real)
+	rZero := isZero(c.real)
+	iPos := !isNegative(c.imag)
+	if rZero {
+		if iPos {
+			return BigFloat{floatPiBy2}
+		}
+		piBy2 := newFloat(ctx).Set(floatPiBy2)
+		return BigFloat{piBy2.Neg(piBy2)}
+	}
+	tan := ctx.EvalUnary("atan", ctx.EvalBinary(c.imag, "/", c.real))
+	// Correct the quadrants. We lose sign information in the division.
+	// We want the range to be -π to π. The comments state
+	// the value of atan from above, at 45° within the quadrant.
+	switch {
+	case rPos && iPos: // Upper right, π/4, OK.
+	case rPos && !iPos: // Lower right, -π/4, OK.
+	case !rPos && !iPos: // Lower left, π/4, subtract π.
+		tan = ctx.EvalBinary(tan, "-", BigFloat{newFloat(ctx).Set(floatPi)})
+	case !rPos && iPos: // Upper left, -π/4, add π.
+		tan = ctx.EvalBinary(tan, "+", BigFloat{newFloat(ctx).Set(floatPi)})
+	}
+	return tan
+}
+
 func (c Complex) add(ctx Context, d Complex) Complex {
 	return newComplex(ctx.EvalBinary(c.real, "+", d.real), ctx.EvalBinary(c.imag, "+", d.imag))
 }

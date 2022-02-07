@@ -11,26 +11,10 @@ import (
 )
 
 func power(c Context, u, v Value) Value {
-	if u, ok := u.(Complex); ok {
-		if !isZero(u.imag) {
-			// v will be represented as a complex; unpack it.
-			vv := v.(Complex)
-			i, ok := vv.real.(Int)
-			if !isZero(vv.imag) || !ok {
-				Errorf("complex power only implemented for integers")
-			}
-			switch {
-			case i == 0:
-				return Int(1)
-			case i == 1:
-				return u
-			case i < 0:
-				return integerPowerComplex(c, u, -int64(i)).recip(c)
-			default:
-				return integerPowerComplex(c, u, int64(i))
-			}
-		}
-		v = u.real
+	// Because of the promotions done in binary.go, if one
+	// argument is complex, they both are.
+	if _, ok := u.(Complex); ok {
+		return complexPower(c, u.(Complex), v.(Complex)).shrink()
 	}
 	z := floatPower(c, floatSelf(c, u), floatSelf(c, v))
 	return BigFloat{z}.shrink()
@@ -49,20 +33,6 @@ func exp(c Context, v Value) Value {
 
 // expComplex returns e**v where v is Complex.
 func expComplex(c Context, v Complex) Value {
-	// Use the Euler formula: e**ix == cos x + i sin x.
-	// Thus e**(x+iy) == e**x * (cos y + i sin y).
-	// First turn v into (a + bi) where a and b are big.Floats.
-	x := floatSelf(c, v.real).Float
-	y := floatSelf(c, v.imag).Float
-	eToX := exponential(c.Config(), x)
-	cosY := floatCos(c, y)
-	sinY := floatSin(c, y)
-	return newComplex(BigFloat{cosY.Mul(cosY, eToX)}, BigFloat{sinY.Mul(sinY, eToX)})
-}
-
-// powerComplex returns u**v where u is Complex,
-// while v must be a small integer.
-func powerComplex(c Context, u, v Complex) Value {
 	// Use the Euler formula: e**ix == cos x + i sin x.
 	// Thus e**(x+iy) == e**x * (cos y + i sin y).
 	// First turn v into (a + bi) where a and b are big.Floats.
@@ -166,8 +136,8 @@ func integerPower(c Context, x *big.Float, exp int64) *big.Float {
 	return z
 }
 
-// integerPowerComplex returns x**exp where exp is an int64 of size <= intBits.
-func integerPowerComplex(c Context, v Complex, exp int64) Complex {
+// complexIntegerPower returns x**exp where exp is an int64 of size <= intBits.
+func complexIntegerPower(c Context, v Complex, exp int64) Complex {
 	z := newComplex(Int(1), Int(0))
 	y := newComplex(v.real, v.imag)
 	// For each loop, we compute xⁿ where n is a power of two.
@@ -180,4 +150,23 @@ func integerPowerComplex(c Context, v Complex, exp int64) Complex {
 		exp >>= 1
 	}
 	return z
+}
+
+// complexPower computes v to the power of exp.
+func complexPower(c Context, v, exp Complex) Value {
+	if isZero(exp.imag) {
+		if i, ok := exp.real.(Int); ok {
+			switch {
+			case i == 0:
+				return Int(1)
+			case i == 1:
+				return v
+			case i < 0:
+				return complexIntegerPower(c, v, -int64(i)).recip(c)
+			default:
+				return complexIntegerPower(c, v, int64(i))
+			}
+		}
+	}
+	return expComplex(c, complexLog(c, v).mul(c, exp))
 }
