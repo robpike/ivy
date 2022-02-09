@@ -113,12 +113,6 @@ func (i BigInt) floatString(verb byte, prec int) string {
 	return ""
 }
 
-var (
-	bigIntTen     = big.NewInt(10)
-	bigIntBillion = big.NewInt(1e9)
-	MaxBigInt63   = big.NewInt(int64(^uint64(0) >> 1))
-)
-
 // eExponent returns the exponent to use to display i in 1.23e+04 format.
 func eExponent(x *big.Int) int {
 	if x.Sign() < 0 {

@@ -119,9 +119,6 @@ func (r BigRat) floatString(verb byte, prec int) string {
 	return ""
 }
 
-var bigRatTen = big.NewRat(10, 1)
-var bigRatBillion = big.NewRat(1e9, 1)
-
 // ratExponent returns the power of ten that x would display in scientific notation.
 func ratExponent(x *big.Rat) int {
 	if x.Sign() < 0 {

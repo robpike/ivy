@@ -10,22 +10,42 @@ import (
 
 func asin(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
-		if !isZero(u.imag) {
+		if !isZero(u.imag) || !inArcRealRange(u.real) {
 			return complexAsin(c, u)
 		}
 		v = u.real
+	} else if !inArcRealRange(v) {
+		return complexAsin(c, newComplex(v, Int(0)))
 	}
 	return evalFloatFunc(c, v, floatAsin)
 }
 
 func acos(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
-		if !isZero(u.imag) {
+		if !isZero(u.imag) || !inArcRealRange(u.real) {
 			return complexAcos(c, u)
 		}
 		v = u.real
+	} else if !inArcRealRange(v) {
+		return complexAcos(c, newComplex(v, Int(0)))
 	}
 	return evalFloatFunc(c, v, floatAcos)
+}
+
+// inArcRealRange reports whether the argument is between -1 and +1,
+// the valid domain for real arcsin and arccos.
+func inArcRealRange(x Value) bool {
+	switch x := x.(type) {
+	case Int:
+		return -1 <= x && x <= 1
+	case BigRat:
+		return x.Cmp(bigRatMinusOne) >= 0 && x.Cmp(bigRatOne) <= 0
+	case BigFloat:
+		return x.Cmp(floatMinusOne) >= 0 && x.Cmp(floatOne) <= 0
+	case Complex:
+		return false // Should never happen.
+	}
+	return false
 }
 
 func atan(c Context, v Value) Value {

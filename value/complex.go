@@ -123,8 +123,7 @@ func (c Complex) phase(ctx Context) Value {
 		if iPos {
 			return BigFloat{floatPiBy2}
 		}
-		piBy2 := newFloat(ctx).Set(floatPiBy2)
-		return BigFloat{piBy2.Neg(piBy2)}
+		return BigFloat{floatMinusPiBy2}
 	}
 	atan := atan(ctx, ctx.EvalBinary(c.imag, "/", c.real))
 	// Correct the quadrants. We lose sign information in the division.
