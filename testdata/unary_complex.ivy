@@ -235,6 +235,14 @@ log -1
 	-0.785398163397
 	-1.0172219679j0.402359478109
 
+# asin and acos are ok when the argument is not in the real domain
+# for those functions
+acos 2
+	0j1.31695789692
+
+asin 2
+	1.57079632679j-1.31695789692
+
 float 7/2j5/2
 	3.5j2.5
 
@@ -242,10 +250,10 @@ text 3j2
 	3j2
 
 # Fixed bug: don't use user-defined functions in core calculations.
-
 op sqrt x = 99
 op atan x = 99
 abs 1j2  # Uses sqrt internally.
 phase 1j1 # Uses atan internally
 	2.2360679775
 	0.785398163397
+
