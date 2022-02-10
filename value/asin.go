@@ -15,7 +15,7 @@ func asin(c Context, v Value) Value {
 		}
 		v = u.real
 	} else if !inArcRealRange(v) {
-		return complexAsin(c, newComplex(v, Int(0)))
+		return complexAsin(c, newComplex(v, zero))
 	}
 	return evalFloatFunc(c, v, floatAsin)
 }
@@ -27,7 +27,7 @@ func acos(c Context, v Value) Value {
 		}
 		v = u.real
 	} else if !inArcRealRange(v) {
-		return complexAcos(c, newComplex(v, Int(0)))
+		return complexAcos(c, newComplex(v, zero))
 	}
 	return evalFloatFunc(c, v, floatAcos)
 }
@@ -195,29 +195,14 @@ func floatAtanLarge(c Context, x *big.Float) *big.Float {
 	return z
 }
 
-// -1/2i is remarkably hard to build.
-var minusOneOverTwoI Complex
-
-func init() {
-	num, err := setBigRatFromFloatString("0.0")
-	if err != nil {
-		panic(err)
-	}
-	den, err := setBigRatFromFloatString("-0.5")
-	if err != nil {
-		panic(err)
-	}
-	minusOneOverTwoI = newComplex(num, den)
-}
-
 func complexAsin(c Context, v Complex) Complex {
 	// Use the formula: asin(v) = -i * log(sqrt(1-v²) + i*v)
-	x := newComplex(Int(1), Int(0))
+	x := newComplex(one, zero)
 	x = complexSqrt(c, x.sub(c, v.mul(c, v)))
-	i := newComplex(Int(0), Int(1))
+	i := newComplex(zero, one)
 	x = x.add(c, i.mul(c, v))
 	x = complexLog(c, x)
-	return newComplex(Int(0), Int(-1)).mul(c, x)
+	return newComplex(zero, minusOne).mul(c, x)
 }
 
 func complexAcos(c Context, v Complex) Value {
@@ -228,7 +213,7 @@ func complexAcos(c Context, v Complex) Value {
 
 func complexAtan(c Context, v Complex) Value {
 	// Use the formula: atan(v) = 1/2i * log((1-v)/(1+v))
-	i := newComplex(Int(0), Int(1))
+	i := newComplex(zero, one)
 	res := i.sub(c, v).div(c, i.add(c, v))
 	res = complexLog(c, res)
 	return res.mul(c, minusOneOverTwoI)

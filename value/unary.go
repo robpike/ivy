@@ -230,7 +230,7 @@ func init() {
 				bigIntType: func(c Context, v Value) Value {
 					// Zero division cannot happen for unary.
 					return BigRat{
-						Rat: big.NewRat(0, 1).SetFrac(bigOne.Int, v.(BigInt).Int),
+						Rat: big.NewRat(0, 1).SetFrac(bigIntOne.Int, v.(BigInt).Int),
 					}.shrink()
 				},
 				bigRatType: func(c Context, v Value) Value {
@@ -299,7 +299,7 @@ func init() {
 				},
 				bigIntType: func(c Context, v Value) Value {
 					// Lots of ways to do this, here's one.
-					return BigInt{Int: bigInt64(0).Xor(v.(BigInt).Int, bigMinusOne.Int)}.shrink()
+					return BigInt{Int: bigInt64(0).Xor(v.(BigInt).Int, bigIntMinusOne.Int)}.shrink()
 				},
 			},
 		},
@@ -430,7 +430,7 @@ func init() {
 					z := bigInt64(0)
 					z.Quo(i.Num(), i.Denom())
 					if !positive {
-						z.Add(z.Int, bigOne.Int)
+						z.Add(z.Int, bigIntOne.Int)
 						z.Neg(z.Int)
 					}
 					return z.shrink()
@@ -445,7 +445,7 @@ func init() {
 					case big.Exact, big.Below:
 						// Done.
 					case big.Above:
-						i.Sub(i, bigOne.Int)
+						i.Sub(i, bigIntOne.Int)
 					}
 					return BigInt{i}.shrink()
 				},
@@ -473,7 +473,7 @@ func init() {
 					z := bigInt64(0)
 					z.Quo(i.Num(), i.Denom())
 					if positive {
-						z.Add(z.Int, bigOne.Int)
+						z.Add(z.Int, bigIntOne.Int)
 					} else {
 						z.Neg(z.Int)
 					}
@@ -489,7 +489,7 @@ func init() {
 					case big.Exact, big.Above:
 						// Done
 					case big.Below:
-						i.Add(i, bigOne.Int)
+						i.Add(i, bigIntOne.Int)
 					}
 					return BigInt{i}.shrink()
 				},

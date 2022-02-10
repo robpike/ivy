@@ -113,12 +113,12 @@ func binaryBigFloatOp(c Context, u Value, op func(*big.Float, *big.Float, *big.F
 // Also we need a context (really a config); see the bigIntExpOp function below.
 // We know this is not 0**negative.
 func bigIntExp(c Context, i, j, k *big.Int) *big.Int {
-	if j.Cmp(bigOne.Int) == 0 || j.Sign() == 0 {
+	if j.Cmp(bigIntOne.Int) == 0 || j.Sign() == 0 {
 		return i.Set(j)
 	}
 	// -1ⁿ is just parity.
-	if j.Cmp(bigMinusOne.Int) == 0 {
-		if k.And(k, bigOne.Int).Int64() == 0 {
+	if j.Cmp(bigIntMinusOne.Int) == 0 {
+		if k.And(k, bigIntOne.Int).Int64() == 0 {
 			return i.Neg(j)
 		}
 		return i.Set(j)
@@ -133,7 +133,7 @@ func bigIntExp(c Context, i, j, k *big.Int) *big.Int {
 		exp = -exp
 	}
 	// "2" is just shift. math/big should do this, really.
-	if j.Cmp(bigTwo.Int) == 0 && exp >= 0 {
+	if j.Cmp(bigIntTwo.Int) == 0 && exp >= 0 {
 		return i.Lsh(big.NewInt(1), uint(exp))
 	}
 	mustFit(c.Config(), int64(j.BitLen())*exp)
@@ -187,18 +187,8 @@ func andBool(t Value) bool {
 		}
 		return true
 	}
-	return t.(Int) == Int(1)
+	return t.(Int) == one
 }
-
-var (
-	zero        = Int(0)
-	one         = Int(1)
-	minusOne    = Int(-1)
-	bigZero     = bigInt64(0)
-	bigOne      = bigInt64(1)
-	bigTwo      = bigInt64(2)
-	bigMinusOne = bigInt64(-1)
-)
 
 var BinaryOps = make(map[string]BinaryOp)
 
@@ -418,7 +408,7 @@ func init() {
 						return c.EvalUnary("/", binaryBigIntOp(u, bigIntExpOp(c), v))
 					}
 					x := u.(BigInt).Int
-					if x.Cmp(bigOne.Int) == 0 || x.Sign() == 0 {
+					if x.Cmp(bigIntOne.Int) == 0 || x.Sign() == 0 {
 						return u
 					}
 					return binaryBigIntOp(u, bigIntExpOp(c), v)
@@ -482,10 +472,10 @@ func init() {
 					a := int64(u.(Int))
 					b := int64(v.(Int))
 					if a == 0 || b == 0 || a == b {
-						return bigOne
+						return one
 					}
 					if a < 0 || b < 0 || a > b {
-						return bigZero
+						return zero
 					}
 					aFac := factorial(a)
 					bFac := factorial(b)

@@ -37,7 +37,7 @@ func logBaseU(c Context, u, v Value) Value {
 		}
 	case BigInt:
 		i, v = bigIntLog(u, v.(BigInt))
-		if v.(BigInt).Cmp(bigOne.Int) == 0 {
+		if v.(BigInt).Cmp(bigIntOne.Int) == 0 {
 			return i
 		}
 	}
@@ -85,10 +85,10 @@ func uint64Log(b, v uint64) (i, r uint64) {
 // any non-trivial result is using base b ≥ 2,
 // bounding the result by the number of bits in v.
 func bigIntLog(b, v BigInt) (i Int, r BigInt) {
-	if b.Cmp(bigOne.Int) <= 0 || v.Cmp(b.Int) < 0 {
+	if b.Cmp(bigIntOne.Int) <= 0 || v.Cmp(b.Int) < 0 {
 		return 0, v
 	}
-	if z := new(big.Int).Mod(v.Int, b.Int); z.Cmp(bigZero.Int) != 0 {
+	if z := new(big.Int).Mod(v.Int, b.Int); z.Cmp(bigIntZero.Int) != 0 {
 		return 0, v
 	}
 
