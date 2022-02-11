@@ -235,3 +235,10 @@ op a test b =
 	succeed
 	succeed
 	fail
+
+# user-defined used to not be recognized mid-expression unless also binary
+op nop x = x
++/ nop 1 2 3
++/ nop@ 1 2 3
+	6
+	6
