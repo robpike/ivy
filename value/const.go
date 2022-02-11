@@ -26,11 +26,13 @@ const (
 	constPrecisionInDigits = 3011
 )
 
-var (
-	zero     = Int(0)
-	one      = Int(1)
-	minusOne = Int(-1)
+const (
+	zero     Int = 0
+	one      Int = 1
+	minusOne Int = -1
+)
 
+var (
 	bigIntZero     = bigInt64(0)
 	bigIntOne      = bigInt64(1)
 	bigIntTwo      = bigInt64(2)
