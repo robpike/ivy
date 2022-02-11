@@ -34,6 +34,13 @@
 2**640     # They can get really big.
 # They can get really really big. Type a newline to see 2**6400 scroll by.
 2**6400
+# Complex numbers are supported.  1+3i is made like this:
+1j3
+# The j operator constructs a complex number:
+1 j 3
+# And all the operations you might expect apply to complex numbers
+sqrt -1
+acos 2j1
 # Ivy also has characters, which represent a Unicode code point.
 'x'
 char 0x61     # char is an operator: character with given value.
