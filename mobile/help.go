@@ -132,6 +132,9 @@ Arctangent              atan    arctan(B)
 Hyperbolic sine         sinh    sinh(B)
 Hyperbolic cosine       cosh    cosh(B)
 Hyperbolic tangent      tanh    tanh(B)
+Hyperbolic arcsine      asinh   arcsinh(B)
+Hyperbolic arccosine    acosh   arccosh(B)
+Hyperbolic arctangent   atanh   arctanh(B)
 Rotation by 90°         j       Multiplication by sqrt(-1)
 Real part               real    Real component of the value
 Imaginary part          imag    Imaginary component of the value

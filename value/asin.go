@@ -10,11 +10,11 @@ import (
 
 func asin(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
-		if !isZero(u.imag) || !inArcRealRange(u.real) {
+		if !isZero(u.imag) || !inArcRealDomain(u.real) {
 			return complexAsin(c, u)
 		}
 		v = u.real
-	} else if !inArcRealRange(v) {
+	} else if !inArcRealDomain(v) {
 		return complexAsin(c, newComplex(v, zero))
 	}
 	return evalFloatFunc(c, v, floatAsin)
@@ -22,30 +22,20 @@ func asin(c Context, v Value) Value {
 
 func acos(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
-		if !isZero(u.imag) || !inArcRealRange(u.real) {
+		if !isZero(u.imag) || !inArcRealDomain(u.real) {
 			return complexAcos(c, u)
 		}
 		v = u.real
-	} else if !inArcRealRange(v) {
+	} else if !inArcRealDomain(v) {
 		return complexAcos(c, newComplex(v, zero))
 	}
 	return evalFloatFunc(c, v, floatAcos)
 }
 
-// inArcRealRange reports whether the argument is between -1 and +1,
+// inArcRealDomain reports whether the argument is between -1 and +1,
 // the valid domain for real arcsin and arccos.
-func inArcRealRange(x Value) bool {
-	switch x := x.(type) {
-	case Int:
-		return -1 <= x && x <= 1
-	case BigRat:
-		return x.Cmp(bigRatMinusOne) >= 0 && x.Cmp(bigRatOne) <= 0
-	case BigFloat:
-		return x.Cmp(floatMinusOne) >= 0 && x.Cmp(floatOne) <= 0
-	case Complex:
-		return false // Should never happen.
-	}
-	return false
+func inArcRealDomain(x Value) bool {
+	return compare(x, -1) >= 0 && compare(x, 1) <= 0
 }
 
 func atan(c Context, v Value) Value {
@@ -98,7 +88,7 @@ func floatAtan(c Context, x *big.Float) *big.Float {
 		return z.Neg(z)
 	}
 
-	// The series converge very slowly near 1. atan 1.00001 takes over a million
+	// The series converges very slowly near 1. atan 1.00001 takes over a million
 	// iterations at the default precision. But there is hope, an Euler identity:
 	//	atan(x) = atan(y) + atan((x-y)/(1+xy))
 	// Note that y is a free variable. If x is near 1, we can use this formula

@@ -572,6 +572,34 @@ func isNegative(v Value) bool {
 	return false
 }
 
+// compare returns -1, 0, 1 according to whether v is less than,
+// equal to, or greater than i.
+func compare(v Value, i int) int {
+	switch v := v.(type) {
+	case Int:
+		i := Int(i)
+		switch {
+		case v < i:
+			return -1
+		case v == i:
+			return 0
+		}
+		return 1
+	case BigInt:
+		r := big.NewInt(int64(i))
+		return -r.Sub(r, v.Int).Sign()
+	case BigRat:
+		r := big.NewRat(int64(i), 1)
+		return -r.Sub(r, v.Rat).Sign()
+	case BigFloat:
+		r := big.NewFloat(float64(i))
+		return -r.Sub(r, v.Float).Sign()
+	case Complex:
+		return -1
+	}
+	return -1
+}
+
 // isTrue reports whether v represents boolean truth. If v is not
 // a scalar, an error results.
 func isTrue(fnName string, v Value) bool {
