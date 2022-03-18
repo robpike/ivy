@@ -28,7 +28,7 @@ type Token struct {
 type Type int
 
 const (
-	EOF   Type = iota // zero value so closed channel delivers EOF
+	EOF   Type = iota
 	Error             // error occurred; value is text of error
 	Newline
 	// Interesting things
@@ -77,7 +77,6 @@ type Scanner struct {
 	lastRune  rune    // most recent return from next()
 	lastWidth int     // size of that rune
 	readOK    bool    // allow reading of a new line of input
-	state     stateFn // the next lexing function to enter
 	line      int     // line number in input
 	pos       int     // current position in the input
 	start     int     // start position of this item
