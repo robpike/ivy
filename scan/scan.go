@@ -29,7 +29,7 @@ type Type int
 
 const (
 	EOF   Type = iota
-	Error             // error occurred; value is text of error
+	Error      // error occurred; value is text of error
 	Newline
 	// Interesting things
 	Assign     // '='
@@ -71,15 +71,15 @@ type Scanner struct {
 	context   value.Context
 	r         io.ByteReader
 	done      bool
-	name      string  // the name of the input; used only for error reports
-	buf       []byte  // I/O buffer, re-used.
-	input     string  // the line of text being scanned.
-	lastRune  rune    // most recent return from next()
-	lastWidth int     // size of that rune
-	readOK    bool    // allow reading of a new line of input
-	line      int     // line number in input
-	pos       int     // current position in the input
-	start     int     // start position of this item
+	name      string // the name of the input; used only for error reports
+	buf       []byte // I/O buffer, re-used.
+	input     string // the line of text being scanned.
+	lastRune  rune   // most recent return from next()
+	lastWidth int    // size of that rune
+	readOK    bool   // allow reading of a new line of input
+	line      int    // line number in input
+	pos       int    // current position in the input
+	start     int    // start position of this item
 	token     Token
 }
 
@@ -449,8 +449,7 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 		}
 	}
 	if !l.scanNumber(true, realPart) {
-		l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
-		return false, lexAny
+		return false, l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
 	}
 	r := l.peek()
 	if r != '/' {
@@ -469,12 +468,10 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 	// Note: No signs here. 1/-2 is (1 / -2) not (-1/2). This differs from 'j' but feels right;
 	// you don't write 1/-2 for -1/2. The sign should be first.
 	if !l.scanNumber(false, realPart) {
-		l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
-		return false, lexAny
+		return false, l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
 	}
 	if l.peek() == '.' {
-		l.errorf("bad number syntax: %s", l.input[l.start:l.pos+1])
-		return false, lexAny
+		return false, l.errorf("bad number syntax: %s", l.input[l.start:l.pos+1])
 	}
 	return true, lexAny
 }
