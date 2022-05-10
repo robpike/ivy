@@ -40,13 +40,22 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 			ix.xshape = append(ix.xshape, len(x))
 		case *Matrix:
 			ix.indexes[i] = x.Data()
-			ix.xshape = append(ix.xshape, x.Shape()...)
+			// Append shape in reverse, because ix.shape will be reversed below.
+			shape := x.Shape()
+			for j := len(shape) - 1; j >= 0; j-- {
+				ix.xshape = append(ix.xshape, shape[j])
+			}
 		}
 		for _, v := range ix.indexes[i] {
 			if _, ok := v.(Int); !ok {
 				Errorf("invalid index %v (%s) in %s in %s", v, whichType(v), index[i].ProgString(), top.ProgString())
 			}
 		}
+	}
+
+	// Walked indexes right-to-left, so reverse shape.
+	for i, j := 0, len(ix.xshape)-1; i < j; i, j = i+1, j-1 {
+		ix.xshape[i], ix.xshape[j] = ix.xshape[j], ix.xshape[i]
 	}
 
 	// Can now safely evaluate left side
