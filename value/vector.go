@@ -139,7 +139,7 @@ func (v Vector) grade(c Context) Vector {
 	for i := range x {
 		x[i] = i
 	}
-	sort.Slice(x, func(i, j int) bool {
+	sort.SliceStable(x, func(i, j int) bool {
 		return toBool(c.EvalBinary(v[x[i]], "<", v[x[j]]))
 	})
 	origin := c.Config().Origin()
