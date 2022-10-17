@@ -253,7 +253,9 @@ func (x *index) ProgString() string {
 		if i > 0 {
 			s.WriteString("; ")
 		}
-		s.WriteString(v.ProgString())
+		if v != nil {
+			s.WriteString(v.ProgString())
+		}
 	}
 	s.WriteString("]")
 	return s.String()
@@ -529,12 +531,8 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 func (p *Parser) index(expr value.Expr) value.Expr {
 	for p.peek().Type == scan.LeftBrack {
 		p.next()
-		list := []value.Expr{p.expr()}
+		list := p.indexList()
 		tok := p.next()
-		for tok.Type == scan.Semicolon {
-			list = append(list, p.expr())
-			tok = p.next()
-		}
 		if tok.Type != scan.RightBrack {
 			p.errorf("expected right bracket, found %s", tok)
 		}
@@ -544,6 +542,32 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 		}
 	}
 	return expr
+}
+
+// indexList
+//	[[expr] [';' [expr]] ...]
+func (p *Parser) indexList() []value.Expr {
+	list := []value.Expr{}
+	exprSeen := false // Previous element contained an expression.
+	for {
+		tok := p.peek()
+		switch tok.Type {
+		case scan.RightBrack:
+			if !exprSeen {
+				list = append(list, nil) // "v[]" means all of v.
+			}
+			return list
+		case scan.Semicolon:
+			p.next()
+			if !exprSeen {
+				list = append(list, nil)
+			}
+			exprSeen = false
+		default:
+			list = append(list, p.expr())
+			exprSeen = true
+		}
+	}
 }
 
 // number

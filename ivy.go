@@ -30,7 +30,7 @@ var (
 	maxbits         = flag.Uint("maxbits", 1e9, "maximum size of an integer, in bits; 0 means no limit")
 	maxdigits       = flag.Uint("maxdigits", 1e4, "above this many `digits`, integers print as floating point; 0 disables")
 	maxstack        = flag.Uint("stack", 100000, "maximum call stack `depth` allowed")
-	origin          = flag.Int("origin", 1, "set index origin to `n` (must be 0 or 1)")
+	origin          = flag.Int("origin", 1, "set index origin to `n` (must be >=0)")
 	prompt          = flag.String("prompt", "", "command `prompt`")
 	debugFlag       = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
 )
@@ -48,7 +48,7 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	if *origin != 0 && *origin != 1 {
+	if *origin < 0 {
 		fmt.Fprintf(os.Stderr, "ivy: illegal origin value %d\n", *origin)
 		os.Exit(2)
 	}

@@ -507,10 +507,9 @@ func init() {
 					if i == 0 {
 						return Vector{}
 					}
+					data := constIota(c.Config().Origin(), int(i))
 					n := make([]Value, i)
-					for k := range n {
-						n[k] = Int(k + c.Config().Origin())
-					}
+					copy(n, data)
 					return NewVector(n)
 				},
 			},

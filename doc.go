@@ -46,7 +46,9 @@ value.
 
 Indexing uses [] notation: x[1], x[1; 2], and so on. Indexing by a
 vector selects multiple elements: x[1 2] creates a new item from
-x[1] and x[2].
+x[1] and x[2]. An empty index slot is a shorthand for all the
+elements along that dimension, so x[] is equivalent to x, and x[;3]
+gives the third column of two-dimensional array x.
 
 Only a subset of APL's functionality is implemented, but all numerical
 operations are supported.
@@ -359,7 +361,7 @@ base 10 and must be non-negative on input.
 		definition, numbers are always shown base 10, ignoring the ibase
 		and obase.
 	) origin 1
-		Set the origin for indexing a vector or matrix.
+		Set the origin for indexing a vector or matrix. Must be non-negative.
 	) prec 256
 		Set the precision (mantissa length) for floating-point values.
 		The value is in bits. The exponent always has 32 bits.

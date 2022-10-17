@@ -4,6 +4,8 @@
 
 package value
 
+import "sync"
+
 // An indexState holds the state needed to locate
 // the values denoted by an index expression left[index],
 // which is evaluated to lhs[indexes].
@@ -14,8 +16,8 @@ type indexState struct {
 
 	indexes []Vector // Vectors of all Int, all in range for shape
 
-	xshape []int // output shape (nil is scalar)
-	xsize  int   // output size (# scalars)
+	outShape []int // output shape (nil is scalar)
+	outSize  int   // output size (# scalars)
 }
 
 // init initializes ix to describe top, which is left[index].
@@ -27,8 +29,16 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 	// Scalar indexes drop a dimension,
 	// while vector and matrix indexes replace the dimension with their shape.
 	ix.indexes = make([]Vector, len(index))
-	ix.xshape = nil // common case - scalar indexes covering entire rank → scalar result
+	ix.outShape = nil          // common case - scalar indexes covering entire rank → scalar result
+	var outShapeToUpdate []int // indexes of outShape entries that need updating after lhs eval.
 	for i := len(index) - 1; i >= 0; i-- {
+		if index[i] == nil {
+			// Make this iota(dimension), to be filled in after evaluating lhs.
+			ix.indexes[i] = nil
+			outShapeToUpdate = append(outShapeToUpdate, len(ix.outShape))
+			ix.outShape = append(ix.outShape, 0) // Fixed below, after we have evaluated left.
+			continue
+		}
 		x := index[i].Eval(context).Inner()
 		switch x := x.(type) {
 		default:
@@ -37,13 +47,13 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 			ix.indexes[i] = Vector{x}
 		case Vector:
 			ix.indexes[i] = x
-			ix.xshape = append(ix.xshape, len(x))
+			ix.outShape = append(ix.outShape, len(x))
 		case *Matrix:
 			ix.indexes[i] = x.Data()
 			// Append shape in reverse, because ix.shape will be reversed below.
 			shape := x.Shape()
 			for j := len(shape) - 1; j >= 0; j-- {
-				ix.xshape = append(ix.xshape, shape[j])
+				ix.outShape = append(ix.outShape, shape[j])
 			}
 		}
 		for _, v := range ix.indexes[i] {
@@ -54,8 +64,12 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 	}
 
 	// Walked indexes right-to-left, so reverse shape.
-	for i, j := 0, len(ix.xshape)-1; i < j; i, j = i+1, j-1 {
-		ix.xshape[i], ix.xshape[j] = ix.xshape[j], ix.xshape[i]
+	for i, j := 0, len(ix.outShape)-1; i < j; i, j = i+1, j-1 {
+		ix.outShape[i], ix.outShape[j] = ix.outShape[j], ix.outShape[i]
+	}
+	// The offsets stored in outShapeToUpdate must also be flipped.
+	for i, o := range outShapeToUpdate {
+		outShapeToUpdate[i] = len(ix.outShape) - o - 1
 	}
 
 	// Can now safely evaluate left side
@@ -73,14 +87,24 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 	}
 
 	// Finish the result shape.
+	origin := Int(context.Config().Origin())
 	if len(ix.indexes) > len(ix.shape) {
 		Errorf("too many dimensions in %s indexing shape %v", top.ProgString(), NewIntVector(ix.shape))
 	}
-	ix.xshape = append(ix.xshape, ix.shape[len(index):]...)
-	ix.xsize = size(ix.xshape)
+	// Replace nil index entries, created above, with iota(dimension).
+	j := 0
+	for i, v := range ix.indexes {
+		if v == nil {
+			x := constIota(int(origin), ix.shape[i])
+			ix.indexes[i] = NewVector(x)
+			ix.outShape[outShapeToUpdate[j]] = len(x)
+			j++
+		}
+	}
+	ix.outShape = append(ix.outShape, ix.shape[len(index):]...)
+	ix.outSize = size(ix.outShape)
 
 	// Check indexes are all valid.
-	origin := Int(context.Config().Origin())
 	for i, v := range ix.indexes {
 		for j := range v {
 			vj := v[j].(Int)
@@ -111,7 +135,7 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 	ix.init(context, top, left, index)
 	origin := Int(context.Config().Origin())
 
-	if len(ix.xshape) == 0 {
+	if len(ix.outShape) == 0 {
 		// Trivial scalar case.
 		offset := 0
 		for j := 0; j < len(ix.indexes); j++ {
@@ -123,7 +147,7 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 		return ix.slice[offset]
 	}
 
-	data := make(Vector, ix.xsize)
+	data := make(Vector, ix.outSize)
 	copySize := int(size(ix.shape[len(ix.indexes):]))
 	n := len(data) / copySize
 	coord := make([]int, len(ix.indexes))
@@ -147,13 +171,13 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 		}
 	}
 
-	if len(ix.xshape) == 0 {
+	if len(ix.outShape) == 0 {
 		return data[0]
 	}
-	if len(ix.xshape) == 1 {
+	if len(ix.outShape) == 1 {
 		return data
 	}
-	return NewMatrix(ix.xshape, data)
+	return NewMatrix(ix.outShape, data)
 }
 
 // IndexAssign handles general assignment to indexed expressions on the LHS.
@@ -172,9 +196,9 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 	default:
 		rscalar = rhs
 	case *Matrix:
-		if !sameShape(ix.xshape, rhs.Shape()) {
+		if !sameShape(ix.outShape, rhs.Shape()) {
 			Errorf("shape mismatch %v != %v in assignment %v = %v",
-				NewIntVector(ix.xshape), NewIntVector(rhs.Shape()),
+				NewIntVector(ix.outShape), NewIntVector(rhs.Shape()),
 				top.ProgString(), right.ProgString())
 		}
 		rslice = rhs.Data()
@@ -186,16 +210,16 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 			copy(rslice, rhs.Data())
 		}
 	case Vector:
-		if len(ix.xshape) != 1 || ix.xshape[0] != len(rhs) {
+		if len(ix.outShape) != 1 || ix.outShape[0] != len(rhs) {
 			Errorf("shape mismatch %v != %v in assignment %v = %v",
-				NewIntVector(ix.xshape), NewIntVector([]int{len(rhs)}),
+				NewIntVector(ix.outShape), NewIntVector([]int{len(rhs)}),
 				top.ProgString(), right.ProgString())
 		}
 		rslice = rhs
 	}
 
 	origin := Int(context.Config().Origin())
-	if len(ix.xshape) == 0 {
+	if len(ix.outShape) == 0 {
 		// Trivial scalar case.
 		offset := 0
 		for j := 0; j < len(ix.indexes); j++ {
@@ -208,7 +232,7 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 	}
 
 	copySize := int(size(ix.shape[len(ix.indexes):]))
-	n := ix.xsize / copySize
+	n := ix.outSize / copySize
 	pfor(true, copySize, n, func(lo, hi int) {
 		// Compute starting coordinate index.
 		coord := make([]int, len(ix.indexes))
@@ -247,4 +271,37 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 			}
 		}
 	})
+}
+
+var (
+	iotaLock   sync.RWMutex
+	staticIota []Value
+)
+
+// constIota generates a slice equivalent to the result of "iota n".
+// The returned value's elements are shared and must not be overwritten.
+func constIota(origin, n int) []Value {
+	for {
+		iotaLock.RLock()
+		if len(staticIota) >= origin+n {
+			result := staticIota[origin : origin+n]
+			iotaLock.RUnlock()
+			return result
+		}
+		iotaLock.RUnlock()
+		growIota(origin + n)
+	}
+
+}
+
+func growIota(n int) {
+	iotaLock.Lock()
+	if len(staticIota) < n {
+		m := make([]Value, n+32)
+		for i := range m {
+			m[i] = Int(i)
+		}
+		staticIota = m
+	}
+	iotaLock.Unlock()
 }

@@ -290,7 +290,7 @@ Switch:
 
 		}
 		origin := p.nextDecimalNumber()
-		if origin != 0 && origin != 1 {
+		if origin < 0 {
 			p.errorf("illegal origin %d", origin)
 		}
 		conf.SetOrigin(origin)
