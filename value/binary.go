@@ -1073,7 +1073,7 @@ func init() {
 					for i, a := range A {
 						sortedA[i] = indexed{a, i + origin}
 					}
-					sort.Slice(sortedA, func(i, j int) bool {
+					sort.SliceStable(sortedA, func(i, j int) bool {
 						return c.EvalBinary(sortedA[i].v, "<", sortedA[j].v) == Int(1)
 					})
 					indices := make([]Value, len(B))
