@@ -214,7 +214,10 @@ func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
 		walk(e.left, e.op == "=", f)
 	case *index:
 		for i := len(e.right) - 1; i >= 0; i-- {
-			walk(e.right[i], false, f)
+			x := e.right[i]
+			if x != nil { // Not a placeholder index.
+				walk(e.right[i], false, f)
+			}
 		}
 		walk(e.left, false, f)
 	case *variableExpr:
