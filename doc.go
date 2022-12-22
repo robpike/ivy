@@ -33,10 +33,11 @@ single operand, so 1 2 3 + 3 + 3 4 5 is (1 2 3) + 3 + (3 4 5), or
 7 9 11.
 
 As a special but important case, note that 1/3, with no intervening
-spaces, is a single rational number, not the expression 1 divided
-by 3. This can affect precedence: 3/6*4 is 2 while 3 / 6*4 is 1/8
-since the spacing turns the / into a division operator. Use parentheses
-or spaces to disambiguate: 3/(6*4) or 3 /6*4.
+spaces, is by default a single rational number, not the expression
+1 divided by 3. This can affect precedence: 3/6*4 is 2 while 3 /
+6*4 is 1/8 since the spacing turns the / into a division operator.
+Use parentheses or spaces to disambiguate: 3/(6*4) or 3 /6*4. This
+behavior can be toggled with the scanrationals special command.
 
 Ivy has complex numbers, which are constructed using the unary or
 binary j operator. As with rationals, the token 1j2 (the representation
@@ -372,6 +373,10 @@ base 10 and must be non-negative on input.
 		named file, as ivy textual source. If no file is specified, save to
 		"save.ivy".
 		(Unimplemented on mobile.)
+	) scandivision 0
+		By default (0), expressions such 1/3 (without spaces) tokenize as
+		a single rational value. When set to 1, 1/3 is the expression 1
+		divided by 3 regardless of spaces. Affects parsing precedence.
 	) seed 0
 		Set the seed for the ? operator.
 

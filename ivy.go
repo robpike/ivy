@@ -25,6 +25,7 @@ var (
 	execute         = flag.String("e", "", "execute `argument` and quit")
 	executeContinue = flag.String("i", "", "execute `argument` and continue")
 	file            = flag.String("f", "", "execute `file` before input")
+	div             = flag.Bool("div", false, "scan / as division, not rational construction")
 	format          = flag.String("format", "", "use `fmt` as format for printing numbers; empty sets default format")
 	gformat         = flag.Bool("g", false, `shorthand for -format="%.12g"`)
 	maxbits         = flag.Uint("maxbits", 1e9, "maximum size of an integer, in bits; 0 means no limit")
@@ -63,6 +64,7 @@ func main() {
 	conf.SetMaxStack(*maxstack)
 	conf.SetOrigin(*origin)
 	conf.SetPrompt(*prompt)
+	conf.SetScanDivision(*div)
 
 	if len(*debugFlag) > 0 {
 		for _, debug := range strings.Split(*debugFlag, ",") {

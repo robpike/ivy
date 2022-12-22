@@ -185,11 +185,7 @@ Switch:
 			if !conf.SetDebug(name, !conf.Debug(name)) {
 				p.Println("no such debug flag:", name)
 			}
-			if conf.Debug(name) {
-				p.Println("1")
-			} else {
-				p.Println("0")
-			}
+			p.Printf("%d\n", truth(conf.Debug(name)))
 			break
 		}
 		number := p.nextDecimalNumber()
@@ -310,6 +306,12 @@ Switch:
 			break Switch
 		}
 		conf.SetPrompt(p.getString())
+	case "scandivision":
+		if p.peek().Type == scan.EOF {
+			p.Printf("%d\n", truth(conf.ScanDivision()))
+			break Switch
+		}
+		conf.SetScanDivision(p.nextDecimalNumber() != 0)
 	case "save":
 		// Must restore ibase, obase for save.
 		conf.SetBase(ibase, obase)
