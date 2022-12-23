@@ -13,12 +13,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/value"
 )
-
-var foo config.Config
 
 // Token represents a token or text string returned from the scanner.
 type Token struct {
@@ -455,7 +452,7 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 		return false, l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
 	}
 	r := l.peek()
-	if l.context.Config().ScanDivision() || r != '/' {
+	if r != '/' {
 		return true, lexAny
 	}
 	// Might be a rational.

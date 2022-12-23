@@ -49,10 +49,9 @@ type Config struct {
 	userTime    time.Duration // User time of last interactive command.
 	sysTime     time.Duration // System time of last interactive command.
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
-	inputBase    int
-	outputBase   int
-	scanDivision bool
-	mobile       bool // Running on a mobile platform.
+	inputBase  int
+	outputBase int
+	mobile     bool // Running on a mobile platform.
 }
 
 func (c *Config) init() {
@@ -68,7 +67,6 @@ func (c *Config) init() {
 		c.maxDigits = 1e4
 		c.maxStack = 1e5
 		c.floatPrec = 256
-		c.scanDivision = false
 		c.mobile = false
 	}
 }
@@ -316,7 +314,7 @@ func formatDuration(d float64, units string) string {
 		s = s[:len(s)-4]
 	}
 	return s + units
-
+	
 }
 
 // Base returns the input and output bases.
@@ -339,17 +337,6 @@ func (c *Config) SetBase(inputBase, outputBase int) {
 	c.init()
 	c.inputBase = inputBase
 	c.outputBase = outputBase
-}
-
-// ScanDivision reports whether we are scanning 1/3 as "a third" (false) or a division operation (true).
-func (c *Config) ScanDivision() bool {
-	return c.scanDivision
-}
-
-// SetScanDivision sets the ScanDivision bit as specified.
-func (c *Config) SetScanDivision(scanDivision bool) {
-	c.init()
-	c.scanDivision = scanDivision
 }
 
 // Mobile reports whether we are running on a mobile platform.
