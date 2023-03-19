@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -33,6 +32,10 @@ var (
 	prompt          = flag.String("prompt", "", "command `prompt`")
 	debugFlag       = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
 )
+
+// isTTY reports if fd is an interactive tty.
+// It is replaced by system-specific files, like tty_unix.go.
+var isTTY = func(fd uintptr) bool { return true }
 
 var (
 	conf    config.Config
@@ -100,29 +103,24 @@ func main() {
 
 	scanner := scan.New(context, "<stdin>", bufio.NewReader(os.Stdin))
 	parser := parse.NewParser("<stdin>", scanner, context)
-	for !run.Run(parser, context, true) {
+	for !run.Run(parser, context, isTTY(os.Stdin.Fd())) {
 	}
 }
 
 // runFile executes the contents of the file as an ivy program.
 func runFile(context value.Context, file string) bool {
-	var fd io.Reader
 	var err error
-	interactive := false
-	if file == "-" {
-		interactive = true
-		fd = os.Stdin
-	} else {
-		interactive = false
-		fd, err = os.Open(file)
+	f := os.Stdin
+	if file != "-" {
+		f, err = os.Open(file)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ivy: %s\n", err)
+			os.Exit(1)
+		}
 	}
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ivy: %s\n", err)
-		os.Exit(1)
-	}
-	scanner := scan.New(context, file, bufio.NewReader(fd))
+	scanner := scan.New(context, file, bufio.NewReader(f))
 	parser := parse.NewParser(file, scanner, context)
-	return run.Run(parser, context, interactive)
+	return run.Run(parser, context, isTTY(f.Fd()))
 }
 
 // runString executes the string, typically a command-line argument, as an ivy program.
