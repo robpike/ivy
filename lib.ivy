@@ -4,13 +4,13 @@ op avg x = (+/x)/rho x
 # Largest n in x.
 op n largest x = n take x[down x]
 
-# Digits of a base b. Use log to decide how many. Assumes origin is 1. (Remove "1+" if it's 0.)
-op a base b = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[1 + ((ceil b log a+1) rho b) encode a]
+# Digits of a base b. Use log to decide how many.
+op a base b = ((floor 1 + b log a) rho b) encode a
 
 # Count the number of appearances of each digit in x.
 op digitcount x = t = text x; +/(-1+iota 10) o.== (code (t in '0123456789') sel t) - code '0'
 
-# Population count. Use encode to turn the value into a string of bits.
+# Population count. Use encode (through base) to turn the value into a string of bits.
 op popcount n = +/n base 2
 
 # Sum of digits.
