@@ -227,7 +227,7 @@ op n largest x = n take x[down x]
 3 largest ? 100 rho 1000
 4 largest 'hello world'
 # Population count. Use encode to turn the value into a string of bits. Use log to decide how many.
-op a base b = ((ceil b log a) rho b) encode a
+op a base b = ((floor 1 + b log a) rho b) encode a
 7 base 2
 op popcount n = +/n base 2
 popcount 7
