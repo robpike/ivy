@@ -6,6 +6,7 @@ package value
 
 import (
 	"math/big"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -661,6 +662,72 @@ func init() {
 						hi -= elemSize
 					}
 					return m
+				},
+			},
+		},
+
+		{
+			name: "unique",
+			fn: [numType]unaryFn{
+				intType:      self,
+				charType:     self,
+				bigIntType:   self,
+				bigRatType:   self,
+				bigFloatType: self,
+				complexType:  self,
+				vectorType: func(c Context, v Value) Value {
+					vec := v.(Vector)
+					result := []Value{}
+					occurred := map[Value]bool{};
+					for e:= range vec {
+						if occurred[vec[e]] != true {
+							occurred[vec[e]] = true
+							result = append(result, vec[e])
+						}
+					 }
+				   return NewVector(result)
+				},
+				matrixType: func(c Context, v Value) Value {	
+					// Given a list of value, check if it already occured in the 'isPresent' map
+					// If not found return it 
+					evaluateUniqueness := func(values []Value, isPresent map[string]bool) []Value {
+						// use a simple hashing method to generete the key
+						sb := strings.Builder{}
+						for _, v := range values {
+							sb.Write([]byte(v.ProgString()))
+							sb.Write([]byte(","))
+						}
+						key := sb.String()
+						if isPresent[key] != true {
+							isPresent[key] = true
+							return values
+						}
+						return []Value{}
+					}
+
+					m := v.(*Matrix)
+					// size is the len of a chunk of 'data' 
+					size := len(m.data) / m.shape[0]
+					occurred := map[string]bool{};
+					values := make([]Value, size)
+					var resultData []Value
+
+					i := 0					
+					for e:= range m.data {
+						values[i] = m.data[e]
+						i++
+						if (i == size) {
+							resultData = append(resultData, evaluateUniqueness(values, occurred)...)
+							i = 0
+						}
+					}
+					// evaluate the last values too
+					resultData = append(resultData, evaluateUniqueness(values, occurred)...)
+
+					resultShape := make([]int, len(m.shape))
+					copy(resultShape, m.shape)
+					resultShape[0] = len(resultData) / size
+					return NewMatrix(resultShape, resultData)
 				},
 			},
 		},

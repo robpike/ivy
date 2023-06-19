@@ -91,6 +91,7 @@ Unary operators
 	Grade down        ⍒B    down    Indices of B which will arrange B in descending order
 	Execute           ⍎B    ivy     Execute an APL (ivy) expression
 	Monadic format    ⍕B    text    A character representation of B
+	Unique            ∪B    unique  Remove duplicates from B
 	Monadic transpose ⍉B    transp  Reverse the axes of B
 	Factorial         !B    !       Product of integers 1 to B
 	Bitwise not             ^       Bitwise complement of B (integer only)

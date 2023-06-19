@@ -108,3 +108,15 @@ flip iota 10
 op rot x = 99
 flip 1 2 3  # Used rot internally.
 	3 2 1
+
+unique iota 0
+	#
+
+unique iota 10
+	1 2 3 4 5 6 7 8 9 10
+
+unique 10 rho 1
+	1
+
+unique 'Missisipi'
+	Misp
