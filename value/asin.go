@@ -15,7 +15,7 @@ func asin(c Context, v Value) Value {
 		}
 		v = u.real
 	} else if !inArcRealDomain(v) {
-		return complexAsin(c, newComplex(v, zero))
+		return complexAsin(c, NewComplex(v, zero))
 	}
 	return evalFloatFunc(c, v, floatAsin)
 }
@@ -27,7 +27,7 @@ func acos(c Context, v Value) Value {
 		}
 		v = u.real
 	} else if !inArcRealDomain(v) {
-		return complexAcos(c, newComplex(v, zero))
+		return complexAcos(c, NewComplex(v, zero))
 	}
 	return evalFloatFunc(c, v, floatAcos)
 }
@@ -187,23 +187,23 @@ func floatAtanLarge(c Context, x *big.Float) *big.Float {
 
 func complexAsin(c Context, v Complex) Complex {
 	// Use the formula: asin(v) = -i * log(sqrt(1-v²) + i*v)
-	x := newComplex(one, zero)
+	x := NewComplex(one, zero)
 	x = complexSqrt(c, x.sub(c, v.mul(c, v)))
-	i := newComplex(zero, one)
+	i := NewComplex(zero, one)
 	x = x.add(c, i.mul(c, v))
 	x = complexLog(c, x)
-	return newComplex(zero, minusOne).mul(c, x)
+	return NewComplex(zero, minusOne).mul(c, x)
 }
 
 func complexAcos(c Context, v Complex) Value {
 	// Use the formula: acos(v) = π/2 - asin(v)
-	piBy2 := newComplex(BigFloat{newFloat(c).Set(floatPiBy2)}, BigFloat{floatZero})
+	piBy2 := NewComplex(BigFloat{newFloat(c).Set(floatPiBy2)}, BigFloat{floatZero})
 	return piBy2.sub(c, complexAsin(c, v))
 }
 
 func complexAtan(c Context, v Complex) Value {
 	// Use the formula: atan(v) = 1/2i * log((1-v)/(1+v))
-	i := newComplex(zero, one)
+	i := NewComplex(zero, one)
 	res := i.sub(c, v).div(c, i.add(c, v))
 	res = complexLog(c, res)
 	return res.mul(c, minusOneOverTwoI)

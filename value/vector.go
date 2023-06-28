@@ -178,7 +178,7 @@ func (v Vector) sortedCopy(c Context) Vector {
 	sortedV := make([]Value, len(v))
 	copy(sortedV, v)
 	sort.Slice(sortedV, func(i, j int) bool {
-		return c.EvalBinary(sortedV[i], "<", sortedV[j]) == Int(1)
+		return OrderedCompare(c, sortedV[i], sortedV[j]) < 0
 	})
 	return sortedV
 }
@@ -187,7 +187,7 @@ func (v Vector) sortedCopy(c Context) Vector {
 // sorted order.
 func (v Vector) contains(c Context, x Value) bool {
 	pos := sort.Search(len(v), func(j int) bool {
-		return c.EvalBinary(v[j], ">=", x) == Int(1)
+		return OrderedCompare(c, v[j], x) >= 0
 	})
 	return pos < len(v) && c.EvalBinary(v[pos], "==", x) == Int(1)
 }

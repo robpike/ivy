@@ -166,7 +166,7 @@ func complexSin(c Context, v Complex) Value {
 	sinhY := floatSinh(c, y)
 	lhs := sinX.Mul(sinX, coshY)
 	rhs := cosX.Mul(cosX, sinhY)
-	return newComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
+	return NewComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
 }
 
 func complexCos(c Context, v Complex) Value {
@@ -179,7 +179,7 @@ func complexCos(c Context, v Complex) Value {
 	sinhY := floatSinh(c, y)
 	lhs := cosX.Mul(cosX, coshY)
 	rhs := sinX.Mul(sinX, sinhY)
-	return newComplex(BigFloat{lhs}, BigFloat{rhs.Neg(rhs)}).shrink()
+	return NewComplex(BigFloat{lhs}, BigFloat{rhs.Neg(rhs)}).shrink()
 }
 
 func complexTan(c Context, v Complex) Value {
@@ -197,5 +197,5 @@ func complexTan(c Context, v Complex) Value {
 	if den.Sign() == 0 {
 		Errorf("tangent is infinite")
 	}
-	return newComplex(BigFloat{sin2X.Quo(sin2X, den)}, BigFloat{sinh2Y.Quo(sinh2Y, den)}).shrink()
+	return NewComplex(BigFloat{sin2X.Quo(sin2X, den)}, BigFloat{sinh2Y.Quo(sinh2Y, den)}).shrink()
 }

@@ -27,9 +27,9 @@ type Context struct {
 
 	Globals Symtab
 
-	//  UnaryFn maps the names of unary functions (ops) to their implemenations.
+	//  UnaryFn maps the names of unary functions (ops) to their implementations.
 	UnaryFn map[string]*Function
-	//  BinaryFn maps the names of binary functions (ops) to their implemenations.
+	//  BinaryFn maps the names of binary functions (ops) to their implementations.
 	BinaryFn map[string]*Function
 	// Defs is a list of defined ops, in time order.  It is used when saving the
 	// Context to a file.
@@ -152,6 +152,14 @@ func (c *Context) UserDefined(op string, isBinary bool) bool {
 
 // EvalBinary evaluates a binary operator, including products.
 func (c *Context) EvalBinary(left value.Value, op string, right value.Value) value.Value {
+	// Special handling for the equal and non-equal operators, which must avoid
+	// type conversions involving Char.
+	if op == "==" || op == "!=" {
+		v, ok := value.EvalCharEqual(left, op == "==", right)
+		if ok {
+			return v
+		}
+	}
 	if strings.Contains(op, ".") {
 		return value.Product(c, left, op, right)
 	}

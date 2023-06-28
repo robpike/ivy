@@ -151,7 +151,7 @@ func (i Int) toType(op string, conf *config.Config, which valueType) Value {
 	case bigFloatType:
 		return bigFloatInt64(conf, int64(i))
 	case complexType:
-		return newComplex(i, Int(0))
+		return NewComplex(i, Int(0))
 	case vectorType:
 		return NewVector([]Value{i})
 	case matrixType:

@@ -26,7 +26,7 @@ func acosh(c Context, v Value) Value {
 		v = u.real
 	}
 	if compare(v, 1) < 0 {
-		return complexAcosh(c, newComplex(v, zero))
+		return complexAcosh(c, NewComplex(v, zero))
 	}
 	return evalFloatFunc(c, v, floatAcosh)
 }
@@ -39,7 +39,7 @@ func atanh(c Context, v Value) Value {
 		v = u.real
 	}
 	if compare(v, -1) <= 0 || 0 <= compare(v, 1) {
-		return complexAtanh(c, newComplex(v, zero))
+		return complexAtanh(c, NewComplex(v, zero))
 	}
 	return evalFloatFunc(c, v, floatAtanh)
 }
@@ -84,7 +84,7 @@ func floatAtanh(c Context, x *big.Float) *big.Float {
 // complexAsinh computes asinh(x) using the formula asinh(x) = log(x + sqrt(x²+1)).
 func complexAsinh(c Context, x Complex) Complex {
 	z := x.mul(c, x)
-	z = z.add(c, newComplex(one, zero))
+	z = z.add(c, NewComplex(one, zero))
 	z = complexSqrt(c, z)
 	z = z.add(c, x)
 	return complexLog(c, z)
@@ -93,7 +93,7 @@ func complexAsinh(c Context, x Complex) Complex {
 // complexAcosh computes asinh(x) using the formula asinh(x) = log(x + sqrt(x²-1)).
 func complexAcosh(c Context, x Complex) Complex {
 	z := x.mul(c, x)
-	z = z.sub(c, newComplex(one, zero))
+	z = z.sub(c, NewComplex(one, zero))
 	z = complexSqrt(c, z)
 	z = z.add(c, x)
 	return complexLog(c, z)

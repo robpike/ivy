@@ -314,7 +314,7 @@ func formatDuration(d float64, units string) string {
 		s = s[:len(s)-4]
 	}
 	return s + units
-	
+
 }
 
 // Base returns the input and output bases.

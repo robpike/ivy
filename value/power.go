@@ -41,7 +41,7 @@ func expComplex(c Context, v Complex) Value {
 	eToX := exponential(c.Config(), x)
 	cosY := floatCos(c, y)
 	sinY := floatSin(c, y)
-	return newComplex(BigFloat{cosY.Mul(cosY, eToX)}, BigFloat{sinY.Mul(sinY, eToX)})
+	return NewComplex(BigFloat{cosY.Mul(cosY, eToX)}, BigFloat{sinY.Mul(sinY, eToX)})
 }
 
 // floatPower computes bx to the power of bexp.
@@ -138,8 +138,8 @@ func integerPower(c Context, x *big.Float, exp int64) *big.Float {
 
 // complexIntegerPower returns x**exp where exp is an int64 of size <= intBits.
 func complexIntegerPower(c Context, v Complex, exp int64) Complex {
-	z := newComplex(Int(1), Int(0))
-	y := newComplex(v.real, v.imag)
+	z := NewComplex(Int(1), Int(0))
+	y := NewComplex(v.real, v.imag)
 	// For each loop, we compute xⁿ where n is a power of two.
 	for exp > 0 {
 		if exp&1 == 1 {

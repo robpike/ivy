@@ -15,7 +15,7 @@ type Complex struct {
 	imag Value
 }
 
-func newComplex(u, v Value) Complex {
+func NewComplex(u, v Value) Complex {
 	if !simpleNumber(u) || !simpleNumber(v) {
 		Errorf("bad complex construction: %v %v", u, v)
 	}
@@ -91,7 +91,7 @@ func (c Complex) shrink() Value {
 // Arithmetic.
 
 func (c Complex) neg(ctx Context) Complex {
-	return newComplex(ctx.EvalUnary("-", c.real), ctx.EvalUnary("-", c.imag))
+	return NewComplex(ctx.EvalUnary("-", c.real), ctx.EvalUnary("-", c.imag))
 }
 
 func (c Complex) recip(ctx Context) Complex {
@@ -101,7 +101,7 @@ func (c Complex) recip(ctx Context) Complex {
 	denom := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", c.real), "+", ctx.EvalBinary(c.imag, "*", c.imag))
 	r := ctx.EvalBinary(c.real, "/", denom)
 	i := ctx.EvalUnary("-", ctx.EvalBinary(c.imag, "/", denom))
-	return newComplex(r, i)
+	return NewComplex(r, i)
 }
 
 func (c Complex) abs(ctx Context) Value {
@@ -141,17 +141,17 @@ func (c Complex) phase(ctx Context) Value {
 }
 
 func (c Complex) add(ctx Context, d Complex) Complex {
-	return newComplex(ctx.EvalBinary(c.real, "+", d.real), ctx.EvalBinary(c.imag, "+", d.imag))
+	return NewComplex(ctx.EvalBinary(c.real, "+", d.real), ctx.EvalBinary(c.imag, "+", d.imag))
 }
 
 func (c Complex) sub(ctx Context, d Complex) Complex {
-	return newComplex(ctx.EvalBinary(c.real, "-", d.real), ctx.EvalBinary(c.imag, "-", d.imag))
+	return NewComplex(ctx.EvalBinary(c.real, "-", d.real), ctx.EvalBinary(c.imag, "-", d.imag))
 }
 
 func (c Complex) mul(ctx Context, d Complex) Complex {
 	r := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", d.real), "-", ctx.EvalBinary(c.imag, "*", d.imag))
 	i := ctx.EvalBinary(ctx.EvalBinary(d.imag, "*", c.real), "+", ctx.EvalBinary(d.real, "*", c.imag))
-	return newComplex(r, i)
+	return NewComplex(r, i)
 }
 
 func (c Complex) div(ctx Context, d Complex) Complex {
@@ -164,12 +164,12 @@ func (c Complex) div(ctx Context, d Complex) Complex {
 		r = ctx.EvalBinary(r, "/", denom)
 		i := ctx.EvalBinary(c.imag, "*", d.real)
 		i = ctx.EvalBinary(i, "/", denom)
-		return newComplex(r, i)
+		return NewComplex(r, i)
 	}
 	denom := ctx.EvalBinary(ctx.EvalBinary(d.real, "*", d.real), "+", ctx.EvalBinary(d.imag, "*", d.imag))
 	r := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", d.real), "+", ctx.EvalBinary(c.imag, "*", d.imag))
 	r = ctx.EvalBinary(r, "/", denom)
 	i := ctx.EvalBinary(ctx.EvalBinary(c.imag, "*", d.real), "-", ctx.EvalBinary(c.real, "*", d.imag))
 	i = ctx.EvalBinary(i, "/", denom)
-	return newComplex(r, i)
+	return NewComplex(r, i)
 }

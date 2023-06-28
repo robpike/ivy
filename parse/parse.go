@@ -352,6 +352,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 // The boolean reports whether the line is valid.
 //
 // Line
+//
 //	) special command '\n'
 //	def function defintion
 //	expressionList '\n'
@@ -401,6 +402,7 @@ func (p *Parser) readTokensToNewline() bool {
 }
 
 // expressionList:
+//
 //	statementList <eol>
 func (p *Parser) expressionList() ([]value.Expr, bool) {
 	exprs, ok := p.statementList()
@@ -420,6 +422,7 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 }
 
 // statementList:
+//
 //	expr [':' expr] [';' statementList]
 func (p *Parser) statementList() ([]value.Expr, bool) {
 	expr := p.expr()
@@ -448,6 +451,7 @@ func (p *Parser) statementList() ([]value.Expr, bool) {
 }
 
 // expr
+//
 //	operand
 //	operand binop expr
 func (p *Parser) expr() value.Expr {
@@ -490,6 +494,7 @@ func (p *Parser) expr() value.Expr {
 }
 
 // operand
+//
 //	number
 //	char constant
 //	string constant
@@ -525,6 +530,7 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 }
 
 // index
+//
 //	expr
 //	expr [ expr ]
 //	expr [ expr ] [ expr ] ....
@@ -545,6 +551,7 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 }
 
 // indexList
+//
 //	[[expr] [';' [expr]] ...]
 func (p *Parser) indexList() []value.Expr {
 	list := []value.Expr{}
@@ -571,11 +578,13 @@ func (p *Parser) indexList() []value.Expr {
 }
 
 // number
+//
 //	integer
 //	rational
 //	string
 //	variable
 //	'(' Expr ')'
+//
 // If the value is a string, value.Expr is nil.
 func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 	var err error
@@ -602,6 +611,7 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 
 // numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
 // numberOrVector
+//
 //	number
 //	string
 //	numberOrVector...

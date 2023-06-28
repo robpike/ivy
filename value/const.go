@@ -46,8 +46,8 @@ var (
 	bigRatTen      = big.NewRat(10, 1)
 	bigRatBillion  = big.NewRat(1e9, 1)
 
-	complexOne       = newComplex(one, zero)
-	complexHalf      = newComplex(BigRat{big.NewRat(1, 2)}, zero)
+	complexOne       = NewComplex(one, zero)
+	complexHalf      = NewComplex(BigRat{big.NewRat(1, 2)}, zero)
 	minusOneOverTwoI Complex
 
 	// set to constPrecision
@@ -126,5 +126,5 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	minusOneOverTwoI = newComplex(num, den)
+	minusOneOverTwoI = NewComplex(num, den)
 }

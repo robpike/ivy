@@ -19,9 +19,9 @@ import (
 //	"op" arg name arg '=' statements <eol>
 //
 // statements:
+//
 //	expressionList
 //	'\n' (expressionList '\n')+ '\n' # For multiline definition, ending with blank line.
-//
 func (p *Parser) functionDefn() {
 	p.need(scan.Op)
 	fn := new(exec.Function)

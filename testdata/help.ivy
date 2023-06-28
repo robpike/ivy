@@ -12,7 +12,7 @@
 
 	Binary operators:
 		Name                  APL   Ivy     Meaning
-		Reshape               A⍴B   rho     Array of shape A with data B
+		Reshape               A⍴B   rho       Array of shape A with data B
 
 )help about reverse
 	#

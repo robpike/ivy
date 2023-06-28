@@ -82,10 +82,11 @@ Shape             ⍴B    rho     Number of components in each dimension of B
 Not               ∼B    not     Logical: not 1 is 0, not 0 is 1
 Absolute value    ∣B    abs     Magnitude of B
 Index generator   ⍳B    iota    Vector of the first B integers
+Unique            ∩B    unique  Remove all duplicate elements from B
 Exponential       ⋆B    **      e to the B power
 Negation          −B    -       Changes sign of B
 Identity          +B    +       No change to B
-Signum            ×B    sgn     ¯1 if B&lt;0; 0 if B=0; 1 if B&gt;0
+Signum            ×B    sgn     -1 if B&lt;0; 0 if B=0; 1 if B&gt;0
 Reciprocal        ÷B    /       1 divided by B
 Ravel             ,B    ,       Reshapes B into a vector
 Matrix inverse    ⌹B            Inverse of matrix B
@@ -119,66 +120,68 @@ Imaginary part          imag    Imaginary component of the value
 Phase                   phase   Phase of the value in the complex plane (-π to π)
 </pre>
 <p>Binary operators
-<pre>Name                  APL   Ivy     Meaning
-Add                   A+B   +       Sum of A and B
-Subtract              A−B   -       A minus B
-Multiply              A×B   *       A multiplied by B
-Divide                A÷B   /       A divided by B (exact rational division)
-                            div     A divided by B (Euclidean)
-                            idiv    A divided by B (Go)
-Exponentiation        A⋆B   **      A raised to the B power
-Circle                A○B           Trigonometric functions of B selected by A
-                                    A=1: sin(B) A=2: cos(B) A=3: tan(B); ¯A for inverse
-                            sin     sin(B); ivy uses traditional name.
-                            cos     cos(B); ivy uses traditional name.
-                            tan     tan(B); ivy uses traditional name.
-Deal                  A?B   ?       A distinct integers selected randomly from the first B integers
-Membership            A∈B   in      1 for elements of A present in B; 0 where not.
-Maximum               A⌈B   max     The greater value of A or B
-Minimum               A⌊B   min     The smaller value of A or B
-Reshape               A⍴B   rho     Array of shape A with data B
-Take                  A↑B   take    Select the first (or last) A elements of B according to ×A
-Drop                  A↓B   drop    Remove the first (or last) A elements of B according to ×A
-Decode                A⊥B   decode  Value of a polynomial whose coefficients are B at A
-Encode                A⊤B   encode  Base-A representation of the value of B
-Residue               A∣B           B modulo A
-                            mod     A modulo B (Euclidean)
-                            imod    A modulo B (Go)
-Catenation            A,B   ,       Elements of B appended to the elements of A
-Expansion             A\B   fill    Insert zeros (or blanks) in B corresponding to zeros in A
-                                    In ivy: abs(A) gives count, A &lt;= 0 inserts zero (or blank)
-Compression           A/B   sel     Select elements in B corresponding to ones in A
-                                    In ivy: abs(A) gives count, A &lt;= 0 inserts zero
-Index of              A⍳B   iota    The location (index) of B in A; 1+⌈/⍳⍴A if not found
-                                    In ivy: origin-1 if not found (i.e. 0 if one-indexed)
-Matrix divide         A⌹B           Solution to system of linear equations Ax = B
-Rotation              A⌽B   rot     The elements of B are rotated A positions left
-Rotation              A⊖B   flip    The elements of B are rotated A positions along the first axis
-Logarithm             A⍟B   log     Logarithm of B to base A
-Dyadic format         A⍕B   text    Format B into a character matrix according to A
-                                    A is the textual format (see format special command);
-                                    otherwise result depends on length of A:
-                                    1 gives decimal count, 2 gives width and decimal count,
-                                    3 gives width, decimal count, and style (&apos;d&apos;, &apos;e&apos;, &apos;f&apos;, etc.).
-General transpose     A⍉B   transp  The axes of B are ordered by A
-Combinations          A!B   !       Number of combinations of B taken A at a time
-Less than             A&lt;B   &lt;       Comparison: 1 if true, 0 if false
-Less than or equal    A≤B   &lt;=      Comparison: 1 if true, 0 if false
-Equal                 A=B   ==      Comparison: 1 if true, 0 if false
-Greater than or equal A≥B   &gt;=      Comparison: 1 if true, 0 if false
-Greater than          A&gt;B   &gt;       Comparison: 1 if true, 0 if false
-Not equal             A≠B   !=      Comparison: 1 if true, 0 if false
-Or                    A∨B   or      Logic: 0 if A and B are 0; 1 otherwise
-And                   A∧B   and     Logic: 1 if A and B are 1; 0 otherwise
-Nor                   A⍱B   nor     Logic: 1 if both A and B are 0; otherwise 0
-Nand                  A⍲B   nand    Logic: 0 if both A and B are 1; otherwise 1
-Xor                         xor     Logic: 1 if A != B; otherwise 0
-Bitwise and                 &amp;       Bitwise A and B (integer only)
-Bitwise or                  |       Bitwise A or B (integer only)
-Bitwise xor                 ^       Bitwise A exclusive or B (integer only)
-Left shift                  &lt;&lt;      A shifted left B bits (integer only)
-Right Shift                 &gt;&gt;      A shifted right B bits (integer only)
-Complex construction        j       The complex number A+Bi
+<pre>Name                  APL   Ivy       Meaning
+Add                   A+B   +         Sum of A and B
+Subtract              A−B   -         A minus B
+Multiply              A×B   *         A multiplied by B
+Divide                A÷B   /         A divided by B (exact rational division)
+                            div       A divided by B (Euclidean)
+                            idiv      A divided by B (Go)
+Exponentiation        A⋆B   **        A raised to the B power
+Circle                A○B             Trigonometric functions of B selected by A
+                                      A=1: sin(B) A=2: cos(B) A=3: tan(B); ¯A for inverse
+                            sin       sin(B); ivy uses traditional name.
+                            cos       cos(B); ivy uses traditional name.
+                            tan       tan(B); ivy uses traditional name.
+Deal                  A?B   ?         A distinct integers selected randomly from the first B integers
+Membership            A∈B   in        1 for elements of A present in B; 0 where not.
+Intersection          A∩B   intersect A with all elements that are also in B removed
+Union                 A∪B   union     A followed by all members of B not already in A
+Maximum               A⌈B   max       The greater value of A or B
+Minimum               A⌊B   min       The smaller value of A or B
+Reshape               A⍴B   rho       Array of shape A with data B
+Take                  A↑B   take      Select the first (or last) A elements of B according to sgn A
+Drop                  A↓B   drop      Remove the first (or last) A elements of B according to sgn A
+Decode                A⊥B   decode    Value of a polynomial whose coefficients are B at A
+Encode                A⊤B   encode    Base-A representation of the value of B
+Residue               A∣B              B modulo A
+                            mod       A modulo B (Euclidean)
+                            imod      A modulo B (Go)
+Catenation            A,B   ,         Elements of B appended to the elements of A
+Expansion             A\B   fill      Insert zeros (or blanks) in B corresponding to zeros in A
+                                      In ivy: abs(A) gives count, A &lt;= 0 inserts zero (or blank)
+Compression           A/B   sel       Select elements in B corresponding to ones in A
+                                      In ivy: abs(A) gives count, A &lt;= 0 inserts zero
+Index of              A⍳B   iota      The location (index) of B in A; 1+⌈/⍳⍴A if not found
+                                      In ivy: origin-1 if not found (i.e. 0 if one-indexed)
+Matrix divide         A⌹B             Solution to system of linear equations Ax = B
+Rotation              A⌽B   rot       The elements of B are rotated A positions left
+Rotation              A⊖B   flip      The elements of B are rotated A positions along the first axis
+Logarithm             A⍟B   log       Logarithm of B to base A
+Dyadic format         A⍕B   text      Format B into a character matrix according to A
+                                      A is the textual format (see format special command);
+                                      otherwise result depends on length of A:
+                                      1 gives decimal count, 2 gives width and decimal count,
+                                      3 gives width, decimal count, and style (&apos;d&apos;, &apos;e&apos;, &apos;f&apos;, etc.).
+General transpose     A⍉B   transp    The axes of B are ordered by A
+Combinations          A!B   !         Number of combinations of B taken A at a time
+Less than             A&lt;B   &lt;         Comparison: 1 if true, 0 if false
+Less than or equal    A≤B   &lt;=        Comparison: 1 if true, 0 if false
+Equal                 A=B   ==        Comparison: 1 if true, 0 if false
+Greater than or equal A≥B   &gt;=        Comparison: 1 if true, 0 if false
+Greater than          A&gt;B   &gt;         Comparison: 1 if true, 0 if false
+Not equal             A≠B   !=        Comparison: 1 if true, 0 if false
+Or                    A∨B   or        Logic: 0 if A and B are 0; 1 otherwise
+And                   A∧B   and       Logic: 1 if A and B are 1; 0 otherwise
+Nor                   A⍱B   nor       Logic: 1 if both A and B are 0; otherwise 0
+Nand                  A⍲B   nand      Logic: 0 if both A and B are 1; otherwise 1
+Xor                         xor       Logic: 1 if A != B; otherwise 0
+Bitwise and                 &amp;         Bitwise A and B (integer only)
+Bitwise or                  |         Bitwise A or B (integer only)
+Bitwise xor                 ^         Bitwise A exclusive or B (integer only)
+Left shift                  &lt;&lt;        A shifted left B bits (integer only)
+Right Shift                 &gt;&gt;        A shifted right B bits (integer only)
+Complex construction        j         The complex number A+Bi
 </pre>
 <p>Operators and axis indicator
 <pre>Name                APL  Ivy  APL Example  Ivy Example  Meaning (of example)

@@ -12,7 +12,7 @@ func logn(c Context, v Value) Value {
 	negative := isNegative(v)
 	if negative {
 		// Promote to complex. The Complex type is never negative.
-		v = newComplex(v, Int(0))
+		v = NewComplex(v, Int(0))
 	}
 	if u, ok := v.(Complex); ok {
 		if isNegative(u.real) {
@@ -171,5 +171,5 @@ func floatLog(c Context, x *big.Float) *big.Float {
 func complexLog(c Context, v Complex) Complex {
 	abs := v.abs(c)
 	phase := v.phase(c)
-	return newComplex(logn(c, abs), phase)
+	return NewComplex(logn(c, abs), phase)
 }

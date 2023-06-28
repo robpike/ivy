@@ -88,14 +88,6 @@ func whichType(v Value) valueType {
 }
 
 func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
-	if op.whichType == nil {
-		// At the moment, "text" is the only operator that leaves
-		// both arg types alone. Perhaps more will arrive.
-		if op.name != "text" {
-			Errorf("internal error: nil whichType")
-		}
-		return op.fn[0](c, u, v)
-	}
 	whichU, whichV := op.whichType(whichType(u), whichType(v))
 	conf := c.Config()
 	u = u.toType(op.name, conf, whichU)
@@ -113,6 +105,25 @@ func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 		Errorf("binary %s not implemented on type %s", op.name, whichV)
 	}
 	return fn(c, u, v)
+}
+
+// EvalCharEqual handles == and != in a special case:
+// If comparing a scalar against a Char, avoid the conversion.
+// The logic of type promotion in EvalBinary otherwise interferes with comparison
+// because it tries to force scalar types to be the same, and char doesn't convert to
+// any other type.
+func EvalCharEqual(u Value, isEqualOp bool, v Value) (Value, bool) {
+	uType, vType := whichType(u), whichType(v)
+	if uType != vType && uType < vectorType && vType < vectorType {
+		// Two different scalar types. If either is char, we know the answer now.
+		if uType == charType || vType == charType {
+			if isEqualOp {
+				return Int(0), true
+			}
+			return Int(1), true
+		}
+	}
+	return nil, false
 }
 
 // Product computes a compound product, such as an inner product

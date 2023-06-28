@@ -160,21 +160,21 @@ func init() {
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return newComplex(Int(0), v)
+					return NewComplex(Int(0), v)
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return newComplex(Int(0), v)
+					return NewComplex(Int(0), v)
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return newComplex(Int(0), v)
+					return NewComplex(Int(0), v)
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return newComplex(Int(0), v)
+					return NewComplex(Int(0), v)
 				},
 				complexType: func(c Context, v Value) Value {
 					// Multiply by i.
 					u := v.(Complex)
-					return newComplex(c.EvalUnary("-", u.imag), u.real)
+					return NewComplex(c.EvalUnary("-", u.imag), u.real)
 				},
 			},
 		},
@@ -923,8 +923,22 @@ func init() {
 				bigFloatType: floatValueSelf,
 				complexType: func(c Context, v Value) Value {
 					u := v.(Complex)
-					return newComplex(floatValueSelf(c, u.real), floatValueSelf(c, u.imag))
+					return NewComplex(floatValueSelf(c, u.real), floatValueSelf(c, u.imag))
 				},
+			},
+		},
+
+		{
+			name:        "unique",
+			elementwise: false,
+			fn: [numType]unaryFn{
+				intType:      unique,
+				charType:     unique,
+				bigIntType:   unique,
+				bigRatType:   unique,
+				bigFloatType: unique,
+				complexType:  unique,
+				vectorType:   unique,
 			},
 		},
 	}

@@ -201,16 +201,16 @@ func init() {
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
 				intType: func(c Context, u, v Value) Value {
-					return newComplex(u, v)
+					return NewComplex(u, v)
 				},
 				bigIntType: func(c Context, u, v Value) Value {
-					return newComplex(u, v)
+					return NewComplex(u, v)
 				},
 				bigRatType: func(c Context, u, v Value) Value {
-					return newComplex(u, v)
+					return NewComplex(u, v)
 				},
 				bigFloatType: func(c Context, u, v Value) Value {
-					return newComplex(u, v)
+					return NewComplex(u, v)
 				},
 			},
 		},
@@ -1504,13 +1504,47 @@ func init() {
 			},
 		},
 
+		// Special cases that mix types, so don't promote them.
 		{
-			// Special case, handled in EvalBinary: don't modify types.
-			name:        "text",
-			elementwise: true,
-			whichType:   nil,
+			name:      "intersect",
+			whichType: noPromoteType,
 			fn: [numType]binaryFn{
-				0: fmtText,
+				intType:      intersect,
+				charType:     intersect,
+				bigIntType:   intersect,
+				bigRatType:   intersect,
+				bigFloatType: intersect,
+				complexType:  intersect,
+				vectorType:   intersect,
+			},
+		},
+
+		{
+			name:      "union",
+			whichType: noPromoteType,
+			fn: [numType]binaryFn{
+				intType:      union,
+				charType:     union,
+				bigIntType:   union,
+				bigRatType:   union,
+				bigFloatType: union,
+				complexType:  union,
+				vectorType:   union,
+			},
+		},
+
+		{
+			name:      "text",
+			whichType: noPromoteType,
+			fn: [numType]binaryFn{
+				intType:      fmtText,
+				charType:     fmtText,
+				bigIntType:   fmtText,
+				bigRatType:   fmtText,
+				bigFloatType: fmtText,
+				complexType:  fmtText,
+				vectorType:   fmtText,
+				matrixType:   fmtText,
 			},
 		},
 	}

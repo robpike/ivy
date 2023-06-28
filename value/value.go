@@ -91,7 +91,7 @@ func Parse(conf *config.Config, s string) (Value, error) {
 	switch sep {
 	case "j":
 		// A complex.
-		return newComplex(v1, v2), nil
+		return NewComplex(v1, v2), nil
 	case "/":
 		// A rational. It's tricky.
 		// Common simple case.

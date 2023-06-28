@@ -524,7 +524,6 @@ func (m *Matrix) binaryTranspose(c Context, v Vector) *Matrix {
 //	(n ...), (m ...) -> (n+m ...)  # list, list
 //	(1), (n ...) -> (n+1 ...)  # scalar (extended), list
 //	(n ...), (1) -> (n+1 ...)  # list, scalar (extended)
-//
 func (x *Matrix) catenate(y *Matrix) *Matrix {
 	if x.Rank() == 0 || y.Rank() == 0 {
 		Errorf("empty matrix for ,")
