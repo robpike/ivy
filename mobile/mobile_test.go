@@ -44,7 +44,7 @@ func TestEvalError(t *testing.T) {
 		input string
 		error string
 	}{
-		{"'x", "unterminated character constant"},
+		{"'x", "unterminated quoted string"},
 		{"1/0", "zero denominator in rational"},
 		{"1 / 0", "division by zero"},
 	}
