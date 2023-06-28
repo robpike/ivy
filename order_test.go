@@ -28,24 +28,24 @@ var (
 	char2 = value.Char(2)
 	char3 = value.Char(3)
 
-	bigInt0 = value.BigInt{big.NewInt(0)}
-	bigInt1 = value.BigInt{big.NewInt(1)}
-	bigInt2 = value.BigInt{big.NewInt(2)}
-	bigInt3 = value.BigInt{big.NewInt(3)}
+	bigInt0 = value.BigInt{Int: big.NewInt(0)}
+	bigInt1 = value.BigInt{Int: big.NewInt(1)}
+	bigInt2 = value.BigInt{Int: big.NewInt(2)}
+	bigInt3 = value.BigInt{Int: big.NewInt(3)}
 
-	bigRat0o1 = value.BigRat{big.NewRat(0, 1)}
-	bigRat1o1 = value.BigRat{big.NewRat(1, 1)}
-	bigRat2o1 = value.BigRat{big.NewRat(2, 1)}
-	bigRat1o7 = value.BigRat{big.NewRat(1, 7)}
-	bigRat2o7 = value.BigRat{big.NewRat(2, 7)}
-	bigRat3o7 = value.BigRat{big.NewRat(3, 7)}
+	bigRat0o1 = value.BigRat{Rat: big.NewRat(0, 1)}
+	bigRat1o1 = value.BigRat{Rat: big.NewRat(1, 1)}
+	bigRat2o1 = value.BigRat{Rat: big.NewRat(2, 1)}
+	bigRat1o7 = value.BigRat{Rat: big.NewRat(1, 7)}
+	bigRat2o7 = value.BigRat{Rat: big.NewRat(2, 7)}
+	bigRat3o7 = value.BigRat{Rat: big.NewRat(3, 7)}
 
-	bigFloat0p0 = value.BigFloat{big.NewFloat(0.0)}
-	bigFloat1p0 = value.BigFloat{big.NewFloat(1.0)}
-	bigFloat2p0 = value.BigFloat{big.NewFloat(2.0)}
-	bigFloat1p5 = value.BigFloat{big.NewFloat(1.5)}
-	bigFloat2p5 = value.BigFloat{big.NewFloat(2.5)}
-	bigFloat3p5 = value.BigFloat{big.NewFloat(3.5)}
+	bigFloat0p0 = value.BigFloat{Float: big.NewFloat(0.0)}
+	bigFloat1p0 = value.BigFloat{Float: big.NewFloat(1.0)}
+	bigFloat2p0 = value.BigFloat{Float: big.NewFloat(2.0)}
+	bigFloat1p5 = value.BigFloat{Float: big.NewFloat(1.5)}
+	bigFloat2p5 = value.BigFloat{Float: big.NewFloat(2.5)}
+	bigFloat3p5 = value.BigFloat{Float: big.NewFloat(3.5)}
 
 	complex1j0 = value.NewComplex(int1, int0)
 	complex1j1 = value.NewComplex(int1, int1)
