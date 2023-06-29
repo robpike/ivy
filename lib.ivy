@@ -25,6 +25,9 @@ op mi2km m = float m*1.609344
 # Celsius to Fahrenheit.
 op c2f c = float 32 + c * 9/5
 
+# Fahrenheit to Celsius.
+op f2c f = float 5/9 * f - 32
+
 # Kilometers to miles
 op km2mi m = float m/1.609344
 
