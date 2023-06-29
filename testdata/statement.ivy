@@ -203,3 +203,10 @@ f 100
 g
 	101
 	101
+
+# Assignment makes a copy.
+x = 1 2 3 4; y = x; y[1] = 7; x[1],y[1]
+	1 7
+
+x = 3 4 rho iota 12; y = x; y[1;1] = 7; +/+/x==y
+	11
