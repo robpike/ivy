@@ -62,7 +62,7 @@ ceil -1/23
 ceil 1/23
 	1
 
-rho 1/23
+rho rho 1/23
 	0
 
 rot 1/3

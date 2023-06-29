@@ -111,7 +111,7 @@ func main() {
 	}
 	for i++; i < len(lines); i++ {
 		line := lines[i]
-		if line == "Pre-defined constants" {
+		if line == "# Pre-defined constants" {
 			break
 		}
 		if len(line) < 33 {

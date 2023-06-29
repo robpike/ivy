@@ -140,7 +140,7 @@ c`
 rho ''
 	0
 
-rho 'a'
+rho rho 'a'
 	0
 
 rho 'abc'

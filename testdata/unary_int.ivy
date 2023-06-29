@@ -112,10 +112,10 @@ iota 1
 iota 10
 	1 2 3 4 5 6 7 8 9 10
 
-rho 0
+rho rho 0
 	0
 
-rho 10
+rho rho 10
 	0
 
 ,3

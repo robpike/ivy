@@ -8,7 +8,7 @@
 	#
 	Unary operators:
 		Name              APL   Ivy     Meaning
-		Shape             ⍴B    rho     Number of components in each dimension of B
+		Shape             ⍴B    rho     Vector of number of components in each dimension of B
 
 	Binary operators:
 		Name                  APL   Ivy     Meaning

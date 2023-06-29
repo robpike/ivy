@@ -519,25 +519,25 @@ func init() {
 			name: "rho",
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return Int(0)
+					return NewIntVector([]int{})
 				},
 				charType: func(c Context, v Value) Value {
-					return Int(0)
+					return NewIntVector([]int{})
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return Int(0)
+					return NewIntVector([]int{})
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return Int(0)
+					return NewIntVector([]int{})
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return Int(0)
+					return NewIntVector([]int{})
 				},
 				complexType: func(c Context, v Value) Value {
-					return Int(0)
+					return NewIntVector([]int{})
 				},
 				vectorType: func(c Context, v Value) Value {
-					return Int(len(v.(Vector)))
+					return NewIntVector([]int{len(v.(Vector))})
 				},
 				matrixType: func(c Context, v Value) Value {
 					return NewIntVector(v.(*Matrix).shape)

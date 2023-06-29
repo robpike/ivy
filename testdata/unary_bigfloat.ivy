@@ -157,7 +157,7 @@ ceil sqrt 2
 	2
 
 )format "%.16g"
-rho sqrt 2
+rho rho sqrt 2
 	0
 
 )format "%.16g"
