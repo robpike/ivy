@@ -32,6 +32,7 @@ var (
 	maxstack        = flag.Uint("stack", 100000, "maximum call stack `depth` allowed")
 	origin          = flag.Int("origin", 1, "set index origin to `n` (must be >=0)")
 	prompt          = flag.String("prompt", "", "command `prompt`")
+	profile         = flag.String("profile", "", "write profile to `file`")
 	debugFlag       = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
 )
 
@@ -44,9 +45,15 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	f, _ := os.Create("/tmp/ivy.prof")
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
+	if *profile != "" {
+		f, err := os.Create(*profile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ivy: cannot create profile file: %v\n", err)
+			os.Exit(2)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	if *origin < 0 {
 		fmt.Fprintf(os.Stderr, "ivy: illegal origin value %d\n", *origin)
