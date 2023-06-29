@@ -583,6 +583,7 @@ func (p *Parser) indexList() []value.Expr {
 //	rational
 //	string
 //	variable
+//	variable '[' Expr ']'
 //	'(' Expr ')'
 //
 // If the value is a string, value.Expr is nil.
@@ -591,7 +592,7 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 	text := tok.Text
 	switch tok.Type {
 	case scan.Identifier:
-		expr = p.variable(text)
+		expr = p.index(p.variable(text))
 	case scan.String:
 		str = value.ParseString(text)
 	case scan.Number, scan.Rational, scan.Complex:
