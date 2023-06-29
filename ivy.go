@@ -51,7 +51,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "ivy: cannot create profile file: %v\n", err)
 			os.Exit(2)
 		}
-		pprof.StartCPUProfile(f)
+		defer f.Close()
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ivy: cannot start CPU profile: %v\n", err)
+			os.Exit(2)
+		}
 		defer pprof.StopCPUProfile()
 	}
 
