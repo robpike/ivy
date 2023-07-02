@@ -829,3 +829,10 @@ x[down x]
 (5 5 rho iota 25)[3 2; 1 2 3]
 	11 12 13
 	 6  7  8
+
+# Odd APL semantics: fill with zeros reshaping empty vector.
+3 4 rho iota 0
+	0 0 0 0
+	0 0 0 0
+	0 0 0 0
+

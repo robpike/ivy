@@ -764,3 +764,7 @@ op a mod b = 99
 op a div b = 99
 10 decode 3 3 rho iota 9
 	147 258 369
+
+# Odd APL semantics: fill with zeros reshaping empty vector.
+3 rho iota 0
+	0 0 0

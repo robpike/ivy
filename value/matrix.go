@@ -344,7 +344,8 @@ func sameShape(x, y []int) bool {
 // A⍴B: Array of shape A with data B
 func reshape(A, B Vector) Value {
 	if len(B) == 0 {
-		Errorf("reshape of empty vector")
+		// Peculiar APL definition of reshape of empty vector: Use fill values.
+		B = NewIntVector([]int{0})
 	}
 	if len(A) == 0 {
 		return Vector{}
