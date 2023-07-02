@@ -13,6 +13,9 @@
 1e10 1.5
 	10000000000 3/2
 
+1 (2 3) (4 5 6)
+	1 (2 3) (4 5 6)
+
 # A vector with expressions
 x = 4
 1 x (x**2) (-x)
@@ -112,6 +115,9 @@ unique 1 1 2 2
 
 unique 'mississippi'
 	misp
+
+unique 1 (2 3) (4 5) (2 3) 4
+	1 (2 3) (4 5) 4
 
 # Choose the "lowest" type of same value
 unique 1j0 1 1/1 (float 1) 2/1 2j0 2 (float 2)

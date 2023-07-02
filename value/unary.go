@@ -608,7 +608,7 @@ func init() {
 					return v.(Vector).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
-					m := v.(*Matrix).Copy()
+					m := v.(*Matrix).Copy().(*Matrix)
 					if m.Rank() == 0 {
 						return m
 					}
@@ -641,7 +641,7 @@ func init() {
 					return v.(Vector).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
-					m := v.(*Matrix).Copy()
+					m := v.(*Matrix).Copy().(*Matrix)
 					if m.Rank() == 0 {
 						return m
 					}
@@ -908,7 +908,7 @@ func init() {
 					if !text.AllChars() {
 						Errorf("ivy: value is not a vector of char")
 					}
-					return IvyEval(c, text.makeString(c.Config(), false))
+					return IvyEval(c, text.makeString(c.Config(), false, false))
 				},
 			},
 		},

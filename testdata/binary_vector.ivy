@@ -187,6 +187,18 @@
 23 45 5 == 5
 	0 0 1
 
+x=(1 2) 3 4 5; x==x
+	(1 1) 1 1 1
+
+x=(1 2) 3 4 5; y=1 (2 3) 4 5; x==y
+	(1 0) (0 1) 1 1
+
+x=(1 2) 3 4 5; y=1 (2 3) 4 5; y==x
+	(1 0) (0 1) 1 1
+
+x=(1 0) 3 4 5; y=1 (2 4) 5 4; x<y
+	(0 1) (0 1) 1 0
+
 23 1e10 67 == 1e10
 	0 1 0
 
@@ -686,8 +698,11 @@ circle 10
 	1 2
 
 # Chars are extra tricky
-1 2 'abc' 3 4 union 2 'cba' 5 1 'x'
+1 2 'a' 'b' 'c' 3 4 union 2 'c' 'b' 'a' 5 1 'x'
 	1 2 a b c 3 4 5 x
+
+1 2 'abc' 3 4 union 2 'cba' 5 1 'x'
+	1 2 (abc) 3 4 (cba) 5 x
 
 1j0 2j0 3j1 3j2 union 2 3j1 4 3j3
 	1j0 2j0 3j1 3j2 4 3j3
@@ -727,8 +742,14 @@ circle 10
 	empty
 
 # Chars are extra tricky
-1 2 'abc' 3 4 intersect 2 'ca' 5 1 'x'
+1 2 'a' 'b' 'c' 3 4 intersect 2 'c' 'a' 5 1 'x'
 	1 2 a c
+
+1 2 'abc' 'd' 3 4 intersect 2 'ca' 'd' 5 1 'x'
+	1 2 d
+
+1 2 'abc' 'd' 3 4 'xyz' intersect 2 'abc' 'd' 5 1 'x'
+	1 2 (abc) d
 
 1j0 2j0 3j1 3j2 intersect 2 3j1 4 3j3
 	2j0 3j1

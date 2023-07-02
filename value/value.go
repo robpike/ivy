@@ -20,7 +20,12 @@ type Value interface {
 	// All user output should call Sprint instead.
 	String() string
 	Sprint(*config.Config) string
+
+	// Eval evaluates (simplifies) the Value.
 	Eval(Context) Value
+
+	// Copy returns a copy of the Value.
+	Copy() Value
 
 	// Inner retrieves the value, without evaluation. But for Assignments,
 	// it returns the right-hand side.

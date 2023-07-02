@@ -167,6 +167,12 @@ func (r BigRat) Eval(Context) Value {
 	return r
 }
 
+func (r BigRat) Copy() Value {
+	var x *big.Rat
+	x.Set(r.Rat)
+	return BigRat{x}
+}
+
 func (r BigRat) Inner() Value {
 	return r
 }

@@ -134,6 +134,12 @@ func (i BigInt) Eval(Context) Value {
 	return i
 }
 
+func (i BigInt) Copy() Value {
+	var x *big.Int
+	x.Set(i.Int)
+	return BigInt{x}
+}
+
 func (i BigInt) Inner() Value {
 	return i
 }

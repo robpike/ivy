@@ -276,7 +276,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 		v := v.(Vector)
 		m := Matrix{
 			shape: []int{len(u), len(v)},
-			data:  NewVector(make(Vector, len(u)*len(v))),
+			data:  make([]Value, len(u)*len(v)),
 		}
 		pfor(safeBinary(op), 1, len(m.data), func(lo, hi int) {
 			for x := lo; x < hi; x++ {
@@ -288,7 +288,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 		v := v.(*Matrix)
 		m := Matrix{
 			shape: append(u.Shape(), v.Shape()...),
-			data:  NewVector(make(Vector, len(u.Data())*len(v.Data()))),
+			data:  make([]Value, len(u.Data())*len(v.Data())),
 		}
 		vdata := v.Data()
 		udata := u.Data()
@@ -523,6 +523,11 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 		})
 	}
 	return NewMatrix(shape, NewVector(n))
+}
+
+// isScalarType reports whether u is an actual scalar, an int or float etc.
+func isScalarType(v Value) bool {
+	return whichType(v) < vectorType
 }
 
 // isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.

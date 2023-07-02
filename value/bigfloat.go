@@ -131,6 +131,12 @@ func (f BigFloat) Eval(Context) Value {
 	return f
 }
 
+func (f BigFloat) Copy() Value {
+	var x *big.Float
+	x.Set(f.Float)
+	return BigFloat{x}
+}
+
 func (f BigFloat) Inner() Value {
 	return f
 }

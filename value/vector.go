@@ -20,7 +20,7 @@ func (v Vector) String() string {
 }
 
 func (v Vector) Sprint(conf *config.Config) string {
-	return v.makeString(conf, !v.AllChars())
+	return v.makeString(conf, !v.allScalars(), !v.AllChars())
 }
 
 func (v Vector) Rank() int {
@@ -33,17 +33,25 @@ func (v Vector) ProgString() string {
 	panic("vector.ProgString - cannot happen")
 }
 
-// makeString is like String but takes a flag specifying
+// makeString is like String but takes flags specifying
+// whether parentheses will be needed and
 // whether to put spaces between the elements. By
 // default (that is, by calling String) spaces are suppressed
 // if all the elements of the Vector are Chars.
-func (v Vector) makeString(conf *config.Config, spaces bool) string {
+func (v Vector) makeString(conf *config.Config, parens, spaces bool) string {
 	var b bytes.Buffer
+	if parens {
+		spaces = true
+	}
 	for i, elem := range v {
 		if spaces && i > 0 {
 			fmt.Fprint(&b, " ")
 		}
-		fmt.Fprintf(&b, "%s", elem.Sprint(conf))
+		if parens && !isScalarType(elem) {
+			fmt.Fprintf(&b, "(%s)", elem.Sprint(conf))
+		} else {
+			fmt.Fprintf(&b, "%s", elem.Sprint(conf))
+		}
 	}
 	return b.String()
 }
@@ -52,6 +60,16 @@ func (v Vector) makeString(conf *config.Config, spaces bool) string {
 func (v Vector) AllChars() bool {
 	for _, c := range v {
 		if _, ok := c.Inner().(Char); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// allScalars reports whether all the elements are scalar.
+func (v Vector) allScalars() bool {
+	for _, x := range v {
+		if !isScalarType(x) {
 			return false
 		}
 	}
@@ -69,6 +87,10 @@ func (v Vector) AllInts() bool {
 }
 
 func NewVector(elems []Value) Vector {
+	if elems == nil {
+		// Really shouldn't happen, so catch it if it does.
+		Errorf("internal error: nil vector")
+	}
 	return Vector(elems)
 }
 
@@ -88,7 +110,7 @@ func (v Vector) Inner() Value {
 	return v
 }
 
-func (v Vector) Copy() Vector {
+func (v Vector) Copy() Value {
 	elem := make([]Value, len(v))
 	copy(elem, v)
 	return NewVector(elem)
@@ -151,7 +173,7 @@ func (v Vector) grade(c Context) Vector {
 
 // reverse returns the reversal of a vector.
 func (v Vector) reverse() Vector {
-	r := v.Copy()
+	r := v.Copy().(Vector)
 	for i, j := 0, len(r)-1; i < j; i, j = i+1, j-1 {
 		r[i], r[j] = r[j], r[i]
 	}
@@ -159,7 +181,7 @@ func (v Vector) reverse() Vector {
 }
 
 // membership creates a vector of size len(u) reporting
-// whether each element is an element of v.
+// whether each element of u is an element of v.
 // Algorithm is O(nV log nV + nU log nV) where nU==len(u) and nV==len(V).
 func membership(c Context, u, v Vector) []Value {
 	values := make([]Value, len(u))
@@ -189,7 +211,7 @@ func (v Vector) contains(c Context, x Value) bool {
 	pos := sort.Search(len(v), func(j int) bool {
 		return OrderedCompare(c, v[j], x) >= 0
 	})
-	return pos < len(v) && c.EvalBinary(v[pos], "==", x) == Int(1)
+	return pos < len(v) && OrderedCompare(c, v[pos], x) == 0
 }
 
 func (v Vector) shrink() Value {

@@ -54,6 +54,13 @@ func (c Complex) Eval(Context) Value {
 	return c
 }
 
+func (c Complex) Copy() Value {
+	return Complex{
+		real: c.real.Copy(),
+		imag: c.real.Copy(),
+	}
+}
+
 func (c Complex) Inner() Value {
 	return c
 }

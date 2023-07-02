@@ -136,6 +136,10 @@ func (i Int) Eval(Context) Value {
 	return i
 }
 
+func (i Int) Copy() Value {
+	return i
+}
+
 func (i Int) Inner() Value {
 	return i
 }

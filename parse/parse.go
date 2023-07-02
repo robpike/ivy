@@ -84,12 +84,7 @@ func (s sliceExpr) Eval(context value.Context) value.Value {
 	//	x=1000; x + x=2
 	// (yielding 4) work.
 	for i := len(s) - 1; i >= 0; i-- {
-		elem := s[i].Eval(context)
-		// Each element must be a singleton.
-		if !isScalar(elem) {
-			value.Errorf("vector element must be scalar; have %s", elem)
-		}
-		v[i] = elem
+		v[i] = s[i].Eval(context)
 	}
 	return value.NewVector(v)
 }
@@ -627,7 +622,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 	var slice sliceExpr
 	if expr == nil {
 		// Must be a string.
-		slice = append(slice, evalString(str)...)
+		slice = sliceExpr{evalString(str)}
 	} else {
 		slice = sliceExpr{expr}
 	}
@@ -647,7 +642,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 				expr, str = p.number(p.next())
 				if expr == nil {
 					// Must be a string.
-					slice = append(slice, evalString(str)...)
+					slice = append(slice, evalString(str))
 					continue
 				}
 			default:
@@ -672,13 +667,16 @@ func (p *Parser) variable(name string) *variableExpr {
 	}
 }
 
-// evalString turns a parsed string constant into a slice of
-// value.Exprs each of which is a value.Char.
-func evalString(str string) []value.Expr {
+// evalString turns a string constant into an Expr
+// that is either a single Char or a slice of Chars.
+func evalString(str string) value.Expr {
 	r := ([]rune)(str)
+	if len(r) == 1 {
+		return value.Char(r[0])
+	}
 	v := make([]value.Expr, len(r))
 	for i, c := range r {
 		v[i] = value.Char(c)
 	}
-	return v
+	return sliceExpr(v)
 }

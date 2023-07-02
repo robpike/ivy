@@ -40,6 +40,10 @@ func (c Char) Eval(Context) Value {
 	return c
 }
 
+func (c Char) Copy() Value {
+	return c
+}
+
 func (c Char) Inner() Value {
 	return c
 }

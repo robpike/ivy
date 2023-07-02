@@ -189,33 +189,38 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 	var ix indexState
 	ix.init(context, top, left, index)
 
-	// RHS must be scalar or have same shape as indexed expression.
+	// Unless assigning to a single cell, RHS must be scalar or
+	// have same shape as indexed expression.
 	var rscalar Value
 	var rslice []Value
-	switch rhs := rhs.(type) {
-	default:
+	if len(ix.outShape) == 0 {
 		rscalar = rhs
-	case *Matrix:
-		if !sameShape(ix.outShape, rhs.Shape()) {
-			Errorf("shape mismatch %v != %v in assignment %v = %v",
-				NewIntVector(ix.outShape), NewIntVector(rhs.Shape()),
-				top.ProgString(), right.ProgString())
+	} else {
+		switch rhs := rhs.(type) {
+		default:
+			rscalar = rhs
+		case Vector:
+			if len(ix.outShape) != 1 || ix.outShape[0] != len(rhs) {
+				Errorf("shape mismatch %v != %v in assignment %v = %v",
+					NewIntVector(ix.outShape), NewIntVector([]int{len(rhs)}),
+					top.ProgString(), right.ProgString())
+			}
+			rslice = rhs
+		case *Matrix:
+			if !sameShape(ix.outShape, rhs.Shape()) {
+				Errorf("shape mismatch %v != %v in assignment %v = %v",
+					NewIntVector(ix.outShape), NewIntVector(rhs.Shape()),
+					top.ProgString(), right.ProgString())
+			}
+			rslice = rhs.Data()
+			if rhs == ix.lhs {
+				// Assigning entire rhs to some permutation of lhs.
+				// Make copy of slice to avoid problems with overwriting
+				// values we need to read later. Uncommon.
+				rslice = make([]Value, len(rslice))
+				copy(rslice, rhs.Data())
+			}
 		}
-		rslice = rhs.Data()
-		if rhs == ix.lhs {
-			// Assigning entire rhs to some permutation of lhs.
-			// Make copy of values to avoid problems with overwriting
-			// values we need to read later. Uncommon.
-			rslice = make([]Value, len(rslice))
-			copy(rslice, rhs.Data())
-		}
-	case Vector:
-		if len(ix.outShape) != 1 || ix.outShape[0] != len(rhs) {
-			Errorf("shape mismatch %v != %v in assignment %v = %v",
-				NewIntVector(ix.outShape), NewIntVector([]int{len(rhs)}),
-				top.ProgString(), right.ProgString())
-		}
-		rslice = rhs
 	}
 
 	origin := Int(context.Config().Origin())
@@ -228,7 +233,8 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 			}
 			offset += int(ix.indexes[j][0].(Int) - origin)
 		}
-		ix.slice[offset] = rscalar
+		ix.slice[offset] = rscalar.Copy()
+		return
 	}
 
 	copySize := int(size(ix.shape[len(ix.indexes):]))
@@ -255,11 +261,13 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 			}
 			dst := ix.slice[offset*copySize : (offset+1)*copySize]
 			if rscalar != nil {
-				for i := range dst {
-					dst[i] = rscalar
+				for j := range dst {
+					dst[j] = rscalar.Copy()
 				}
 			} else {
-				copy(dst, rslice[i*copySize:(i+1)*copySize])
+				for j := range dst {
+					dst[j] = rslice[j+i*copySize].Copy()
+				}
 			}
 
 			// Increment coord.

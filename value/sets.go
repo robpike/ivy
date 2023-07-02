@@ -27,7 +27,7 @@ func union(c Context, u, v Value) Value {
 	// At least one is a Vector.
 	switch {
 	case vType != vectorType:
-		uu := u.(Vector).Copy()
+		uu := u.(Vector).Copy().(Vector)
 		for _, x := range uu {
 			if scalarEqual(c, x, v) {
 				return uu
@@ -44,7 +44,7 @@ func union(c Context, u, v Value) Value {
 		}
 		return NewVector(elems)
 	default: // Both vectors.
-		uu := u.(Vector).Copy()
+		uu := u.(Vector).Copy().(Vector)
 		vv := v.(Vector)
 		present := membership(c, vv, uu)
 		for i, x := range vv {
@@ -66,12 +66,12 @@ func intersect(c Context, u, v Value) Value {
 		}
 		return NewVector([]Value{})
 	}
-	// Neither can be a matrix.
+	// Neither can be a matrix. Yet. TODO
 	if uType == matrixType || vType == matrixType {
 		Errorf("binary intersect not implemented on type matrix")
 	}
 	// At least one is a Vector.
-	var elems []Value
+	elems := []Value{}
 	switch {
 	case vType != vectorType:
 		uu := u.(Vector)
@@ -158,24 +158,31 @@ func scalarEqual(c Context, u, v Value) bool {
 	return OrderedCompare(c, u, v) == 0
 }
 
-// OrderedCompare returns -1, 0, or 1 according to whether u is
-// less than, equal to, or greater than v, according to total ordering
-// rules. Total ordering is not the usual mathematical definition,
-// as we honor things like 1.0 == 1, comparison of int and char
-// is forbidden, and complex numbers do not implement <.
+// OrderedCompare returns -1, 0, or 1 according to whether u is less than, equal
+// to, or greater than v, according to total ordering rules. Total ordering is not
+// the usual mathematical definition, as we honor things like 1.0 == 1, comparison
+// of int and char is forbidden, and complex numbers do not implement <. Plus other
+// than for scalars we don't need to follow any particular rules at all, just what
+// works for sorting sets.
+//
 // Thus we amend the usual orderings:
 // - Char is below all other types
-// - Complex is above all other types, unless on the real line: 1j0 == 1.
+// - All other scalars are compared directly, except...
+// - ...Complex is above all other scalars, unless on the real line: 1j0 == 1.
+// - Vector is above all other types except...
+// - ...Matrix, which is above all other types.
 //
-// Exported only for testing, which is done by the parent directory.
-// TODO: Expand to vectors and matrices?
+// When comparing identically-typed values:
+// - Complex is ordered first by real component, then by imaginary.
+// - Vector and Matrix are ordered first by number  of elements,
+//    then in lexical order of elements.
+//
+// These are unusual rules, but they are provide a unique ordering of elements
+// sufficient for set membership. // Exported for testing, which is done by the
+// parent directory to avoid a dependency cycle.
 func OrderedCompare(c Context, u, v Value) int {
 	uType := whichType(u)
 	vType := whichType(v)
-	if uType >= vectorType || vType >= vectorType {
-		Errorf("internal error: non-scalar type %T in orderedCompare", u)
-	}
-	// We know we have scalars.
 	if uType != vType {
 		// If either is a Char, that orders below all others.
 		if uType == charType {
@@ -185,8 +192,21 @@ func OrderedCompare(c Context, u, v Value) int {
 			return 1
 		}
 		// Need to do it the hard way.
-		// If either is a Complex, that orders above all others,
-		// unless it is on the real line.
+		// First, if one is a Matrix, it orders above all others.
+		if uType == matrixType {
+			return 1
+		}
+		if vType == matrixType {
+			return -1
+		}
+		// Next, if one is a Vector, it orders above all others.
+		if uType == vectorType {
+			return 1
+		}
+		if vType == vectorType {
+			return -1
+		}
+		// If a complex is on the real line, treat it as a number.
 		if uC, ok := u.(Complex); ok && uC.isReal() {
 			return OrderedCompare(c, uC.real, v)
 		}
@@ -222,9 +242,34 @@ func OrderedCompare(c Context, u, v Value) int {
 			return s
 		}
 		return OrderedCompare(c, uu.imag, vv.imag)
-
+	case vectorType:
+		uu := u.(Vector)
+		vv := v.(Vector)
+		if len(uu) != len(vv) {
+			return sgn2Int(len(uu), len(vv))
+		}
+		for i, x := range uu {
+			s := OrderedCompare(c, x, vv[i])
+			if s != 0 {
+				return s
+			}
+		}
+		return 0
+	case matrixType:
+		uu := u.(*Matrix)
+		vv := v.(*Matrix)
+		if len(uu.data) != len(vv.data) {
+			return sgn2Int(len(uu.data), len(vv.data))
+		}
+		for i, x := range uu.data {
+			s := OrderedCompare(c, x, vv.data[i])
+			if s != 0 {
+				return s
+			}
+		}
+		return 0
 	}
-	Errorf("internal error: unknown type %T in orderedCompare", u)
+	Errorf("internal error: unknown type %T in OrderedCompare", u)
 	return -1
 
 }

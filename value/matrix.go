@@ -46,7 +46,7 @@ func (m *Matrix) Data() Vector {
 	return m.data
 }
 
-func (m *Matrix) Copy() *Matrix {
+func (m *Matrix) Copy() Value {
 	shape := make([]int, len(m.shape))
 	data := make([]Value, len(m.data))
 	copy(shape, m.shape)
@@ -55,6 +55,23 @@ func (m *Matrix) Copy() *Matrix {
 		shape: shape,
 		data:  data,
 	}
+}
+
+// elemStrs returns the formatted elements of the matrix and the width of the widest element.
+func (m *Matrix) elemStrs(conf *config.Config) ([]string, int) {
+	strs := make([]string, len(m.data))
+	wid := 1
+	for i, elem := range m.data {
+		s := elem.Sprint(conf)
+		if !isScalarType(elem) {
+			s = "(" + s + ")"
+		}
+		strs[i] = s
+		if len(s) > wid {
+			wid = len(s)
+		}
+	}
+	return strs, wid
 }
 
 // write2d prints the 2d matrix m into the buffer.
@@ -145,18 +162,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 			}
 			break
 		}
-		// We print the elements into one big string,
-		// slice that, and then format so they line up.
-		// Will need some rethinking when decimal points
-		// can appear.
-		// Vector.String does what we want for the first part.
-		strs := strings.Split(m.data.makeString(conf, true), " ")
-		wid := 1
-		for _, s := range strs {
-			if wid < len(s) {
-				wid = len(s)
-			}
-		}
+		strs, wid := m.elemStrs(conf)
 		m.write2d(&b, strs, wid)
 	case 3:
 		// If it's all chars, print it without padding or quotes.
@@ -175,15 +181,9 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 		}
 		// As for 2d: print the vector elements, compute the
 		// global width, and use that to print each 2d submatrix.
-		strs := strings.Split(m.data.Sprint(conf), " ")
-		wid := 1
-		for _, s := range strs {
-			if wid < len(s) {
-				wid = len(s)
-			}
-		}
 		n2d := m.shape[0]    // number of 2d submatrices.
 		size := m.ElemSize() // number of elems in each submatrix.
+		strs, wid := m.elemStrs(conf)
 		start := int64(0)
 		for i := 0; i < n2d; i++ {
 			if i > 0 {

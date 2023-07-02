@@ -1263,7 +1263,7 @@ func init() {
 						}
 						i = i[len+n : len : len]
 					case n == 0:
-						return NewVector(nil)
+						return NewVector([]Value{})
 					case n > 0:
 						if n > len {
 							panic(bad)
