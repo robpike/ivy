@@ -1245,32 +1245,41 @@ func init() {
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					const bad = Error("bad count for take")
-					i := v.(Vector)
-					nv, ok := u.(Vector)
-					if !ok || len(nv) != 1 {
-						panic(bad)
+					uu, ok := u.(Vector)
+					if !ok || len(uu) != 1 {
+						Errorf("bad count %s in take", uu[0])
 					}
-					n, ok := nv[0].(Int)
+					n, ok := uu[0].(Int) // Number of elements in result.
 					if !ok {
-						panic(bad)
+						Errorf("bad count %s in take", uu[0])
 					}
-					len := Int(len(i))
+					vv := v.(Vector)
+					len := Int(len(vv)) // Length of rhs vector.
+					nElems := n
+					if n < 0 {
+						nElems = -nElems
+					}
+					elems := make([]Value, nElems)
 					switch {
 					case n < 0:
-						if -n > len {
-							panic(bad)
+						if nElems > len {
+							for i := 0; i < int(nElems-len); i++ {
+								elems[i] = zero // Fill.
+							}
+							copy(elems[nElems-len:], vv)
+						} else {
+							copy(elems, vv[len-nElems:])
 						}
-						i = i[len+n : len : len]
 					case n == 0:
-						return NewVector([]Value{})
 					case n > 0:
-						if n > len {
-							panic(bad)
+						if nElems > len {
+							for i := len; i < nElems; i++ {
+								elems[i] = zero // Fill.
+							}
 						}
-						i = i[0:n:n]
+						copy(elems, vv)
 					}
-					return i
+					return NewVector(elems)
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return v.(*Matrix).take(c, u.(Vector))
@@ -1283,31 +1292,30 @@ func init() {
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					const bad = Error("bad count for drop")
-					i := v.(Vector)
-					nv, ok := u.(Vector)
-					if !ok || len(nv) != 1 {
-						panic(bad)
+					vv := v.(Vector)
+					uu, ok := u.(Vector)
+					if !ok || len(uu) != 1 {
+						Errorf("bad count %s in drop", uu[0])
 					}
-					n, ok := nv[0].(Int)
+					n, ok := uu[0].(Int) // Number of elements in result.
 					if !ok {
-						panic(bad)
+						Errorf("bad count %s in drop", uu[0])
 					}
-					len := Int(len(i))
+					len := Int(len(vv)) // Length of rhs vector.
 					switch {
 					case n < 0:
 						if -n > len {
-							panic(bad)
+							return NewVector([]Value{})
 						}
-						i = i[0 : len+n]
+						vv = vv[0 : len+n]
 					case n == 0:
 					case n > 0:
 						if n > len {
-							panic(bad)
+							return NewVector([]Value{})
 						}
-						i = i[n:]
+						vv = vv[n:]
 					}
-					return i
+					return vv.Copy()
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return v.(*Matrix).drop(c, u.(Vector))

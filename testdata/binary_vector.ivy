@@ -535,6 +535,9 @@ x = 1 rho 1; rho x[up x]
 'abcde' in 'hello world'
 	0 0 0 1 1
 
+1 in 1
+	1
+
 1 in 'abc'
 	0
 
@@ -553,6 +556,43 @@ x = 1 rho 1; rho x[up x]
 	*
 	**
 	***
+
+0 take iota 10
+	#
+
+0 drop iota 10
+	1 2 3 4 5 6 7 8 9 10
+
+3 take iota 10
+	1 2 3
+
+10 take iota 3  # zero fill
+	1 2 3 0 0 0 0 0 0 0
+
+-3 take iota 10
+	8 9 10
+
+-10 take iota 3  # zero fill
+	0 0 0 0 0 0 0 1 2 3
+
+3 drop iota 10
+	4 5 6 7 8 9 10
+
+10 drop iota 3; "empty"
+	empty
+
+-3 drop iota 10
+	1 2 3 4 5 6 7
+
+-10 drop iota 3; "empty"
+	empty
+
+# used to append into x[:2]!
+x = 1 2 3 4 5
+(2 take x), 6 7
+x
+	1 2 6 7
+	1 2 3 4 5
 
 # Example inspired by @p9luv.
 op circle n = " *"[1+(y o.+ y=((-n+1)+iota (1+2*n))**2) <= n**2]
