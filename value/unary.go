@@ -908,7 +908,7 @@ func init() {
 					if !text.AllChars() {
 						Errorf("ivy: value is not a vector of char")
 					}
-					return IvyEval(c, text.makeString(c.Config(), false, false))
+					return IvyEval(c, text.oneLineString(c.Config(), false, false))
 				},
 			},
 		},
