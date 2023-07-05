@@ -58,48 +58,72 @@ func (m *Matrix) Copy() Value {
 }
 
 // elemStrs returns the formatted elements of the matrix and the width of the widest element.
-func (m *Matrix) elemStrs(conf *config.Config) ([]string, int) {
-	strs := make([]string, len(m.data))
-	wid := 1
-	for i, elem := range m.data {
-		s := elem.Sprint(conf)
-		if !isScalarType(elem) {
-			s = "(" + s + ")"
+// Each element is represented by a slice of lines, that is, the return value is indexed by
+// [elem][line].
+func (m *Matrix) elemStrs(conf *config.Config) ([][]string, int) {
+	// Format the matrix as a vector, and then in write2d we rearrange the pieces.
+	// In the formatting, there's no need for spacing the elements as we'll cut
+	// them apart ourselves using column information. Spaces will be added
+	// when needed in write2d.
+	v := NewVector(m.data)
+	lines, cols := v.multiLineSprint(conf, v.allScalars(), v.AllChars(), !withSpaces, !trimTrailingSpace)
+	strs := make([][]string, len(m.data))
+	wid := 0
+	for i := range m.data {
+		rows := make([]string, len(lines))
+		for j, line := range lines {
+			if i == 0 {
+				rows[j] = line[:cols[0]]
+			} else {
+				rows[j] = line[cols[i-1]:cols[i]]
+			}
 		}
-		strs[i] = s
-		if len(s) > wid {
-			wid = len(s)
+		if len(rows[0]) > wid {
+			wid = len(rows[0])
 		}
+		strs[i] = rows
 	}
 	return strs, wid
 }
 
 // write2d prints the 2d matrix m into the buffer.
-// value is a slice of already-printed values.
+// elems is a slice (of slices) of already-printed values.
 // The receiver provides only the shape of the matrix.
-func (m *Matrix) write2d(b *bytes.Buffer, value []string, width int) {
+func (m *Matrix) write2d(b *bytes.Buffer, elems [][]string, width int) {
 	nrows := m.shape[0]
 	ncols := m.shape[1]
+	index := 0
 	for row := 0; row < nrows; row++ {
 		if row > 0 {
 			b.WriteByte('\n')
 		}
-		index := row * ncols
+		// Don't print the line if it has no content.
+		nonBlankLine := 0
 		for col := 0; col < ncols; col++ {
-			if col > 0 {
-				b.WriteByte(' ')
+			strs := elems[index+col]
+			for line := nonBlankLine; line < len(strs); line++ {
+				for _, r := range strs[line] {
+					if r != ' ' {
+						nonBlankLine = line
+						break
+					}
+				}
 			}
-			s := value[index]
-			pad := width - len(s)
-			for ; pad >= 10; pad -= 10 {
-				b.WriteString("          ")
-			}
-			for ; pad > 0; pad-- {
-				b.WriteString(" ")
-			}
-			b.WriteString(s)
-			index++
 		}
+		for line := 0; line < nonBlankLine+1; line++ {
+			if line > 0 {
+				b.WriteByte('\n')
+			}
+			for col := 0; col < ncols; col++ {
+				str := elems[index+col][line]
+				b.WriteString(blanks(width - len(str)))
+				b.WriteString(str)
+				if (col+1)%ncols != 0 {
+					b.WriteString(" ")
+				}
+			}
+		}
+		index += ncols
 	}
 }
 
@@ -249,12 +273,12 @@ func indent(indentation int, format string, args ...interface{}) string {
 	return b.String()
 }
 
-// spaces returns 2*n space characters.
+// spaces returns 2*n space characters, maxing out at 2*10.
 func spaces(n int) string {
 	if n > 10 {
 		n = 10
 	}
-	return "                    "[:2*n]
+	return blanks(2 * n)
 }
 
 // Size returns number of elements of the matrix.
@@ -640,6 +664,9 @@ func (m *Matrix) sel(c Context, v Vector) *Matrix {
 
 // take returns v take m.
 func (m *Matrix) take(c Context, v Vector) *Matrix {
+	if !v.AllInts() {
+		Errorf("take: left operand must be small integers")
+	}
 	// Extend short vector to full rank using shape.
 	if len(v) > m.Rank() {
 		Errorf("take: bad length %d for shape %s", len(v), NewIntVector(m.Shape()))

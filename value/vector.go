@@ -23,12 +23,7 @@ func (v Vector) String() string {
 
 func (v Vector) Sprint(conf *config.Config) string {
 	allChars := v.AllChars()
-	allScalars := v.allScalars()
-	if allScalars {
-		// Easy case, might as well be efficient.
-		return v.oneLineString(conf, false, !allChars)
-	}
-	lines := v.mutiLineString(conf, true, allChars, !allScalars, !allChars)
+	lines, _ := v.multiLineSprint(conf, v.allScalars(), allChars, !allChars, trimTrailingSpace)
 	switch len(lines) {
 	case 0:
 		return ""
@@ -56,15 +51,23 @@ func (v Vector) ProgString() string {
 	panic("vector.ProgString - cannot happen")
 }
 
-// oneLineString prints a vector as a single line (assuming
+// Constants to make it easier to read calls to the printing routines.
+const (
+	withParens        = true
+	withSpaces        = true
+	trimTrailingSpace = true
+)
+
+// oneLineSprint prints a vector as a single line (assuming
 // there are no hidden newlines within) and returns the result.
 // Flags report whether parentheses will be needed and
 // whether to put spaces between the elements.
-func (v Vector) oneLineString(conf *config.Config, parens, spaces bool) string {
+func (v Vector) oneLineSprint(conf *config.Config, parens, spaces bool) (string, []int) {
 	var b bytes.Buffer
 	if parens {
 		spaces = true
 	}
+	cols := make([]int, len(v))
 	for i, elem := range v {
 		if spaces && i > 0 {
 			fmt.Fprint(&b, " ")
@@ -74,35 +77,43 @@ func (v Vector) oneLineString(conf *config.Config, parens, spaces bool) string {
 		} else {
 			fmt.Fprintf(&b, "%s", elem.Sprint(conf))
 		}
+		cols[i] = b.Len()
 	}
-	return b.String()
+	return b.String(), cols
 }
 
-// mutiLineString formats a vector that may span multiple lines,
-// returning the results as a slice of strings, one per line.
+// multiLineSprint formats a vector that may span multiple lines,
+// returning the result as a slice of strings, one per line.
 // Lots of flags:
-//	allChars: the vector is all chars and can be printed simply.
-//	parens: may need parens around an element.
+//	allScalars: the vector is all scalar values and can be printed without parens.
+//	allChars: the vector is all chars and can be printed extra simply.
 //	spaces: put spaces between elements.
 //	trim: remove trailing spaces from each line.
 // If trim is not set, the lines are all of equal length, bytewise.
-func (v Vector) mutiLineString(conf *config.Config, trim, allChars, parens, spaces bool) []string {
+//
+// The return values are the printed lines and, along the other axis,
+// byte positions after each column.
+func (v Vector) multiLineSprint(conf *config.Config, allScalars, allChars, spaces, trim bool) ([]string, []int) {
+	if allScalars {
+		// Easy case, might as well be efficient.
+		str, cols := v.oneLineSprint(conf, false, spaces)
+		return []string{str}, cols
+	}
+	cols := make([]int, len(v))
 	if allChars {
 		// Special handling as the array may contain newlines.
 		// Ignore all the other flags.
 		// TODO: We can still get newlines for individual elements
-		// the general case handled below.
+		// in the general case handled below.
 		b := strings.Builder{}
-		for _, c := range v {
+		for i, c := range v {
 			b.WriteRune(rune(c.Inner().(Char)))
+			cols[i] = b.Len()
 		}
-		return strings.Split(b.String(), "\n")
+		return strings.Split(b.String(), "\n"), cols // We shouldn't need cols, but be safe.
 	}
 	lines := []*strings.Builder{}
 	lastColumn := []int{} // For each line, last column with a non-padding character.
-	if parens {
-		spaces = true
-	}
 	for i, elem := range v {
 		strs := strings.Split(elem.Sprint(conf), "\n")
 		if len(strs) > len(lines) {
@@ -128,49 +139,46 @@ func (v Vector) mutiLineString(conf *config.Config, trim, allChars, parens, spac
 				line.WriteString(" ")
 			}
 		}
-		doParens := parens && !isScalarType(elem)
+		doParens := !allScalars && !isScalarType(elem)
 		if doParens {
 			lines[0].WriteString("(")
 			lastColumn[0] = lines[0].Len()
 		}
-		maxWid := 0
-		for i, s := range strs {
+		for n, s := range strs {
 			if s == "" {
 				if _, ok := elem.(*Matrix); ok {
 					// Blank line in matrix output; ignore
 					continue
 				}
 			}
-			line := lines[i]
-			w := 0
-			if doParens && i > 0 {
+			line := lines[n]
+			if doParens && n > 0 {
 				line.WriteString("|")
-				lastColumn[i] = line.Len()
-				w = 1
+				lastColumn[n] = line.Len()
 			}
 			line.WriteString(s)
-			lastColumn[i] = line.Len()
-			w += len(s)
-			if doParens && i < len(strs)-1 {
+			lastColumn[n] = line.Len()
+			if doParens && n < len(strs)-1 {
 				line.WriteString("|")
-				lastColumn[i] = line.Len()
-				w++
-			}
-			if w > maxWid {
-				maxWid = w
+				lastColumn[n] = line.Len()
 			}
 		}
+		cols[i] = lines[0].Len() // By construction all lines have same length.
 		if len(strs) < len(lines) {
 			// Right-fill the lines below this element.
-			padding := blanks(maxWid)
+			padding := blanks(cols[i] - lines[len(lines)-1].Len())
 			for j := len(strs); j < len(lines); j++ {
 				lines[j].WriteString(padding)
 			}
 		}
 		if doParens {
 			last := len(strs) - 1
-			lines[last].WriteString(")")
-			lastColumn[last] = lines[last].Len()
+			line := lines[last]
+			line.WriteString(")")
+			lastColumn[last] = line.Len()
+			if line.Len() > cols[i] {
+				cols[i] = line.Len()
+			}
 		}
 	}
 	s := make([]string, len(lines))
@@ -180,7 +188,7 @@ func (v Vector) mutiLineString(conf *config.Config, trim, allChars, parens, spac
 			s[i] = s[i][:lastColumn[i]]
 		}
 	}
-	return s
+	return s, cols
 }
 
 var (
