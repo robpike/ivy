@@ -185,7 +185,7 @@ func (r BigRat) toType(op string, conf *config.Config, which valueType) Value {
 		f := new(big.Float).SetPrec(conf.FloatPrec()).SetRat(r.Rat)
 		return BigFloat{f}
 	case complexType:
-		return NewComplex(r, Int(0))
+		return NewComplex(r, zero)
 	case vectorType:
 		return NewVector([]Value{r})
 	case matrixType:

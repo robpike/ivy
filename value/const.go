@@ -33,6 +33,8 @@ const (
 )
 
 var (
+	empty = NewVector([]Value{})
+
 	bigIntZero     = bigInt64(0)
 	bigIntOne      = bigInt64(1)
 	bigIntTwo      = bigInt64(2)
@@ -101,7 +103,7 @@ func Consts(c Context) (e, pi BigFloat) {
 	}
 	floatPiBy2, ok = newF(conf).SetString(strPi)
 	if !ok {
-		panic("setting pi")
+		panic("setting pi/2")
 	}
 	floatPiBy2.Quo(floatPiBy2, floatTwo)
 	floatMinusPiBy2 = newF(conf).Neg(floatPiBy2)

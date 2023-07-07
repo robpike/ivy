@@ -138,7 +138,7 @@ func integerPower(c Context, x *big.Float, exp int64) *big.Float {
 
 // complexIntegerPower returns x**exp where exp is an int64 of size <= intBits.
 func complexIntegerPower(c Context, v Complex, exp int64) Complex {
-	z := NewComplex(Int(1), Int(0))
+	z := NewComplex(one, zero)
 	y := NewComplex(v.real, v.imag)
 	// For each loop, we compute xⁿ where n is a power of two.
 	for exp > 0 {
@@ -158,7 +158,7 @@ func complexPower(c Context, v, exp Complex) Value {
 		if i, ok := exp.real.(Int); ok {
 			switch {
 			case i == 0:
-				return Int(1)
+				return one
 			case i == 1:
 				return v
 			case i < 0:

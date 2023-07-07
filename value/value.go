@@ -70,7 +70,7 @@ func parseTwo(conf *config.Config, s string) (Value, Value, string, error) {
 		sep = "/"
 		typ = "rational"
 	} else {
-		return Int(0), Int(0), "", nil
+		return zero, zero, "", nil
 	}
 	elems = strings.Split(s, sep)
 	if len(elems) != 2 || elems[0] == "" || elems[1] == "" {

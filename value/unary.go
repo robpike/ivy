@@ -61,14 +61,14 @@ func self(c Context, v Value) Value {
 }
 
 func returnZero(c Context, v Value) Value {
-	return Int(0)
+	return zero
 }
 
 func realPhase(c Context, v Value) Value {
 	if isNegative(v) {
 		return BigFloat{newFloat(c).Set(floatPi)}
 	}
-	return Int(0)
+	return zero
 }
 
 // vectorSelf promotes v to type Vector.
@@ -160,16 +160,16 @@ func init() {
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return NewComplex(Int(0), v)
+					return NewComplex(zero, v)
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return NewComplex(Int(0), v)
+					return NewComplex(zero, v)
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return NewComplex(Int(0), v)
+					return NewComplex(zero, v)
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return NewComplex(Int(0), v)
+					return NewComplex(zero, v)
 				},
 				complexType: func(c Context, v Value) Value {
 					// Multiply by i.

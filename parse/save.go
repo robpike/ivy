@@ -117,12 +117,8 @@ func save(c *exec.Context, file string) {
 		// Sort the names for consistent output.
 		sorted := sortSyms(syms)
 		for _, sym := range sorted {
-			// pi and e are generated
-			if sym.name == "pi" || sym.name == "e" {
-				continue
-			}
 			fmt.Fprintf(out, "%s = ", sym.name)
-			put(conf, out, sym.val)
+			put(conf, out, sym.val, false)
 			fmt.Fprint(out, "\n")
 		}
 	}
@@ -159,7 +155,10 @@ func sortSyms(syms map[string]value.Value) []saveSym {
 }
 
 // put writes to out a version of the value that will recreate it when parsed.
-func put(conf *config.Config, out io.Writer, val value.Value) {
+func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
+	if withParens {
+		fmt.Fprint(out, "(")
+	}
 	switch val := val.(type) {
 	case value.Char:
 		fmt.Fprintf(out, "%q", rune(val))
@@ -183,9 +182,9 @@ func put(conf *config.Config, out io.Writer, val value.Value) {
 		fmt.Fprintf(out, "%.*g", digits+1, val.Float)       // Add another digit to be sure.
 	case value.Complex:
 		real, imag := val.Components()
-		put(conf, out, real)
+		put(conf, out, real, false)
 		fmt.Fprintf(out, "j")
-		put(conf, out, imag)
+		put(conf, out, imag, false)
 	case value.Vector:
 		if val.AllChars() {
 			fmt.Fprintf(out, "%q", val.Sprint(conf))
@@ -195,13 +194,16 @@ func put(conf *config.Config, out io.Writer, val value.Value) {
 			if i > 0 {
 				fmt.Fprint(out, " ")
 			}
-			put(conf, out, v)
+			put(conf, out, v, !value.IsScalarType(v))
 		}
 	case *value.Matrix:
-		put(conf, out, value.NewIntVector(val.Shape()))
+		put(conf, out, value.NewIntVector(val.Shape()), false)
 		fmt.Fprint(out, " rho ")
-		put(conf, out, val.Data())
+		put(conf, out, val.Data(), false)
 	default:
 		value.Errorf("internal error: can't save type %T", val)
+	}
+	if withParens {
+		fmt.Fprint(out, ")")
 	}
 }

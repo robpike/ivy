@@ -118,9 +118,9 @@ func EvalCharEqual(u Value, isEqualOp bool, v Value) (Value, bool) {
 		// Two different scalar types. If either is char, we know the answer now.
 		if uType == charType || vType == charType {
 			if isEqualOp {
-				return Int(0), true
+				return zero, true
 			}
-			return Int(1), true
+			return one, true
 		}
 	}
 	return nil, false
@@ -525,8 +525,8 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 	return NewMatrix(shape, NewVector(n))
 }
 
-// isScalarType reports whether u is an actual scalar, an int or float etc.
-func isScalarType(v Value) bool {
+// IsScalarType reports whether u is an actual scalar, an int or float etc.
+func IsScalarType(v Value) bool {
 	return whichType(v) < vectorType
 }
 

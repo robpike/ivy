@@ -374,7 +374,7 @@ func reshape(A, B Vector) Value {
 	if len(A) == 0 {
 		return Vector{}
 	}
-	nelems := Int(1)
+	nelems := one
 	shape := make([]int, len(A))
 	for i := range A {
 		n, ok := A[i].Inner().(Int)
@@ -652,7 +652,7 @@ func (m *Matrix) sel(c Context, v Vector) *Matrix {
 		c := v[i%len(v)].(Int)
 		if c < 0 {
 			c = -c
-			y = Int(0)
+			y = zero
 		}
 		for ; c > 0; c-- {
 			result = append(result, y)
@@ -736,7 +736,7 @@ func (m *Matrix) drop(c Context, v Vector) *Matrix {
 		ext := make(Vector, m.Rank())
 		copy(ext, v)
 		for i := len(v); i < m.Rank(); i++ {
-			ext[i] = Int(0)
+			ext[i] = zero
 		}
 		v = ext
 	}

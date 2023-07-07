@@ -182,7 +182,7 @@ func toBool(t Value) bool {
 func andBool(t Value) bool {
 	if v, ok := t.(Vector); ok {
 		for _, x := range v {
-			if x == Int(0) {
+			if x == zero {
 				return false
 			}
 		}
@@ -585,8 +585,8 @@ func init() {
 				},
 				complexType: func(c Context, u, v Value) Value {
 					i, j := u.(Complex), v.(Complex)
-					if c.EvalBinary(i.real, "==", j.real) == Int(0) {
-						return Int(0)
+					if c.EvalBinary(i.real, "==", j.real) == zero {
+						return zero
 					}
 					return c.EvalBinary(i.imag, "==", j.imag)
 				},
@@ -618,8 +618,8 @@ func init() {
 				},
 				complexType: func(c Context, u, v Value) Value {
 					i, j := u.(Complex), v.(Complex)
-					if c.EvalBinary(i.real, "!=", j.real) == Int(1) {
-						return Int(1)
+					if c.EvalBinary(i.real, "!=", j.real) == one {
+						return one
 					}
 					return c.EvalBinary(i.imag, "!=", j.imag)
 				},
@@ -894,11 +894,11 @@ func init() {
 					// If A is a vector, the elements of A align with B.
 					A, B := u.(Vector), v.(Vector)
 					if len(A) == 0 || len(B) == 0 {
-						return Int(0)
+						return zero
 					}
 					if len(A) == 1 || len(B) == 1 || len(A) == len(B) {
-						result := Value(Int(0))
-						prod := Value(Int(1))
+						result := Value(zero)
+						prod := Value(one)
 						get := func(v Vector, i int) Value {
 							if len(v) == 1 {
 								return v[0]
@@ -939,8 +939,8 @@ func init() {
 					}
 					pfor(true, n, len(elems), func(lo, hi int) {
 						for j := lo; j < hi; j++ {
-							result := Value(Int(0))
-							prod := Value(Int(1))
+							result := Value(zero)
+							prod := Value(one)
 							for i := n - 1; i >= 0; i-- {
 								Bslice := B.data
 								if B.shape[0] > 1 {
@@ -1074,7 +1074,7 @@ func init() {
 						sortedA[i] = indexed{a, i + origin}
 					}
 					sort.SliceStable(sortedA, func(i, j int) bool {
-						return c.EvalBinary(sortedA[i].v, "<", sortedA[j].v) == Int(1)
+						return c.EvalBinary(sortedA[i].v, "<", sortedA[j].v) == one
 					})
 					indices := make([]Value, len(B))
 					work := 2 * (1 + int(math.Log2(float64(len(A)))))
@@ -1083,9 +1083,9 @@ func init() {
 							b := B[i]
 							indices[i] = Int(origin - 1)
 							pos := sort.Search(len(sortedA), func(j int) bool {
-								return c.EvalBinary(sortedA[j].v, ">=", b) == Int(1)
+								return c.EvalBinary(sortedA[j].v, ">=", b) == one
 							})
-							if pos < len(sortedA) && c.EvalBinary(sortedA[pos].v, "==", b) == Int(1) {
+							if pos < len(sortedA) && c.EvalBinary(sortedA[pos].v, "==", b) == one {
 								indices[i] = Int(sortedA[pos].index)
 							}
 						}
@@ -1305,13 +1305,13 @@ func init() {
 					switch {
 					case n < 0:
 						if -n > len {
-							return NewVector([]Value{})
+							return empty
 						}
 						vv = vv[0 : len+n]
 					case n == 0:
 					case n > 0:
 						if n > len {
-							return NewVector([]Value{})
+							return empty
 						}
 						vv = vv[n:]
 					}
@@ -1386,7 +1386,7 @@ func init() {
 					i := u.(Vector)
 					j := v.(Vector)
 					if len(i) == 0 {
-						return NewVector(nil)
+						return empty
 					}
 					// All lhs values must be small integers.
 					var count int64
@@ -1414,20 +1414,20 @@ func init() {
 					}
 					result := make([]Value, 0, count)
 					jx := 0
-					var zero Value
+					var zeroVal Value
 					if j.AllChars() {
-						zero = Char(' ')
+						zeroVal = Char(' ')
 					} else {
-						zero = Int(0)
+						zeroVal = zero
 					}
 					for _, x := range i {
 						y := x.(Int)
 						switch {
 						case y == 0:
-							result = append(result, zero)
+							result = append(result, zeroVal)
 						case y < 0:
 							for y = -y; y > 0; y-- {
-								result = append(result, zero)
+								result = append(result, zeroVal)
 							}
 						default:
 							for ; y > 0; y-- {
@@ -1449,7 +1449,7 @@ func init() {
 					i := u.(Vector)
 					j := v.(Vector)
 					if len(i) == 0 {
-						return NewVector(nil)
+						return empty
 					}
 					// All lhs values must be small integers.
 					var count int64
@@ -1472,7 +1472,7 @@ func init() {
 						hm := int(howMany.(Int))
 						if hm < 0 {
 							hm = -hm
-							what = Int(0)
+							what = zero
 						}
 						for ; hm > 0; hm-- {
 							result = append(result, what)

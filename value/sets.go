@@ -64,7 +64,7 @@ func intersect(c Context, u, v Value) Value {
 		if scalarEqual(c, u, v) {
 			return u
 		}
-		return NewVector([]Value{})
+		return empty
 	}
 	// Neither can be a matrix. Yet. TODO
 	if uType == matrixType || vType == matrixType {
@@ -87,7 +87,7 @@ func intersect(c Context, u, v Value) Value {
 				return NewVector([]Value{u})
 			}
 		}
-		return NewVector([]Value{})
+		return empty
 	default: // Both vectors.
 		uu := u.(Vector)
 		present := membership(c, uu, v.(Vector))

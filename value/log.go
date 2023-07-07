@@ -12,7 +12,7 @@ func logn(c Context, v Value) Value {
 	negative := isNegative(v)
 	if negative {
 		// Promote to complex. The Complex type is never negative.
-		v = NewComplex(v, Int(0))
+		v = NewComplex(v, zero)
 	}
 	if u, ok := v.(Complex); ok {
 		if isNegative(u.real) {

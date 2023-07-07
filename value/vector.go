@@ -72,7 +72,7 @@ func (v Vector) oneLineSprint(conf *config.Config, parens, spaces bool) (string,
 		if spaces && i > 0 {
 			fmt.Fprint(&b, " ")
 		}
-		if parens && !isScalarType(elem) {
+		if parens && !IsScalarType(elem) {
 			fmt.Fprintf(&b, "(%s)", elem.Sprint(conf))
 		} else {
 			fmt.Fprintf(&b, "%s", elem.Sprint(conf))
@@ -139,7 +139,7 @@ func (v Vector) multiLineSprint(conf *config.Config, allScalars, allChars, space
 				line.WriteString(" ")
 			}
 		}
-		doParens := !allScalars && !isScalarType(elem)
+		doParens := !allScalars && !IsScalarType(elem)
 		if doParens {
 			lines[0].WriteString("(")
 			lastColumn[0] = lines[0].Len()
@@ -228,7 +228,7 @@ func (v Vector) AllChars() bool {
 // allScalars reports whether all the elements are scalar.
 func (v Vector) allScalars() bool {
 	for _, x := range v {
-		if !isScalarType(x) {
+		if !IsScalarType(x) {
 			return false
 		}
 	}
