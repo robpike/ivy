@@ -70,7 +70,7 @@ func (c Complex) toType(op string, conf *config.Config, which valueType) Value {
 	case complexType:
 		return c
 	case vectorType:
-		return NewVector([]Value{c})
+		return oneElemVector(c)
 	case matrixType:
 		return NewMatrix([]int{1, 1}, []Value{c})
 	}

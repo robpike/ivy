@@ -73,6 +73,7 @@ Unary operators
 	Floor             ⌊B    floor   Greatest integer less than or equal to B
 	Shape             ⍴B    rho     Vector of number of components in each dimension of B
 	Count             ≢B    count   Scalar number of elements at top level of B
+	Flatten           ∊B    flatten Vector of all the scalar elements within B
 	Not               ∼B    not     Logical: not 1 is 0, not 0 is 1
 	Absolute value    ∣B    abs     Magnitude of B
 	Index generator   ⍳B    iota    Vector of the first B integers

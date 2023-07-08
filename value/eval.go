@@ -676,3 +676,28 @@ func EvalFunctionBody(context Context, fnName string, body []Expr) Value {
 	}
 	return v
 }
+
+// flatten returns a simple vector containing the scalar elements of v.
+func flatten(v Value) []Value {
+	if IsScalarType(v) {
+		return []Value{v}
+	}
+	switch v := v.(type) {
+	case Vector:
+		if v.allScalars() {
+			return v.Copy().(Vector)
+		}
+		elems := make([]Value, 0, len(v))
+		for _, elem := range v {
+			if IsScalarType(elem) {
+				elems = append(elems, elem)
+			} else {
+				elems = append(elems, flatten(elem)...)
+			}
+		}
+		return elems
+	case *Matrix:
+		return flatten(v.data)
+	}
+	panic("flatten: can't happen")
+}

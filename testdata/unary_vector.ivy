@@ -129,6 +129,15 @@ unique 1 'a' 2 'b' 3 'a' 2
 unique iota 0; "empty"
 	empty
 
+flatten 7
+	7
+
+flatten 3 4
+	3 4
+
+flatten ,\1 2 3 4
+	1 1 2 1 2 3 1 2 3 4
+
 # Fixed bug: don't use user-defined functions in core calculations.
 op rot x = 99
 flip 1 2 3  # Used rot internally.

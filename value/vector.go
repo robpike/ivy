@@ -253,6 +253,10 @@ func NewVector(elems []Value) Vector {
 	return Vector(elems)
 }
 
+func oneElemVector(elem Value) Vector {
+	return Vector([]Value{elem})
+}
+
 func NewIntVector(elems []int) Vector {
 	vec := make([]Value, len(elems))
 	for i, elem := range elems {

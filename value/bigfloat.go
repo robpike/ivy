@@ -148,7 +148,7 @@ func (f BigFloat) toType(op string, conf *config.Config, which valueType) Value 
 	case complexType:
 		return NewComplex(f, zero)
 	case vectorType:
-		return NewVector([]Value{f})
+		return oneElemVector(f)
 	case matrixType:
 		return NewMatrix([]int{1}, []Value{f})
 	}

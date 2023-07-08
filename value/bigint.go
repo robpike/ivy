@@ -157,7 +157,7 @@ func (i BigInt) toType(op string, conf *config.Config, which valueType) Value {
 	case complexType:
 		return NewComplex(i, zero)
 	case vectorType:
-		return NewVector([]Value{i})
+		return oneElemVector(i)
 	case matrixType:
 		return NewMatrix([]int{1}, []Value{i})
 	}

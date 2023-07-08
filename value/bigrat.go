@@ -187,7 +187,7 @@ func (r BigRat) toType(op string, conf *config.Config, which valueType) Value {
 	case complexType:
 		return NewComplex(r, zero)
 	case vectorType:
-		return NewVector([]Value{r})
+		return oneElemVector(r)
 	case matrixType:
 		return NewMatrix([]int{1, 1}, []Value{r})
 	}

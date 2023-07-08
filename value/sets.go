@@ -84,7 +84,7 @@ func intersect(c Context, u, v Value) Value {
 		vv := v.(Vector)
 		for _, x := range vv {
 			if scalarEqual(c, u, x) {
-				return NewVector([]Value{u})
+				return oneElemVector(u)
 			}
 		}
 		return empty

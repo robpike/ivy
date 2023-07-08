@@ -276,7 +276,11 @@ m=3 3 3 rho iota 27; +/+/+/m==m[;;]
 m=3 3 3 rho iota 27; +/+/+/m[1 2;1 2 3]==m[1 2;]
 	18
 
+m=3 4 rho iota 12; flatten m
+	1 2 3 4 5 6 7 8 9 10 11 12
 
+m=3 4 rho iota 12; m[2;2]=2 2 rho 77; flatten m
+	1 2 3 4 5 77 77 77 77 7 8 9 10 11 12
 
 # Check that missing index obeys different origin.
 )origin 0

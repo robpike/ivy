@@ -80,7 +80,7 @@ func vectorSelf(c Context, v Value) Value {
 	case *Matrix:
 		Errorf("internal error: vectorSelf of matrix")
 	}
-	return NewVector([]Value{v})
+	return oneElemVector(v)
 }
 
 // floatValueSelf promotes v to type BigFloat, and wraps it as a value.
@@ -575,6 +575,36 @@ func init() {
 						return zero
 					}
 					return Int(m.shape[0])
+				},
+			},
+		},
+
+		{
+			name: "flatten",
+			fn: [numType]unaryFn{
+				intType: func(c Context, v Value) Value {
+					return oneElemVector(v)
+				},
+				charType: func(c Context, v Value) Value {
+					return oneElemVector(v)
+				},
+				bigIntType: func(c Context, v Value) Value {
+					return oneElemVector(v)
+				},
+				bigRatType: func(c Context, v Value) Value {
+					return oneElemVector(v)
+				},
+				bigFloatType: func(c Context, v Value) Value {
+					return oneElemVector(v)
+				},
+				complexType: func(c Context, v Value) Value {
+					return oneElemVector(v)
+				},
+				vectorType: func(c Context, v Value) Value {
+					return NewVector(flatten(v.(Vector)))
+				},
+				matrixType: func(c Context, v Value) Value {
+					return c.EvalUnary("flatten", NewVector(v.(*Matrix).data))
 				},
 			},
 		},
