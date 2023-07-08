@@ -546,6 +546,40 @@ func init() {
 		},
 
 		{
+			name: "count",
+			fn: [numType]unaryFn{
+				intType: func(c Context, v Value) Value {
+					return one
+				},
+				charType: func(c Context, v Value) Value {
+					return one
+				},
+				bigIntType: func(c Context, v Value) Value {
+					return one
+				},
+				bigRatType: func(c Context, v Value) Value {
+					return one
+				},
+				bigFloatType: func(c Context, v Value) Value {
+					return one
+				},
+				complexType: func(c Context, v Value) Value {
+					return one
+				},
+				vectorType: func(c Context, v Value) Value {
+					return Int(len(v.(Vector)))
+				},
+				matrixType: func(c Context, v Value) Value {
+					m := v.(*Matrix)
+					if len(m.shape) == 0 {
+						return zero
+					}
+					return Int(m.shape[0])
+				},
+			},
+		},
+
+		{
 			name: ",",
 			fn: [numType]unaryFn{
 				intType:      vectorSelf,

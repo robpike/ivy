@@ -113,10 +113,10 @@ Switch:
 			binary    = "Binary operators"
 			axis      = "Operators and axis indicator"
 			convert   = "Type-converting operations"
-			constant  = "Pre-defined constants"
-			char      = "Character data"
-			operators = "User-defined operators"
-			special   = "Special commands"
+			constant  = "# Pre-defined constants"
+			char      = "# Character data"
+			operators = "# User-defined operators"
+			special   = "# Special commands"
 			end       = "$$EOF$$"
 		)
 		switch str {

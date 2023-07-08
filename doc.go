@@ -72,6 +72,7 @@ Unary operators
 	Ceiling           ⌈B    ceil    Least integer greater than or equal to B
 	Floor             ⌊B    floor   Greatest integer less than or equal to B
 	Shape             ⍴B    rho     Vector of number of components in each dimension of B
+	Count             ≢B    count   Scalar number of elements at top level of B
 	Not               ∼B    not     Logical: not 1 is 0, not 0 is 1
 	Absolute value    ∣B    abs     Magnitude of B
 	Index generator   ⍳B    iota    Vector of the first B integers

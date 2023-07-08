@@ -198,6 +198,6 @@ func (i BigInt) BitLen() int64 {
 func mustFit(conf *config.Config, n int64) {
 	max := conf.MaxBits()
 	if max != 0 && n > int64(max) {
-		Errorf("result too large (%d bits)", n)
+		Errorf("result too large (%d bits, max %d)", n, conf.MaxBits())
 	}
 }
