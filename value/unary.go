@@ -512,6 +512,43 @@ func init() {
 					copy(n, data)
 					return NewVector(n)
 				},
+				vectorType: func(c Context, v Value) Value {
+					// Produce a matrix of coordinates.
+					vv := v.(Vector)
+					if len(vv) == 0 {
+						return empty
+					}
+					nElems := 1
+					shape := make([]int, len(vv))
+					for i, coord := range vv {
+						c, ok := coord.(Int)
+						if !ok || c < 0 || maxInt < c {
+							Errorf("bad coordinate in iota %s", coord)
+						}
+						shape[i] = int(c)
+						nElems *= int(c)
+						if nElems > maxInt {
+							Errorf("shape too large in iota %s", vv)
+						}
+					}
+					origin := c.Config().Origin()
+					elems := make([]Value, nElems)
+					counter := make([]int, len(vv))
+					for i := range counter {
+						counter[i] = origin
+					}
+					for i := range elems {
+						elems[i] = NewIntVector(counter)
+						for axis := len(counter) - 1; axis >= 0; axis-- {
+							counter[axis]++
+							if counter[axis]-origin < shape[axis] {
+								break
+							}
+							counter[axis] = origin
+						}
+					}
+					return NewMatrix(shape, elems)
+				},
 			},
 		},
 

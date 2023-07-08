@@ -77,6 +77,17 @@ func main() {
 	//	Roll              ?B    ?       One integer selected randomly from the first B integers
 
 	s("var helpUnary = map[string]helpIndexPair{")
+	moreLines := func(i int) int {
+		j := i
+		// If the next few lines have no text at the left, they are a continuation. Pull them in.
+		for ; j < len(lines); j++ {
+			next := lines[j+1]
+			if len(next) < 33 || next[1] != ' ' {
+				break
+			}
+		}
+		return j
+	}
 	var i int
 	for i = 0; lines[i] != "Unary operators"; i++ {
 	}
@@ -103,7 +114,9 @@ func main() {
 		if len(op) == 0 {
 			continue
 		}
-		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, i)
+		j := moreLines(i)
+		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, j)
+		i = j
 	}
 
 	// Text-converters are all unary but float is multi-line.
@@ -129,14 +142,7 @@ func main() {
 				break
 			}
 		}
-		j := i
-		// If the next few lines have no text at the left, they are a continuation. Pull them in.
-		for ; j < len(lines); j++ {
-			next := lines[j+1]
-			if len(next) < 33 || next[1] != ' ' {
-				break
-			}
-		}
+		j := moreLines(i)
 		fmt.Fprintf(buf, `%q: {%d, %d},`+"\n", string(op), i, j)
 		i = j
 	}

@@ -77,9 +77,10 @@ Unary operators
 	Not               ∼B    not     Logical: not 1 is 0, not 0 is 1
 	Absolute value    ∣B    abs     Magnitude of B
 	Index generator   ⍳B    iota    Vector of the first B integers
+	                                If B is a vector, matrix of coordinates
 	Unique            ∩B    unique  Remove all duplicate elements from B
 	Exponential       ⋆B    **      e to the B power
-	Negation          −B    -       Changes sign of B
+	Negation          −B    -       Change sign of B
 	Identity          +B    +       No change to B
 	Signum            ×B    sgn     -1 if B<0; 0 if B=0; 1 if B>0
 	Reciprocal        ÷B    /       1 divided by B

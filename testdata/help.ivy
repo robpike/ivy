@@ -11,7 +11,7 @@
 		Shape             ⍴B    rho     Vector of number of components in each dimension of B
 
 	Binary operators:
-		Name                  APL   Ivy     Meaning
+		Name                  APL   Ivy       Meaning
 		Reshape               A⍴B   rho       Array of shape A with data B
 
 )help about reverse

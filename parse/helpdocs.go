@@ -76,7 +76,7 @@ func (p *Parser) help(str string) {
 			p.Println()
 		}
 		p.Println("Binary operators:")
-		p.Println("	Name                  APL   Ivy     Meaning")
+		p.Println("	Name                  APL   Ivy       Meaning")
 		for i := binaryPair.start; i <= binaryPair.end; i++ {
 			p.Printf("%s\n", helpLines[i])
 		}
