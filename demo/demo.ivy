@@ -106,6 +106,12 @@ x = 3 5 rho iota 15; x
 rho x
 x = 3 5 5 rho iota 75; x
 rho x
+# The binary ravel operator joins its two operands into a single vector.
+1 2 3 , 4 5 6
+rho 1 2 3 , 4 5 6
+# The unary ravel operator flattens the top level of its argument into a vector.
+, 3 5 rho iota 15
+rho , 3 5 rho iota 15
 # Arithmetic on matrices works as you would expect by now.
 x/2
 x**2
@@ -125,6 +131,8 @@ x**10
 x = iota 5; x o.== x
 # Assignment is an operator, so you can save an intermediate expression.
 x o.== x = iota 5
+# You can also use this trick to make an identity matrix using reshape.
+5 5 rho 1 0 0 0 0 0
 # Random numbers: Use a unary ? to roll an n-sided die from 1 to n.
 ?100
 ?100
@@ -136,6 +144,7 @@ x[1]
 x[1 19 3]  # You can index with a vector.
 # Multiple index dimensions are separated by semicolons.
 (5 5 rho iota 25)[rot iota 5; iota 5]
+# (Unary rot reverses a vector.)
 # The up and down operators generate index vectors that would sort the input.
 up x
 x[up x]
@@ -147,7 +156,7 @@ x[down x]
 # Remember a set of rolls.
 x = ?10 rho 6; x
 # The outer product of == and the integers puts 1 in each row where that value appeared.
-# Compare the last row of the next result to the 6s in x.
+# Compare the 2nd row of the next result to the 2s in x, for example.
 (iota 6) o.== x
 # Count the number of times each value appears by reducing the matrix horizontally.
 +/(iota 6) o.== x
