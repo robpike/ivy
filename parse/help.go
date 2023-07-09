@@ -180,12 +180,12 @@ var helpLines = []string{
 	"",
 	"\tName                APL  Ivy  APL Example  Ivy Example  Meaning (of example)",
 	"\tReduce (last axis)  /    /    +/B          +/B          Sum across B",
-	"\tReduce (first axis) ⌿         +⌿B                       Sum down B",
+	"\tReduce (first axis) ⌿    /%   +⌿B                       Sum down B",
 	"\tScan (last axis)    \\    \\    +\\B          +\\B          Running sum across B",
-	"\tScan (first axis)   ⍀         +⍀B                       Running sum down B",
+	"\tScan (first axis)   ⍀    \\%   +⍀B                       Running sum down B",
 	"\tInner product       .    .    A+.×B        A +.* B      Matrix product of A and B",
 	"\tOuter product       ∘.   o.   A∘.×B        A o.* B      Outer product of A and B",
-	"\t                                                    (lower case o; may need preceding space)",
+	"\t                                                       (lower case o; may need preceding space)",
 	"",
 	"Type-converting operations",
 	"",
@@ -483,8 +483,10 @@ var helpBinary = map[string]helpIndexPair{
 }
 
 var helpAxis = map[string]helpIndexPair{
-	"/":  {176, 176},
-	"\\": {178, 178},
-	".":  {180, 180},
-	"o.": {181, 181},
+	"/":   {176, 176},
+	"/%":  {177, 177},
+	"\\":  {178, 178},
+	"\\%": {179, 179},
+	".":   {180, 180},
+	"o.":  {181, 181},
 }

@@ -357,12 +357,12 @@ func lexOperator(l *Scanner) stateFn {
 	word := l.input[l.start:l.pos]
 	if word == "o" || value.BinaryOps[word] != nil || l.context.UserDefined(word, true) {
 		switch l.peek() {
-		case '/':
-			// Reduction.
+		case '/', '\\':
+			// Reduction or scan.
 			l.next()
-		case '\\':
-			// Scan.
-			l.next()
+			if l.peek() == '%' {
+				l.next()
+			}
 		case '.':
 			// Inner or outer product?
 			l.next()               // Accept the '.'.
@@ -442,6 +442,9 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 		// Might be a scan or reduction.
 		if r == '/' || r == '\\' {
 			l.next()
+			if l.peek() == '%' {
+				l.next()
+			}
 			return false, l.emit(Operator)
 		}
 		if r != '.' && !l.isNumeral(r) {
@@ -666,7 +669,7 @@ func isAllDigits(s string, base int) bool {
 // if it is a two-character operator.
 func (l *Scanner) isOperator(r rune) bool {
 	switch r {
-	case '?', '+', '-', '/', '%', '&', '|', '^', ',':
+	case '?', '+', '-', '/', '&', '|', '^', ',':
 		// No follow-on possible.
 	case '!':
 		if l.peek() == '=' {

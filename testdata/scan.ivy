@@ -2,20 +2,32 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-# Reduction
+# Scanning. For each operation we do scan (\) and scan first (\%).
 
 # Scalars
 
 *\2
 	2
 
+*\%2
+	2
+
 +\1e10
+	10000000000
+
++\%1e10
 	10000000000
 
 *\ 3/2
 	3/2
 
+*\% 3/2
+	3/2
+
 *\3j2
+	3j2
+
+*\%3j2
 	3j2
 
 # Vectors
@@ -23,11 +35,19 @@
 +\iota 10
 	1 3 6 10 15 21 28 36 45 55
 
++\%iota 10
+	1 3 6 10 15 21 28 36 45 55
+
 -\iota 10
+	1 -1 2 -2 3 -3 4 -4 5 -5
+
+-\%iota 10
 	1 -1 2 -2 3 -3 4 -4 5 -5
 
 # associative scan should run in linear time - this takes ~10m if quadratic
 +/ +\ iota 100000
+	166671666700000
++/ +\% iota 100000
 	166671666700000
 
 # Matrices
@@ -36,6 +56,21 @@
 	1  3  6 10
 	5 11 18 26
 	9 19 30 42
+
++\%3 4 rho iota 100
+	 1  2  3  4
+	 6  8 10 12
+	15 18 21 24
+
+-\3 4 rho iota 100
+	 1 -1  2 -2
+	 5 -1  6 -2
+	 9 -1 10 -2
+
+-\%3 4 rho iota 100
+	 1  2  3  4
+	-4 -4 -4 -4
+	 5  6  7  8
 
 +\3 4 5 rho iota 100
 	 1   3   6  10  15
@@ -52,3 +87,19 @@
 	46  93 141 190 240
 	51 103 156 210 265
 	56 113 171 230 290
+
++\%3 4 5 rho iota 100
+	  1   2   3   4   5
+	  6   7   8   9  10
+	 11  12  13  14  15
+	 16  17  18  19  20
+
+	 22  24  26  28  30
+	 32  34  36  38  40
+	 42  44  46  48  50
+	 52  54  56  58  60
+
+	 63  66  69  72  75
+	 78  81  84  87  90
+	 93  96  99 102 105
+	108 111 114 117 120

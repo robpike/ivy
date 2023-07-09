@@ -351,6 +351,41 @@ func Reduce(c Context, op string, v Value) Value {
 	panic("not reached")
 }
 
+// ReduceFirst computes a reduction such as +/% along
+// the first axis. The slash-percent has been removed.
+func ReduceFirst(c Context, op string, v Value) Value {
+	// We must be right associative; that is the grammar.
+	// -/1 2 3 == 1-2-3 is 1-(2-3) not (1-2)-3. Answer: 2.
+	m, ok := v.(*Matrix)
+	if !ok {
+		// Same as regular reduce.
+		return Reduce(c, op, v)
+	}
+	if v.Rank() < 2 {
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape))
+	}
+	stride := size(m.shape[1:m.Rank()])
+	if stride == 0 {
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape))
+	}
+	shape := m.shape[1:m.Rank()]
+	data := make(Vector, size(shape))
+	pfor(safeBinary(op), stride, len(data), func(lo, hi int) {
+		for i := lo; i < hi; i++ {
+			pos := i + len(m.data) - stride
+			acc := m.data[pos]
+			for j := pos - stride; j >= 0; j -= stride {
+				acc = c.EvalBinary(m.data[j], op, acc)
+			}
+			data[i] = acc
+		}
+	})
+	if len(shape) == 1 { // TODO: Matrix.shrink()?
+		return NewVector(data)
+	}
+	return NewMatrix(shape, data)
+}
+
 // Scan computes a scan of the op; the \ has been removed.
 // It gives the successive values of reducing op through v.
 // We must be right associative; that is the grammar.
@@ -385,11 +420,7 @@ func Scan(c Context, op string, v Value) Value {
 			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
 		}
 		data := make(Vector, len(v.data))
-		nrows := 1
-		for i := 0; i < v.Rank()-1; i++ {
-			// Guaranteed by NewMatrix not to overflow.
-			nrows *= v.shape[i]
-		}
+		nrows := size(v.shape[:len(v.shape)-1])
 		pfor(safeBinary(op), stride, nrows, func(lo, hi int) {
 			for i := lo; i < hi; i++ {
 				index := i * stride
@@ -411,6 +442,32 @@ func Scan(c Context, op string, v Value) Value {
 	}
 	Errorf("can't do scan on %s", whichType(v))
 	panic("not reached")
+}
+
+// ScanFirst computes a scan of the op along the first axis.
+// The backslash-percent has been removed.
+// It gives the successive values of reducing op through v.
+// We must be right associative; that is the grammar.
+func ScanFirst(c Context, op string, v Value) Value {
+	m, ok := v.(*Matrix)
+	if !ok {
+		// Same as regular reduce.
+		return Scan(c, op, v)
+	}
+	if m.Rank() < 2 {
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape))
+	}
+	stride := m.shape[len(m.shape)-1]
+	if stride == 0 {
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape))
+	}
+	// Simple but effective algorithm: Transpose twice. Better than one might
+	// think because transposition is O(size of matrix) and it also lines up
+	// the scan in memory order.
+	// TODO: Is it worth doing the ugly non-transpose bookkeeping?
+	m = Scan(c, op, m.transpose(c)).(*Matrix)
+	return m.transpose(c)
+
 }
 
 // unaryVectorOp applies op elementwise to i.

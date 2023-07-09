@@ -452,12 +452,30 @@ func (m *Matrix) vrotate(n int) Value {
 
 // transpose returns (as a new matrix) the transposition of the argument.
 func (m *Matrix) transpose(c Context) *Matrix {
-	v := make(Vector, m.Rank())
-	origin := c.Config().Origin()
-	for i := range v {
-		v[len(v)-1-i] = Int(i + origin)
+	// Fast version for common 2d case.
+	if len(m.shape) == 2 {
+		data := make([]Value, len(m.data))
+		xdim, ydim := m.shape[0], m.shape[1] // For new matrix.
+		pfor(true, 1, len(data), func(lo, hi int) {
+			nx := lo / ydim
+			ny := lo % ydim
+			for _, v := range m.data[lo:hi] {
+				data[ny*xdim+nx] = v
+				ny++
+				if ny >= ydim {
+					nx++
+					ny = 0
+				}
+			}
+		})
+		return NewMatrix([]int{ydim, xdim}, data)
 	}
-	return m.binaryTranspose(c, v)
+	nShape := make(Vector, len(m.shape))
+	origin := c.Config().Origin()
+	for i := range nShape {
+		nShape[len(nShape)-1-i] = Int(i + origin)
+	}
+	return m.binaryTranspose(c, nShape)
 }
 
 // binaryTranspose returns the transposition of m specified by v,

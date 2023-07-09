@@ -134,6 +134,15 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 			return value.Reduce(c, op[:len(op)-1], right)
 		case '\\':
 			return value.Scan(c, op[:len(op)-1], right)
+		case '%':
+			if len(op) > 2 {
+				switch op[len(op)-2] {
+				case '/':
+					return value.ReduceFirst(c, op[:len(op)-2], right)
+				case '\\':
+					return value.ScanFirst(c, op[:len(op)-2], right)
+				}
+			}
 		}
 	}
 	fn := c.Unary(op)
