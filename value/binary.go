@@ -1241,6 +1241,21 @@ func init() {
 		},
 
 		{
+			name:      ",%",
+			whichType: atLeastVectorType,
+			fn: [numType]binaryFn{
+				vectorType: func(c Context, u, v Value) Value {
+					uu := u.(Vector)
+					uu = uu[:len(uu):len(uu)]
+					return append(uu, v.(Vector)...)
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					return u.(*Matrix).catenateFirst(v.(*Matrix))
+				},
+			},
+		},
+
+		{
 			name:      "take",
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{

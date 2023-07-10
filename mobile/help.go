@@ -150,7 +150,8 @@ Encode                A⊤B   encode    Base-A representation of the value of B
 Residue               A∣B              B modulo A
                             mod       A modulo B (Euclidean)
                             imod      A modulo B (Go)
-Catenation            A,B   ,         Elements of B appended to the elements of A
+Catenation            A,B   ,         Elements of B appended to the elements of A along last axis
+Catenation            A,B   ,%        Elements of B appended to the elements of A along first axis
 Expansion             A\B   fill      Insert zeros (or blanks) in B corresponding to zeros in A
                                       In ivy: abs(A) gives count, A &lt;= 0 inserts zero (or blank)
 Compression           A/B   sel       Select elements in B corresponding to ones in A

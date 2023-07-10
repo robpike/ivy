@@ -193,7 +193,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 		if m.data.AllChars() {
 			nelems := m.shape[0]
 			ElemSize := m.ElemSize()
-			index := int64(0)
+			index := 0
 			for i := 0; i < nelems; i++ {
 				if i > 0 {
 					b.WriteString("\n\n")
@@ -208,7 +208,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 		n2d := m.shape[0]    // number of 2d submatrices.
 		size := m.ElemSize() // number of elems in each submatrix.
 		strs, wid := m.elemStrs(conf)
-		start := int64(0)
+		start := 0
 		for i := 0; i < n2d; i++ {
 			if i > 0 {
 				b.WriteString("\n\n")
@@ -241,7 +241,7 @@ func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) 
 	for i := 0; i < dim; i++ {
 		inner := Matrix{
 			shape: m.shape[1:],
-			data:  m.data[int64(i)*m.ElemSize():],
+			data:  m.data[i*m.ElemSize():],
 		}
 		if i > 0 {
 			b.WriteString("\n\n")
@@ -283,14 +283,14 @@ func spaces(n int) string {
 
 // Size returns number of elements of the matrix.
 // Given shape [a, b, c, ...] it is a*b*c*....
-func (m *Matrix) Size() int64 {
-	return int64(size(m.shape))
+func (m *Matrix) Size() int {
+	return size(m.shape)
 }
 
 // ElemSize returns the size of each top-level element of the matrix.
 // Given shape [a, b, c, ...] it is b*c*....
-func (m *Matrix) ElemSize() int64 {
-	return int64(size(m.shape[1:]))
+func (m *Matrix) ElemSize() int {
+	return size(m.shape[1:])
 }
 
 func size(shape []int) int {
@@ -321,7 +321,7 @@ func NewMatrix(shape []int, data []Value) *Matrix {
 		nelems = int(n)
 	}
 	if nelems != len(data) {
-		Errorf("inconsistent shape and data size for new matrix")
+		Errorf("inconsistent shape (%d) and data size (%d) for new matrix", shape, len(data))
 	}
 	return &Matrix{
 		shape: shape,
@@ -559,7 +559,7 @@ func (m *Matrix) binaryTranspose(c Context, v Vector) *Matrix {
 	return NewMatrix(shape, data)
 }
 
-// catenate returns the catenation x, y.
+// catenate returns the catenation x, y, along the last axis.
 // It handles the following shape combinations:
 //
 //	(n ...), (...) -> (n+1 ...)  # list, elem
@@ -569,13 +569,82 @@ func (m *Matrix) binaryTranspose(c Context, v Vector) *Matrix {
 //	(n ...), (1) -> (n+1 ...)  # list, scalar (extended)
 func (x *Matrix) catenate(y *Matrix) *Matrix {
 	if x.Rank() == 0 || y.Rank() == 0 {
-		Errorf("empty matrix for ,")
+		Errorf("rank 0 matrix for ,")
+	}
+	var shape []int
+	var data Vector
+	var nrows int
+	setShape := func(m *Matrix, extra int) {
+		shape = make([]int, m.Rank())
+		copy(shape, m.shape)
+		shape[len(shape)-1] += extra
+		nrows = size(shape[:len(shape)-1])
+	}
+	copyElems := func(nLeft, advLeft, nRight, advRight int) {
+		di, li, ri := 0, 0, 0
+		for i := 0; i < nrows; i++ {
+			copy(data[di:di+nLeft], x.data[li:li+nLeft])
+			di += nLeft
+			li += advLeft
+			copy(data[di:di+nRight], y.data[ri:ri+nRight])
+			di += nRight
+			ri += advRight
+		}
+	}
+	switch {
+	default:
+		Errorf("catenate shape mismatch: %d, %d", NewIntVector(x.shape), NewIntVector(y.shape))
+
+	case x.Rank() == y.Rank() && sameShape(x.shape[:len(x.shape)-1], y.shape[:len(y.shape)-1]):
+		// list, list
+		setShape(x, y.shape[len(y.shape)-1])
+		data = make(Vector, len(x.data)+len(y.data))
+		xsize, ysize := x.ElemSize(), y.ElemSize()
+		copyElems(xsize, xsize, ysize, ysize)
+
+	case x.Rank() == y.Rank()+1 && sameShape(x.shape[:len(x.shape)-1], y.shape):
+		// list, elem
+		setShape(x, 1)
+		data = make(Vector, len(x.data)+len(y.data))
+		xsize := x.shape[len(x.shape)-1]
+		ysize := y.Size() / nrows
+		copyElems(xsize, xsize, ysize, ysize)
+
+	case x.Rank()+1 == y.Rank() && sameShape(x.shape, y.shape[:len(y.shape)-1]):
+		// elem, list
+		setShape(y, 1)
+		data = make(Vector, len(y.data)+len(x.data))
+		xsize := x.Size() / nrows
+		ysize := y.shape[len(y.shape)-1]
+		copyElems(xsize, xsize, ysize, ysize)
+
+	case x.Rank() == 1 && x.shape[0] == 1 && y.Rank() > 1:
+		// scalar extension, list
+		setShape(y, 1)
+		data = make(Vector, len(y.data)+nrows)
+		ysize := y.shape[len(y.shape)-1]
+		copyElems(1, 0, ysize, ysize)
+
+	case x.Rank() > 1 && y.Rank() == 1 && y.shape[0] == 1:
+		// list, scalar extension
+		setShape(x, 1)
+		data = make(Vector, len(x.data)+nrows)
+		xsize := x.shape[len(x.shape)-1]
+		copyElems(xsize, xsize, 1, 0)
+	}
+	return NewMatrix(shape, data)
+}
+
+// catenateFirst returns the catenation x, y, along the first axis.
+func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
+	if x.Rank() == 0 || y.Rank() == 0 {
+		Errorf("rank 0 matrix for ,%%")
 	}
 	var shape []int
 	var data Vector
 	switch {
 	default:
-		Errorf("catenate shape mismatch: %s != %s", NewIntVector(x.shape[1:]), NewIntVector(y.shape))
+		Errorf("catenateFirst shape mismatch: %d, %d", NewIntVector(x.shape), NewIntVector(y.shape))
 
 	case x.Rank() == y.Rank() && sameShape(x.shape[1:], y.shape[1:]):
 		// list, list
@@ -602,8 +671,8 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 		shape[0]++
 		elem := y.ElemSize()
 		a := x.Data()[0]
-		data = make(Vector, elem+int64(len(y.Data())))
-		for i := int64(0); i < elem; i++ {
+		data = make(Vector, elem+len(y.Data()))
+		for i := 0; i < elem; i++ {
 			data[i] = a
 		}
 		copy(data[elem:], y.Data())
@@ -615,10 +684,10 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 		shape[0]++
 		elem := x.ElemSize()
 		b := y.Data()[0]
-		data = make(Vector, elem+int64(len(x.Data())))
+		data = make(Vector, elem+len(x.Data()))
 		copy(data, x.Data())
 		ext := data[len(x.Data()):]
-		for i := int64(0); i < elem; i++ {
+		for i := 0; i < elem; i++ {
 			ext[i] = b
 		}
 	}
