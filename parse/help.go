@@ -381,6 +381,10 @@ var helpLines = []string{
 	"\t\t(Unimplemented on mobile.)",
 	"\t) seed 0",
 	"\t\tSet the seed for the ? operator.",
+	"\t) var X",
+	"\t\tIf X is absent, list all defined variables. Otherwise, show the",
+	"\t\tdefinition of the variable X in a form that can be evaluated",
+	"\t\tto recreate the value.",
 }
 
 type helpIndexPair struct {

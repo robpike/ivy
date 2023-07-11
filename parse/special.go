@@ -34,7 +34,11 @@ func (p *Parser) need(want ...scan.Type) scan.Token {
 	if len(want) == 1 {
 		p.errorf("expected %s, got %s", want[0], tok)
 	}
-	p.errorf("expected %s, got %s", want, tok)
+	str := want[0].String()
+	for _, s := range want[1:] {
+		str += " or " + s.String()
+	}
+	p.errorf("expected %s; got %s", str, tok)
 	panic("not reached")
 }
 
@@ -324,6 +328,28 @@ Switch:
 			break Switch
 		}
 		conf.SetRandomSeed(p.nextDecimalNumber64())
+	case "var", "vars":
+		if p.peek().Type == scan.EOF {
+			var vars []string
+			for def := range p.context.Globals {
+				vars = append(vars, def)
+			}
+			sort.Strings(vars)
+			if vars != nil {
+				for _, s := range vars {
+					p.Println("\t" + s)
+				}
+			}
+			break Switch
+		}
+		name := p.need(scan.Identifier).Text
+		value := p.context.Global(name)
+		if value == nil {
+			p.errorf("%q not defined", name)
+		}
+		fmt.Printf("%s = ", name)
+		put(conf, conf.Output(), value, false)
+		fmt.Print("\n")
 	default:
 		p.errorf(")%s: not recognized", text)
 	}

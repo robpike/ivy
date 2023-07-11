@@ -385,5 +385,9 @@ base 10 and must be non-negative on input.
 		(Unimplemented on mobile.)
 	) seed 0
 		Set the seed for the ? operator.
+	) var X
+		If X is absent, list all defined variables. Otherwise, show the
+		definition of the variable X in a form that can be evaluated
+		to recreate the value.
 */
 package main
