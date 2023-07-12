@@ -1275,11 +1275,12 @@ func init() {
 						nElems = -nElems
 					}
 					elems := make([]Value, nElems)
+					fill := vv.fillValue()
 					switch {
 					case n < 0:
 						if nElems > len {
 							for i := 0; i < int(nElems-len); i++ {
-								elems[i] = zero // Fill.
+								elems[i] = fill
 							}
 							copy(elems[nElems-len:], vv)
 						} else {
@@ -1289,7 +1290,7 @@ func init() {
 					case n > 0:
 						if nElems > len {
 							for i := len; i < nElems; i++ {
-								elems[i] = zero // Fill.
+								elems[i] = fill
 							}
 						}
 						copy(elems, vv)

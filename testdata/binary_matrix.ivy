@@ -878,6 +878,18 @@ x[down x]
 
 	43 44 45
 
+5 5 drop 4 4 rho iota 12
+	#
+
+rho 5 5 drop 4 4 rho iota 12
+	0 0
+
+rho 5 4 drop 4 4 rho iota 12
+	0 0
+
+rho 5 drop 4 4 rho iota 12
+	0 4
+
 (2 3 3 rho iota 9) iota (3 3 rho iota 9)
 	1
 

@@ -215,6 +215,14 @@ func blanks(n int) string {
 
 }
 
+// fillValue returns a zero or a space as the appropriate fill type for the vector
+func (v Vector) fillValue() Value {
+	if v.AllChars() {
+		return Char(' ')
+	}
+	return zero
+}
+
 // AllChars reports whether the vector contains only Chars.
 func (v Vector) AllChars() bool {
 	for _, c := range v {

@@ -253,3 +253,10 @@ x=text iota 10; x[down x]
 # Issue 118
 "12301230" iota "1"; "12301230" iota "2"; "12301230" iota "3"; "12301230" iota "0"
 	1 2 3 4
+
+# Fill with spaces.
+-10 take 'abc'
+	       abc
+
+x=10 take 'abc'; x,'!'
+	abc       !
