@@ -217,8 +217,29 @@ func blanks(n int) string {
 
 // fillValue returns a zero or a space as the appropriate fill type for the data
 func fillValue(v []Value) Value {
+	if len(v) == 0 {
+		return zero
+	}
+	var fill Value = zero
 	if allChars(v) {
-		return Char(' ')
+		fill = Char(' ')
+	}
+	if IsScalarType(v[0]) {
+		return fill
+	}
+	switch v := v[0].(type) {
+	case Vector:
+		data := make([]Value, len(v))
+		for i := range data {
+			data[i] = fill
+		}
+		return NewVector(data)
+	case *Matrix:
+		data := make([]Value, len(v.data))
+		for i := range data {
+			data[i] = fill
+		}
+		return NewMatrix(v.shape, data)
 	}
 	return zero
 }

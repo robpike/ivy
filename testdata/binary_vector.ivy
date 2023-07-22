@@ -569,6 +569,10 @@ x = 1 rho 1; rho x[up x]
 10 take iota 3  # zero fill
 	1 2 3 0 0 0 0 0 0 0
 
+# Fill with non-scalar.
+x = 3 rho iota 3; y = 1 take x x; 2 take y
+	(1 2 3) (0 0 0)
+
 -3 take iota 10
 	8 9 10
 
