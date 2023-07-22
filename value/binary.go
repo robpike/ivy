@@ -1260,15 +1260,16 @@ func init() {
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					uu, ok := u.(Vector)
-					if !ok || len(uu) != 1 {
-						Errorf("bad count %s in take", uu[0])
+					uu := u.(Vector)
+					vv := v.(Vector)
+					if len(uu) != 1 {
+						// Need to expand to a matrix.
+						return NewMatrix([]int{len(vv)}, vv).take(c, uu)
 					}
 					n, ok := uu[0].(Int) // Number of elements in result.
 					if !ok {
 						Errorf("bad count %s in take", uu[0])
 					}
-					vv := v.(Vector)
 					len := Int(len(vv)) // Length of rhs vector.
 					nElems := n
 					if n < 0 {

@@ -215,22 +215,32 @@ func blanks(n int) string {
 
 }
 
-// fillValue returns a zero or a space as the appropriate fill type for the vector
-func (v Vector) fillValue() Value {
-	if v.AllChars() {
+// fillValue returns a zero or a space as the appropriate fill type for the data
+func fillValue(v []Value) Value {
+	if allChars(v) {
 		return Char(' ')
 	}
 	return zero
 }
 
-// AllChars reports whether the vector contains only Chars.
-func (v Vector) AllChars() bool {
+// fillValue returns a zero or a space as the appropriate fill type for the vector
+func (v Vector) fillValue() Value {
+	return fillValue(v)
+}
+
+// allChars reports whether the data contains only Chars.
+func allChars(v []Value) bool {
 	for _, c := range v {
 		if _, ok := c.Inner().(Char); !ok {
 			return false
 		}
 	}
 	return true
+}
+
+// AllChars reports whether the vector contains only Chars.
+func (v Vector) AllChars() bool {
+	return allChars(v)
 }
 
 // allScalars reports whether all the elements are scalar.

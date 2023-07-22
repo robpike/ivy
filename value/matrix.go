@@ -756,7 +756,16 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 	}
 	// Extend short vector to full rank using shape.
 	if len(v) > m.Rank() {
-		Errorf("take: bad length %d for shape %s", len(v), NewIntVector(m.shape))
+		// Rank mismatch, but if m is of unit size, we can just raise its rank.
+		if m.Size() != 1 {
+			Errorf("take: bad rank %d for shape %s", m.Rank(), v)
+		}
+		// Create a 1x1x1... matrix and use that as the argument.
+		shape := make([]int, len(v))
+		for i := range shape {
+			shape[i] = 1
+		}
+		m = NewMatrix(shape, m.data)
 	}
 	if len(v) < m.Rank() {
 		ext := make(Vector, m.Rank())
@@ -767,27 +776,92 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 		v = ext
 	}
 
-	// All lhs values must be small integers in range for m's shape.
 	// Compute new shape.
 	shape := make([]int, m.Rank())
-	count := int64(1)
+	type pos struct {
+		min, max int
+	}
+	// mBounds is the box, in m space, that we will be taking.
+	mBounds := make([]pos, m.Rank())
+	// origin is the location, in result space, of the upper left corner of the full m.
+	origin := make([]int, m.Rank())
+	count := int64(1) // Number of elements in result.
+	needFill := false // Elements of result are outside the matrix.
 	for i, x := range v {
-		y, ok := x.(Int)
-		if !ok {
-			Errorf("take: left operand must be small integers")
-		}
+		var mb pos
+		var o int
+		y := int(x.(Int))
 		if y < 0 {
 			y = -y
+			mb.max = m.shape[i]
+			mb.min = mb.max - y
+			if mb.min < 0 {
+				mb.min = 0
+			}
+			o = y - m.shape[i]
+		} else {
+			mb.min = 0
+			mb.max = m.shape[i]
+			if mb.max > y {
+				mb.max = y
+			}
+			o = 0
 		}
-		if y > Int(m.shape[i]) {
-			Errorf("take: left operand %v out of range for %d in shape %v", x, m.shape[i], NewIntVector(m.shape))
+		if y > m.shape[i] {
+			needFill = true
 		}
-		shape[i] = int(y)
+		shape[i] = y
 		count *= int64(y)
+		mBounds[i] = mb
+		origin[i] = o
+	}
+	if count > maxInt { // Do this before allocating!
+		Errorf("take: result matrix too large")
 	}
 
-	result := make(Vector, 0, count)
-	result = appendTake(result, v, m.data, m.shape)
+	if !needFill {
+		// A faster method, using copy.
+		result := make(Vector, 0, count)
+		result = appendTake(result, v, m.data, m.shape)
+		return NewMatrix(shape, result)
+	}
+
+	// If we need fill, there is a lot of bookkeeping.
+	// This method is much slower (although still O(n)),
+	// as it calculates the clipping for every result
+	// location.
+	// TODO We should be able to do this much faster.
+	fill := fillValue(m.data)
+	rCoords := make([]int, len(shape)) // Matrix coordinates in result.
+	result := make(Vector, count, count)
+	for i := range result {
+		inside := true
+		mi := 0
+		// See if this location is inside the bounding box for m.
+		// As we do this, calculate the vector index (mi) for m.
+		for k, rc := range rCoords {
+			mi *= m.shape[k]
+			loc := rc - origin[k]
+			if loc < mBounds[k].min || mBounds[k].max <= loc {
+				inside = false
+				break
+			}
+			mi += loc
+		}
+		if inside {
+			result[i] = m.data[mi] // TODO
+		} else {
+			result[i] = fill
+		}
+		// Increment destination indexes.
+		for k := len(rCoords) - 1; k >= 0; k-- {
+			rCoords[k]++
+			if rCoords[k] < shape[k] {
+				break
+			}
+			rCoords[k] = 0
+		}
+	}
 	return NewMatrix(shape, result)
 }
 
@@ -797,15 +871,15 @@ func appendTake(result, take, data Vector, dshape []int) Vector {
 	if len(take) == 0 {
 		return append(result, data...)
 	}
-	n := Int(len(data) / dshape[0])
-	t := take[0].(Int)
+	blockSize := len(data) / dshape[0]
+	t := int(take[0].(Int))
 	if t >= 0 {
-		data = data[:t*n]
+		data = data[:t*blockSize]
 	} else {
-		data = data[Int(len(data))-(-t)*n:]
+		data = data[len(data)-(-t)*blockSize:]
 	}
-	for ; len(data) > 0; data = data[n:] {
-		result = appendTake(result, take[1:], data[:n], dshape[1:])
+	for ; len(data) > 0; data = data[blockSize:] {
+		result = appendTake(result, take[1:], data[:blockSize], dshape[1:])
 	}
 	return result
 }
