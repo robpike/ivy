@@ -9,7 +9,7 @@
 //
 // TODO: This package (and ivy itself) has global state, so only
 // one execution stream (Eval or Demo) can be active at a time.
-package mobile
+package mobile // import "robpike.io/ivy/mobile"
 
 //go:generate sh -c "go run help_gen.go >help.go"
 
