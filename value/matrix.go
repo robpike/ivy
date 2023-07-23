@@ -786,7 +786,6 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 	// origin is the location, in result space, of the upper left corner of the full m.
 	origin := make([]int, m.Rank())
 	count := int64(1) // Number of elements in result.
-	needFill := false // Elements of result are outside the matrix.
 	for i, x := range v {
 		var mb pos
 		var o int
@@ -807,9 +806,6 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 			}
 			o = 0
 		}
-		if y > m.shape[i] {
-			needFill = true
-		}
 		shape[i] = y
 		count *= int64(y)
 		mBounds[i] = mb
@@ -819,18 +815,7 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 		Errorf("take: result matrix too large")
 	}
 
-	if !needFill {
-		// A faster method, using copy.
-		result := make(Vector, 0, count)
-		result = appendTake(result, v, m.data, m.shape)
-		return NewMatrix(shape, result)
-	}
-
-	// If we need fill, there is a lot of bookkeeping.
-	// This method is much slower (although still O(n)),
-	// as it calculates the clipping for every result
-	// location.
-	// TODO We should be able to do this much faster.
+	// TODO Is there a faster way?
 	fill := fillValue(m.data)
 	rCoords := make([]int, len(shape)) // Matrix coordinates in result.
 	result := make(Vector, count, count)
@@ -863,25 +848,6 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 		}
 	}
 	return NewMatrix(shape, result)
-}
-
-// TODO(rsc): Use pfor, but will probably require
-// avoiding recursion and definitely avoiding append.
-func appendTake(result, take, data Vector, dshape []int) Vector {
-	if len(take) == 0 {
-		return append(result, data...)
-	}
-	blockSize := len(data) / dshape[0]
-	t := int(take[0].(Int))
-	if t >= 0 {
-		data = data[:t*blockSize]
-	} else {
-		data = data[len(data)-(-t)*blockSize:]
-	}
-	for ; len(data) > 0; data = data[blockSize:] {
-		result = appendTake(result, take[1:], data[:blockSize], dshape[1:])
-	}
-	return result
 }
 
 // drop returns v drop m.
