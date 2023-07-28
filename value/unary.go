@@ -1074,14 +1074,14 @@ func init() {
 					if len(u) == 0 {
 						return zero // TODO: If we add prototypes, this is a place it matters.
 					}
-					return NewVector([]Value{u[0]})
+					return u[0]
 				},
 				matrixType: func(c Context, v Value) Value {
 					u := v.(*Matrix).data
 					if len(u) == 0 {
 						return zero // TODO: If we add prototypes, this is a place it matters.
 					}
-					return NewVector([]Value{u[0]})
+					return u[0]
 				},
 			},
 		},
