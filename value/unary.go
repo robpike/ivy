@@ -1045,6 +1045,48 @@ func init() {
 		},
 
 		{
+			name:        "box",
+			elementwise: false,
+			fn: [numType]unaryFn{
+				intType:      box,
+				charType:     box,
+				bigIntType:   box,
+				bigRatType:   box,
+				bigFloatType: box,
+				complexType:  box,
+				vectorType:   box,
+				matrixType:   box,
+			},
+		},
+
+		{
+			name:        "first",
+			elementwise: false,
+			fn: [numType]unaryFn{
+				intType:      self,
+				charType:     self,
+				bigIntType:   self,
+				bigRatType:   self,
+				bigFloatType: self,
+				complexType:  self,
+				vectorType: func(c Context, v Value) Value {
+					u := v.(Vector)
+					if len(u) == 0 {
+						return zero // TODO: If we add prototypes, this is a place it matters.
+					}
+					return NewVector([]Value{u[0]})
+				},
+				matrixType: func(c Context, v Value) Value {
+					u := v.(*Matrix).data
+					if len(u) == 0 {
+						return zero // TODO: If we add prototypes, this is a place it matters.
+					}
+					return NewVector([]Value{u[0]})
+				},
+			},
+		},
+
+		{
 			name:        "sys",
 			elementwise: false,
 			fn: [numType]unaryFn{

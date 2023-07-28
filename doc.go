@@ -79,6 +79,8 @@ Unary operators
 	Index generator   ⍳B    iota    Vector of the first B integers
 	                                If B is a vector, matrix of coordinates
 	Unique            ∩B    unique  Remove all duplicate elements from B
+	Enclose           ⊂B    box     Wrap B in one level of nesting
+	Disclose          ⊃B    first   First element of B in ravel order
 	Exponential       ⋆B    **      e to the B power
 	Negation          −B    -       Change sign of B
 	Identity          +B    +       No change to B

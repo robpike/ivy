@@ -289,3 +289,8 @@ phase 1j1 # Uses atan internally
 	2.2360679775
 	0.785398163397
 
+box 1j1
+	1j1
+
+first 1j1
+	1j1

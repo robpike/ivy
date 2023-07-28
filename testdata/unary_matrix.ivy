@@ -294,3 +294,16 @@ m=3 3 3 rho iota 27; m[;2]
 	 2  3  4
 	11 12 13
 	20 21 22
+
+box 2 3 rho iota 6
+	(1 2 3|
+	|4 5 6)
+
+box 0 0 rho iota 5
+	()
+
+first 2 3 rho 8+iota 6
+	9
+
+first 2 2 rho box 3 4 5
+	(3 4 5)

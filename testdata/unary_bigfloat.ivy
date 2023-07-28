@@ -194,3 +194,9 @@ sqrt(0)
 # Test printing of huge numbers.
 sqrt 1e50000
 	1e+25000
+
+box sqrt 2
+	1.41421356237
+
+first sqrt 2
+	1.41421356237

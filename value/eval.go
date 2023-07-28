@@ -758,3 +758,8 @@ func flatten(v Value) []Value {
 	}
 	panic("flatten: can't happen")
 }
+
+// box returns its argument wrapped into a one-element vector.
+func box(c Context, v Value) Value {
+	return NewVector([]Value{v})
+}
