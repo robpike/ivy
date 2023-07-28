@@ -348,7 +348,7 @@ func (m *Matrix) toType(op string, conf *config.Config, which valueType) Value {
 
 func (x *Matrix) sameShape(y *Matrix) {
 	if !sameShape(x.shape, y.shape) {
-		Errorf("shape mismatch: %s != %s", NewIntVector(x.shape), NewIntVector(y.shape))
+		Errorf("shape mismatch: %s != %s", NewIntVector(x.shape...), NewIntVector(y.shape...))
 	}
 }
 
@@ -369,7 +369,7 @@ func sameShape(x, y []int) bool {
 func reshape(A, B Vector) Value {
 	if len(B) == 0 {
 		// Peculiar APL definition of reshape of empty vector: Use fill values.
-		B = NewIntVector([]int{0})
+		B = NewIntVector(0)
 	}
 	if len(A) == 0 {
 		return Vector{}
@@ -593,7 +593,7 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 	}
 	switch {
 	default:
-		Errorf("catenate shape mismatch: %d, %d", NewIntVector(x.shape), NewIntVector(y.shape))
+		Errorf("catenate shape mismatch: %d, %d", NewIntVector(x.shape...), NewIntVector(y.shape...))
 
 	case x.Rank() == y.Rank() && sameShape(x.shape[:len(x.shape)-1], y.shape[:len(y.shape)-1]):
 		// list, list
@@ -644,7 +644,7 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 	var data Vector
 	switch {
 	default:
-		Errorf("catenateFirst shape mismatch: %d, %d", NewIntVector(x.shape), NewIntVector(y.shape))
+		Errorf("catenateFirst shape mismatch: %d, %d", NewIntVector(x.shape...), NewIntVector(y.shape...))
 
 	case x.Rank() == y.Rank() && sameShape(x.shape[1:], y.shape[1:]):
 		// list, list
@@ -717,7 +717,7 @@ func (m *Matrix) sel(c Context, v Vector) *Matrix {
 		}
 	}
 	if len(v) != 1 && len(v) != m.shape[len(m.shape)-1] {
-		Errorf("sel: bad length %d for shape %s", len(v), NewIntVector(m.shape))
+		Errorf("sel: bad length %d for shape %s", len(v), NewIntVector(m.shape...))
 	}
 	if len(v) == 1 {
 		count *= int64(m.shape[len(m.shape)-1])
@@ -854,7 +854,7 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 func (m *Matrix) drop(c Context, v Vector) *Matrix {
 	// Extend short vector to full rank using zeros.
 	if len(v) > m.Rank() {
-		Errorf("take: argument %v too large for matrix with shape %s", v, NewIntVector(m.shape))
+		Errorf("take: argument %v too large for matrix with shape %s", v, NewIntVector(m.shape...))
 	}
 	if !v.AllInts() {
 		Errorf("drop: left operand must be small integers")
@@ -912,5 +912,5 @@ func (m *Matrix) grade(c Context) Vector {
 	for i := range x {
 		x[i] += origin
 	}
-	return NewIntVector(x)
+	return NewIntVector(x...)
 }

@@ -296,7 +296,7 @@ func oneElemVector(elem Value) Vector {
 	return Vector([]Value{elem})
 }
 
-func NewIntVector(elems []int) Vector {
+func NewIntVector(elems ...int) Vector {
 	vec := make([]Value, len(elems))
 	for i, elem := range elems {
 		vec[i] = Int(elem)
@@ -370,7 +370,7 @@ func (v Vector) grade(c Context) Vector {
 	for i := range x {
 		x[i] += origin
 	}
-	return NewIntVector(x)
+	return NewIntVector(x...)
 }
 
 // reverse returns the reversal of a vector.

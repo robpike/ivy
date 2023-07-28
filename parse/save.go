@@ -197,7 +197,7 @@ func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
 			put(conf, out, v, !value.IsScalarType(v))
 		}
 	case *value.Matrix:
-		put(conf, out, value.NewIntVector(val.Shape()), false)
+		put(conf, out, value.NewIntVector(val.Shape()...), false)
 		fmt.Fprint(out, " rho ")
 		put(conf, out, val.Data(), false)
 	default:

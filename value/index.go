@@ -89,7 +89,7 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 	// Finish the result shape.
 	origin := Int(context.Config().Origin())
 	if len(ix.indexes) > len(ix.shape) {
-		Errorf("too many dimensions in %s indexing shape %v", top.ProgString(), NewIntVector(ix.shape))
+		Errorf("too many dimensions in %s indexing shape %v", top.ProgString(), NewIntVector(ix.shape...))
 	}
 	// Replace nil index entries, created above, with iota(dimension).
 	j := 0
@@ -121,7 +121,7 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 					}
 				}
 				s += "]"
-				Errorf("index %s out of range for shape %v", s, NewIntVector(ix.shape))
+				Errorf("index %s out of range for shape %v", s, NewIntVector(ix.shape...))
 			}
 		}
 	}
@@ -202,14 +202,14 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 		case Vector:
 			if len(ix.outShape) != 1 || ix.outShape[0] != len(rhs) {
 				Errorf("shape mismatch %v != %v in assignment %v = %v",
-					NewIntVector(ix.outShape), NewIntVector([]int{len(rhs)}),
+					NewIntVector(ix.outShape...), NewIntVector(len(rhs)),
 					top.ProgString(), right.ProgString())
 			}
 			rslice = rhs
 		case *Matrix:
 			if !sameShape(ix.outShape, rhs.Shape()) {
 				Errorf("shape mismatch %v != %v in assignment %v = %v",
-					NewIntVector(ix.outShape), NewIntVector(rhs.Shape()),
+					NewIntVector(ix.outShape...), NewIntVector(rhs.Shape()...),
 					top.ProgString(), right.ProgString())
 			}
 			rslice = rhs.Data()

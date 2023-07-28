@@ -538,7 +538,7 @@ func init() {
 						counter[i] = origin
 					}
 					for i := range elems {
-						elems[i] = NewIntVector(counter)
+						elems[i] = NewIntVector(counter...)
 						for axis := len(counter) - 1; axis >= 0; axis-- {
 							counter[axis]++
 							if counter[axis]-origin < shape[axis] {
@@ -556,28 +556,28 @@ func init() {
 			name: "rho",
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return NewIntVector([]int{})
+					return empty
 				},
 				charType: func(c Context, v Value) Value {
-					return NewIntVector([]int{})
+					return empty
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return NewIntVector([]int{})
+					return empty
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return NewIntVector([]int{})
+					return empty
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return NewIntVector([]int{})
+					return empty
 				},
 				complexType: func(c Context, v Value) Value {
-					return NewIntVector([]int{})
+					return empty
 				},
 				vectorType: func(c Context, v Value) Value {
-					return NewIntVector([]int{len(v.(Vector))})
+					return NewIntVector(len(v.(Vector)))
 				},
 				matrixType: func(c Context, v Value) Value {
-					return NewIntVector(v.(*Matrix).shape)
+					return NewIntVector(v.(*Matrix).shape...)
 				},
 			},
 		},
@@ -1041,6 +1041,14 @@ func init() {
 				bigFloatType: unique,
 				complexType:  unique,
 				vectorType:   unique,
+			},
+		},
+
+		{
+			name:        "sys",
+			elementwise: false,
+			fn: [numType]unaryFn{
+				vectorType: sys, // Expect a vector of chars.
 			},
 		},
 	}

@@ -923,7 +923,7 @@ func init() {
 				matrixType: func(c Context, u, v Value) Value {
 					A, B := u.(Vector), v.(*Matrix)
 					if len(A) != 1 && B.shape[0] != 1 && len(A) != B.shape[0] {
-						Errorf("decode of length %d and shape %s", len(A), NewIntVector(B.shape))
+						Errorf("decode of length %d and shape %s", len(A), NewIntVector(B.shape...))
 					}
 					shape := B.shape[1:]
 					elems := make([]Value, len(B.data)/B.shape[0])
@@ -1096,7 +1096,7 @@ func init() {
 					A, B := u.(*Matrix), v.(*Matrix)
 					origin := c.Config().Origin()
 					if A.Rank()-1 > B.Rank() || !sameShape(A.shape[1:], B.shape[B.Rank()-(A.Rank()-1):]) {
-						Errorf("iota: mismatched shapes %s and %s", NewIntVector(A.shape), NewIntVector(B.shape))
+						Errorf("iota: mismatched shapes %s and %s", NewIntVector(A.shape...), NewIntVector(B.shape...))
 					}
 					// TODO: This is n^2. Use an algorithm similar to the Vector case, or perhaps use hashing.
 					// However, one of the n's is the dimension of a matrix, so it is likely to be small.

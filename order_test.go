@@ -53,9 +53,9 @@ var (
 	complex2j1 = value.NewComplex(int2, int1) // Bigger real, lesser imaginary
 	complex2j2 = value.NewComplex(int2, int2) // Same real, bigger imaginary
 
-	vector0000 = value.NewIntVector([]int{0, 0, 0, 0})
-	vector012  = value.NewIntVector([]int{0, 1, 2})
-	vector022  = value.NewIntVector([]int{0, 2, 2})
+	vector0000 = value.NewIntVector(0, 0, 0, 0)
+	vector012  = value.NewIntVector(0, 1, 2)
+	vector022  = value.NewIntVector(0, 2, 2)
 
 	matrix000_000 = value.NewMatrix([]int{2, 3}, newMatrixData(0, 0, 0, 0, 0, 0))
 	matrix12_34   = value.NewMatrix([]int{2, 2}, newMatrixData(1, 2, 3, 4))

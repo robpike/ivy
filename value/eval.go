@@ -239,7 +239,7 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		// The result is has shape (-1 drop rho u), (1 drop rho v)
 		v := v.(*Matrix)
 		if u.Rank() < 1 || v.Rank() < 1 || u.shape[len(u.shape)-1] != v.shape[0] {
-			Errorf("inner product: mismatched shapes %s and %s", NewIntVector(u.shape), NewIntVector(v.shape))
+			Errorf("inner product: mismatched shapes %s and %s", NewIntVector(u.shape...), NewIntVector(v.shape...))
 		}
 		n := v.shape[0]
 		vstride := len(v.data) / n
@@ -321,11 +321,11 @@ func Reduce(c Context, op string, v Value) Value {
 		return acc
 	case *Matrix:
 		if v.Rank() < 2 {
-			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
+			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		stride := v.shape[v.Rank()-1]
 		if stride == 0 {
-			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
+			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		shape := v.shape[:v.Rank()-1]
 		data := make(Vector, size(shape))
@@ -362,11 +362,11 @@ func ReduceFirst(c Context, op string, v Value) Value {
 		return Reduce(c, op, v)
 	}
 	if v.Rank() < 2 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape))
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	stride := size(m.shape[1:m.Rank()])
 	if stride == 0 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape))
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	shape := m.shape[1:m.Rank()]
 	data := make(Vector, size(shape))
@@ -413,11 +413,11 @@ func Scan(c Context, op string, v Value) Value {
 		return NewVector(values)
 	case *Matrix:
 		if v.Rank() < 2 {
-			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
+			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		stride := v.shape[v.Rank()-1]
 		if stride == 0 {
-			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape))
+			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		data := make(Vector, len(v.data))
 		nrows := size(v.shape[:len(v.shape)-1])
@@ -455,11 +455,11 @@ func ScanFirst(c Context, op string, v Value) Value {
 		return Scan(c, op, v)
 	}
 	if m.Rank() < 2 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape))
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	stride := m.shape[len(m.shape)-1]
 	if stride == 0 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape))
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	// Simple but effective algorithm: Transpose twice. Better than one might
 	// think because transposition is O(size of matrix) and it also lines up

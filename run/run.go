@@ -32,7 +32,7 @@ func IvyEval(context value.Context, str string) value.Value {
 	parser := parse.NewParser("<ivy>", scanner, context)
 	v := eval(parser, context)
 	if v == nil {
-		v = value.NewIntVector([]int{}) // Must return something, so make it an empty vector.
+		v = value.NewIntVector() // Must return something, so make it an empty vector.
 	}
 	return v
 }
