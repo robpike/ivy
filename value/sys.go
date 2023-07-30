@@ -17,7 +17,7 @@ const sysHelp = `
 "cpu":       the processor timing for the last evaluation
              as a vector in units of seconds:
                real user(cpu) system(cpu)
-"date":      the current time as a vector of numbers:
+"date":      the current time in Unix format
                year month day hour minute second
 "format":    the output format setting
 "ibase":     the input base (ibase) setting
@@ -27,7 +27,10 @@ const sysHelp = `
 "obase":     the output base (obase) setting
 "origin":    the index origin setting
 "prompt":    the prompt setting
-"time":      the current time in Unix format`
+"ns":        the current time in nanoseconds since
+               Jan 1 00:00:00 1970 UTC
+"time":      the current time as a vector of numbers:
+               year month day hour minute second`
 
 // sys implements the variegated "sys" unary operator.
 func sys(c Context, v Value) Value {
@@ -72,6 +75,10 @@ func sys(c Context, v Value) Value {
 		return Int(c.Config().Origin())
 	case "prompt":
 		return newCharVector(fmt.Sprintf("%q", c.Config().Prompt()))
+	case "ns":
+		var i big.Int
+		i.SetInt64(time.Now().UnixNano())
+		return BigInt{&i}
 	case "time":
 		date := time.Now()
 		y, m, d := date.Date()
