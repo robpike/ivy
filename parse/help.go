@@ -74,7 +74,7 @@ var helpLines = []string{
 	"\tAbsolute value    ∣B    abs     Magnitude of B",
 	"\tIndex generator   ⍳B    iota    Vector of the first B integers",
 	"\t                                If B is a vector, matrix of coordinates",
-	"\tUnique            ∩B    unique  Remove all duplicate elements from B",
+	"\tUnique            ∪B    unique  Remove all duplicate elements from B",
 	"\tEnclose           ⊂B    box     Wrap B in one level of nesting",
 	"\tDisclose          ⊃B    first   First element of B in ravel order",
 	"\tExponential       ⋆B    **      e to the B power",
