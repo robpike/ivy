@@ -896,6 +896,10 @@ func init() {
 					if len(A) == 0 || len(B) == 0 {
 						return zero
 					}
+					if allChars(A) {
+						// Special case for times.
+						return decodeTime(A, B)
+					}
 					if len(A) == 1 || len(B) == 1 || len(A) == len(B) {
 						result := Value(zero)
 						prod := Value(one)
@@ -975,6 +979,10 @@ func init() {
 					// of how modulo arithmetic works.
 					const op = "encode"
 					A, B := u.(Vector), v.(Vector)
+					if allChars(A) {
+						// Special case for times.
+						return encodeTime(A, B)
+					}
 					// Scalar.
 					if len(A) == 1 && len(B) == 1 {
 						return emod(op, c, B[0], A[0])

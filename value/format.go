@@ -10,6 +10,7 @@ import (
 	"io"
 	"math/big"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"robpike.io/ivy/config"
@@ -116,6 +117,12 @@ func formatString(c *config.Config, u Value) (string, byte) {
 // skipping %% of course. It returns 0 if no verb is found. It does some rudimentary
 // validation.
 func verbOf(format string) byte {
+	return format[verbIndex(format)]
+}
+
+// verbIndex returns the index of the first formatting verb, after an obligatory percent, in the string,
+// skipping %% of course.
+func verbIndex(format string) int {
 	percent := strings.IndexByte(format, '%')
 	if percent < 0 {
 		Errorf("invalid format %q", format)
@@ -123,8 +130,6 @@ func verbOf(format string) byte {
 	s := format[percent+1:]
 Loop:
 	for i, c := range s {
-		if c == '%' {
-		}
 		switch c {
 		// Flags etc.
 		case '+', '-', '#', ' ', '0':
@@ -134,9 +139,9 @@ Loop:
 			continue
 		// Special case for %%: go on to next verb.
 		case '%':
-			return verbOf(s[i+1:])
-		case 'b', 'c', 'd', 'e', 'E', 'f', 'F', 'g', 'G', 'o', 'O', 'q', 's', 't', 'U', 'v', 'x', 'X':
-			return byte(c)
+			return verbIndex(s[i+1:])
+		case 'b', 'c', 'd', 'e', 'E', 'f', 'F', 'g', 'G', 'o', 'O', 'q', 's', 't', 'T', 'U', 'v', 'x', 'X':
+			return percent + 1 + i
 		default:
 			break Loop
 		}
@@ -150,6 +155,11 @@ Loop:
 // floats and rationals, for example.
 func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 	switch verb {
+	case 'T': // Time.
+		// Maintain flags etc. but turn T into s.
+		f := []byte(format)
+		f[verbIndex(format)] = 's'
+		fmt.Fprintf(w, string(f), timeFromValue(v).Format(time.UnixDate))
 	case 't': // Boolean. TODO: Should be 0 or 1, but that's messy. Odd case anyway.
 		fmt.Fprintf(w, format, toBool(v))
 	case 'v':

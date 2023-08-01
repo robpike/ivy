@@ -1,0 +1,107 @@
+# Copyright 2023 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Tests for sys operations such as time.
+
+# In alphabetical order except for the time ones, which are trickier and
+# done last.
+
+sys 'base'
+	0 0
+
+)base 16
+'%d' text sys 'base'
+	16 16
+
+)ibase 16
+'%d' text sys 'base'
+	16 0
+
+sys 'format'
+	""
+
+)format "%g"
+sys 'format'
+	"%g"
+
+sys 'maxbits'
+	1000000000
+
+)maxbits 999
+sys 'maxbits'
+	999
+
+sys 'maxdigits'
+	10000
+
+)maxdigits 999
+sys 'maxdigits'
+	999
+
+sys 'maxstack'
+	100000
+
+)maxstack 999
+sys 'maxstack'
+	999
+
+)obase 16
+'%d' text sys 'base'
+	0 16
+
+sys 'origin'
+	1
+
+)origin 5
+sys 'origin'
+	5
+
+sys 'prompt'
+	""
+
+)prompt ">>"
+sys 'prompt'
+	">>"
+
+# Now the time ones. Tricky because of time moving underfoot
+# and discrepancies due to the local time zone.
+
+s=sys 'sec'; (s > 1.6e9) s < 3e9
+	1 1
+
+rho sys 'time'
+	6
+
+t = sys 'time'; (2023<=t[1]) (1<=t[2]) (1<=t[3]) (0<=t[4]) (0<=t[5])  (0<=t[6])
+	1 1 1 1 1 1
+
+t = sys 'time'; (3000>=t[1]) (12>=t[2]) (31>=t[3]) (24>=t[4]) (60>=t[5])  (61 >= t[6])
+	1 1 1 1 1 1
+
+rho 'T' encode sys 'sec'
+	6
+
+('T' encode 0)[1 2 3]
+	1970 1 1
+
+'T' decode 'T' encode 0
+	0
+
+('T' encode 'T' decode 2023 6 15)[1 2]
+	2023 6
+
+s=sys 'sec'; s == ('T' decode 'T' encode s)
+	1
+
+# Check that what sys 'date' prints is the same as 'T' text secs.
+# But time can shift in the interim, so we look for general agreement.
+# They will agree perfectly unless a second ticks mid-expression.
+# Unless that second is New Year's, this is fine.
+25 <= +/(sys 'date') == ('T' text sys 'sec')
+	1
+
+# Convert an interval into days, minutes, seconds. (98 days, 14 hours, 57 minutes and 15 seconds).
+0 24 60 60 encode ('T' decode 2023 9 22 3 27 25)-'T' decode 2023 6 15 12 30 10
+	98 14 57 15
+
