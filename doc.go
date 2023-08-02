@@ -143,7 +143,9 @@ Binary operators
 	Take                  A↑B   take      Select the first (or last) A elements of B according to sgn A
 	Drop                  A↓B   drop      Remove the first (or last) A elements of B according to sgn A
 	Decode                A⊥B   decode    Value of a polynomial whose coefficients are B at A
+	                                      'T' decode B creates a seconds value from the time vector B
 	Encode                A⊤B   encode    Base-A representation of the value of B
+	                                      'T' encode B creates a time vector from the seconds value B
 	Residue               A∣B              B modulo A
 	                            mod       A modulo B (Euclidean)
 	                            imod      A modulo B (Go)
@@ -164,6 +166,7 @@ Binary operators
 	                                      otherwise result depends on length of A:
 	                                      1 gives decimal count, 2 gives width and decimal count,
 	                                      3 gives width, decimal count, and style ('d', 'e', 'f', etc.).
+	                                      'T' text B formats seconds value B as a Unix date
 	General transpose     A⍉B   transp    The axes of B are ordered by A
 	Combinations          A!B   !         Number of combinations of B taken A at a time
 	Less than             A<B   <         Comparison: 1 if true, 0 if false

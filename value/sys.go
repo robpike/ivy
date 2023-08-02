@@ -31,7 +31,6 @@ const sysHelp = `
 "time":      the time in the local time zone as a vector of numbers:
                year month day hour minute second
 
-
 To convert seconds to a time vector:
   'T' encode sys 'sec'
 To convert a time vector to a seconds value:
@@ -77,7 +76,7 @@ func sys(c Context, v Value) Value {
 		return Int(c.Config().Origin())
 	case "prompt":
 		return newCharVector(fmt.Sprintf("%q", c.Config().Prompt()))
-	case "sec":
+	case "sec", "now":
 		return BigFloat{big.NewFloat(float64(time.Now().UnixNano()) / 1e9)}
 	case "time":
 		return timeVec(time.Now())
