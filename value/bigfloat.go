@@ -132,9 +132,9 @@ func (f BigFloat) Eval(Context) Value {
 }
 
 func (f BigFloat) Copy() Value {
-	x := new(big.Float)
+	var x big.Float
 	x.Set(f.Float)
-	return BigFloat{x}
+	return BigFloat{&x}
 }
 
 func (f BigFloat) Inner() Value {

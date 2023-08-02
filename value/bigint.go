@@ -135,9 +135,9 @@ func (i BigInt) Eval(Context) Value {
 }
 
 func (i BigInt) Copy() Value {
-	x := new(big.Int)
+	var x big.Int
 	x.Set(i.Int)
-	return BigInt{x}
+	return BigInt{&x}
 }
 
 func (i BigInt) Inner() Value {

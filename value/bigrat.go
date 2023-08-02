@@ -168,9 +168,9 @@ func (r BigRat) Eval(Context) Value {
 }
 
 func (r BigRat) Copy() Value {
-	x := new(big.Rat)
+	var x big.Rat
 	x.Set(r.Rat)
-	return BigRat{x}
+	return BigRat{&x}
 }
 
 func (r BigRat) Inner() Value {
