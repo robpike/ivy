@@ -168,7 +168,7 @@ func (r BigRat) Eval(Context) Value {
 }
 
 func (r BigRat) Copy() Value {
-	var x *big.Rat
+	x := new(big.Rat)
 	x.Set(r.Rat)
 	return BigRat{x}
 }

@@ -132,7 +132,7 @@ func (f BigFloat) Eval(Context) Value {
 }
 
 func (f BigFloat) Copy() Value {
-	var x *big.Float
+	x := new(big.Float)
 	x.Set(f.Float)
 	return BigFloat{x}
 }

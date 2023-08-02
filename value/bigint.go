@@ -135,7 +135,7 @@ func (i BigInt) Eval(Context) Value {
 }
 
 func (i BigInt) Copy() Value {
-	var x *big.Int
+	x := new(big.Int)
 	x.Set(i.Int)
 	return BigInt{x}
 }
