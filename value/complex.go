@@ -65,6 +65,17 @@ func (c Complex) Inner() Value {
 	return c
 }
 
+// Sign returns:
+//
+//	0j0      if c == 0
+//	c/abs c  if c != 0
+func (c Complex) Sign(ctx Context) Complex {
+	if isZero(c) {
+		return c
+	}
+	return c.div(ctx, NewComplex(c.abs(ctx), zero))
+}
+
 func (c Complex) toType(op string, conf *config.Config, which valueType) Value {
 	switch which {
 	case complexType:

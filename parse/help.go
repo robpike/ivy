@@ -80,7 +80,7 @@ var helpLines = []string{
 	"\tExponential       ⋆B    **      e to the B power",
 	"\tNegation          −B    -       Change sign of B",
 	"\tIdentity          +B    +       No change to B",
-	"\tSignum            ×B    sgn     -1 if B<0; 0 if B=0; 1 if B>0",
+	"\tSignum            ×B    sgn     -1 if B<0; 0 if B=0; 1 if B>0. More generally: B/abs B if B!=0",
 	"\tReciprocal        ÷B    /       1 divided by B",
 	"\tRavel             ,B    ,       Reshapes B into a vector",
 	"\tMatrix inverse    ⌹B            Inverse of matrix B",
