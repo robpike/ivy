@@ -372,20 +372,15 @@ func init() {
 			},
 		},
 
-		{ // Euclidean integer modulus.
+		{ // Euclidean integer modulus, generalized.
 			name:        "mod",
 			elementwise: true,
-			whichType:   divType, // Use BigInts to avoid the analysis here.
+			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
-				bigIntType: func(c Context, u, v Value) Value {
-					if v.(BigInt).Sign() == 0 {
-						Errorf("modulo by zero")
-					}
-					return binaryBigIntOp(u, (*big.Int).Mod, v) // Euclidan modulo.
-				},
-				bigRatType:   nil, // Not defined for rationals. Use mod.
-				bigFloatType: nil,
-				complexType:  nil,
+				intType:      mod,
+				bigIntType:   mod,
+				bigRatType:   mod,
+				bigFloatType: mod,
 			},
 		},
 
@@ -985,7 +980,8 @@ func init() {
 					}
 					// Scalar.
 					if len(A) == 1 && len(B) == 1 {
-						return emod(op, c, B[0], A[0])
+						_, rem := QuoRem(op, c, B[0], A[0])
+						return rem
 					}
 					// Vector.
 					if len(B) == 1 {
@@ -993,9 +989,9 @@ func init() {
 						elems := make([]Value, len(A))
 						b := B[0]
 						for i := len(A) - 1; i >= 0; i-- {
-							a := A[i]
-							elems[i] = emod(op, c, b, a)
-							b = ediv(op, c, b, a)
+							quo, rem := QuoRem(op, c, b, A[i])
+							elems[i] = rem
+							b = quo
 						}
 						return NewVector(elems)
 					}
@@ -1004,7 +1000,8 @@ func init() {
 						elems := make([]Value, len(B))
 						a := A[0]
 						for i := range B {
-							elems[i] = emod(op, c, B[i], a)
+							_, rem := QuoRem(op, c, B[i], a)
+							elems[i] = rem
 						}
 						return NewVector(elems)
 					}
@@ -1018,9 +1015,9 @@ func init() {
 						for j := lo; j < hi; j++ {
 							b := B[j]
 							for i := len(A) - 1; i >= 0; i-- {
-								a := A[i]
-								elems[j+i*len(B)] = emod(op, c, b, a)
-								b = ediv(op, c, b, a)
+								quo, rem := QuoRem(op, c, b, A[i])
+								elems[j+i*len(B)] = rem
+								b = quo
 							}
 						}
 					})
@@ -1035,9 +1032,9 @@ func init() {
 						for j := lo; j < hi; j++ {
 							b := B.data[j]
 							for i := len(A) - 1; i >= 0; i-- {
-								a := A[i]
-								elems[j+i*len(B.data)] = emod(op, c, b, a)
-								b = ediv(op, c, b, a)
+								quo, rem := QuoRem(op, c, b, A[i])
+								elems[j+i*len(B.data)] = rem
+								b = quo
 							}
 						}
 					})

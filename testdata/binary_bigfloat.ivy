@@ -20,6 +20,21 @@
 1/sqrt 2
 	0.7071067811865475
 
+(float 3.5) mod float 2.5
+	1
+
+(float 3.5) mod float 2
+	1.5
+
+(float -3.5) mod float 2
+	0.5
+
+(float 3.5) mod float -2
+	1.5
+
+(float -3.5) mod float -2
+	0.5
+
 (sqrt 2) == (sqrt iota 3)
 	0 1 0
 

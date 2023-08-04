@@ -695,26 +695,114 @@ func isTrue(fnName string, v Value) bool {
 	}
 }
 
-// emod is a restricted form of Euclidean integer modulus.
-// Used by encode, and only works for integers.
-func emod(op string, c Context, a, b Value) Value {
-	if z, ok := b.(Int); ok && z == 0 {
-		return a
-	}
-	aa := a.toType(op, c.Config(), bigIntType)
-	bb := b.toType(op, c.Config(), bigIntType)
-	return binaryBigIntOp(aa, (*big.Int).Mod, bb)
+func mod(c Context, a, b Value) Value {
+	_, rem := QuoRem("mod", c, a, b)
+	return rem
 }
 
-// ediv is a restricted form of Euclidean integer division.
-// Used by encode, and only works for integers.
-func ediv(op string, c Context, a, b Value) Value {
-	if z, ok := b.(Int); ok && z == 0 {
-		return a
+// QuoRem uses Euclidean division to return the quotient and remainder for a/b.
+// The quotient will be an integer, possibly negative; the remainder is always positive
+// and may be fractional. Returned values satisfy the identity that
+//	quo = a div b  such that
+//	rem = a - b*quo  with 0 <= rem < |y|
+// See comment for math/big.Int.DivMod for details.
+// Exported for testing.
+func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
+	if z, ok := b.shrink().(Int); ok && z == 0 { // If zero, it must be shrinkable to Int.
+		return zero, a
 	}
-	aa := a.toType(op, c.Config(), bigIntType)
-	bb := b.toType(op, c.Config(), bigIntType)
-	return binaryBigIntOp(aa, (*big.Int).Div, bb)
+	aT := whichType(a)
+	bT := whichType(b)
+	negX, negY := false, false
+	// The calculations all do the division on the absolute values,
+	// then restore sign and adjust if necessary afterwards.
+	switch typ, _ := binaryArithType(aT, bT); typ {
+	case intType:
+		x := int(a.(Int))
+		y := int(b.(Int))
+		if x < 0 {
+			x = -x
+			negX = true
+		}
+		if y < 0 {
+			y = -y
+			negY = true
+		}
+		quo := x / y
+		rem := x % y
+		if negX && rem != 0 {
+			rem = y - rem
+			quo++
+		}
+		if negX != negY {
+			quo = -quo
+		}
+		return Int(quo), Int(rem)
+	case bigIntType:
+		x := a.toType(op, c.Config(), bigIntType).(BigInt)
+		y := b.toType(op, c.Config(), bigIntType).(BigInt)
+		rem := big.NewInt(0)
+		quo := big.NewInt(0)
+		// This is the one case we don't need to work hard.
+		quo.DivMod(x.Int, y.Int, rem)
+		return BigInt{quo}.shrink(), BigInt{rem}.shrink()
+	case bigRatType:
+		x := a.toType(op, c.Config(), bigRatType).(BigRat).Rat
+		y := b.toType(op, c.Config(), bigRatType).(BigRat).Rat
+		if x.Sign() < 0 {
+			x = x.Set(x) // Copy x.
+			x.Neg(x)
+			negX = true
+		}
+		if y.Sign() < 0 {
+			y = y.Set(y) // Copy y.
+			y.Neg(y)
+			negY = true
+		}
+		quo := big.NewRat(1, 1).Quo(x, y)
+		num := big.NewInt(0).Set(quo.Num())
+		iquo := num.Quo(num, quo.Denom()) // Truncation of quotient to an integer.
+		// quo is the division, iquo is its integer truncation. Remainder is (quo-iquo)*y.
+		rem := quo.Sub(quo, big.NewRat(1, 1).SetInt(iquo))
+		rem.Mul(rem, y)
+		if negX && rem.Sign() != 0 {
+			rem.Sub(y, rem)
+			iquo.Add(iquo, bigIntOne.Int)
+		}
+		if negX != negY {
+			iquo.Neg(iquo)
+		}
+		return BigInt{iquo}.shrink(), BigRat{rem}.shrink()
+	case bigFloatType:
+		x := a.toType(op, c.Config(), bigFloatType).(BigFloat).Float
+		y := b.toType(op, c.Config(), bigFloatType).(BigFloat).Float
+		if x.Sign() < 0 {
+			x = x.Copy(x)
+			x.Neg(x)
+			negX = true
+		}
+		if y.Sign() < 0 {
+			y = y.Copy(y)
+			y.Neg(y)
+			negY = true
+		}
+		quo := big.NewFloat(0).Quo(x, y)
+		iquo, _ := quo.Int(nil)
+		// quo is the division, iquo is its integer truncation. Remainder is (quo-iquo)*y.
+		rem := quo.Sub(quo, big.NewFloat(0).SetInt(iquo))
+		rem.Mul(rem, y)
+		if negX && rem.Sign() != 0 {
+			rem.Sub(y, rem)
+			iquo.Add(iquo, bigIntOne.Int)
+		}
+		if negX != negY {
+			iquo.Neg(iquo)
+		}
+		return BigInt{iquo}.shrink(), BigFloat{rem}.shrink()
+	default:
+		Errorf("%s undefined for type %s", op, typ)
+	}
+	return zero, a
 }
 
 // EvalFunctionBody evaluates the list of expressions inside a function,

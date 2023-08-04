@@ -686,6 +686,17 @@ circle 10
 	0 1 0 1 0
 	1 0 1 0 1
 
+# Encode non-integer values.
+
+0 24 60 60 encode 1234567
+	14 6 56 7
+
+0 24 60 60 encode 1234567.89
+	14 6 56 789/100
+
+0 24 60 60 encode float 1234567.5
+	14 6 56 7.5
+
 2 2 2 2 decode 2 2 2 2 encode 5 5 rho iota 25
 	 1  2  3  4  5
 	 6  7  8  9 10
