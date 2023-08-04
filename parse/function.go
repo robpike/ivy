@@ -57,10 +57,10 @@ func (p *Parser) functionDefn() {
 		p.errorf("argument name %q is function name", fn.Name)
 	}
 	// Define it, but prepare to undefine if there's trouble.
+	prevDefn := installMap[fn.Name]
 	p.context.Define(fn)
 	defer p.context.ForgetAll()
 	succeeded := false
-	prevDefn := installMap[fn.Name]
 	defer func() {
 		if !succeeded {
 			if prevDefn == nil {

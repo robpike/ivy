@@ -48,3 +48,12 @@ x
 # shape mismatch (4) != (2) in assignment x[2] = 3 4 5
 x = 3 4 rho iota 12; x[1]=1 2
 	X
+
+# unexpected EOF
+# undefined global variable "inc"
+op inc b =
+ b + 1
+ |
+
+inc 1
+	X
