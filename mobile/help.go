@@ -91,7 +91,7 @@ Disclose          ⊃B    first   First element of B in ravel order
 Exponential       ⋆B    **      e to the B power
 Negation          −B    -       Change sign of B
 Identity          +B    +       No change to B
-Signum            ×B    sgn     -1 if B&lt;0; 0 if B=0; 1 if B&gt;0
+Signum            ×B    sgn     -1 if B&lt;0; 0 if B=0; 1 if B&gt;0. More generally: B/abs B if B!=0
 Reciprocal        ÷B    /       1 divided by B
 Ravel             ,B    ,       Reshapes B into a vector
 Matrix inverse    ⌹B            Inverse of matrix B
