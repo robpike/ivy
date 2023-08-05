@@ -278,7 +278,7 @@ func init() {
 					return Int(v.(BigFloat).Sign())
 				},
 				complexType: func(c Context, v Value) Value {
-					return v.(Complex).Sign(c).shrink()
+					return v.(Complex).Signum(c).shrink()
 				},
 			},
 		},

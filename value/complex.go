@@ -65,11 +65,11 @@ func (c Complex) Inner() Value {
 	return c
 }
 
-// Sign returns:
+// Signum returns:
 //
 //	0j0      if c == 0
 //	c/abs c  if c != 0
-func (c Complex) Sign(ctx Context) Complex {
+func (c Complex) Signum(ctx Context) Complex {
 	if isZero(c) {
 		return c
 	}
