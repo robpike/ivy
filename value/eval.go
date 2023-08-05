@@ -695,6 +695,11 @@ func isTrue(fnName string, v Value) bool {
 	}
 }
 
+// sgn is a wrapper for calling "sgn v".
+func sgn(c Context, v Value) int {
+	return int(c.EvalUnary("sgn", v).(Int))
+}
+
 func mod(c Context, a, b Value) Value {
 	_, rem := QuoRem("mod", c, a, b)
 	return rem

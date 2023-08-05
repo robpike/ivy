@@ -16,8 +16,10 @@ func power(c Context, u, v Value) Value {
 	if _, ok := u.(Complex); ok {
 		return complexPower(c, u.(Complex), v.(Complex)).shrink()
 	}
-	z := floatPower(c, floatSelf(c, u), floatSelf(c, v))
-	return BigFloat{z}.shrink()
+	if sgn(c, u) < 0 {
+		return complexPower(c, NewComplex(u, zero), NewComplex(v, zero)).shrink()
+	}
+	return floatPower(c, floatSelf(c, u), floatSelf(c, v)).shrink()
 }
 
 func exp(c Context, v Value) Value {
@@ -45,14 +47,14 @@ func expComplex(c Context, v Complex) Value {
 }
 
 // floatPower computes bx to the power of bexp.
-func floatPower(c Context, bx, bexp BigFloat) *big.Float {
+func floatPower(c Context, bx, bexp BigFloat) Value {
 	x := bx.Float
 	fexp := newFloat(c).Set(bexp.Float)
 	positive := true
 	conf := c.Config()
 	switch fexp.Sign() {
 	case 0:
-		return newFloat(c).SetInt64(1)
+		return BigFloat{newFloat(c).SetInt64(1)}
 	case -1:
 		if x.Sign() == 0 {
 			Errorf("negative exponent of zero")
@@ -63,13 +65,16 @@ func floatPower(c Context, bx, bexp BigFloat) *big.Float {
 	// Easy cases.
 	switch {
 	case x.Cmp(floatOne) == 0, x.Sign() == 0:
-		return x
+		return bx
 	case fexp.Cmp(floatHalf) == 0:
+		if sgn(c, bx) < 0 {
+			return complexSqrt(c, NewComplex(bx, zero))
+		}
 		z := floatSqrt(c, x)
 		if !positive {
 			z = z.Quo(floatOne, z)
 		}
-		return z
+		return BigFloat{z}
 	}
 	isInt := true
 	exp, acc := fexp.Int64() // No point in doing *big.Ints now. TODO?
@@ -89,7 +94,7 @@ func floatPower(c Context, bx, bexp BigFloat) *big.Float {
 	if !positive {
 		z.Quo(floatOne, z)
 	}
-	return z
+	return BigFloat{z}
 }
 
 // exponential computes exp(x) using the Taylor series. It converges quickly
@@ -155,6 +160,7 @@ func complexIntegerPower(c Context, v Complex, exp int64) Complex {
 // complexPower computes v to the power of exp.
 func complexPower(c Context, v, exp Complex) Value {
 	if isZero(exp.imag) {
+		// Easy special cases.
 		if i, ok := exp.real.(Int); ok {
 			switch {
 			case i == 0:
@@ -166,6 +172,8 @@ func complexPower(c Context, v, exp Complex) Value {
 			default:
 				return complexIntegerPower(c, v, int64(i))
 			}
+		} else if f, ok := exp.real.(BigFloat); ok && f.Cmp(floatHalf) == 0 {
+			return complexSqrt(c, v)
 		}
 	}
 	return expComplex(c, complexLog(c, v).mul(c, exp))
