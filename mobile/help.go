@@ -308,6 +308,7 @@ op save x =
 	total = total + x  # total is global because total is read before written
 	last; last = x     # unused read makes last global
 
+save 9; save 3
 total last
 result: 12 3
 </pre>
