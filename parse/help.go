@@ -320,6 +320,7 @@ var helpLines = []string{
 	"\t\ttotal = total + x  # total is global because total is read before written",
 	"\t\tlast; last = x     # unused read makes last global",
 	"",
+	"\tsave 9; save 3",
 	"\ttotal last",
 	"\tresult: 12 3",
 	"",
