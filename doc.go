@@ -70,7 +70,9 @@ Unary operators
 	Name              APL   Ivy     Meaning
 	Roll              ?B    ?       One integer selected randomly from the first B integers
 	Ceiling           ⌈B    ceil    Least integer greater than or equal to B
+	                                If B is complex, the complex ceiling, as defined by McDonnell
 	Floor             ⌊B    floor   Greatest integer less than or equal to B
+	                                If B is complex, the complex floor, as defined by McDonnell
 	Shape             ⍴B    rho     Vector of number of components in each dimension of B
 	Count             ≢B    count   Scalar number of elements at top level of B
 	Flatten           ∊B    flatten Vector of all the scalar elements within B

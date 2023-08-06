@@ -101,6 +101,49 @@ abs 1j0
 abs 3j4
 	5
 
+# Test cases for floor from E. E. McDonnell's paper (Table I)
+
+floor 0.3j0.6
+	0
+
+floor 0.6j0.8
+	0j1
+
+floor 0.8j0.6
+	1
+
+floor 0.6j0.3
+	0
+
+# Test cases for ceil from E. E. McDonnell's paper (Table II)
+
+ceil 0.1j0.3
+	0j1
+
+ceil 0.7j0.8
+	1j1
+
+ceil -0.1j-0.3
+	0
+
+ceil 0.1j0.7
+	0j1
+
+ceil 0.1j0.7
+	0j1
+
+ceil -0.1j0.7
+	0j1
+
+ceil -0.5j0.5
+	-1j1
+
+ceil -0.5j-0.5
+	-1
+
+ceil 0.7j0.1
+	1
+
 real 3j4
 	3
 

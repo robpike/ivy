@@ -476,6 +476,9 @@ func init() {
 					}
 					return BigInt{i}.shrink()
 				},
+				complexType: func(c Context, v Value) Value {
+					return v.(Complex).floor(c).shrink()
+				},
 			},
 		},
 
@@ -519,6 +522,9 @@ func init() {
 						i.Add(i, bigIntOne.Int)
 					}
 					return BigInt{i}.shrink()
+				},
+				complexType: func(c Context, v Value) Value {
+					return v.(Complex).ceil(c).shrink()
 				},
 			},
 		},
