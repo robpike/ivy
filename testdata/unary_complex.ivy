@@ -121,6 +121,26 @@ phase 1j1 -1j1 -1j-1 1j-1
 rho rho 3j4
 	0
 
+# Conjugate
+
+conj 1
+	1
+
+conj 1/3
+	1/3
+
+conj sqrt 2
+	1.41421356237
+
+conj 1j0
+	1
+
+conj 1j1
+	1j-1
+
+conj conj 1j1
+	1j1
+
 )format "%.16g"
 sqrt 2j1
 	1.455346690225355j0.3435607497225125

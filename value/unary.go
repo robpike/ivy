@@ -282,6 +282,20 @@ func init() {
 				},
 			},
 		},
+		{
+			name:        "conj",
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType:      self,
+				bigIntType:   self,
+				bigRatType:   self,
+				bigFloatType: self,
+				complexType: func(c Context, v Value) Value {
+					u := v.(Complex)
+					return NewComplex(u.real, c.EvalUnary("-", u.imag)).shrink()
+				},
+			},
+		},
 
 		{
 			name:        "!",

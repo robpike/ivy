@@ -116,6 +116,7 @@ Unary operators
 	Real part               real    Real component of the value
 	Imaginary part          imag    Imaginary component of the value
 	Phase                   phase   Phase of the value in the complex plane (-π to π)
+	Conjugate         +B    conj    Complex conjugate of the value
 	System functions  ⎕     sys     Argument is a string; run "sys 'help'" for details
 
 Binary operators

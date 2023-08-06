@@ -123,6 +123,7 @@ Rotation by 90°         j       Multiplication by sqrt(-1)
 Real part               real    Real component of the value
 Imaginary part          imag    Imaginary component of the value
 Phase                   phase   Phase of the value in the complex plane (-π to π)
+Conjugate         +B    conj    Complex conjugate of the value
 System functions  ⎕     sys     Argument is a string; run &quot;sys &apos;help&apos;&quot; for details
 </pre>
 <p>Binary operators
