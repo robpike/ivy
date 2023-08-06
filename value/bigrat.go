@@ -163,6 +163,16 @@ func ratScale(x *big.Rat, exp int) {
 	}
 }
 
+// inverse returns 1/r
+func (r BigRat) inverse() Value {
+	if r.Sign() == 0 {
+		Errorf("inverse of zero")
+	}
+	return BigRat{
+		Rat: big.NewRat(0, 1).SetFrac(r.Denom(), r.Num()),
+	}.shrink()
+}
+
 func (r BigRat) Eval(Context) Value {
 	return r
 }

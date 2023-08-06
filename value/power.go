@@ -168,7 +168,7 @@ func complexPower(c Context, v, exp Complex) Value {
 			case i == 1:
 				return v
 			case i < 0:
-				return complexIntegerPower(c, v, -int64(i)).recip(c)
+				return complexIntegerPower(c, v, -int64(i)).inverse(c)
 			default:
 				return complexIntegerPower(c, v, int64(i))
 			}

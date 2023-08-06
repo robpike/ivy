@@ -6,6 +6,7 @@ package value
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 
 	"robpike.io/ivy/config"
@@ -103,6 +104,17 @@ func (i Int) eExponent() int {
 		x /= 10
 	}
 	return exp
+}
+
+// inverse returns 1/i
+func (i Int) inverse() Value {
+	v := int64(i)
+	if i == 0 {
+		Errorf("inverse of zero")
+	}
+	return BigRat{
+		Rat: big.NewRat(0, 1).SetFrac64(1, v),
+	}.shrink()
 }
 
 // eFormat returns the %e/%E form of the number represented by the

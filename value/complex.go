@@ -112,9 +112,9 @@ func (c Complex) neg(ctx Context) Complex {
 	return NewComplex(ctx.EvalUnary("-", c.real), ctx.EvalUnary("-", c.imag))
 }
 
-func (c Complex) recip(ctx Context) Complex {
+func (c Complex) inverse(ctx Context) Complex {
 	if isZero(c.real) && isZero(c.imag) {
-		Errorf("complex reciprocal of zero")
+		Errorf("complex inverse of zero")
 	}
 	denom := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", c.real), "+", ctx.EvalBinary(c.imag, "*", c.imag))
 	r := ctx.EvalBinary(c.real, "/", denom)

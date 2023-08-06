@@ -914,3 +914,113 @@ func (m *Matrix) grade(c Context) Vector {
 	}
 	return NewIntVector(x...)
 }
+
+// inverse returns the matrix inverse of m. Note: although the code forbids
+// non-scalar elements, they actually "work", but they are probably more confusing
+// than helpful:
+//   x = 2 2 rho 1 2 3 4; x[1;1]=2 3; inv x
+//      (2 2/3)   (-1 -1/3)
+//    (-3/2 -1/2)     (1 1/2)
+//  x+.*inv x
+//    (1 1) (0 0)
+//    (0 0) (1 1)
+//  inv inv x # This one is clearly nuts.
+//    (2 3) (2 2)
+//    (3 3) (4 4)
+// So they are forbidden.
+func (m *Matrix) inverse(c Context) Value {
+	const (
+		nonInvertible = "inverse of non-invertible matrix"
+		nonScalar     = "inverse of matrix with non-scalar element"
+	)
+	switch len(m.shape) {
+	case 0:
+		Errorf("inverse of empty matrix")
+	case 1:
+		return NewMatrix(m.shape, NewVector(m.data).inverse(c).(Vector))
+	case 2:
+		// OK
+	}
+	dim := m.shape[0]
+	if m.shape[1] != dim {
+		Errorf("inverse of non-square matrix")
+	}
+
+	// Gaussian elimination.
+	// First we build a double-wide matrix, t,  by appending the identity matrix.
+	t := make([][]Value, dim)
+	for i := range t {
+		t[i] = make([]Value, 2*dim)
+	}
+	i := 0
+	for y := 0; y < dim; y++ {
+		row := t[y]
+		for x := 0; x < dim; x++ {
+			row[x] = m.data[i]
+			i++
+			if x%dim == y {
+				row[dim+x] = one
+			} else {
+				row[dim+x] = zero
+			}
+		}
+	}
+
+	// Convert left half to the identity matrix using whole-row operations.
+	for x := 0; x < dim; x++ {
+		for y := 0; y < dim; y++ {
+			thisRow := t[y]
+			val := thisRow[x]
+			if !IsScalarType(val) {
+				Errorf(nonScalar)
+			}
+			if y == x {
+				if isZero(val) {
+					Errorf(nonInvertible)
+				}
+				// This is the diagonal. We want a one here.
+				scale := c.EvalUnary("/", val) // Invert so we can multiply in loop.
+				for i := 0; i < 2*dim; i++ {
+					if i == x {
+						thisRow[i] = one
+						continue
+					}
+					thisRow[i] = c.EvalBinary(thisRow[i], "*", scale)
+				}
+				continue
+			}
+			// This is off the diagonal. We want a zero here, which we can
+			// get by subtracting a scaled row that is already zero to the left.
+			if isZero(t[y][x]) {
+				continue
+			}
+			// Find a row with a non-zero element in this column.
+			target := -1
+			for row := x; row < dim; row++ {
+				if row != y && !isZero(t[row][x]) {
+					target = row
+					break
+				}
+			}
+			if target < 0 {
+				Errorf(nonInvertible)
+			}
+			// Subtract scaled target row to get a zero.
+			row := t[target]
+			ratio := c.EvalBinary(thisRow[x], "/", row[x])
+			for i := 0; i < 2*dim; i++ {
+				if i == x {
+					thisRow[i] = zero
+					continue
+				}
+				thisRow[i] = c.EvalBinary(thisRow[i], "-", c.EvalBinary(ratio, "*", row[i]))
+			}
+		}
+	}
+	// Now extract the right hand side of the working area.
+	data := make([]Value, 0, len(m.data))
+	for _, row := range t {
+		data = append(data, row[dim:]...)
+	}
+	return NewMatrix(m.shape, data)
+}

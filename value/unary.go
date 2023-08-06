@@ -219,37 +219,47 @@ func init() {
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					i := int64(v.(Int))
-					if i == 0 {
-						Errorf("division by zero")
-					}
-					return BigRat{
-						Rat: big.NewRat(0, 1).SetFrac64(1, i),
-					}.shrink()
+					return v.(Int).inverse()
 				},
 				bigIntType: func(c Context, v Value) Value {
-					// Zero division cannot happen for unary.
-					return BigRat{
-						Rat: big.NewRat(0, 1).SetFrac(bigIntOne.Int, v.(BigInt).Int),
-					}.shrink()
+					return v.(BigInt).inverse()
 				},
 				bigRatType: func(c Context, v Value) Value {
-					// Zero division cannot happen for unary.
-					r := v.(BigRat)
-					return BigRat{
-						Rat: big.NewRat(0, 1).SetFrac(r.Denom(), r.Num()),
-					}.shrink()
+					return v.(BigRat).inverse()
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					// Zero division cannot happen for unary.
-					f := v.(BigFloat)
-					one := new(big.Float).SetPrec(c.Config().FloatPrec()).SetInt64(1)
-					return BigFloat{
-						Float: one.Quo(one, f.Float),
-					}.shrink()
+					return v.(BigFloat).inverse()
 				},
 				complexType: func(c Context, v Value) Value {
-					return v.(Complex).recip(c)
+					return v.(Complex).inverse(c)
+				},
+			},
+		},
+
+		{
+			name:        "inv",
+			elementwise: false,
+			fn: [numType]unaryFn{
+				intType: func(c Context, v Value) Value {
+					return v.(Int).inverse()
+				},
+				bigIntType: func(c Context, v Value) Value {
+					return v.(BigInt).inverse()
+				},
+				bigRatType: func(c Context, v Value) Value {
+					return v.(BigRat).inverse()
+				},
+				bigFloatType: func(c Context, v Value) Value {
+					return v.(BigFloat).inverse()
+				},
+				complexType: func(c Context, v Value) Value {
+					return v.(Complex).inverse(c)
+				},
+				vectorType: func(c Context, v Value) Value {
+					return v.(Vector).inverse(c)
+				},
+				matrixType: func(c Context, v Value) Value {
+					return v.(*Matrix).inverse(c)
 				},
 			},
 		},

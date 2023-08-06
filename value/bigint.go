@@ -130,6 +130,16 @@ func eExponent(x *big.Int) int {
 	return e
 }
 
+// inverse returns 1/i
+func (i BigInt) inverse() Value {
+	if i.Sign() == 0 {
+		Errorf("inverse of zero")
+	}
+	return BigRat{
+		Rat: big.NewRat(0, 1).SetFrac(bigIntOne.Int, i.Int),
+	}.shrink()
+}
+
 func (i BigInt) Eval(Context) Value {
 	return i
 }

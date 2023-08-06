@@ -382,6 +382,55 @@ func (v Vector) reverse() Vector {
 	return r
 }
 
+// inverse returns 1/v for any scalar value, errors otherwise.
+func inverse(c Context, v Value) Value {
+	switch v := v.(type) {
+	case Int:
+		return v.inverse()
+	case BigInt:
+		return v.inverse()
+	case BigRat:
+		return v.inverse()
+	case BigFloat:
+		return v.inverse()
+	case Complex:
+		return v.inverse(c)
+	}
+	Errorf("inverse of non-scalar %s", v)
+	return zero
+}
+
+// inverse returns the inverse of a vector, defined to be (conj v) / v +.* conj v
+func (v Vector) inverse(c Context) Value {
+	if len(v) == 0 {
+		Errorf("inverse of empty vector")
+	}
+	if len(v) == 1 {
+		return inverse(c, v)
+	}
+	// We could do this evaluation using "conj" and "+.*" but avoid the overhead.
+	conj := v.Copy().(Vector)
+	for i, x := range conj {
+		if !IsScalarType(x) {
+			Errorf("inverse of vector with non-scalar element")
+		}
+		if cmplx, ok := x.(Complex); ok {
+			conj[i] = NewComplex(cmplx.real, c.EvalUnary("-", cmplx.imag)).shrink()
+		}
+	}
+	mag := Value(zero)
+	for i, x := range v {
+		mag = c.EvalBinary(mag, "+", c.EvalBinary(x, "*", conj[i]))
+	}
+	if isZero(mag) {
+		Errorf("inverse of zero vector")
+	}
+	for i, x := range conj {
+		conj[i] = c.EvalBinary(x, "/", mag)
+	}
+	return conj
+}
+
 // membership creates a vector of size len(u) reporting
 // whether each element of u is an element of v.
 // Algorithm is O(nV log nV + nU log nV) where nU==len(u) and nV==len(V).

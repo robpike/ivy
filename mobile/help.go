@@ -94,7 +94,7 @@ Identity          +B    +       No change to B
 Signum            ×B    sgn     -1 if B&lt;0; 0 if B=0; 1 if B&gt;0. More generally: B/abs B if B!=0
 Reciprocal        ÷B    /       1 divided by B
 Ravel             ,B    ,       Reshapes B into a vector
-Matrix inverse    ⌹B            Inverse of matrix B
+Matrix inverse    ⌹B    inv     Inverse of B; for vector (conj v)/v+.*conj v
 Pi times          ○B            Multiply by π
 Logarithm         ⍟B    log     Natural logarithm of B
 Reversal          ⌽B    rot     Reverse elements of B along last axis

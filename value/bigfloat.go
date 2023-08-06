@@ -122,6 +122,17 @@ func (f BigFloat) Sprint(conf *config.Config) string {
 	return f.Float.Text(verb, prec)
 }
 
+// inverse returns 1/f
+func (f BigFloat) inverse() Value {
+	if f.Sign() == 0 {
+		Errorf("inverse of zero")
+	}
+	one := floatOne.Copy(floatOne)
+	return BigFloat{
+		Float: one.Quo(one, f.Float),
+	}.shrink()
+}
+
 func (f BigFloat) ProgString() string {
 	// There is no such thing as a float literal in program listings.
 	panic("float.ProgString - cannot happen")
