@@ -355,6 +355,18 @@ func init() {
 			},
 		},
 
+		{ // Matrix division
+			name:        "mdiv",
+			elementwise: false,
+			whichType:   binaryArithType,
+			fn: [numType]binaryFn{
+				// TODO: Other types?
+				matrixType: func(c Context, u, v Value) Value {
+					return innerProduct(c, v.(*Matrix).inverse(c), "+", "*", u)
+				},
+			},
+		},
+
 		{ // Euclidean integer division.
 			name:        "div",
 			elementwise: true,
