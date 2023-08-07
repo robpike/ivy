@@ -195,16 +195,8 @@ func (c Complex) div(ctx Context, d Complex) Complex {
 // floor returns the complex floor, as defined by
 // McDonnell, E. E. "Complex Floor, APL Congress 73." (1973).
 // https://www.jsoftware.com/papers/eem/complexfloor.htm
-//
-//	op floor z =
-//		r = real z
-//		i = imag z
-//		b = (floor r) j (floor i)
-//		x = r mod 1
-//		y = i mod 1
-//		1 > x + y : b
-//		x >= y    : b + 1
-//		b + 0j1
+// The rough idea is to find the nearest corner of the unit square
+// containing the point, rounding towards the origin.
 func (c Complex) floor(ctx Context) Complex {
 	r := c.real
 	i := c.imag
