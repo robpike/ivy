@@ -191,3 +191,32 @@ func (c Complex) div(ctx Context, d Complex) Complex {
 	i = ctx.EvalBinary(i, "/", denom)
 	return NewComplex(r, i)
 }
+
+// floor returns the complex floor, as defined by
+// McDonnell, E. E. "Complex Floor, APL Congress 73." (1973).
+// https://www.jsoftware.com/papers/eem/complexfloor.htm
+// The rough idea is to find the nearest corner of the unit square
+// containing the point, rounding towards the origin.
+func (c Complex) floor(ctx Context) Complex {
+	r := c.real
+	i := c.imag
+	b := NewComplex(ctx.EvalUnary("floor", r), ctx.EvalUnary("floor", i))
+	x := ctx.EvalBinary(r, "mod", one)
+	y := ctx.EvalBinary(i, "mod", one)
+	if isTrue("floor", ctx.EvalBinary(one, ">", ctx.EvalBinary(x, "+", y))) {
+		return b
+	}
+	if isTrue("floor", ctx.EvalBinary(x, ">=", y)) {
+		return b.add(ctx, complexOne)
+	}
+	return b.add(ctx, NewComplex(zero, one))
+}
+
+// ceil returns the complex ceiling, defined as:
+//
+//	op ceil z = -(floor -z)
+//
+// See the floor method for the definition of complex floor.
+func (c Complex) ceil(ctx Context) Complex {
+	return c.neg(ctx).floor(ctx).neg(ctx)
+}
