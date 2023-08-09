@@ -54,6 +54,22 @@ func assignment(context value.Context, b *binary) value.Value {
 			fixed := &index{left: last, right: list}
 			value.Errorf("cannot assign to %s; use %v", b.left.ProgString(), fixed.ProgString())
 		}
+	case sliceExpr:
+		// Simultaneous assignment requires evaluation of RHS before assignment.
+		rhs := b.right.(sliceExpr)
+		values := make([]value.Value, len(rhs))
+		for i := len(rhs) - 1; i >= 0; i-- {
+			values[i] = rhs[i].Eval(context).Inner()
+		}
+		for i, v := range lhs {
+			vbl := v.(*variableExpr) // Guaranteed to be only a variable on LHS.
+			if vbl.local >= 1 {
+				context.AssignLocal(vbl.local, values[i])
+			} else {
+				context.AssignGlobal(vbl.name, values[i])
+			}
+		}
+		return Assignment{value.NewVector(values)}
 	}
 	value.Errorf("cannot assign to %s", b.left.ProgString())
 	panic("not reached")

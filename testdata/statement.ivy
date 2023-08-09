@@ -222,6 +222,20 @@ x = 1 2 3 4; y = x; y[1] = 7; x[1] y[1]
 x = 3 4 rho iota 12; y = x; y[1;1] = 7; +/+/x==y
 	11
 
+# Multiple and simultaneous assignment
+
+x y = 1 2; x y
+	1 2
+
+x y = (1 2) (3 4); x y
+	(1 2) (3 4)
+
+x y = 'x' 'y'; x y = y x; x y
+	yx
+
+x y = 'ab'; x y
+	ab
+
 # Indexed values can appear in vectors; was parsing bug.
 
 x = 1 2 3 4; x[4] x[3] 7 x[1]
