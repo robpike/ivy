@@ -355,12 +355,26 @@ func init() {
 			},
 		},
 
-		{ // Matrix division
+		{ // Matrix division and vector projection.
 			name:        "mdiv",
 			elementwise: false,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
-				// TODO: Other types?
+				vectorType: func(c Context, u, v Value) Value {
+					// Projection of u onto v
+					uu, vv := u.(Vector), v.(Vector)
+					if len(uu) != len(vv) {
+						Errorf("mismatched lengths %d, %d in vector mdiv", len(uu), len(vv))
+					}
+					for i := range uu {
+						if whichType(uu[i]) >= complexType || whichType(vv[i]) >= complexType {
+							Errorf("non-real element in vector mdiv")
+						}
+					}
+					num := innerProduct(c, uu, "+", "*", vv)
+					den := innerProduct(c, vv, "+", "*", vv)
+					return c.EvalBinary(num, "/", den)
+				},
 				matrixType: func(c Context, u, v Value) Value {
 					return innerProduct(c, v.(*Matrix).inverse(c), "+", "*", u)
 				},

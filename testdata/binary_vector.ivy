@@ -823,3 +823,15 @@ op a div b = 99
 # Odd APL semantics: fill with zeros reshaping empty vector.
 3 rho iota 0
 	0 0 0
+
+# In APL, the matrix division operator on two real vectors
+# gives the magnitude of the projection of x onto y.
+# See https://aplwiki.com/wiki/Matrix_Divide
+x y=(2 7)(3 1); x mdiv y
+	13/10
+
+x y=(2 7)(3 1); y * x mdiv y # Vector projection of x onto y
+	39/10 13/10
+
+x y=(2 7)(3 1); x-y*x mdiv y # Remaining component of x
+	-19/10 57/10
