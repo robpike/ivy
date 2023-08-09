@@ -227,8 +227,14 @@ x = 3 4 rho iota 12; y = x; y[1;1] = 7; +/+/x==y
 x y = 1 2; x y
 	1 2
 
+x y = 1,2; x y # 1,2 is an expression, not a vector until evaluated
+	1 2
+
 x y = (1 2) (3 4); x y
 	(1 2) (3 4)
+
+z = 1 2 3; a b c = z; c b a
+	3 2 1
 
 x y = 'x' 'y'; x y = y x; x y
 	yx

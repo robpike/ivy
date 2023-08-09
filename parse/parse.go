@@ -475,14 +475,6 @@ func (p *Parser) expr() value.Expr {
 				right: p.expr(),
 			}
 		case sliceExpr:
-			right := p.expr()
-			rhs, ok := right.(sliceExpr)
-			if !ok {
-				p.errorf("rhs of assignment to (%s) not a vector", lhs.ProgString())
-			}
-			if len(lhs) != len(rhs) {
-				p.errorf("length mismatch in assignment to (%s)", lhs.ProgString())
-			}
 			for _, v := range lhs {
 				if _, ok := v.(*variableExpr); !ok {
 					p.errorf("cannot assign to %s", v.ProgString())
@@ -491,7 +483,7 @@ func (p *Parser) expr() value.Expr {
 			return &binary{
 				left:  lhs,
 				op:    tok.Text,
-				right: right,
+				right: p.expr(),
 			}
 		}
 		p.errorf("cannot assign to %s", expr.ProgString())
