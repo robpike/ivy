@@ -71,10 +71,22 @@ func verifyQuoRemInt(t *testing.T, c value.Context, x, y int) {
 	}
 }
 
+func bigInt(x int64) value.Value {
+	return value.BigInt{Int: big.NewInt(x)}
+}
+
+func bigRat(x, y int64) value.Value {
+	return value.BigRat{Rat: big.NewRat(x, y)}
+}
+
+func bigFloat(x float64) value.Value {
+	return value.BigFloat{Float: big.NewFloat(x)}
+}
+
 func verifyQuoRemBigInt(t *testing.T, c value.Context, X, Y int) {
 	t.Helper()
 	x, y := int64(X), int64(Y)
-	quoV, remV := value.QuoRem("test", c, value.BigInt{big.NewInt(x)}, value.BigInt{big.NewInt(y)})
+	quoV, remV := value.QuoRem("test", c, bigInt(x), bigInt(y))
 	// For our tests, we get ints back.
 	quo := int64(quoV.(value.Int))
 	rem := int64(remV.(value.Int))
@@ -94,7 +106,7 @@ func verifyQuoRemBigInt(t *testing.T, c value.Context, X, Y int) {
 func verifyQuoRemBigRat(t *testing.T, c value.Context, X, Y int) {
 	t.Helper()
 	x, y := int64(X), int64(Y)
-	quoV, remV := value.QuoRem("test", c, value.BigRat{big.NewRat(x, 1)}, value.BigRat{big.NewRat(y, 1)})
+	quoV, remV := value.QuoRem("test", c, bigRat(x, 1), bigRat(y, 1))
 	// For our tests, we get ints back.
 	quo := int64(quoV.(value.Int))
 	rem := int64(remV.(value.Int))
@@ -114,7 +126,7 @@ func verifyQuoRemBigRat(t *testing.T, c value.Context, X, Y int) {
 func verifyQuoRemBigFloat(t *testing.T, c value.Context, X, Y int) {
 	t.Helper()
 	x, y := float64(X), float64(Y)
-	quoV, remV := value.QuoRem("test", c, value.BigFloat{big.NewFloat(x)}, value.BigFloat{big.NewFloat(y)})
+	quoV, remV := value.QuoRem("test", c, bigFloat(x), bigFloat(y))
 	// For our tests, we get ints back.
 	quo := float64(quoV.(value.Int))
 	rem := float64(remV.(value.Int))
