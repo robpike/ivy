@@ -242,6 +242,9 @@ x y = 'x' 'y'; x y = y x; x y
 x y = 'ab'; x y
 	ab
 
+x y = z (z = 4); x y
+	4 4
+
 # Indexed values can appear in vectors; was parsing bug.
 
 x = 1 2 3 4; x[4] x[3] 7 x[1]

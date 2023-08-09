@@ -65,7 +65,7 @@ func assignment(context value.Context, b *binary) value.Value {
 		}
 		values := make([]value.Value, len(rhs))
 		for i := len(rhs) - 1; i >= 0; i-- {
-			values[i] = rhs[i]
+			values[i] = rhs[i].Eval(context).Inner()
 		}
 		for i, v := range lhs {
 			vbl := v.(*variableExpr) // Guaranteed to be only a variable on LHS.
