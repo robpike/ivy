@@ -180,6 +180,7 @@ func reset() {
 	testConf.SetFormat("")
 	testConf.SetMaxBits(1e9)
 	testConf.SetMaxDigits(1e4)
+	testConf.SetMaxStack(100000)
 	testConf.SetOrigin(1)
 	testConf.SetPrompt("")
 	testConf.SetBase(0, 0)
