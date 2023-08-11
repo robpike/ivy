@@ -266,6 +266,11 @@ func (v Vector) AllChars() bool {
 
 // allScalars reports whether all the elements are scalar.
 func (v Vector) allScalars() bool {
+	return allScalars(v)
+}
+
+// allScalars reports whether all the elements are scalar.
+func allScalars(v []Value) bool {
 	for _, x := range v {
 		if !IsScalarType(x) {
 			return false
@@ -380,67 +385,6 @@ func (v Vector) reverse() Vector {
 		r[i], r[j] = r[j], r[i]
 	}
 	return r
-}
-
-// mix builds a matrix from the elements of the nested vector.
-func (v Vector) mix(c Context) Value {
-	// If it's all scalar, nothing to do.
-	if v.allScalars() {
-		return v.Copy()
-	}
-	shape := []int{0}
-	for _, e := range v {
-		switch e := e.(type) {
-		default:
-			if shape[len(shape)-1] == 0 {
-				shape[len(shape)-1] = 1
-			}
-		case Vector:
-			if shape[len(shape)-1] < len(e) {
-				shape[len(shape)-1] = len(e)
-			}
-		case *Matrix:
-			for len(e.shape) > len(shape) {
-				shape = append(shape, 0)
-			}
-			for i, s := range e.shape {
-				if shape[i] < s {
-					shape[i] = s
-				}
-			}
-		}
-	}
-	var data []Value
-	vshape := NewIntVector(shape...)
-	for _, e := range v {
-		var m *Matrix
-		takeShape := make([]int, len(shape))
-		for i := range takeShape {
-			takeShape[i] = 1
-		}
-		switch e := e.(type) {
-		default:
-			m = NewMatrix(takeShape, []Value{e}).take(c, vshape)
-		case Vector:
-			takeShape[len(takeShape)-1] = len(e)
-			m = NewMatrix(takeShape, e).take(c, vshape)
-		case *Matrix:
-			offset := len(vshape) - len(e.shape)
-			same := offset == 0
-			for i := range e.shape {
-				if e.shape[i] != takeShape[offset+i] {
-					same = false
-				}
-				takeShape[offset+i] = e.shape[i]
-			}
-			m = e
-			if !same {
-				m = NewMatrix(takeShape, e.data).take(c, vshape)
-			}
-		}
-		data = append(data, m.data...)
-	}
-	return NewMatrix(append([]int{len(v)}, shape...), data)
 }
 
 // inverse returns the inverse of a vector, defined to be (conj v) / v +.* conj v

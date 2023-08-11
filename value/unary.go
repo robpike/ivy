@@ -203,9 +203,13 @@ func init() {
 				bigFloatType: self,
 				complexType:  self,
 				vectorType: func(c Context, v Value) Value {
-					return v.(Vector).mix(c)
+					vv := v.(Vector)
+					return NewMatrix([]int{len(vv)}, vv).mix(c).shrink()
+
 				},
-				// TODO: Matrix?
+				matrixType: func(c Context, v Value) Value {
+					return v.(*Matrix).mix(c)
+				},
 			},
 		},
 

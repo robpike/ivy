@@ -906,6 +906,67 @@ func (m *Matrix) split() Value {
 	return NewMatrix(m.shape[:len(m.shape)-1], mData).shrink()
 }
 
+// mix builds a matrix from the elements of the nested matrix.
+func (m *Matrix) mix(c Context) Value {
+	// If it's all scalar, nothing to do.
+	if allScalars(m.data) {
+		return m.Copy()
+	}
+	shape := []int{0}
+	for _, e := range m.data {
+		switch e := e.(type) {
+		default:
+			if shape[len(shape)-1] == 0 {
+				shape[len(shape)-1] = 1
+			}
+		case Vector:
+			if shape[len(shape)-1] < len(e) {
+				shape[len(shape)-1] = len(e)
+			}
+		case *Matrix:
+			for len(e.shape) > len(shape) {
+				shape = append(shape, 0)
+			}
+			for i, s := range e.shape {
+				if shape[i] < s {
+					shape[i] = s
+				}
+			}
+		}
+	}
+	var data []Value
+	vshape := NewIntVector(shape...)
+	for _, e := range m.data {
+		var nm *Matrix
+		takeShape := make([]int, len(shape))
+		for i := range takeShape {
+			takeShape[i] = 1
+		}
+		switch e := e.(type) {
+		default:
+			nm = NewMatrix(takeShape, []Value{e}).take(c, vshape)
+		case Vector:
+			takeShape[len(takeShape)-1] = len(e)
+			nm = NewMatrix(takeShape, e).take(c, vshape)
+		case *Matrix:
+			offset := len(vshape) - len(e.shape)
+			same := offset == 0
+			for i := range e.shape {
+				if e.shape[i] != takeShape[offset+i] {
+					same = false
+				}
+				takeShape[offset+i] = e.shape[i]
+			}
+			nm = e
+			if !same {
+				nm = NewMatrix(takeShape, e.data).take(c, vshape)
+			}
+		}
+		data = append(data, nm.data...)
+	}
+	return NewMatrix(append(m.shape, shape...), data)
+}
+
 // grade returns as a Vector the indexes that sort the rows of m
 // into increasing order.
 func (m *Matrix) grade(c Context) Vector {
