@@ -42,7 +42,12 @@ func (p *Parser) functionDefn() {
 	if p.peek().Type == scan.Identifier {
 		idents = append(idents, p.next().Text)
 	}
-	tok := p.next()
+	// Undefine if so requested.
+	if undefine {
+		p.need(scan.EOF)
+		p.context.Undefine(idents[len(idents)-2], len(idents) == 3)
+		return
+	}
 	// Install the function in the symbol table so recursive ops work. (As if.)
 	var installMap map[string]*exec.Function
 	if len(idents) == 3 {
@@ -65,12 +70,6 @@ func (p *Parser) functionDefn() {
 	if fn.Name == fn.Left || fn.Name == fn.Right {
 		p.errorf("argument name %q is function name", fn.Name)
 	}
-	// Undefine if so requested.
-	if undefine {
-		p.context.UnDefine(fn)
-		p.need(scan.EOF)
-		return
-	}
 	// Define it, but prepare to undefine if there's trouble.
 	prevDefn := installMap[fn.Name]
 	p.context.Define(fn)
@@ -86,6 +85,7 @@ func (p *Parser) functionDefn() {
 		}
 	}()
 
+	tok := p.next()
 	switch tok.Type {
 	case scan.Assign:
 		// Either one line:

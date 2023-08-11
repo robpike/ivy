@@ -233,28 +233,25 @@ func (c *Context) Define(fn *Function) {
 	c.Defs = append(c.Defs, OpDef{fn.Name, fn.IsBinary})
 }
 
-func (c *Context) UnDefine(fn *Function) {
-	binary := false
-	ary := "unary"
-	if fn.IsBinary {
-		binary = true
-		ary = "binary"
-	}
+func (c *Context) Undefine(name string, binary bool) {
 	// Is it already defined?
 	for i, def := range c.Defs {
-		if def.Name == fn.Name && def.IsBinary == fn.IsBinary {
+		if def.Name == name && def.IsBinary == binary {
 			// Yes. Drop it.
 			c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
 			if binary {
-				delete(c.BinaryFn, fn.Name)
+				delete(c.BinaryFn, name)
 			} else {
-				delete(c.UnaryFn, fn.Name)
+				delete(c.UnaryFn, name)
 			}
 			return
 		}
 	}
-
-	value.Errorf("no definition for %s %s", ary, fn.Name)
+	ary := "unary"
+	if binary {
+		ary = "binary"
+	}
+	value.Errorf("no definition for %s %s", ary, name)
 }
 
 // noVar guarantees that there is no global variable with that name,
