@@ -38,6 +38,9 @@ func (m *Matrix) Rank() int {
 }
 
 func (m *Matrix) shrink() Value {
+	if len(m.shape) == 1 {
+		return NewVector(m.data)
+	}
 	return m
 }
 
@@ -888,22 +891,19 @@ func (m *Matrix) drop(c Context, v Vector) *Matrix {
 	return m.take(c, take)
 }
 
-// split reduces the matrix to a vector of its top elements.
-func (m *Matrix) split() Vector {
+// split reduces the matrix by one dimension.
+func (m *Matrix) split() Value {
 	if len(m.shape) < 2 {
 		// TODO?
 		Errorf("cannot split rank %d matrix", len(m.shape))
 	}
-	vdata := make([]Value, m.shape[0])
-	elemSize := size(m.shape[1:])
-	j := 0
-	for i := range vdata {
-		data := make([]Value, elemSize)
-		copy(data, m.data[j:j+elemSize])
-		j += elemSize
-		vdata[i] = NewVector(data)
+	// Matrix of vectors.
+	n := m.shape[len(m.shape)-1]
+	mData := make([]Value, 0, size(m.shape[:len(m.shape)-1]))
+	for i := 0; i < len(m.data); i += n {
+		mData = append(mData, NewVector(m.data[i:i+n]))
 	}
-	return NewVector(vdata)
+	return NewMatrix(m.shape[:len(m.shape)-1], mData).shrink()
 }
 
 // grade returns as a Vector the indexes that sort the rows of m
