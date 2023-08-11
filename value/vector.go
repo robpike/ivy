@@ -249,7 +249,7 @@ func (v Vector) fillValue() Value {
 	return fillValue(v)
 }
 
-// allChars reports whether the data contains only Chars.
+// allChars reports whether the top level of the data contains only Chars.
 func allChars(v []Value) bool {
 	for _, c := range v {
 		if _, ok := c.Inner().(Char); !ok {
@@ -382,22 +382,65 @@ func (v Vector) reverse() Vector {
 	return r
 }
 
-// inverse returns 1/v for any scalar value, errors otherwise.
-func inverse(c Context, v Value) Value {
-	switch v := v.(type) {
-	case Int:
-		return v.inverse()
-	case BigInt:
-		return v.inverse()
-	case BigRat:
-		return v.inverse()
-	case BigFloat:
-		return v.inverse()
-	case Complex:
-		return v.inverse(c)
+// mix builds a matrix from the elements of the nested vector.
+func (v Vector) mix(c Context) Value {
+	// If it's all scalar, nothing to do.
+	if v.allScalars() {
+		return v.Copy()
 	}
-	Errorf("inverse of non-scalar %s", v)
-	return zero
+	shape := []int{0}
+	for _, e := range v {
+		switch e := e.(type) {
+		default:
+			if shape[len(shape)-1] == 0 {
+				shape[len(shape)-1] = 1
+			}
+		case Vector:
+			if shape[len(shape)-1] < len(e) {
+				shape[len(shape)-1] = len(e)
+			}
+		case *Matrix:
+			for len(e.shape) > len(shape) {
+				shape = append(shape, 0)
+			}
+			for i, s := range e.shape {
+				if shape[i] < s {
+					shape[i] = s
+				}
+			}
+		}
+	}
+	var data []Value
+	vshape := NewIntVector(shape...)
+	for _, e := range v {
+		var m *Matrix
+		takeShape := make([]int, len(shape))
+		for i := range takeShape {
+			takeShape[i] = 1
+		}
+		switch e := e.(type) {
+		default:
+			m = NewMatrix(takeShape, []Value{e}).take(c, vshape)
+		case Vector:
+			takeShape[len(takeShape)-1] = len(e)
+			m = NewMatrix(takeShape, e).take(c, vshape)
+		case *Matrix:
+			offset := len(vshape) - len(e.shape)
+			same := offset == 0
+			for i := range e.shape {
+				if e.shape[i] != takeShape[offset+i] {
+					same = false
+				}
+				takeShape[offset+i] = e.shape[i]
+			}
+			m = e
+			if !same {
+				m = NewMatrix(takeShape, e.data).take(c, vshape)
+			}
+		}
+		data = append(data, m.data...)
+	}
+	return NewMatrix(append([]int{len(v)}, shape...), data)
 }
 
 // inverse returns the inverse of a vector, defined to be (conj v) / v +.* conj v

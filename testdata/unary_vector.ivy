@@ -180,3 +180,59 @@ first (1 2 3) (4 5 6)
 
 first iota 0
 	0
+
+mix 1 2 3
+	1 2 3
+
+mix (1 2) (3 4)
+	1 2
+	3 4
+
+mix 'ab' 'cd'
+	ab
+	cd
+
+mix 'ab' (2 3)
+	a b
+	2 3
+
+mix 9 (3 4 rho iota 10)
+	 9  0  0  0
+	 0  0  0  0
+	 0  0  0  0
+
+	 1  2  3  4
+	 5  6  7  8
+	 9 10  1  2
+
+
+mix 9 (3 4 rho iota 10) (2 2 rho 9 8 7 6) # Matrices of different sizes.
+	 9  0  0  0
+	 0  0  0  0
+	 0  0  0  0
+
+	 1  2  3  4
+	 5  6  7  8
+	 9 10  1  2
+
+	 9  8  0  0
+	 7  6  0  0
+	 0  0  0  0
+
+mix (2 5 rho iota 10) (3 4 rho iota 12) # Fills out to maximum on each axis.
+	 1  2  3  4  1
+	 2  3  4  1  2
+	 0  0  0  0  0
+
+	 1  2  3  4  0
+	 5  6  7  8  0
+	 9 10 11 12  0
+
+# If there is no fill, mix and split are inverses.
+split mix (1 2) (3 4)
+	(1 2) (3 4)
+
+mix split 2 2 rho iota 4
+	1 2
+	3 4
+

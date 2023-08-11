@@ -180,6 +180,36 @@ func init() {
 		},
 
 		{
+			name: "split",
+			fn: [numType]unaryFn{
+				intType:      self,
+				bigIntType:   self,
+				bigRatType:   self,
+				bigFloatType: self,
+				complexType:  self,
+				// TODO: Vector?
+				matrixType: func(c Context, v Value) Value {
+					return v.(*Matrix).split()
+				},
+			},
+		},
+
+		{
+			name: "mix",
+			fn: [numType]unaryFn{
+				intType:      self,
+				bigIntType:   self,
+				bigRatType:   self,
+				bigFloatType: self,
+				complexType:  self,
+				vectorType: func(c Context, v Value) Value {
+					return v.(Vector).mix(c)
+				},
+				// TODO: Matrix?
+			},
+		},
+
+		{
 			name: "+",
 			fn: [numType]unaryFn{
 				intType:      self,

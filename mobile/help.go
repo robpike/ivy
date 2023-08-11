@@ -90,6 +90,8 @@ Index generator   ⍳B    iota    Vector of the first B integers
 Unique            ∪B    unique  Remove all duplicate elements from B
 Enclose           ⊂B    box     Wrap B in one level of nesting
 Disclose          ⊃B    first   First element of B in ravel order
+Split             ↓B    split   Create vector of nested elements from matrix B; inverse of mix
+Mix               ↑B    mix     Create matrix from elements of vector B; inverse of split
 Exponential       ⋆B    **      e to the B power
 Negation          −B    -       Change sign of B
 Identity          +B    +       No change to B

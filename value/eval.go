@@ -700,6 +700,24 @@ func sgn(c Context, v Value) int {
 	return int(c.EvalUnary("sgn", v).(Int))
 }
 
+// inverse returns 1/v for any scalar value, errors otherwise.
+func inverse(c Context, v Value) Value {
+	switch v := v.(type) {
+	case Int:
+		return v.inverse()
+	case BigInt:
+		return v.inverse()
+	case BigRat:
+		return v.inverse()
+	case BigFloat:
+		return v.inverse()
+	case Complex:
+		return v.inverse(c)
+	}
+	Errorf("inverse of non-scalar %s", v)
+	return zero
+}
+
 func mod(c Context, a, b Value) Value {
 	_, rem := QuoRem("mod", c, a, b)
 	return rem
