@@ -82,8 +82,10 @@ t = sys 'time'; (3000>=t[1]) (12>=t[2]) (31>=t[3]) (24>=t[4]) (60>=t[5])  (61 >=
 rho 'T' encode sys 'sec'
 	6
 
-('T' encode 0)[1 2 3]
-	1970 1 1
+# Gives 1969 12 31 one side of the data line, 1970 1 1 on the other
+(1970 1 1 == x) | ((1969 12 31 == x =('T' encode 0)[1 2 3]))
+	1 1 1
+
 
 'T' decode 'T' encode 0
 	0
