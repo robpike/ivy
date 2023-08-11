@@ -3,63 +3,58 @@
 # license that can be found in the LICENSE file.
 
 # Things that should cause failures.
-# Comment line is error we expect (not verified by tests - TODO).
+# Comment line beginning "Expect: " is error we expect.
 
-# zero denominator in rational
-1/0
-	X
-
-# undefined variable "x"
+# Expect: undefined global variable "x"
 x
-	X
+	#
 
-# invalid code points in string
+# Expect: invalid code points in string
 '\x80'
-	X
+	#
 
-# cannot index int
+# Expect: cannot index 1 (int)
 1[1]
-	X
+	#
 
-# cannot index rational
+# Expect: cannot index 1/2 (rational)
 1/2 [1]
-	X
+	#
 
-# cannot index float
+# Expect: cannot index log 2 (float)
 (log 2)[1]
-	X
+	#
 
-# index must be integer
-1 2[1 2 log 2]
-	X
+# Expect: invalid index (2) (float) in 1 2 (float 2) in 1 2[1 2 (float 2)]
+1 2[1 2 (float 2)]
+	#
 
-# zero denominator in rational
+# Expect: zero denominator in rational
 1/0
-	X
+	#
 
-# division by zero
+# Expect: division by zero
 1 / 0
-	X
+	#
 
-# division by zero
+# Expect: division by zero
 1 / 2 2 rho 0
-	X
+	#
 
-# shape mismatch (4) != (2) in assignment x[2] = 3 4 5
+# Expect: shape mismatch (4) != (2) in assignment x[1] = 1 2
 x = 3 4 rho iota 12; x[1]=1 2
-	X
+	#
 
-# unexpected EOF
-# undefined global variable "inc"
+# Expect: unexpected EOF
 op inc b =
  b + 1
  |
+	#
 
-inc 1
-	X
+# Expect: no definition for unary foo
+opdelete foo x
+	#
 
-# no definition for unary foo
-opdelete foo
-
-# no definition for binary foo
+# Expect: no definition for binary foo
 opdelete x foo y
+	#

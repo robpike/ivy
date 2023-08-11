@@ -45,6 +45,7 @@ func TestAll(t *testing.T) {
 			continue
 		}
 		t.Log(name)
+		shouldFail := strings.HasSuffix(name, "_fail.ivy")
 		var data []byte
 		path := filepath.Join("testdata", name)
 		data, err = ioutil.ReadFile(path)
@@ -59,14 +60,14 @@ func TestAll(t *testing.T) {
 		errCount := 0
 		for len(lines) > 0 {
 			// Assemble the input to one example.
-			input, output, length := getText(t, path, lineNum, lines)
+			input, output, length := getText(t, path, lineNum, shouldFail, lines)
 			if input == nil {
 				break
 			}
 			if verbose {
 				fmt.Printf("%s:%d: %s\n", path, lineNum, input)
 			}
-			if !runTest(t, path, lineNum, input, output) {
+			if !runTest(t, path, lineNum, shouldFail, input, output) {
 				errCount++
 				if errCount > 3 {
 					t.Fatal("too many errors")
@@ -78,8 +79,7 @@ func TestAll(t *testing.T) {
 	}
 }
 
-func runTest(t *testing.T, name string, lineNum int, input, output []string) bool {
-	shouldFail := strings.HasSuffix(name, "_fail.ivy")
+func runTest(t *testing.T, name string, lineNum int, shouldFail bool, input, output []string) bool {
 	reset()
 	in := strings.Join(input, "\n")
 	stdout := new(bytes.Buffer)
@@ -89,13 +89,21 @@ func runTest(t *testing.T, name string, lineNum int, input, output []string) boo
 		if stderr.Len() == 0 {
 			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, in)
 		}
+		expect := ""
+		for _, s := range input {
+			if strings.HasPrefix(s, "# Expect: ") {
+				expect = s[len("# Expect: "):]
+			}
+		}
+		if expect != "" && !strings.Contains(stderr.String(), expect) {
+			t.Errorf("\nunexpected execution failure message at %s:%d:\n%s", name, lineNum, in)
+			t.Errorf("got:\n\t%s", stderr)
+			t.Fatalf("expected:\n\t%s\n", expect)
+		}
 		return true
 	}
 	if stderr.Len() != 0 {
 		t.Fatalf("\nexecution failure (%s) at %s:%d:\n%s", stderr, name, lineNum, in)
-	}
-	if shouldFail {
-		return true
 	}
 	result := strings.Split(stdout.String(), "\n")
 	if !equal(result, output) {
@@ -125,13 +133,15 @@ func equal(a, b []string) bool {
 	return true
 }
 
-func getText(t *testing.T, fileName string, lineNum int, lines []string) (input, output []string, length int) {
-	// Skip blank and initial comment lines.
-	for _, line := range lines {
-		if len(line) > 0 && !strings.HasPrefix(line, "#") {
-			break
+func getText(t *testing.T, fileName string, lineNum int, shouldFail bool, lines []string) (input, output []string, length int) {
+	// Skip blank and initial comment lines, except keep leading comment for failure checks.
+	if !shouldFail {
+		for _, line := range lines {
+			if len(line) > 0 && !strings.HasPrefix(line, "#") {
+				break
+			}
+			length++
 		}
-		length++
 	}
 
 	// Input ends at tab-indented line.
