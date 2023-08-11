@@ -349,7 +349,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 // Line
 //
 //	) special command '\n'
-//	def function defintion
+//	op function defintion
 //	expressionList '\n'
 func (p *Parser) Line() ([]value.Expr, bool) {
 	var ok bool
@@ -365,6 +365,9 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 		p.context.SetConstants()
 		return nil, true
 	case scan.Op:
+		p.functionDefn()
+		return nil, true
+	case scan.OpDelete:
 		p.functionDefn()
 		return nil, true
 	}

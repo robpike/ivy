@@ -334,6 +334,11 @@ To write to a global without reading it first, insert an unused read.
 	total last
 	result: 12 3
 
+To remove the definition of a unary or binary user-defined operator,
+
+	opdelete foo x
+	opdelete a gcd b
+
 # Special commands
 
 Ivy accepts a number of special commands, introduced by a right paren

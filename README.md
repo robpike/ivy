@@ -21,6 +21,6 @@ Slides for a talk at: https://talks.godoc.org/github.com/robpike/ivy/talks/ivy.s
 Video for the talk at: https://www.youtube.com/watch?v=PXoG0WX0r_E
 The talk predates a lot of the features, including floating point, text, and user-defined operators.
 
-To be built, ivy requires Go 1.17.
+To be built, ivy requires Go 1.21.
 
 ![Ivy](ivy.jpg)

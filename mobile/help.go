@@ -318,6 +318,10 @@ save 9; save 3
 total last
 result: 12 3
 </pre>
+<p>To remove the definition of a unary or binary user-defined operator,
+<pre>opdelete foo x
+opdelete a gcd b
+</pre>
 <h3 id="hdr-Special_commands">Special commands</h3>
 <p>Ivy accepts a number of special commands, introduced by a right paren
 at the beginning of the line. Most report the current value if a new value

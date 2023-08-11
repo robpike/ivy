@@ -12,18 +12,27 @@ import (
 	"robpike.io/ivy/value"
 )
 
-// function definition
+// function [un]definition
 //
 //	"op" name arg <eol>
 //	"op" name arg '=' statements <eol>
 //	"op" arg name arg '=' statements <eol>
+//	"opdelete" name arg <eol>
+//	"opdelete" arg name arg <eol>
 //
 // statements:
 //
 //	expressionList
 //	'\n' (expressionList '\n')+ '\n' # For multiline definition, ending with blank line.
 func (p *Parser) functionDefn() {
-	p.need(scan.Op)
+	undefine := false
+	switch tok := p.next(); tok.Type {
+	case scan.Op:
+	case scan.OpDelete:
+		undefine = true
+	default:
+		p.errorf("unexpected %s", tok) // Cannot happen but be safe.
+	}
 	fn := new(exec.Function)
 	// Two identifiers means: op arg.
 	// Three identifiers means: arg op arg.
@@ -55,6 +64,12 @@ func (p *Parser) functionDefn() {
 	}
 	if fn.Name == fn.Left || fn.Name == fn.Right {
 		p.errorf("argument name %q is function name", fn.Name)
+	}
+	// Undefine if so requested.
+	if undefine {
+		p.context.UnDefine(fn)
+		p.need(scan.EOF)
+		return
 	}
 	// Define it, but prepare to undefine if there's trouble.
 	prevDefn := installMap[fn.Name]

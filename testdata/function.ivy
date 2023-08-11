@@ -241,3 +241,19 @@ op foo a = a[;1]
 foo 3 3 rho iota 10
 	1 4 7
 
+# Undefine an operator.
+
+op a mod b = 7
+5 mod 2
+opdelete a mod b
+5 mod 2
+	7
+	1
+
+op floor b = 7
+floor 12
+opdelete floor b
+floor 12
+	7
+	12
+
