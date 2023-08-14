@@ -14,7 +14,10 @@ Try the demo: within ivy, type
 
 	)demo
 
-Prototype apps for iPhone, iPad, and Android were once available in the App store and Google Play store. They will return some day. When they do, to find them, search for "ivy bignum calculator".
+Prototype apps for iOS and Android are available in the App store and Google Play store.
+(At the moment, the iOS one is unavailable but will return.)
+These are very old but should be updated before too long.
+To find them, search for "ivy bignum calculator".
 
 Slides for a talk at: https://talks.godoc.org/github.com/robpike/ivy/talks/ivy.slide
 Video for the talk at: https://www.youtube.com/watch?v=PXoG0WX0r_E
