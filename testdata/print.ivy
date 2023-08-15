@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-# Test printing, particularly when the output is multline.
+# Test printing, particularly when the output is multiline.
 
 # First, the easy stuff.
 

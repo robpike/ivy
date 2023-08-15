@@ -96,7 +96,7 @@ func (i Int) eExponent() int {
 	if i < 0 {
 		i = -i
 	}
-	// The exponent will alway be >= 0.
+	// The exponent will always be >= 0.
 	exp := 0
 	x := i
 	for x >= 10 {

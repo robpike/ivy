@@ -286,7 +286,7 @@ type Parser struct {
 }
 
 // NewParser returns a new parser that will read from the scanner.
-// The context must have have been created by this package's NewContext function.
+// The context must have been created by this package's NewContext function.
 func NewParser(fileName string, scanner *scan.Scanner, context value.Context) *Parser {
 	return &Parser{
 		scanner:  scanner,
@@ -349,7 +349,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 // Line
 //
 //	) special command '\n'
-//	op function defintion
+//	op function definition
 //	expressionList '\n'
 func (p *Parser) Line() ([]value.Expr, bool) {
 	var ok bool
