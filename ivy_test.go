@@ -118,7 +118,7 @@ func runTest(t *testing.T, name string, lineNum int, shouldFail bool, input, out
 }
 
 func equal(a, b []string) bool {
-	// Split leaves an empty traililng line.
+	// Split leaves an empty trailing line.
 	if len(a) > 0 && a[len(a)-1] == "" {
 		a = a[:len(a)-1]
 	}
