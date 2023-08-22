@@ -160,7 +160,7 @@ Output:
 	(<2> * (iota (<2> + <3>)))
 	2 4 6 8 10
 
-No precedence hierachy. Easy to parse.
+No precedence hierarchy. Easy to parse.
 
 In ivy, at least for now, parsing also evaluates.
 

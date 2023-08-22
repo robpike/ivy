@@ -644,7 +644,7 @@ func (l *Scanner) isNumeral(r rune) bool {
 }
 
 // isAllDigits reports whether s consists of digits in the specified base,
-// includig possibly one 'j'.
+// including possibly one 'j'.
 func isAllDigits(s string, base int) bool {
 	top := 'a' + rune(base-10) - 1
 	TOP := 'A' + rune(base-10) - 1

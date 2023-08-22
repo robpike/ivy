@@ -145,7 +145,7 @@ func (m *Matrix) fprintf(c Context, w io.Writer, format string) {
 		formatOne(c, w, format, verb, v)
 		printSpace = true
 		for k := rank - 1; k >= 0; k-- {
-			// Litte-endian counter iterates the indexes.
+			// Little-endian counter iterates the indexes.
 			counters[k]++
 			if counters[k] < m.shape[k] {
 				break
