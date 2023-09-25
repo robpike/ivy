@@ -353,7 +353,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 //	expressionList '\n'
 func (p *Parser) Line() ([]value.Expr, bool) {
 	var ok bool
-	if !p.readTokensToNewline() {
+	if !p.readTokensToNewline(false) {
 		return nil, false
 	}
 	tok := p.peek()
@@ -383,7 +383,7 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 // We read all tokens before parsing for easy error recovery
 // if an error occurs mid-line. It also gives us lookahead
 // for parsing, which we may use one day.
-func (p *Parser) readTokensToNewline() bool {
+func (p *Parser) readTokensToNewline(inFunction bool) bool {
 	p.tokens = p.tokenBuf[:0]
 	for {
 		tok := p.scanner.Next()
@@ -391,7 +391,11 @@ func (p *Parser) readTokensToNewline() bool {
 		case scan.Error:
 			p.errorf("%s", tok)
 		case scan.Newline:
-			return true
+			// Need a truly blank line to terminate the function body.
+			if !inFunction || len(tok.Text) <= 1 {
+				return true
+			}
+			continue
 		case scan.EOF:
 			return len(p.tokens) > 0
 		}

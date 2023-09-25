@@ -28,9 +28,9 @@ type Token struct {
 type Type int
 
 const (
-	EOF   Type = iota
-	Error      // error occurred; value is text of error
-	Newline
+	EOF     Type = iota
+	Error        // error occurred; value is text of error
+	Newline      // includes spaces and comments leading up to newline.
 	// Interesting things
 	Assign     // '='
 	Char       // printable ASCII character; grab bag for comma etc.
@@ -240,7 +240,6 @@ func lexComment(l *Scanner) stateFn {
 	}
 	if len(l.input) > 0 {
 		l.pos = len(l.input)
-		l.start = l.pos - 1
 		// Emitting newline also advances l.line.
 		return l.emit(Newline)
 	}

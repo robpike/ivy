@@ -203,6 +203,7 @@ op fac n =
  n * fac n - 1
 
 op a gcd b =
+ # Greatest Common Divisor
  a == b: a
  a > b: b gcd a-b
  a gcd b-a

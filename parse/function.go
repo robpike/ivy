@@ -97,8 +97,8 @@ func (p *Parser) functionDefn() {
 		//
 		if p.peek().Type == scan.EOF {
 			// Multiline.
-			p.next() // Skip newline; not stritly necessary.
-			if !p.readTokensToNewline() {
+			p.next() // Skip newline; not strictly necessary.
+			if !p.readTokensToNewline(true) {
 				p.errorf("invalid function definition")
 			}
 			for p.peek().Type != scan.EOF {
@@ -107,7 +107,7 @@ func (p *Parser) functionDefn() {
 					p.errorf("invalid function definition")
 				}
 				fn.Body = append(fn.Body, x...)
-				if !p.readTokensToNewline() {
+				if !p.readTokensToNewline(true) {
 					p.errorf("invalid function definition")
 				}
 			}
