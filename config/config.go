@@ -5,11 +5,13 @@
 package config // import "robpike.io/ivy/config"
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -48,6 +50,7 @@ type Config struct {
 	realTime    time.Duration // Elapsed time of last interactive command.
 	userTime    time.Duration // User time of last interactive command.
 	sysTime     time.Duration // System time of last interactive command.
+	timeZone    string
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
 	outputBase int
@@ -68,6 +71,9 @@ func (c *Config) init() {
 		c.maxStack = 1e5
 		c.floatPrec = 256
 		c.mobile = false
+		// Get the system's time name, not "Local". Odd little dance.
+		name, _ := time.Now().Zone()
+		c.timeZone = name
 	}
 }
 
@@ -348,4 +354,101 @@ func (c *Config) Mobile() bool {
 func (c *Config) SetMobile(mobile bool) {
 	c.init()
 	c.mobile = mobile
+}
+
+// TimeZone returns the default time zone name.
+func (c *Config) TimeZone() string {
+	return c.timeZone
+}
+
+// SetTimeZone sets the time zone to the named location at the current time.
+func (c *Config) SetTimeZone(zone string) error {
+	// Verify it exists
+	_, err := loadLocation(time.Now(), zone)
+	if err != nil {
+		return err
+	}
+	c.timeZone = zone
+	return nil
+}
+
+// TimeZoneAt returns the time.Location in effect at the given time in the
+// configured time zone, considering Daylight Savings Time and similar
+// irregularities.
+func (c *Config) TimeZoneAt(t time.Time) *time.Location {
+	loc, err := loadLocation(t, c.timeZone)
+	if err != nil {
+		return time.UTC // TODO?
+	}
+	return loc
+}
+
+// TimeInZone returns the argument time moved to the location of the configured
+// time zone, considering Daylight Savings Time and similar irregularities. It is
+// just t.In(TimeZoneAt(t)), but is the most common use of TimeZoneAt.
+func (c *Config) TimeInZone(t time.Time) time.Time {
+	return t.In(c.TimeZoneAt(t))
+}
+
+// Time zone management adapted from robpike.io/cmd/now/now.c
+// Should be in value/sys.go but that creates a circular dependency.
+
+const timeZoneDirectory = "/usr/share/zoneinfo/"
+
+// loadLocation converts a name such as "GMT" or "Europe/London" to a time zone location,
+// returning the location data for that instant in that time zone.
+func loadLocation(t time.Time, zone string) (*time.Location, error) {
+	stdZone := zone // The name from the file system, like "Europe/London"
+	if tz, ok := timeZone[zone]; ok {
+		stdZone = tz
+	} else if tz, ok = timeZone[strings.ToUpper(zone)]; ok {
+		stdZone = tz
+	}
+	loc, err := time.LoadLocation(stdZone)
+	if err != nil {
+		// Pure ASCII, but OK. Allow us to say "paris" as well as "Paris".
+		if len(stdZone) > 0 && 'a' <= zone[0] && zone[0] <= 'z' {
+			zone = string(zone[0]+'A'-'a') + string(zone[1:])
+		}
+		// See if there's a file with that name in /usr/share/zoneinfo
+		files, _ := filepath.Glob(timeZoneDirectory + "/*/" + stdZone)
+		if len(files) == 0 {
+			return nil, errors.New("no such time zone")
+		}
+		// We always use the first match. Worth complaining if there are more?
+		loc, err = time.LoadLocation(files[0][len(timeZoneDirectory):])
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, offset := t.In(loc).Zone()
+	return time.FixedZone(zone, offset), nil
+}
+
+// An incomplete map of common names to IANA names, from /usr/share/zoneinfo
+var timeZone = map[string]string{
+	"GMT":     "Europe/London",
+	"BST":     "Europe/London",
+	"BSDT":    "Europe/London",
+	"CET":     "Europe/Paris",
+	"UTC":     "",
+	"PST":     "America/Los_Angeles",
+	"PDT":     "America/Los_Angeles",
+	"LA":      "America/Los_Angeles",
+	"LAX":     "America/Los_Angeles",
+	"MST":     "America/Denver",
+	"MDT":     "America/Denver",
+	"CST":     "America/Chicago",
+	"CDT":     "America/Chicago",
+	"Chicago": "America/Chicago",
+	"EST":     "America/New_York",
+	"EDT":     "America/New_York",
+	"NYC":     "America/New_York",
+	"NY":      "America/New_York",
+	"AEST":    "Australia/Sydney",
+	"AEDT":    "Australia/Sydney",
+	"AWST":    "Australia/Perth",
+	"AWDT":    "Australia/Perth",
+	"ACST":    "Australia/Adelaide",
+	"ACDT":    "Australia/Adelaide",
 }

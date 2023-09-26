@@ -13,6 +13,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/demo"
@@ -328,6 +329,16 @@ Switch:
 			break Switch
 		}
 		conf.SetRandomSeed(p.nextDecimalNumber64())
+	case "timezone":
+		if p.peek().Type == scan.EOF {
+			_, offset := conf.TimeInZone(time.Now()).Zone()
+			p.Println(conf.TimeZone(), offset)
+			break Switch
+		}
+		err := conf.SetTimeZone(p.getString())
+		if err != nil {
+			p.errorf("no such time zone: %s", err)
+		}
 	case "var", "vars":
 		if p.peek().Type == scan.EOF {
 			var vars []string

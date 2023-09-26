@@ -403,6 +403,9 @@ base 10 and must be non-negative on input.
 		(Unimplemented on mobile.)
 	) seed 0
 		Set the seed for the ? operator.
+	) timezone "Local"
+		Set the time zone to be used for display. If the argument is
+		missing, print the name and zone offset in seconds east.
 	) var X
 		If X is absent, list all defined variables. Otherwise, show the
 		definition of the variable X in a form that can be evaluated

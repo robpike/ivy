@@ -796,17 +796,11 @@ func (m *Matrix) take(c Context, v Vector) *Matrix {
 		if y < 0 {
 			y = -y
 			mb.max = m.shape[i]
-			mb.min = mb.max - y
-			if mb.min < 0 {
-				mb.min = 0
-			}
+			mb.min = max(mb.max-y, 0)
 			o = y - m.shape[i]
 		} else {
 			mb.min = 0
-			mb.max = m.shape[i]
-			if mb.max > y {
-				mb.max = y
-			}
+			mb.max = min(m.shape[i], y)
 			o = 0
 		}
 		shape[i] = y

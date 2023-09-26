@@ -20,7 +20,7 @@ const sysHelp = `
                year month day hour minute second
 "format":    the output format setting
 "ibase":     the input base (ibase) setting
-"maxbits":   the maxdbits setting
+"maxbits":   the maxbits setting
 "maxdigits": the maxdigits setting
 "maxstack":  the maxstack setting
 "obase":     the output base (obase) setting
@@ -28,8 +28,9 @@ const sysHelp = `
 "prompt":    the prompt setting
 "sec":       the time in seconds since
                Jan 1 00:00:00 1970 UTC
-"time":      the time in the local time zone as a vector of numbers:
-               year month day hour minute second
+"time":      the current time in the configured time zone as a vector; the last
+             element is the time zone in which the other values apply:
+               year month day hour minute second seconds-east-of-UTC
 
 To convert seconds to a time vector:
   'T' encode sys 'sec'
@@ -40,6 +41,7 @@ To print seconds in Unix date format:
 
 // sys implements the variegated "sys" unary operator.
 func sys(c Context, v Value) Value {
+	conf := c.Config()
 	vv := v.(Vector)
 	if !allChars(vv) {
 		Errorf("sys %s not defined", v)
@@ -47,39 +49,39 @@ func sys(c Context, v Value) Value {
 	arg := fmt.Sprint(vv) // Will print as "(argument)"
 	switch arg[1 : len(arg)-1] {
 	case "help":
-		fmt.Fprint(c.Config().Output(), sysHelp)
+		fmt.Fprint(conf.Output(), sysHelp)
 		return empty
 	case "base":
-		return NewIntVector(c.Config().Base())
+		return NewIntVector(conf.Base())
 	case "cpu":
-		real, user, sys := c.Config().CPUTime()
+		real, user, sys := conf.CPUTime()
 		vec := make([]Value, 3)
 		vec[0] = BigFloat{big.NewFloat(real.Seconds())}
 		vec[1] = BigFloat{big.NewFloat(user.Seconds())}
 		vec[2] = BigFloat{big.NewFloat(sys.Seconds())}
 		return NewVector(vec)
 	case "date":
-		return newCharVector(time.Now().Format(time.UnixDate))
+		return newCharVector(conf.TimeInZone(time.Now()).Format(time.UnixDate))
 	case "format":
-		return newCharVector(fmt.Sprintf("%q", c.Config().Format()))
+		return newCharVector(fmt.Sprintf("%q", conf.Format()))
 	case "ibase":
-		return Int(c.Config().InputBase())
+		return Int(conf.InputBase())
 	case "maxbits":
-		return Int(c.Config().MaxBits())
+		return Int(conf.MaxBits())
 	case "maxdigits":
-		return Int(c.Config().MaxDigits())
+		return Int(conf.MaxDigits())
 	case "maxstack":
-		return Int(c.Config().MaxStack())
+		return Int(conf.MaxStack())
 	case "obase":
-		return Int(c.Config().OutputBase())
+		return Int(conf.OutputBase())
 	case "origin":
-		return Int(c.Config().Origin())
+		return Int(conf.Origin())
 	case "prompt":
-		return newCharVector(fmt.Sprintf("%q", c.Config().Prompt()))
+		return newCharVector(fmt.Sprintf("%q", conf.Prompt()))
 	case "sec", "now":
 		return BigFloat{big.NewFloat(float64(time.Now().UnixNano()) / 1e9)}
 	case "time":
-		return timeVec(time.Now())
+		return timeVec(conf.TimeInZone(time.Now()))
 	default:
 		Errorf("sys %q not defined", arg)
 	}
@@ -98,7 +100,7 @@ func newCharVector(s string) Value {
 
 // encodeTime returns a sys "time" vector given a seconds value.
 // We know the first argument is all chars and not empty.
-func encodeTime(u, v Vector) Value {
+func encodeTime(c Context, u, v Vector) Value {
 	r := rune(u[0].(Char))
 	if r != 't' && r != 'T' {
 		Errorf("illegal left operand %s for encode", u)
@@ -106,16 +108,16 @@ func encodeTime(u, v Vector) Value {
 	// TODO len(v) > 1
 	switch t := v[0].(type) {
 	case Int:
-		return secEncodeTime(float64(t))
+		return secEncodeTime(c, float64(t))
 	case BigInt:
 		f, _ := t.Float64()
-		return secEncodeTime(f)
+		return secEncodeTime(c, f)
 	case BigFloat:
 		f, _ := t.Float64()
-		return secEncodeTime(f)
+		return secEncodeTime(c, f)
 	case BigRat:
 		f, _ := t.Float64()
-		return secEncodeTime(f)
+		return secEncodeTime(c, f)
 	default:
 		Errorf("bad time value %s in encode", v)
 	}
@@ -124,15 +126,16 @@ func encodeTime(u, v Vector) Value {
 }
 
 // secEncodeTime converts the "sys 'sec'" value into an unpacked time vector.
-func secEncodeTime(sec float64) Value {
+func secEncodeTime(c Context, sec float64) Value {
 	nsec := 1e9 * (sec - float64(int64(sec)))
-	return timeVec(time.Unix(int64(sec), int64(nsec)).In(time.Now().Location()))
+	return timeVec(c.Config().TimeInZone(time.Unix(int64(sec), int64(nsec))))
 }
 
-// timeVec returns the time unpacked into year, month, day, hour, minute and second.
+// timeVec returns the time unpacked into year, month, day, hour, minute, second
+// and time zone offset in seconds east of UTC.
 func timeVec(date time.Time) Vector {
 	y, m, d := date.Date()
-	vec := make([]Value, 6)
+	vec := make([]Value, 7)
 	vec[0] = Int(y)
 	vec[1] = Int(m)
 	vec[2] = Int(d)
@@ -140,16 +143,20 @@ func timeVec(date time.Time) Vector {
 	vec[4] = Int(date.Minute())
 	sec := float64(date.Second()) + float64(date.Nanosecond())/1e9
 	vec[5] = BigFloat{big.NewFloat(sec)}
+	_, offset := date.Zone()
+	vec[6] = Int(offset)
 	return NewVector(vec)
 }
 
 // decodeTime returns a second value given a sys "time" vector.
-func decodeTime(u, v Vector) Value {
+func decodeTime(c Context, u, v Vector) Value {
 	r := rune(u[0].(Char))
 	if r != 't' && r != 'T' {
 		Errorf("illegal left operand %s for decode", u)
 	}
 	year, month, day, hour, min, sec, nsec := 0, 1, 1, 0, 0, 0, 0
+	now := time.Now()
+	loc := c.Config().TimeZoneAt(now)
 	toInt := func(v Value) int {
 		i, ok := v.(Int)
 		if ok {
@@ -164,6 +171,15 @@ func decodeTime(u, v Vector) Value {
 	switch len(v) {
 	default:
 		Errorf("invalid time vector %s", v)
+	case 7:
+		offset := toInt(v[6])
+		_, nowOffset := now.Zone()
+		if offset != nowOffset {
+			hour := offset / 3600
+			min := (offset - (3600 * hour)) / 60
+			loc = time.FixedZone(fmt.Sprint("%d:%02d", hour, min), offset)
+		}
+		fallthrough
 	case 6:
 		switch s := v[5].(type) {
 		default:
@@ -200,7 +216,7 @@ func decodeTime(u, v Vector) Value {
 	case 1:
 		year = toInt(v[0])
 	}
-	t := time.Date(year, time.Month(month), day, hour, min, sec, nsec, time.Now().Location())
+	t := c.Config().TimeInZone(time.Date(year, time.Month(month), day, hour, min, sec, nsec, loc))
 	return BigFloat{big.NewFloat(float64(t.UnixNano()) / 1e9)}
 }
 
@@ -211,7 +227,7 @@ func secNsec(f float64) (sec, nsec int) {
 
 // timeFromValue converts a seconds value into a time.Time, for
 // the 'text' operator.
-func timeFromValue(v Value) time.Time {
+func timeFromValue(c Context, v Value) time.Time {
 	var sec, nsec int
 	switch t := v.(type) {
 	case Int:
@@ -228,5 +244,5 @@ func timeFromValue(v Value) time.Time {
 	default:
 		Errorf("bad time value %s in text", v)
 	}
-	return time.Unix(int64(sec), int64(nsec)).In(time.Now().Location())
+	return c.Config().TimeInZone(time.Unix(int64(sec), int64(nsec)))
 }

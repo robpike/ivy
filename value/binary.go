@@ -919,7 +919,7 @@ func init() {
 					}
 					if allChars(A) {
 						// Special case for times.
-						return decodeTime(A, B)
+						return decodeTime(c, A, B)
 					}
 					if len(A) == 1 || len(B) == 1 || len(A) == len(B) {
 						result := Value(zero)
@@ -1002,7 +1002,7 @@ func init() {
 					A, B := u.(Vector), v.(Vector)
 					if allChars(A) {
 						// Special case for times.
-						return encodeTime(A, B)
+						return encodeTime(c, A, B)
 					}
 					// Scalar.
 					if len(A) == 1 && len(B) == 1 {

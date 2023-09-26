@@ -67,34 +67,42 @@ sys 'prompt'
 # Now the time ones. Tricky because of time moving underfoot
 # and discrepancies due to the local time zone.
 
+# ivy_test.go sets this to make testing independent of location.
+)timezone
+	UTC 0
+
 s=sys 'sec'; (s > 1.6e9) s < 3e9
 	1 1
 
 rho sys 'time'
-	6
+	7
 
-t = sys 'time'; (2023<=t[1]) (1<=t[2]) (1<=t[3]) (0<=t[4]) (0<=t[5])  (0<=t[6])
-	1 1 1 1 1 1
+2023 1 1 0 0 0 -1e9<= sys 'time'
+	1 1 1 1 1 1 1
 
-t = sys 'time'; (3000>=t[1]) (12>=t[2]) (31>=t[3]) (24>=t[4]) (60>=t[5])  (61 >= t[6])
-	1 1 1 1 1 1
+3000 12 31 24 60 61 1e9 >= sys 'time'
+	1 1 1 1 1 1 1
 
 rho 'T' encode sys 'sec'
-	6
+	7
 
-# Gives 1969 12 31 one side of the data line, 1970 1 1 on the other
-(1970 1 1 == x) | ((1969 12 31 == x =('T' encode 0)[1 2 3]))
-	1 1 1
-
+'T' encode 0
+	1970 1 1 0 0 0 0
 
 'T' decode 'T' encode 0
 	0
 
-('T' encode 'T' decode 2023 6 15)[1 2]
-	2023 6
+'T' encode 'T' decode 2023 6 15
+	2023 6 15 0 0 0 0
 
-s=sys 'sec'; s == ('T' decode 'T' encode s)
+s == 'T' decode 'T' encode s=sys 'sec'
 	1
+
+)timezone "EST"
+)timezone
+'T' text 0
+	EST -14400
+	Wed Dec 31 19:00:00 EST 1969
 
 # Check that what sys 'date' prints is the same as 'T' text secs.
 # But time can shift in the interim, so we look for general agreement.

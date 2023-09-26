@@ -159,7 +159,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		// Maintain flags etc. but turn T into s.
 		f := []byte(format)
 		f[verbIndex(format)] = 's'
-		fmt.Fprintf(w, string(f), timeFromValue(v).Format(time.UnixDate))
+		fmt.Fprintf(w, string(f), timeFromValue(c, v).Format(time.UnixDate))
 	case 't': // Boolean. TODO: Should be 0 or 1, but that's messy. Odd case anyway.
 		fmt.Fprintf(w, format, toBool(v))
 	case 'v':
