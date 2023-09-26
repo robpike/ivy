@@ -368,6 +368,7 @@ func (c *Config) SetTimeZone(zone string) error {
 	if err != nil {
 		return err
 	}
+	c.init()
 	c.timeZone = zone
 	return nil
 }
