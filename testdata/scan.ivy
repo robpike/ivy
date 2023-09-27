@@ -103,3 +103,9 @@
 	 78  81  84  87  90
 	 93  96  99 102 105
 	108 111 114 117 120
+
+# Was bug in scanner, not resetting lastWidth in peek2.
+ΔJ=4
+θ = (0 - 7) + ΔJ*(1+ΔJ*(2))
+θ
+	29

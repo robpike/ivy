@@ -143,9 +143,11 @@ func (l *Scanner) peek() rune {
 // peek2 returns the next two runes ahead, but does not consume anything.
 func (l *Scanner) peek2() (rune, rune) {
 	pos := l.pos
+	lastWidth := l.lastWidth
 	r1 := l.next()
 	r2 := l.next()
 	l.pos = pos
+	l.lastWidth = lastWidth
 	return r1, r2
 }
 
@@ -157,7 +159,7 @@ func (l *Scanner) backup() {
 	if l.pos == l.start {
 		l.errorf("internal error: backup at start of input")
 	}
-	if l.pos > l.start { // TODO can't happen?
+	if l.pos > l.start {
 		l.pos -= l.lastWidth
 	}
 }
