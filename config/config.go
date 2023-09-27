@@ -428,11 +428,12 @@ func loadLocation(t time.Time, zone string) (*time.Location, error) {
 
 // An incomplete map of common names to IANA names, from /usr/share/zoneinfo
 var timeZone = map[string]string{
-	"GMT":     "Europe/London",
+	"GMT": "UTC",
+	"UTC": "",
+	// TODO: The rest of these are misleading. Reconsider.
 	"BST":     "Europe/London",
 	"BSDT":    "Europe/London",
 	"CET":     "Europe/Paris",
-	"UTC":     "",
 	"PST":     "America/Los_Angeles",
 	"PDT":     "America/Los_Angeles",
 	"LA":      "America/Los_Angeles",

@@ -105,30 +105,8 @@ func encodeTime(c Context, u, v Vector) Value {
 	if r != 't' && r != 'T' {
 		Errorf("illegal left operand %s for encode", u)
 	}
-	// TODO len(v) > 1
-	switch t := v[0].(type) {
-	case Int:
-		return secEncodeTime(c, float64(t))
-	case BigInt:
-		f, _ := t.Float64()
-		return secEncodeTime(c, f)
-	case BigFloat:
-		f, _ := t.Float64()
-		return secEncodeTime(c, f)
-	case BigRat:
-		f, _ := t.Float64()
-		return secEncodeTime(c, f)
-	default:
-		Errorf("bad time value %s in encode", v)
-	}
-	return zero
-
-}
-
-// secEncodeTime converts the "sys 'sec'" value into an unpacked time vector.
-func secEncodeTime(c Context, sec float64) Value {
-	nsec := 1e9 * (sec - float64(int64(sec)))
-	return timeVec(c.Config().TimeInZone(time.Unix(int64(sec), int64(nsec))))
+	// TODO: more than one value
+	return timeVec(timeFromValue(c, v[0]))
 }
 
 // timeVec returns the time unpacked into year, month, day, hour, minute, second
@@ -154,7 +132,8 @@ func decodeTime(c Context, u, v Vector) Value {
 	if r != 't' && r != 'T' {
 		Errorf("illegal left operand %s for decode", u)
 	}
-	year, month, day, hour, min, sec, nsec := 0, 1, 1, 0, 0, 0, 0
+	year, month, day, hour, min := 0, 1, 1, 0, 0
+	sec, nsec := int64(0), int64(0)
 	now := time.Now()
 	loc := c.Config().TimeZoneAt(now)
 	toInt := func(v Value) int {
@@ -185,20 +164,18 @@ func decodeTime(c Context, u, v Vector) Value {
 		default:
 			Errorf("illegal right operand %s in decode", v)
 		case Int:
-			sec = int(s)
+			sec = int64(s)
 		case BigInt:
 			if !s.IsInt64() {
 				Errorf("illegal right operand %s in decode", v)
 			}
-			sec = int(s.Int64())
+			sec = s.Int64()
 		case BigRat:
 			var f big.Float
 			f.SetRat(s.Rat)
-			f64, _ := f.Float64()
-			sec, nsec = secNsec(f64)
+			sec, nsec = secNsec(&f)
 		case BigFloat:
-			f64, _ := s.Float.Float64()
-			sec, nsec = secNsec(f64)
+			sec, nsec = secNsec(s.Float)
 		}
 		fallthrough
 	case 5:
@@ -216,33 +193,34 @@ func decodeTime(c Context, u, v Vector) Value {
 	case 1:
 		year = toInt(v[0])
 	}
-	t := c.Config().TimeInZone(time.Date(year, time.Month(month), day, hour, min, sec, nsec, loc))
-	return BigFloat{big.NewFloat(float64(t.UnixNano()) / 1e9)}
+	// time.Time values can only extract int64s for UnixNano, which limits the range too much.
+	// So we use UnixMilli, which spans a big enough range, and add the nanoseconds manually.
+	t := c.Config().TimeInZone(time.Date(year, time.Month(month), day, hour, min, int(sec), 0, loc))
+	var s, tmp big.Float
+	s.SetInt64(t.UnixMilli())
+	s.Mul(&s, tmp.SetInt64(1e6))
+	s.Add(&s, tmp.SetInt64(nsec))
+	s.Quo(&s, tmp.SetInt64(1e9))
+	return BigFloat{&s}
 }
 
 // secNsec converts a seconds value into whole seconds and nanoseconds.
-func secNsec(f float64) (sec, nsec int) {
-	return int(f), int(1e9 * (f - float64(int64(f))))
+func secNsec(fs *big.Float) (sec, nsec int64) {
+	var s big.Int
+	fs.Int(&s)
+	fs.Sub(fs, big.NewFloat(0).SetInt(&s))
+	fs.Mul(fs, big.NewFloat(1e9))
+	fs.Add(fs, big.NewFloat(0.5))
+	ns, _ := fs.Int64()
+	return s.Int64(), ns
 }
 
 // timeFromValue converts a seconds value into a time.Time, for
 // the 'text' operator.
 func timeFromValue(c Context, v Value) time.Time {
-	var sec, nsec int
-	switch t := v.(type) {
-	case Int:
-		sec, nsec = secNsec(float64(t))
-	case BigInt:
-		f, _ := t.Float64()
-		sec, nsec = secNsec(f)
-	case BigFloat:
-		f, _ := t.Float64()
-		sec, nsec = secNsec(f)
-	case BigRat:
-		f, _ := t.Float64()
-		sec, nsec = secNsec(f)
-	default:
-		Errorf("bad time value %s in text", v)
-	}
-	return c.Config().TimeInZone(time.Unix(int64(sec), int64(nsec)))
+	var fs big.Float
+	fs.Set(v.toType("encode", c.Config(), bigFloatType).(BigFloat).Float)
+	s, ns := secNsec(&fs)
+	t := c.Config().TimeInZone(time.Unix(s, ns))
+	return t
 }

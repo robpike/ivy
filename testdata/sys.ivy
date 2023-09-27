@@ -95,7 +95,8 @@ rho 'T' encode sys 'sec'
 'T' encode 'T' decode 2023 6 15
 	2023 6 15 0 0 0 0
 
-s == 'T' decode 'T' encode s=sys 'sec'
+# We use (big) floats, so the low bit could round off the wrong way.
+1e-9 >= s- 'T' decode 'T' encode s=sys 'sec'
 	1
 
 )timezone "EST"
@@ -115,3 +116,6 @@ s == 'T' decode 'T' encode s=sys 'sec'
 0 24 60 60 encode ('T' decode 2023 9 22 3 27 25)-'T' decode 2023 6 15 12 30 10
 	98 14 57 15
 
+# Test a very remote time can be built.
+'T' text 'T' decode -4713 11 24 12 0 0 0
+	Mon Nov 24 12:00:00 UTC -4713
