@@ -5,7 +5,6 @@
 package config // import "robpike.io/ivy/config"
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -379,7 +378,8 @@ func (c *Config) SetTimeZone(zone string) error {
 func (c *Config) TimeZoneAt(t time.Time) *time.Location {
 	loc, err := loadLocation(t, c.timeZone)
 	if err != nil {
-		return time.UTC // TODO?
+		fmt.Fprintf(c.errOutput, "%s: %v\n", c.timeZone, err)
+		return t.Location()
 	}
 	return loc
 }
@@ -414,7 +414,7 @@ func loadLocation(t time.Time, zone string) (*time.Location, error) {
 		// See if there's a file with that name in /usr/share/zoneinfo
 		files, _ := filepath.Glob(timeZoneDirectory + "/*/" + stdZone)
 		if len(files) == 0 {
-			return nil, errors.New("no such time zone")
+			return nil, fmt.Errorf("no such location %s", zone)
 		}
 		// We always use the first match. Worth complaining if there are more?
 		loc, err = time.LoadLocation(files[0][len(timeZoneDirectory):])
