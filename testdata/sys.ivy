@@ -100,9 +100,7 @@ rho 'T' encode sys 'sec'
 	1
 
 )timezone "EST"
-)timezone
 'T' text 0
-	EST -14400
 	Wed Dec 31 19:00:00 EST 1969
 
 # Check that what sys 'date' prints is the same as 'T' text secs.

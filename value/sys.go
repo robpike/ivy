@@ -61,7 +61,7 @@ func sys(c Context, v Value) Value {
 		vec[2] = BigFloat{big.NewFloat(sys.Seconds())}
 		return NewVector(vec)
 	case "date":
-		return newCharVector(conf.TimeInZone(time.Now()).Format(time.UnixDate))
+		return newCharVector(time.Now().In(conf.Location()).Format(time.UnixDate))
 	case "format":
 		return newCharVector(fmt.Sprintf("%q", conf.Format()))
 	case "ibase":
@@ -81,7 +81,7 @@ func sys(c Context, v Value) Value {
 	case "sec", "now":
 		return BigFloat{big.NewFloat(float64(time.Now().UnixNano()) / 1e9)}
 	case "time":
-		return timeVec(conf.TimeInZone(time.Now()))
+		return timeVec(time.Now().In(conf.Location()))
 	default:
 		Errorf("sys %q not defined", arg)
 	}
@@ -135,7 +135,7 @@ func decodeTime(c Context, u, v Vector) Value {
 	year, month, day, hour, min := 0, 1, 1, 0, 0
 	sec, nsec := int64(0), int64(0)
 	now := time.Now()
-	loc := c.Config().TimeZoneAt(now)
+	loc := c.Config().Location()
 	toInt := func(v Value) int {
 		i, ok := v.(Int)
 		if ok {
@@ -195,7 +195,8 @@ func decodeTime(c Context, u, v Vector) Value {
 	}
 	// time.Time values can only extract int64s for UnixNano, which limits the range too much.
 	// So we use UnixMilli, which spans a big enough range, and add the nanoseconds manually.
-	t := c.Config().TimeInZone(time.Date(year, time.Month(month), day, hour, min, int(sec), 0, loc))
+	t := time.Date(year, time.Month(month), day, hour, min, int(sec), 0, loc)
+	t = t.In(c.Config().LocationAt(t))
 	var s, tmp big.Float
 	s.SetInt64(t.UnixMilli())
 	s.Mul(&s, tmp.SetInt64(1e6))
@@ -218,9 +219,10 @@ func secNsec(fs *big.Float) (sec, nsec int64) {
 // timeFromValue converts a seconds value into a time.Time, for
 // the 'text' operator.
 func timeFromValue(c Context, v Value) time.Time {
+	conf := c.Config()
 	var fs big.Float
-	fs.Set(v.toType("encode", c.Config(), bigFloatType).(BigFloat).Float)
-	s, ns := secNsec(&fs)
-	t := c.Config().TimeInZone(time.Unix(s, ns))
+	fs.Set(v.toType("encode", conf, bigFloatType).(BigFloat).Float)
+	t := time.Unix(secNsec(&fs))
+	t = t.In(conf.LocationAt(t))
 	return t
 }

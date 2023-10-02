@@ -185,5 +185,5 @@ func reset() {
 	testConf.SetPrompt("")
 	testConf.SetBase(0, 0)
 	testConf.SetRandomSeed(0)
-	testConf.SetTimeZone("UTC")
+	testConf.SetLocation("UTC")
 }

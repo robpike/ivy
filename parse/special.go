@@ -331,13 +331,13 @@ Switch:
 		conf.SetRandomSeed(p.nextDecimalNumber64())
 	case "timezone":
 		if p.peek().Type == scan.EOF {
-			_, offset := conf.TimeInZone(time.Now()).Zone()
+			_, offset := time.Now().In(conf.Location()).Zone()
 			p.Println(conf.TimeZone(), offset)
 			break Switch
 		}
-		err := conf.SetTimeZone(p.getString())
+		err := conf.SetLocation(p.getString())
 		if err != nil {
-			p.errorf("no such time zone: %s", err)
+			p.errorf("no such location: %s", err)
 		}
 	case "var", "vars":
 		if p.peek().Type == scan.EOF {

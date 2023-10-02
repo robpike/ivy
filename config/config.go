@@ -42,14 +42,15 @@ type Config struct {
 	debug       [len(DebugFlags)]bool
 	source      rand.Source
 	random      *rand.Rand
-	maxBits     uint          // Maximum length of an integer; 0 means no limit.
-	maxDigits   uint          // Above this size, ints print in floating format.
-	maxStack    uint          // Maximum call stack depth.
-	floatPrec   uint          // Length of mantissa of a BigFloat.
-	realTime    time.Duration // Elapsed time of last interactive command.
-	userTime    time.Duration // User time of last interactive command.
-	sysTime     time.Duration // System time of last interactive command.
-	timeZone    string
+	maxBits     uint           // Maximum length of an integer; 0 means no limit.
+	maxDigits   uint           // Above this size, ints print in floating format.
+	maxStack    uint           // Maximum call stack depth.
+	floatPrec   uint           // Length of mantissa of a BigFloat.
+	realTime    time.Duration  // Elapsed time of last interactive command.
+	userTime    time.Duration  // User time of last interactive command.
+	sysTime     time.Duration  // System time of last interactive command.
+	timeZone    string         // For the user, derived from location.
+	location    *time.Location // The truth.
 	// Bases: 0 means C-like, base 10 with 07 for octal and 0xa for hex.
 	inputBase  int
 	outputBase int
@@ -71,8 +72,9 @@ func (c *Config) init() {
 		c.floatPrec = 256
 		c.mobile = false
 		// Get the system's time name, not "Local". Odd little dance.
-		name, _ := time.Now().Zone()
-		c.timeZone = name
+		t := time.Now()
+		c.location = t.Location()
+		c.timeZone, _ = t.Zone()
 	}
 }
 
@@ -360,35 +362,34 @@ func (c *Config) TimeZone() string {
 	return c.timeZone
 }
 
-// SetTimeZone sets the time zone to the named location at the current time.
-func (c *Config) SetTimeZone(zone string) error {
+// Location returns the default location.
+func (c *Config) Location() *time.Location {
+	return c.location
+}
+
+// SetLocation sets the time zone (and associated location) to the named location at the current time.
+func (c *Config) SetLocation(zone string) error {
 	// Verify it exists
-	_, err := loadLocation(time.Now(), zone)
+	loc, err := loadLocation(time.Now(), zone)
 	if err != nil {
 		return err
 	}
 	c.init()
-	c.timeZone = zone
+	c.location = loc
+	c.timeZone, _ = time.Now().In(loc).Zone()
 	return nil
 }
 
-// TimeZoneAt returns the time.Location in effect at the given time in the
+// LocationAt returns the time.Location in effect at the given time in the
 // configured time zone, considering Daylight Savings Time and similar
 // irregularities.
-func (c *Config) TimeZoneAt(t time.Time) *time.Location {
+func (c *Config) LocationAt(t time.Time) *time.Location {
 	loc, err := loadLocation(t, c.timeZone)
 	if err != nil {
 		fmt.Fprintf(c.errOutput, "%s: %v\n", c.timeZone, err)
 		return t.Location()
 	}
 	return loc
-}
-
-// TimeInZone returns the argument time moved to the location of the configured
-// time zone, considering Daylight Savings Time and similar irregularities. It is
-// just t.In(TimeZoneAt(t)), but is the most common use of TimeZoneAt.
-func (c *Config) TimeInZone(t time.Time) time.Time {
-	return t.In(c.TimeZoneAt(t))
 }
 
 // Time zone management adapted from robpike.io/cmd/now/now.c
