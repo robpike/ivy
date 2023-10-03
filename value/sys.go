@@ -156,7 +156,7 @@ func decodeTime(c Context, u, v Vector) Value {
 		if offset != nowOffset {
 			hour := offset / 3600
 			min := (offset - (3600 * hour)) / 60
-			loc = time.FixedZone(fmt.Sprint("%d:%02d", hour, min), offset)
+			loc = time.FixedZone(fmt.Sprintf("%d:%02d", hour, min), offset)
 		}
 		fallthrough
 	case 6:
