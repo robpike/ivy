@@ -1343,7 +1343,7 @@ func init() {
 					vv := v.(Vector)
 					uu, ok := u.(Vector)
 					if !ok || len(uu) != 1 {
-						Errorf("bad count %s in drop", uu[0])
+						Errorf("bad count %s in drop", u)
 					}
 					n, ok := uu[0].(Int) // Number of elements in result.
 					if !ok {
