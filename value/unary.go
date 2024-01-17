@@ -121,18 +121,6 @@ var IvyEval func(context Context, s string) Value
 
 var UnaryOps = make(map[string]UnaryOp)
 
-func factorial(n int64) *big.Int {
-	if n < 0 {
-		Errorf("negative value %d for factorial", n)
-	}
-	if n == 0 {
-		return big.NewInt(1)
-	}
-	fac := new(big.Int)
-	fac.MulRange(1, n)
-	return fac
-}
-
 func init() {
 	ops := []*unaryOp{
 		{

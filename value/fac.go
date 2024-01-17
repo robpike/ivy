@@ -6,6 +6,9 @@ package value
 
 import "math/big"
 
+// Implementation of factorial using the "swinging factorial" algorithm.
+// from Peter Luschny, https://oeis.org/A000142/a000142.pdf.
+
 // primeGen returns a function that generates primes from 2...n on successive calls.
 // Used in the factorization in the swing function. (TODO: Might be fun to make available.)
 func primeGen(n int) func() int {
@@ -26,8 +29,7 @@ func primeGen(n int) func() int {
 }
 
 // swing calculates the "swinging factorial" function of n,
-// which is n!/⌊n/2⌋!². Algorithm from Peter Luschny,
-// https://oeis.org/A000142/a000142.pdf.
+// which is n!/⌊n/2⌋!².
 // Swinging factorial table for reference.
 //		n  0 1 2 3 4  5  6   7  8   9  10   11
 //		n𝜎 1 1 2 6 6 30 20 140 70 630 252 2772
@@ -90,8 +92,7 @@ func product(doPar bool, f []int) *big.Int {
 }
 
 // factorial returns factorial of n using a "swinging
-// factorial" for rougly 2x speedup. See the comment
-// on the function swing for the reference.
+// factorial" for rougly 2x speedup.
 func factorial(n int64) *big.Int {
 	if n < 0 {
 		Errorf("negative value %d for factorial", n)
