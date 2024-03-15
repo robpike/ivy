@@ -200,3 +200,9 @@ box sqrt 2
 
 first sqrt 2
 	1.41421356237
+
+# There is a (possible?) but in big.Float.Copy that made this not work.
+# BigFloat.inverse would change the value of floatOne. This is a simple
+# check against that; when broken, the output is 0.5 0.5 (!).
+/sqrt 2; /sqrt 2
+	0.707106781187 0.707106781187

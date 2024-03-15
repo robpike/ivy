@@ -127,10 +127,12 @@ func (f BigFloat) inverse() Value {
 	if f.Sign() == 0 {
 		Errorf("inverse of zero")
 	}
-	one := floatOne.Copy(floatOne)
-	return BigFloat{
-		Float: one.Quo(one, f.Float),
+	var one big.Float
+	one.Set(floatOne) // Avoid big.Float.Copy, which appears to have a sharing bug.
+	result := BigFloat{
+		Float: one.Quo(&one, f.Float),
 	}.shrink()
+	return result
 }
 
 func (f BigFloat) ProgString() string {

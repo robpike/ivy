@@ -65,7 +65,7 @@ type Context interface {
 	// Eval evaluates a list of expressions.
 	Eval(exprs []Expr) []Value
 
-	// EvalUnaryFn evaluates a unary operator.
+	// EvalUnary evaluates a unary operator.
 	EvalUnary(op string, right Value) Value
 
 	// EvalBinary evaluates a binary operator.
