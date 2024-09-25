@@ -555,23 +555,20 @@ func init() {
 			name: "iota",
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					i := v.(Int)
-					if i < 0 || maxInt < i {
-						Errorf("bad iota %d", i)
-					}
-					if i == 0 {
-						return Vector{}
-					}
-					data := constIota(c.Config().Origin(), int(i))
-					n := make([]Value, i)
-					copy(n, data)
-					return NewVector(n)
+					return newIota(c.Config().Origin(), int(v.(Int)))
 				},
 				vectorType: func(c Context, v Value) Value {
 					// Produce a matrix of coordinates.
 					vv := v.(Vector)
 					if len(vv) == 0 {
 						return empty
+					}
+					if len(vv) == 1 {
+						i, ok := vv[0].(Int)
+						if !ok {
+							Errorf("bad coordinate in iota %s", vv[0])
+						}
+						return newIota(c.Config().Origin(), int(i))
 					}
 					nElems := 1
 					shape := make([]int, len(vv))

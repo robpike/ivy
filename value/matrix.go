@@ -170,9 +170,9 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 	var b bytes.Buffer
 	switch m.Rank() {
 	case 0:
-		Errorf("matrix is scalar")
+		Errorf("matrix is rank 0") // Can this ever happen?
 	case 1:
-		Errorf("matrix is vector")
+		return m.data.Sprint(conf)
 	case 2:
 		nrows := m.shape[0]
 		ncols := m.shape[1]
@@ -991,15 +991,17 @@ func (m *Matrix) grade(c Context) Vector {
 // inverse returns the matrix inverse of m. Note: although the code forbids
 // non-scalar elements, they actually "work", but they are probably more confusing
 // than helpful:
-//   x = 2 2 rho 1 2 3 4; x[1;1]=2 3; inv x
-//      (2 2/3)   (-1 -1/3)
-//    (-3/2 -1/2)     (1 1/2)
-//  x+.*inv x
-//    (1 1) (0 0)
-//    (0 0) (1 1)
-//  inv inv x # This one is clearly nuts.
-//    (2 3) (2 2)
-//    (3 3) (4 4)
+//
+//	 x = 2 2 rho 1 2 3 4; x[1;1]=2 3; inv x
+//	    (2 2/3)   (-1 -1/3)
+//	  (-3/2 -1/2)     (1 1/2)
+//	x+.*inv x
+//	  (1 1) (0 0)
+//	  (0 0) (1 1)
+//	inv inv x # This one is clearly nuts.
+//	  (2 3) (2 2)
+//	  (3 3) (4 4)
+//
 // So they are forbidden.
 func (m *Matrix) inverse(c Context) Value {
 	const (

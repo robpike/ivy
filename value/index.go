@@ -299,7 +299,17 @@ func constIota(origin, n int) []Value {
 		iotaLock.RUnlock()
 		growIota(origin + n)
 	}
+}
 
+// newIota returns the result of 'iota n' as a new Vector.
+func newIota(origin, n int) Vector {
+	if n < 0 || maxInt < n {
+		Errorf("bad iota %d", n)
+	}
+	data := constIota(origin, int(n))
+	v := make([]Value, n)
+	copy(v, data)
+	return NewVector(v)
 }
 
 func growIota(n int) {
