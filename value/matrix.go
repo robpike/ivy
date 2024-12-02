@@ -236,7 +236,7 @@ func (m *Matrix) ProgString() string {
 
 func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) string {
 	if m.Rank() <= 3 {
-		return indent(indentation, m.Sprint(conf))
+		return indent(indentation, "%s", m.Sprint(conf))
 	}
 	dim := m.shape[0]
 	rest := strings.Repeat(" *", m.Rank()-1)[1:]
