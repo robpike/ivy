@@ -5,9 +5,14 @@
 package value
 
 import (
+	"bufio"
 	"fmt"
+	"math"
 	"math/big"
+	"os"
 	"time"
+
+	"robpike.io/ivy/config"
 )
 
 const sysHelp = `
@@ -26,6 +31,7 @@ const sysHelp = `
 "obase":     the output base (obase) setting
 "origin":    the index origin setting
 "prompt":    the prompt setting
+"read" file: read the named file and return a vector of lines, with line termination stripped
 "sec":       the time in seconds since
                Jan 1 00:00:00 1970 UTC
 "time":      the current time in the configured time zone as a vector; the last
@@ -39,53 +45,130 @@ To convert a time vector to a seconds value:
 To print seconds in Unix date format:
   'T' text sys 'sec'`
 
+func vecText(v Vector) string {
+	s := fmt.Sprint(v) // will print as "(text)"
+	return s[1 : len(s)-1]
+}
+
 // sys implements the variegated "sys" unary operator.
 func sys(c Context, v Value) Value {
-	conf := c.Config()
 	vv := v.(Vector)
-	if !allChars(vv) {
-		Errorf("sys %s not defined", v)
+	conf := c.Config()
+
+	if allChars(vv) { // single argument
+		verb := vecText(vv)
+		if fn, ok := sys1[verb]; ok {
+			return fn(conf)
+		}
+		if fn, ok := sysN[verb]; ok {
+			return fn(conf, []Value{})
+		}
+		Errorf("sys %q not defined", verb)
 	}
-	arg := fmt.Sprint(vv) // Will print as "(argument)"
-	switch arg[1 : len(arg)-1] {
-	case "help":
+
+	if v1, ok := vv[0].(Vector); ok && allChars(v1) { // multiple arguments, verb first
+		verb := vecText(v1)
+		if fn, ok := sysN[verb]; ok {
+			return fn(conf, vv[1:])
+		}
+		if _, ok := sys1[verb]; ok {
+			Errorf("sys %q takes no arguments", verb)
+		}
+		Errorf("sys %q not defined", verb)
+	}
+
+	Errorf("sys requires string argument")
+	panic("unreachable")
+}
+
+var sys1 = map[string]func(conf *config.Config) Value{
+	"help": func(conf *config.Config) Value {
 		fmt.Fprint(conf.Output(), sysHelp)
 		return empty
-	case "base":
+	},
+	"base": func(conf *config.Config) Value {
 		return NewIntVector(conf.Base())
-	case "cpu":
+	},
+	"cpu": func(conf *config.Config) Value {
 		real, user, sys := conf.CPUTime()
 		vec := make([]Value, 3)
 		vec[0] = BigFloat{big.NewFloat(real.Seconds())}
 		vec[1] = BigFloat{big.NewFloat(user.Seconds())}
 		vec[2] = BigFloat{big.NewFloat(sys.Seconds())}
 		return NewVector(vec)
-	case "date":
+	},
+	"date": func(conf *config.Config) Value {
 		return newCharVector(time.Now().In(conf.Location()).Format(time.UnixDate))
-	case "format":
+	},
+	"format": func(conf *config.Config) Value {
 		return newCharVector(fmt.Sprintf("%q", conf.Format()))
-	case "ibase":
+	},
+	"ibase": func(conf *config.Config) Value {
 		return Int(conf.InputBase())
-	case "maxbits":
+	},
+	"maxbits": func(conf *config.Config) Value {
 		return Int(conf.MaxBits())
-	case "maxdigits":
+	},
+	"maxdigits": func(conf *config.Config) Value {
 		return Int(conf.MaxDigits())
-	case "maxstack":
+	},
+	"maxstack": func(conf *config.Config) Value {
 		return Int(conf.MaxStack())
-	case "obase":
-		return Int(conf.OutputBase())
-	case "origin":
-		return Int(conf.Origin())
-	case "prompt":
-		return newCharVector(fmt.Sprintf("%q", conf.Prompt()))
-	case "sec", "now":
+	},
+	"now": func(conf *config.Config) Value {
 		return BigFloat{big.NewFloat(float64(time.Now().UnixNano()) / 1e9)}
-	case "time":
+	},
+	"obase": func(conf *config.Config) Value {
+		return Int(conf.OutputBase())
+	},
+	"origin": func(conf *config.Config) Value {
+		return Int(conf.Origin())
+	},
+	"prompt": func(conf *config.Config) Value {
+		return newCharVector(fmt.Sprintf("%q", conf.Prompt()))
+	},
+	"sec": func(conf *config.Config) Value {
+		return BigFloat{big.NewFloat(float64(time.Now().UnixNano()) / 1e9)}
+	},
+	"time": func(conf *config.Config) Value {
 		return timeVec(time.Now().In(conf.Location()))
-	default:
-		Errorf("sys %q not defined", arg)
+	},
+}
+
+var sysN = map[string]func(*config.Config, []Value) Value{
+	"read": sysRead,
+}
+
+func sysRead(conf *config.Config, args []Value) Value {
+	usage := func() {
+		Errorf(`usage: sys "read" "filename"`)
 	}
-	return zero
+
+	if len(args) != 1 {
+		usage()
+	}
+	v, ok := args[0].(Vector)
+	if !ok || !allChars(v) {
+		usage()
+	}
+	file := vecText(v)
+
+	f, err := os.Open(file)
+	if err != nil {
+		Errorf("%v", err)
+	}
+	defer f.Close()
+
+	out := Vector{}
+	s := bufio.NewScanner(f)
+	s.Buffer(nil, math.MaxInt)
+	for s.Scan() {
+		out = append(out, newCharVector(s.Text()))
+	}
+	if err := s.Err(); err != nil {
+		Errorf("%v", err)
+	}
+	return out
 }
 
 // newCharVector takes a string and returns its representation as a Vector of Chars.

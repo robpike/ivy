@@ -58,3 +58,11 @@ opdelete foo x
 # Expect: no definition for binary foo
 opdelete x foo y
 	#
+
+# Expect: usage: sys "read" "filename"
+sys 'read'
+	#
+
+# Expect: sys "abc" not defined
+sys 'abc'
+	#
