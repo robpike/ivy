@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -152,9 +153,21 @@ Switch:
 				p.helpOverview()
 				break
 			}
-			p.helpAbout(tok.Text)
+			text := tok.Text
+			if tok.Type == scan.String {
+				if s, err := strconv.Unquote(text); err == nil {
+					text = s
+				}
+			}
+			p.helpAbout(text)
 		default:
-			p.help(str)
+			text := tok.Text
+			if tok.Type == scan.String {
+				if s, err := strconv.Unquote(text); err == nil {
+					text = s
+				}
+			}
+			p.help(text)
 		}
 		p.next()
 	case "base", "ibase", "obase":
