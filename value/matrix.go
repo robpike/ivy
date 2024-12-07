@@ -377,7 +377,7 @@ func reshape(A, B Vector) Value {
 	if len(A) == 0 {
 		return Vector{}
 	}
-	nelems := one
+	nelems := Int(1)
 	shape := make([]int, len(A))
 	for i := range A {
 		n, ok := A[i].Inner().(Int)
