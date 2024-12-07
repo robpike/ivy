@@ -4,7 +4,9 @@
 
 package exec
 
-import "robpike.io/ivy/value"
+import (
+	"robpike.io/ivy/value"
+)
 
 // Predefined reports whether the operator is predefined, a built-in.
 func Predefined(op string) bool {
