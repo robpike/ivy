@@ -51,7 +51,7 @@ func Eval(expr string) (string, error) {
 	run.Ivy(context, expr, stdout, stderr)
 	result := escaper.Replace(stdout.String())
 	if stderr.Len() > 0 {
-		return result, fmt.Errorf(stderr.String())
+		return result, fmt.Errorf("%s", stderr.String())
 	}
 	return result, nil
 }
