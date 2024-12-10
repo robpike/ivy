@@ -141,11 +141,17 @@ func (l *Scanner) peek() rune {
 }
 
 // peek2 returns the next two runes ahead, but does not consume anything.
+// If the first rune is a newline, do not read further, and return '\n' for the
+// second rune as well: it shouldn't matter as peek2 is only used for operators,
+// and if we see a newline we don't have an operator.
 func (l *Scanner) peek2() (rune, rune) {
 	pos := l.pos
 	lastWidth := l.lastWidth
 	r1 := l.next()
-	r2 := l.next()
+	r2 := r1
+	if r1 != '\n' {
+		r2 = l.next()
+	}
 	l.pos = pos
 	l.lastWidth = lastWidth
 	return r1, r2
