@@ -406,3 +406,11 @@ split 2 3 4 rho iota 99
 iota rho 1 1 1
 	1 2 3
 
+split 1 2 rho iota 2
+	(1 2)
+
+split 1 1 rho iota 1
+	(1)
+
+split 1 0 rho iota 0
+	()

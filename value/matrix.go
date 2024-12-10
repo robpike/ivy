@@ -892,12 +892,12 @@ func (m *Matrix) split() Value {
 		Errorf("cannot split rank %d matrix", len(m.shape))
 	}
 	// Matrix of vectors.
-	n := m.shape[len(m.shape)-1]
-	mData := make([]Value, 0, size(m.shape[:len(m.shape)-1]))
-	for i := 0; i < len(m.data); i += n {
-		mData = append(mData, NewVector(m.data[i:i+n]))
+	shape, n := m.shape[:len(m.shape)-1], m.shape[len(m.shape)-1]
+	mData := make([]Value, size(shape))
+	for i := range mData {
+		mData[i] = NewVector(m.data[i*n : (i+1)*n])
 	}
-	return NewMatrix(m.shape[:len(m.shape)-1], mData).shrink()
+	return NewMatrix(shape, mData).shrink()
 }
 
 // mix builds a matrix from the elements of the nested matrix.
