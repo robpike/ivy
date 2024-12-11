@@ -82,7 +82,7 @@ op a base b = ((ceil b log a) rho b) encode a
 	c
 
 1 2 3
-	value.Vector
+	*value.Vector
 	1 2 3
 
 sqrt 2

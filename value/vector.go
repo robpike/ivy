@@ -15,13 +15,33 @@ import (
 	"robpike.io/ivy/config"
 )
 
-type Vector []Value
+type Vector struct {
+	data []Value
+}
 
-func (v Vector) String() string {
+// Len returns the number of elements in v.
+func (v *Vector) Len() int { return len(v.data) }
+
+// At returns the i'th element of v.
+func (v *Vector) At(i int) Value { return v.data[i] }
+
+// Set sets v[i] = x.
+func (v *Vector) Set(i int, x Value) { v.data[i] = x }
+
+// All returns all the elements in v, for reading.
+func (v *Vector) All() []Value { return v.data[:len(v.data):len(v.data)] }
+
+// Writable returns all the elements in v, for writing.
+func (v *Vector) Writable() []Value { return v.data }
+
+// Slice returns a slice v[i:j], for reading.
+func (v *Vector) Slice(i, j int) []Value { return v.data[i:j:j] }
+
+func (v *Vector) String() string {
 	return "(" + v.Sprint(debugConf) + ")"
 }
 
-func (v Vector) Sprint(conf *config.Config) string {
+func (v *Vector) Sprint(conf *config.Config) string {
 	allChars := v.AllChars()
 	lines, _ := v.multiLineSprint(conf, v.allScalars(), allChars, !allChars, trimTrailingSpace)
 	switch len(lines) {
@@ -41,11 +61,11 @@ func (v Vector) Sprint(conf *config.Config) string {
 	}
 }
 
-func (v Vector) Rank() int {
+func (v *Vector) Rank() int {
 	return 1
 }
 
-func (v Vector) ProgString() string {
+func (v *Vector) ProgString() string {
 	// There is no such thing as a vector in program listings; they
 	// are represented as a sliceExpr.
 	panic("vector.ProgString - cannot happen")
@@ -62,13 +82,13 @@ const (
 // there are no hidden newlines within) and returns the result.
 // Flags report whether parentheses will be needed and
 // whether to put spaces between the elements.
-func (v Vector) oneLineSprint(conf *config.Config, parens, spaces bool) (string, []int) {
+func (v *Vector) oneLineSprint(conf *config.Config, parens, spaces bool) (string, []int) {
 	var b bytes.Buffer
 	if parens {
 		spaces = true
 	}
-	cols := make([]int, len(v))
-	for i, elem := range v {
+	cols := make([]int, v.Len())
+	for i, elem := range v.All() {
 		if spaces && i > 0 {
 			fmt.Fprint(&b, " ")
 		}
@@ -85,28 +105,30 @@ func (v Vector) oneLineSprint(conf *config.Config, parens, spaces bool) (string,
 // multiLineSprint formats a vector that may span multiple lines,
 // returning the result as a slice of strings, one per line.
 // Lots of flags:
+//
 //	allScalars: the vector is all scalar values and can be printed without parens.
 //	allChars: the vector is all chars and can be printed extra simply.
 //	spaces: put spaces between elements.
 //	trim: remove trailing spaces from each line.
+//
 // If trim is not set, the lines are all of equal length, bytewise.
 //
 // The return values are the printed lines and, along the other axis,
 // byte positions after each column.
-func (v Vector) multiLineSprint(conf *config.Config, allScalars, allChars, spaces, trim bool) ([]string, []int) {
+func (v *Vector) multiLineSprint(conf *config.Config, allScalars, allChars, spaces, trim bool) ([]string, []int) {
 	if allScalars {
 		// Easy case, might as well be efficient.
 		str, cols := v.oneLineSprint(conf, false, spaces)
 		return []string{str}, cols
 	}
-	cols := make([]int, len(v))
+	cols := make([]int, v.Len())
 	if allChars {
 		// Special handling as the array may contain newlines.
 		// Ignore all the other flags.
 		// TODO: We can still get newlines for individual elements
 		// in the general case handled below.
 		b := strings.Builder{}
-		for i, c := range v {
+		for i, c := range v.All() {
 			b.WriteRune(rune(c.Inner().(Char)))
 			cols[i] = b.Len()
 		}
@@ -114,7 +136,7 @@ func (v Vector) multiLineSprint(conf *config.Config, allScalars, allChars, space
 	}
 	lines := []*strings.Builder{}
 	lastColumn := []int{} // For each line, last column with a non-padding character.
-	for i, elem := range v {
+	for i, elem := range v.All() {
 		strs := strings.Split(elem.Sprint(conf), "\n")
 		if len(strs) > len(lines) {
 			wid := 0
@@ -228,25 +250,25 @@ func fillValue(v []Value) Value {
 		return fill
 	}
 	switch v := v[0].(type) {
-	case Vector:
-		data := make([]Value, len(v))
+	case *Vector:
+		data := make([]Value, v.Len())
 		for i := range data {
 			data[i] = fill
 		}
 		return NewVector(data)
 	case *Matrix:
-		data := make([]Value, len(v.data))
+		data := make([]Value, v.data.Len())
 		for i := range data {
 			data[i] = fill
 		}
-		return NewMatrix(v.shape, data)
+		return NewMatrix(v.shape, NewVector(data))
 	}
 	return zero
 }
 
 // fillValue returns a zero or a space as the appropriate fill type for the vector
-func (v Vector) fillValue() Value {
-	return fillValue(v)
+func (v *Vector) fillValue() Value {
+	return fillValue(v.All())
 }
 
 // allChars reports whether the top level of the data contains only Chars.
@@ -260,13 +282,13 @@ func allChars(v []Value) bool {
 }
 
 // AllChars reports whether the vector contains only Chars.
-func (v Vector) AllChars() bool {
-	return allChars(v)
+func (v *Vector) AllChars() bool {
+	return allChars(v.All())
 }
 
 // allScalars reports whether all the elements are scalar.
-func (v Vector) allScalars() bool {
-	return allScalars(v)
+func (v *Vector) allScalars() bool {
+	return allScalars(v.All())
 }
 
 // allScalars reports whether all the elements are scalar.
@@ -280,8 +302,8 @@ func allScalars(v []Value) bool {
 }
 
 // AllInts reports whether the vector contains only Ints.
-func (v Vector) AllInts() bool {
-	for _, c := range v {
+func (v *Vector) AllInts() bool {
+	for _, c := range v.All() {
 		if _, ok := c.Inner().(Int); !ok {
 			return false
 		}
@@ -289,71 +311,67 @@ func (v Vector) AllInts() bool {
 	return true
 }
 
-func NewVector(elems []Value) Vector {
-	if elems == nil {
-		// Really shouldn't happen, so catch it if it does.
-		Errorf("internal error: nil vector")
-	}
-	return Vector(elems)
+func NewVector(elems []Value) *Vector {
+	return &Vector{elems}
 }
 
-func oneElemVector(elem Value) Vector {
-	return Vector([]Value{elem})
+func oneElemVector(elem Value) *Vector {
+	return NewVector([]Value{elem})
 }
 
-func NewIntVector(elems ...int) Vector {
+func NewIntVector(elems ...int) *Vector {
 	vec := make([]Value, len(elems))
 	for i, elem := range elems {
 		vec[i] = Int(elem)
 	}
-	return Vector(vec)
+	return NewVector(vec)
 }
 
-func (v Vector) Eval(Context) Value {
+func (v *Vector) Eval(Context) Value {
 	return v
 }
 
-func (v Vector) Inner() Value {
+func (v *Vector) Inner() Value {
 	return v
 }
 
-func (v Vector) Copy() Value {
-	elem := make([]Value, len(v))
-	copy(elem, v)
+func (v *Vector) Copy() Value {
+	elem := make([]Value, v.Len())
+	copy(elem, v.All())
 	return NewVector(elem)
 }
 
-func (v Vector) toType(op string, conf *config.Config, which valueType) Value {
+func (v *Vector) toType(op string, conf *config.Config, which valueType) Value {
 	switch which {
 	case vectorType:
 		return v
 	case matrixType:
-		return NewMatrix([]int{len(v)}, v)
+		return NewMatrix([]int{v.Len()}, v)
 	}
 	Errorf("%s: cannot convert vector to %s", op, which)
 	return nil
 }
 
-func (v Vector) sameLength(x Vector) {
-	if len(v) != len(x) {
-		Errorf("length mismatch: %d %d", len(v), len(x))
+func (v *Vector) sameLength(x *Vector) {
+	if v.Len() != x.Len() {
+		Errorf("length mismatch: %d %d", v.Len(), x.Len())
 	}
 }
 
 // rotate returns a copy of v with elements rotated left by n.
-func (v Vector) rotate(n int) Value {
-	if len(v) == 0 {
+func (v *Vector) rotate(n int) Value {
+	if v.Len() == 0 {
 		return v
 	}
-	if len(v) == 1 {
-		return v[0]
+	if v.Len() == 1 {
+		return v.At(0)
 	}
-	n %= len(v)
+	n %= v.Len()
 	if n < 0 {
-		n += len(v)
+		n += v.Len()
 	}
-	elems := make([]Value, len(v))
-	doRotate(elems, v, n%len(elems))
+	elems := make([]Value, v.Len())
+	doRotate(elems, v.All(), n%len(elems))
 	return NewVector(elems)
 }
 
@@ -363,13 +381,13 @@ func doRotate(dst, src []Value, j int) {
 }
 
 // grade returns as a Vector the indexes that sort the vector into increasing order
-func (v Vector) grade(c Context) Vector {
-	x := make([]int, len(v))
+func (v *Vector) grade(c Context) *Vector {
+	x := make([]int, v.Len())
 	for i := range x {
 		x[i] = i
 	}
 	sort.SliceStable(x, func(i, j int) bool {
-		return toBool(c.EvalBinary(v[x[i]], "<", v[x[j]]))
+		return toBool(c.EvalBinary(v.At(x[i]), "<", v.At(x[j])))
 	})
 	origin := c.Config().Origin()
 	for i := range x {
@@ -379,41 +397,43 @@ func (v Vector) grade(c Context) Vector {
 }
 
 // reverse returns the reversal of a vector.
-func (v Vector) reverse() Vector {
-	r := v.Copy().(Vector)
-	for i, j := 0, len(r)-1; i < j; i, j = i+1, j-1 {
-		r[i], r[j] = r[j], r[i]
+func (v *Vector) reverse() *Vector {
+	r := v.Copy().(*Vector)
+	for i, j := 0, r.Len()-1; i < j; i, j = i+1, j-1 {
+		ri, rj := r.At(i), r.At(j)
+		r.Set(i, rj)
+		r.Set(j, ri)
 	}
 	return r
 }
 
 // inverse returns the inverse of a vector, defined to be (conj v) / v +.* conj v
-func (v Vector) inverse(c Context) Value {
-	if len(v) == 0 {
+func (v *Vector) inverse(c Context) Value {
+	if v.Len() == 0 {
 		Errorf("inverse of empty vector")
 	}
-	if len(v) == 1 {
+	if v.Len() == 1 {
 		return inverse(c, v)
 	}
 	// We could do this evaluation using "conj" and "+.*" but avoid the overhead.
-	conj := v.Copy().(Vector)
-	for i, x := range conj {
+	conj := v.Copy().(*Vector)
+	for i, x := range conj.All() {
 		if !IsScalarType(x) {
 			Errorf("inverse of vector with non-scalar element")
 		}
 		if cmplx, ok := x.(Complex); ok {
-			conj[i] = NewComplex(cmplx.real, c.EvalUnary("-", cmplx.imag)).shrink()
+			conj.Set(i, NewComplex(cmplx.real, c.EvalUnary("-", cmplx.imag)).shrink())
 		}
 	}
 	mag := Value(zero)
-	for i, x := range v {
-		mag = c.EvalBinary(mag, "+", c.EvalBinary(x, "*", conj[i]))
+	for i, x := range v.All() {
+		mag = c.EvalBinary(mag, "+", c.EvalBinary(x, "*", conj.At(i)))
 	}
 	if isZero(mag) {
 		Errorf("inverse of zero vector")
 	}
-	for i, x := range conj {
-		conj[i] = c.EvalBinary(x, "/", mag)
+	for i, x := range conj.All() {
+		conj.Set(i, c.EvalBinary(x, "/", mag))
 	}
 	return conj
 }
@@ -421,40 +441,40 @@ func (v Vector) inverse(c Context) Value {
 // membership creates a vector of size len(u) reporting
 // whether each element of u is an element of v.
 // Algorithm is O(nV log nV + nU log nV) where nU==len(u) and nV==len(V).
-func membership(c Context, u, v Vector) []Value {
-	values := make([]Value, len(u))
+func membership(c Context, u, v *Vector) []Value {
+	values := make([]Value, u.Len())
 	sortedV := v.sortedCopy(c)
-	work := 2 * (1 + int(math.Log2(float64(len(v)))))
+	work := 2 * (1 + int(math.Log2(float64(v.Len()))))
 	pfor(true, work, len(values), func(lo, hi int) {
 		for i := lo; i < hi; i++ {
-			values[i] = toInt(sortedV.contains(c, u[i]))
+			values[i] = toInt(sortedV.contains(c, u.At(i)))
 		}
 	})
 	return values
 }
 
 // sortedCopy returns a copy of v, in ascending sorted order.
-func (v Vector) sortedCopy(c Context) Vector {
-	sortedV := make([]Value, len(v))
-	copy(sortedV, v)
+func (v *Vector) sortedCopy(c Context) *Vector {
+	sortedV := make([]Value, v.Len())
+	copy(sortedV, v.All())
 	sort.Slice(sortedV, func(i, j int) bool {
 		return OrderedCompare(c, sortedV[i], sortedV[j]) < 0
 	})
-	return sortedV
+	return NewVector(sortedV)
 }
 
 // contains reports whether x is in v, which must be already in ascending
 // sorted order.
-func (v Vector) contains(c Context, x Value) bool {
-	pos := sort.Search(len(v), func(j int) bool {
-		return OrderedCompare(c, v[j], x) >= 0
+func (v *Vector) contains(c Context, x Value) bool {
+	pos := sort.Search(v.Len(), func(j int) bool {
+		return OrderedCompare(c, v.At(j), x) >= 0
 	})
-	return pos < len(v) && OrderedCompare(c, v[pos], x) == 0
+	return pos < v.Len() && OrderedCompare(c, v.At(pos), x) == 0
 }
 
-func (v Vector) shrink() Value {
-	if len(v) == 1 {
-		return v[0]
+func (v *Vector) shrink() Value {
+	if v.Len() == 1 {
+		return v.At(0)
 	}
 	return v
 }

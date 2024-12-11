@@ -56,16 +56,16 @@ func assignment(context value.Context, b *binary) value.Value {
 		}
 	case sliceExpr:
 		// Simultaneous assignment requires evaluation of RHS before assignment.
-		rhs, ok := b.right.Eval(context).Inner().(value.Vector)
+		rhs, ok := b.right.Eval(context).Inner().(*value.Vector)
 		if !ok {
 			value.Errorf("rhs of assignment to (%s) not a vector", lhs.ProgString())
 		}
-		if len(lhs) != len(rhs) {
+		if len(lhs) != rhs.Len() {
 			value.Errorf("length mismatch in assignment to (%s)", lhs.ProgString())
 		}
-		values := make([]value.Value, len(rhs))
-		for i := len(rhs) - 1; i >= 0; i-- {
-			values[i] = rhs[i].Eval(context).Inner()
+		values := make([]value.Value, rhs.Len())
+		for i := rhs.Len() - 1; i >= 0; i-- {
+			values[i] = rhs.At(i).Eval(context).Inner()
 		}
 		for i, v := range lhs {
 			vbl := v.(*variableExpr) // Guaranteed to be only a variable on LHS.
