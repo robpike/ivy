@@ -109,3 +109,17 @@
 θ = (0 - 7) + ΔJ*(1+ΔJ*(2))
 θ
 	29
+
+op f x = x+1 # comment
+f 1
+	2
+
+op f x =
+ x = x+1 # increment
+ # comment here
+# comment here
+ x = x-1# decrement
+ x
+
+f 1
+	1

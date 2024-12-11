@@ -243,13 +243,9 @@ func lexComment(l *Scanner) stateFn {
 	for {
 		r := l.next()
 		if r == eof || r == '\n' {
+			l.backup()
 			break
 		}
-	}
-	if len(l.input) > 0 {
-		l.pos = len(l.input)
-		// Emitting newline also advances l.line.
-		return l.emit(Newline)
 	}
 	return lexAny
 }
