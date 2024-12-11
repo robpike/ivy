@@ -179,7 +179,8 @@ func (e *variableExpr) ProgString() string {
 // may require parentheses around it when printed to maintain correct evaluation order.
 func isCompound(x interface{}) bool {
 	switch x := x.(type) {
-	case value.Char, value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Complex, value.Vector, value.Matrix:
+	// TODO: probably *value.Matrix not value.Matrix?
+	case value.Char, value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Complex, *value.Vector, value.Matrix:
 		return false
 	case sliceExpr, *variableExpr:
 		return false
