@@ -62,12 +62,12 @@ var (
 	matrix12_44   = value.NewMatrix([]int{2, 2}, newMatrixData(1, 2, 4, 4))
 )
 
-func newMatrixData(data ...int) []value.Value {
+func newMatrixData(data ...int) *value.Vector {
 	v := make([]value.Value, len(data))
 	for i := range data {
 		v[i] = value.Int(data[i])
 	}
-	return v
+	return value.NewVector(v)
 }
 
 func TestOrderedCompare(t *testing.T) {

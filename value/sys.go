@@ -45,17 +45,17 @@ To convert a time vector to a seconds value:
 To print seconds in Unix date format:
   'T' text sys 'sec'`
 
-func vecText(v Vector) string {
+func vecText(v *Vector) string {
 	s := fmt.Sprint(v) // will print as "(text)"
 	return s[1 : len(s)-1]
 }
 
 // sys implements the variegated "sys" unary operator.
 func sys(c Context, v Value) Value {
-	vv := v.(Vector)
+	vv := v.(*Vector)
 	conf := c.Config()
 
-	if allChars(vv) { // single argument
+	if allChars(vv.All()) { // single argument
 		verb := vecText(vv)
 		if fn, ok := sys1[verb]; ok {
 			return fn(conf)
@@ -66,10 +66,10 @@ func sys(c Context, v Value) Value {
 		Errorf("sys %q not defined", verb)
 	}
 
-	if v1, ok := vv[0].(Vector); ok && allChars(v1) { // multiple arguments, verb first
+	if v1, ok := vv.At(0).(*Vector); ok && allChars(v1.All()) { // multiple arguments, verb first
 		verb := vecText(v1)
 		if fn, ok := sysN[verb]; ok {
-			return fn(conf, vv[1:])
+			return fn(conf, vv.Slice(1, vv.Len()))
 		}
 		if _, ok := sys1[verb]; ok {
 			Errorf("sys %q takes no arguments", verb)
@@ -147,8 +147,8 @@ func sysRead(conf *config.Config, args []Value) Value {
 	if len(args) != 1 {
 		usage()
 	}
-	v, ok := args[0].(Vector)
-	if !ok || !allChars(v) {
+	v, ok := args[0].(*Vector)
+	if !ok || !allChars(v.All()) {
 		usage()
 	}
 	file := vecText(v)
@@ -159,7 +159,7 @@ func sysRead(conf *config.Config, args []Value) Value {
 	}
 	defer f.Close()
 
-	out := Vector{}
+	var out []Value
 	s := bufio.NewScanner(f)
 	s.Buffer(nil, math.MaxInt)
 	for s.Scan() {
@@ -168,7 +168,7 @@ func sysRead(conf *config.Config, args []Value) Value {
 	if err := s.Err(); err != nil {
 		Errorf("%v", err)
 	}
-	return out
+	return NewVector(out)
 }
 
 // newCharVector takes a string and returns its representation as a Vector of Chars.
@@ -183,18 +183,18 @@ func newCharVector(s string) Value {
 
 // encodeTime returns a sys "time" vector given a seconds value.
 // We know the first argument is all chars and not empty.
-func encodeTime(c Context, u, v Vector) Value {
-	r := rune(u[0].(Char))
+func encodeTime(c Context, u, v *Vector) Value {
+	r := rune(u.At(0).(Char))
 	if r != 't' && r != 'T' {
 		Errorf("illegal left operand %s for encode", u)
 	}
 	// TODO: more than one value
-	return timeVec(timeFromValue(c, v[0]))
+	return timeVec(timeFromValue(c, v.At(0)))
 }
 
 // timeVec returns the time unpacked into year, month, day, hour, minute, second
 // and time zone offset in seconds east of UTC.
-func timeVec(date time.Time) Vector {
+func timeVec(date time.Time) *Vector {
 	y, m, d := date.Date()
 	vec := make([]Value, 7)
 	vec[0] = Int(y)
@@ -210,8 +210,8 @@ func timeVec(date time.Time) Vector {
 }
 
 // decodeTime returns a second value given a sys "time" vector.
-func decodeTime(c Context, u, v Vector) Value {
-	r := rune(u[0].(Char))
+func decodeTime(c Context, u, v *Vector) Value {
+	r := rune(u.At(0).(Char))
 	if r != 't' && r != 'T' {
 		Errorf("illegal left operand %s for decode", u)
 	}
@@ -230,11 +230,11 @@ func decodeTime(c Context, u, v Vector) Value {
 		}
 		return int(b.Int64())
 	}
-	switch len(v) {
+	switch v.Len() {
 	default:
 		Errorf("invalid time vector %s", v)
 	case 7:
-		offset := toInt(v[6])
+		offset := toInt(v.At(6))
 		_, nowOffset := now.Zone()
 		if offset != nowOffset {
 			hour := offset / 3600
@@ -243,7 +243,7 @@ func decodeTime(c Context, u, v Vector) Value {
 		}
 		fallthrough
 	case 6:
-		switch s := v[5].(type) {
+		switch s := v.At(5).(type) {
 		default:
 			Errorf("illegal right operand %s in decode", v)
 		case Int:
@@ -262,19 +262,19 @@ func decodeTime(c Context, u, v Vector) Value {
 		}
 		fallthrough
 	case 5:
-		min = toInt(v[4])
+		min = toInt(v.At(4))
 		fallthrough
 	case 4:
-		hour = toInt(v[3])
+		hour = toInt(v.At(3))
 		fallthrough
 	case 3:
-		day = toInt(v[2])
+		day = toInt(v.At(2))
 		fallthrough
 	case 2:
-		month = toInt(v[1])
+		month = toInt(v.At(1))
 		fallthrough
 	case 1:
-		year = toInt(v[0])
+		year = toInt(v.At(0))
 	}
 	// time.Time values can only extract int64s for UnixNano, which limits the range too much.
 	// So we use UnixMilli, which spans a big enough range, and add the nanoseconds manually.

@@ -27,32 +27,32 @@ func union(c Context, u, v Value) Value {
 	// At least one is a Vector.
 	switch {
 	case vType != vectorType:
-		uu := u.(Vector).Copy().(Vector)
-		for _, x := range uu {
+		uu := u.(*Vector).Copy().(*Vector)
+		for _, x := range uu.All() {
 			if scalarEqual(c, x, v) {
 				return uu
 			}
 		}
-		return NewVector(append(uu, v))
+		return NewVector(append(uu.All(), v))
 	case uType != vectorType:
-		vv := v.(Vector)
+		vv := v.(*Vector)
 		elems := []Value{u}
-		for _, x := range vv {
+		for _, x := range vv.All() {
 			if !scalarEqual(c, u, x) {
 				elems = append(elems, x)
 			}
 		}
 		return NewVector(elems)
 	default: // Both vectors.
-		uu := u.(Vector).Copy().(Vector)
-		vv := v.(Vector)
-		present := membership(c, vv, uu)
-		for i, x := range vv {
+		uu := u.(*Vector).Copy().(*Vector).All()
+		vv := v.(*Vector)
+		present := membership(c, vv, NewVector(uu))
+		for i, x := range vv.All() {
 			if present[i] != one {
 				uu = append(uu, x)
 			}
 		}
-		return uu
+		return NewVector(uu)
 	}
 }
 
@@ -74,24 +74,24 @@ func intersect(c Context, u, v Value) Value {
 	elems := []Value{}
 	switch {
 	case vType != vectorType:
-		uu := u.(Vector)
-		for _, x := range uu {
+		uu := u.(*Vector)
+		for _, x := range uu.All() {
 			if scalarEqual(c, x, v) {
 				elems = append(elems, x)
 			}
 		}
 	case uType != vectorType:
-		vv := v.(Vector)
-		for _, x := range vv {
+		vv := v.(*Vector)
+		for _, x := range vv.All() {
 			if scalarEqual(c, u, x) {
 				return oneElemVector(u)
 			}
 		}
 		return empty
 	default: // Both vectors.
-		uu := u.(Vector)
-		present := membership(c, uu, v.(Vector))
-		for i, x := range uu {
+		uu := u.(*Vector)
+		present := membership(c, uu, v.(*Vector))
+		for i, x := range uu.All() {
 			if present[i] == one {
 				elems = append(elems, x)
 			}
@@ -109,8 +109,8 @@ func unique(c Context, v Value) Value {
 	if vType == matrixType {
 		Errorf("unary unique not implemented on type matrix")
 	}
-	vv := v.(Vector)
-	if len(vv) == 0 {
+	vv := v.(*Vector)
+	if vv.Len() == 0 {
 		return vv
 	}
 	// We could just sort and dedup, but that loses the original
@@ -119,8 +119,8 @@ func unique(c Context, v Value) Value {
 		i int
 		v Value
 	}
-	sorted := make([]indexedValue, len(vv))
-	for i, x := range vv {
+	sorted := make([]indexedValue, vv.Len())
+	for i, x := range vv.All() {
 		sorted[i] = indexedValue{i, x}
 	}
 	// Sort based on the values, preserving index information.
@@ -173,9 +173,9 @@ func scalarEqual(c Context, u, v Value) bool {
 // - ...Matrix, which is above all other types.
 //
 // When comparing identically-typed values:
-// - Complex is ordered first by real component, then by imaginary.
-// - Vector and Matrix are ordered first by number  of elements,
-//    then in lexical order of elements.
+//   - Complex is ordered first by real component, then by imaginary.
+//   - Vector and Matrix are ordered first by number  of elements,
+//     then in lexical order of elements.
 //
 // These are unusual rules, but they are provide a unique ordering of elements
 // sufficient for set membership. // Exported for testing, which is done by the
@@ -243,13 +243,13 @@ func OrderedCompare(c Context, u, v Value) int {
 		}
 		return OrderedCompare(c, uu.imag, vv.imag)
 	case vectorType:
-		uu := u.(Vector)
-		vv := v.(Vector)
-		if len(uu) != len(vv) {
-			return sgn2Int(len(uu), len(vv))
+		uu := u.(*Vector)
+		vv := v.(*Vector)
+		if uu.Len() != vv.Len() {
+			return sgn2Int(uu.Len(), vv.Len())
 		}
-		for i, x := range uu {
-			s := OrderedCompare(c, x, vv[i])
+		for i, x := range uu.All() {
+			s := OrderedCompare(c, x, vv.At(i))
 			if s != 0 {
 				return s
 			}
@@ -258,11 +258,11 @@ func OrderedCompare(c Context, u, v Value) int {
 	case matrixType:
 		uu := u.(*Matrix)
 		vv := v.(*Matrix)
-		if len(uu.data) != len(vv.data) {
-			return sgn2Int(len(uu.data), len(vv.data))
+		if uu.data.Len() != vv.data.Len() {
+			return sgn2Int(uu.data.Len(), vv.data.Len())
 		}
-		for i, x := range uu.data {
-			s := OrderedCompare(c, x, vv.data[i])
+		for i, x := range uu.data.All() {
+			s := OrderedCompare(c, x, vv.data.At(i))
 			if s != 0 {
 				return s
 			}
