@@ -31,8 +31,9 @@ func primeGen(n int) func() int {
 // swing calculates the "swinging factorial" function of n,
 // which is n!/⌊n/2⌋!².
 // Swinging factorial table for reference.
-//		n  0 1 2 3 4  5  6   7  8   9  10   11
-//		n𝜎 1 1 2 6 6 30 20 140 70 630 252 2772
+//
+//	n  0 1 2 3 4  5  6   7  8   9  10   11
+//	n𝜎 1 1 2 6 6 30 20 140 70 630 252 2772
 func swing(n int) *big.Int {
 	nextPrime := primeGen(n)
 	factors := make([]int, 0, 100)

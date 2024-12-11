@@ -83,7 +83,7 @@ func (c Complex) toType(op string, conf *config.Config, which valueType) Value {
 	case vectorType:
 		return oneElemVector(c)
 	case matrixType:
-		return NewMatrix([]int{1, 1}, []Value{c})
+		return NewMatrix([]int{1, 1}, NewVector([]Value{c}))
 	}
 	Errorf("%s: cannot convert complex to %s", op, which)
 	return nil

@@ -5,9 +5,14 @@
 package value
 
 import (
+	"bufio"
 	"fmt"
+	"math"
 	"math/big"
+	"os"
 	"time"
+
+	"robpike.io/ivy/config"
 )
 
 const sysHelp = `
@@ -26,6 +31,7 @@ const sysHelp = `
 "obase":     the output base (obase) setting
 "origin":    the index origin setting
 "prompt":    the prompt setting
+"read" file: read the named file and return a vector of lines, with line termination stripped
 "sec":       the time in seconds since
                Jan 1 00:00:00 1970 UTC
 "time":      the current time in the configured time zone as a vector; the last
@@ -39,53 +45,130 @@ To convert a time vector to a seconds value:
 To print seconds in Unix date format:
   'T' text sys 'sec'`
 
+func vecText(v *Vector) string {
+	s := fmt.Sprint(v) // will print as "(text)"
+	return s[1 : len(s)-1]
+}
+
 // sys implements the variegated "sys" unary operator.
 func sys(c Context, v Value) Value {
+	vv := v.(*Vector)
 	conf := c.Config()
-	vv := v.(Vector)
-	if !allChars(vv) {
-		Errorf("sys %s not defined", v)
+
+	if allChars(vv.All()) { // single argument
+		verb := vecText(vv)
+		if fn, ok := sys1[verb]; ok {
+			return fn(conf)
+		}
+		if fn, ok := sysN[verb]; ok {
+			return fn(conf, []Value{})
+		}
+		Errorf("sys %q not defined", verb)
 	}
-	arg := fmt.Sprint(vv) // Will print as "(argument)"
-	switch arg[1 : len(arg)-1] {
-	case "help":
+
+	if v1, ok := vv.At(0).(*Vector); ok && allChars(v1.All()) { // multiple arguments, verb first
+		verb := vecText(v1)
+		if fn, ok := sysN[verb]; ok {
+			return fn(conf, vv.Slice(1, vv.Len()))
+		}
+		if _, ok := sys1[verb]; ok {
+			Errorf("sys %q takes no arguments", verb)
+		}
+		Errorf("sys %q not defined", verb)
+	}
+
+	Errorf("sys requires string argument")
+	panic("unreachable")
+}
+
+var sys1 = map[string]func(conf *config.Config) Value{
+	"help": func(conf *config.Config) Value {
 		fmt.Fprint(conf.Output(), sysHelp)
 		return empty
-	case "base":
+	},
+	"base": func(conf *config.Config) Value {
 		return NewIntVector(conf.Base())
-	case "cpu":
+	},
+	"cpu": func(conf *config.Config) Value {
 		real, user, sys := conf.CPUTime()
 		vec := make([]Value, 3)
 		vec[0] = BigFloat{big.NewFloat(real.Seconds())}
 		vec[1] = BigFloat{big.NewFloat(user.Seconds())}
 		vec[2] = BigFloat{big.NewFloat(sys.Seconds())}
 		return NewVector(vec)
-	case "date":
+	},
+	"date": func(conf *config.Config) Value {
 		return newCharVector(time.Now().In(conf.Location()).Format(time.UnixDate))
-	case "format":
+	},
+	"format": func(conf *config.Config) Value {
 		return newCharVector(fmt.Sprintf("%q", conf.Format()))
-	case "ibase":
+	},
+	"ibase": func(conf *config.Config) Value {
 		return Int(conf.InputBase())
-	case "maxbits":
+	},
+	"maxbits": func(conf *config.Config) Value {
 		return Int(conf.MaxBits())
-	case "maxdigits":
+	},
+	"maxdigits": func(conf *config.Config) Value {
 		return Int(conf.MaxDigits())
-	case "maxstack":
+	},
+	"maxstack": func(conf *config.Config) Value {
 		return Int(conf.MaxStack())
-	case "obase":
-		return Int(conf.OutputBase())
-	case "origin":
-		return Int(conf.Origin())
-	case "prompt":
-		return newCharVector(fmt.Sprintf("%q", conf.Prompt()))
-	case "sec", "now":
+	},
+	"now": func(conf *config.Config) Value {
 		return BigFloat{big.NewFloat(float64(time.Now().UnixNano()) / 1e9)}
-	case "time":
+	},
+	"obase": func(conf *config.Config) Value {
+		return Int(conf.OutputBase())
+	},
+	"origin": func(conf *config.Config) Value {
+		return Int(conf.Origin())
+	},
+	"prompt": func(conf *config.Config) Value {
+		return newCharVector(fmt.Sprintf("%q", conf.Prompt()))
+	},
+	"sec": func(conf *config.Config) Value {
+		return BigFloat{big.NewFloat(float64(time.Now().UnixNano()) / 1e9)}
+	},
+	"time": func(conf *config.Config) Value {
 		return timeVec(time.Now().In(conf.Location()))
-	default:
-		Errorf("sys %q not defined", arg)
+	},
+}
+
+var sysN = map[string]func(*config.Config, []Value) Value{
+	"read": sysRead,
+}
+
+func sysRead(conf *config.Config, args []Value) Value {
+	usage := func() {
+		Errorf(`usage: sys "read" "filename"`)
 	}
-	return zero
+
+	if len(args) != 1 {
+		usage()
+	}
+	v, ok := args[0].(*Vector)
+	if !ok || !allChars(v.All()) {
+		usage()
+	}
+	file := vecText(v)
+
+	f, err := os.Open(file)
+	if err != nil {
+		Errorf("%v", err)
+	}
+	defer f.Close()
+
+	var out []Value
+	s := bufio.NewScanner(f)
+	s.Buffer(nil, math.MaxInt)
+	for s.Scan() {
+		out = append(out, newCharVector(s.Text()))
+	}
+	if err := s.Err(); err != nil {
+		Errorf("%v", err)
+	}
+	return NewVector(out)
 }
 
 // newCharVector takes a string and returns its representation as a Vector of Chars.
@@ -100,18 +183,18 @@ func newCharVector(s string) Value {
 
 // encodeTime returns a sys "time" vector given a seconds value.
 // We know the first argument is all chars and not empty.
-func encodeTime(c Context, u, v Vector) Value {
-	r := rune(u[0].(Char))
+func encodeTime(c Context, u, v *Vector) Value {
+	r := rune(u.At(0).(Char))
 	if r != 't' && r != 'T' {
 		Errorf("illegal left operand %s for encode", u)
 	}
 	// TODO: more than one value
-	return timeVec(timeFromValue(c, v[0]))
+	return timeVec(timeFromValue(c, v.At(0)))
 }
 
 // timeVec returns the time unpacked into year, month, day, hour, minute, second
 // and time zone offset in seconds east of UTC.
-func timeVec(date time.Time) Vector {
+func timeVec(date time.Time) *Vector {
 	y, m, d := date.Date()
 	vec := make([]Value, 7)
 	vec[0] = Int(y)
@@ -127,8 +210,8 @@ func timeVec(date time.Time) Vector {
 }
 
 // decodeTime returns a second value given a sys "time" vector.
-func decodeTime(c Context, u, v Vector) Value {
-	r := rune(u[0].(Char))
+func decodeTime(c Context, u, v *Vector) Value {
+	r := rune(u.At(0).(Char))
 	if r != 't' && r != 'T' {
 		Errorf("illegal left operand %s for decode", u)
 	}
@@ -147,11 +230,11 @@ func decodeTime(c Context, u, v Vector) Value {
 		}
 		return int(b.Int64())
 	}
-	switch len(v) {
+	switch v.Len() {
 	default:
 		Errorf("invalid time vector %s", v)
 	case 7:
-		offset := toInt(v[6])
+		offset := toInt(v.At(6))
 		_, nowOffset := now.Zone()
 		if offset != nowOffset {
 			hour := offset / 3600
@@ -160,7 +243,7 @@ func decodeTime(c Context, u, v Vector) Value {
 		}
 		fallthrough
 	case 6:
-		switch s := v[5].(type) {
+		switch s := v.At(5).(type) {
 		default:
 			Errorf("illegal right operand %s in decode", v)
 		case Int:
@@ -179,19 +262,19 @@ func decodeTime(c Context, u, v Vector) Value {
 		}
 		fallthrough
 	case 5:
-		min = toInt(v[4])
+		min = toInt(v.At(4))
 		fallthrough
 	case 4:
-		hour = toInt(v[3])
+		hour = toInt(v.At(3))
 		fallthrough
 	case 3:
-		day = toInt(v[2])
+		day = toInt(v.At(2))
 		fallthrough
 	case 2:
-		month = toInt(v[1])
+		month = toInt(v.At(1))
 		fallthrough
 	case 1:
-		year = toInt(v[0])
+		year = toInt(v.At(0))
 	}
 	// time.Time values can only extract int64s for UnixNano, which limits the range too much.
 	// So we use UnixMilli, which spans a big enough range, and add the nanoseconds manually.

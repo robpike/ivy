@@ -5,6 +5,7 @@
 package value
 
 import (
+	"fmt"
 	"math/big"
 	"unicode/utf8"
 )
@@ -75,7 +76,7 @@ func realPhase(c Context, v Value) Value {
 // v must be a scalar.
 func vectorSelf(c Context, v Value) Value {
 	switch v.(type) {
-	case Vector:
+	case *Vector:
 		Errorf("internal error: vectorSelf of vector")
 	case *Matrix:
 		Errorf("internal error: vectorSelf of matrix")
@@ -120,6 +121,11 @@ func text(c Context, v Value) Value {
 var IvyEval func(context Context, s string) Value
 
 var UnaryOps = make(map[string]UnaryOp)
+
+func printValue(c Context, v Value) Value {
+	fmt.Printf("%s\n\n", v.Sprint(c.Config()))
+	return v
+}
 
 func init() {
 	ops := []*unaryOp{
@@ -191,8 +197,8 @@ func init() {
 				bigFloatType: self,
 				complexType:  self,
 				vectorType: func(c Context, v Value) Value {
-					vv := v.(Vector)
-					return NewMatrix([]int{len(vv)}, vv).mix(c).shrink()
+					vv := v.(*Vector)
+					return NewMatrix([]int{vv.Len()}, vv).mix(c).shrink()
 
 				},
 				matrixType: func(c Context, v Value) Value {
@@ -278,7 +284,7 @@ func init() {
 					return v.(Complex).inverse(c)
 				},
 				vectorType: func(c Context, v Value) Value {
-					return v.(Vector).inverse(c)
+					return v.(*Vector).inverse(c)
 				},
 				matrixType: func(c Context, v Value) Value {
 					return v.(*Matrix).inverse(c)
@@ -559,20 +565,20 @@ func init() {
 				},
 				vectorType: func(c Context, v Value) Value {
 					// Produce a matrix of coordinates.
-					vv := v.(Vector)
-					if len(vv) == 0 {
+					vv := v.(*Vector)
+					if vv.Len() == 0 {
 						return empty
 					}
-					if len(vv) == 1 {
-						i, ok := vv[0].(Int)
+					if vv.Len() == 1 {
+						i, ok := vv.At(0).(Int)
 						if !ok {
-							Errorf("bad coordinate in iota %s", vv[0])
+							Errorf("bad coordinate in iota %s", vv.At(0))
 						}
 						return newIota(c.Config().Origin(), int(i))
 					}
 					nElems := 1
-					shape := make([]int, len(vv))
-					for i, coord := range vv {
+					shape := make([]int, vv.Len())
+					for i, coord := range vv.All() {
 						c, ok := coord.(Int)
 						if !ok || c < 0 || maxInt < c {
 							Errorf("bad coordinate in iota %s", coord)
@@ -585,7 +591,7 @@ func init() {
 					}
 					origin := c.Config().Origin()
 					elems := make([]Value, nElems)
-					counter := make([]int, len(vv))
+					counter := make([]int, vv.Len())
 					for i := range counter {
 						counter[i] = origin
 					}
@@ -599,7 +605,7 @@ func init() {
 							counter[axis] = origin
 						}
 					}
-					return NewMatrix(shape, elems)
+					return NewMatrix(shape, NewVector(elems))
 				},
 			},
 		},
@@ -626,7 +632,7 @@ func init() {
 					return empty
 				},
 				vectorType: func(c Context, v Value) Value {
-					return NewIntVector(len(v.(Vector)))
+					return NewIntVector(v.(*Vector).Len())
 				},
 				matrixType: func(c Context, v Value) Value {
 					return NewIntVector(v.(*Matrix).shape...)
@@ -656,7 +662,7 @@ func init() {
 					return one
 				},
 				vectorType: func(c Context, v Value) Value {
-					return Int(len(v.(Vector)))
+					return Int(v.(*Vector).Len())
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix)
@@ -690,11 +696,24 @@ func init() {
 					return oneElemVector(v)
 				},
 				vectorType: func(c Context, v Value) Value {
-					return NewVector(flatten(v.(Vector)))
+					return NewVector(flatten(v.(*Vector)))
 				},
 				matrixType: func(c Context, v Value) Value {
-					return c.EvalUnary("flatten", NewVector(v.(*Matrix).data))
+					return c.EvalUnary("flatten", v.(*Matrix).data)
 				},
+			},
+		},
+
+		{
+			name: "print",
+			fn: [numType]unaryFn{
+				intType:      printValue,
+				charType:     printValue,
+				bigIntType:   printValue,
+				bigRatType:   printValue,
+				bigFloatType: printValue,
+				vectorType:   printValue,
+				matrixType:   printValue,
 			},
 		},
 
@@ -723,7 +742,7 @@ func init() {
 				bigRatType:   self,
 				bigFloatType: self,
 				vectorType: func(c Context, v Value) Value {
-					return v.(Vector).grade(c)
+					return v.(*Vector).grade(c)
 				},
 				matrixType: func(c Context, v Value) Value {
 					return v.(*Matrix).grade(c)
@@ -740,7 +759,7 @@ func init() {
 				bigRatType:   self,
 				bigFloatType: self,
 				vectorType: func(c Context, v Value) Value {
-					return v.(Vector).grade(c).reverse()
+					return v.(*Vector).grade(c).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
 					return v.(*Matrix).grade(c).reverse()
@@ -758,7 +777,7 @@ func init() {
 				bigFloatType: self,
 				complexType:  self,
 				vectorType: func(c Context, v Value) Value {
-					return v.(Vector).reverse()
+					return v.(*Vector).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix).Copy().(*Matrix)
@@ -773,7 +792,9 @@ func init() {
 					x := m.data
 					for index := 0; index <= size-ncols; index += ncols {
 						for i, j := 0, ncols-1; i < j; i, j = i+1, j-1 {
-							x[index+i], x[index+j] = x[index+j], x[index+i]
+							xi, xj := x.At(index+i), x.At(index+j)
+							x.Set(index+i, xj)
+							x.Set(index+j, xi)
 						}
 					}
 					return m
@@ -791,7 +812,7 @@ func init() {
 				bigFloatType: self,
 				complexType:  self,
 				vectorType: func(c Context, v Value) Value {
-					return v.(Vector).reverse()
+					return v.(*Vector).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix).Copy().(*Matrix)
@@ -808,7 +829,9 @@ func init() {
 					hi := size - elemSize
 					for lo < hi {
 						for i := 0; i < elemSize; i++ {
-							x[lo+i], x[hi+i] = x[hi+i], x[lo+i]
+							xl, xh := x.At(lo+i), x.At(hi+i)
+							x.Set(lo+i, xh)
+							x.Set(hi+i, xl)
 						}
 						lo += elemSize
 						hi -= elemSize
@@ -828,7 +851,7 @@ func init() {
 				bigFloatType: self,
 				complexType:  self,
 				vectorType: func(c Context, v Value) Value {
-					return v.(Vector).Copy()
+					return v.(*Vector).Copy()
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix)
@@ -1057,7 +1080,7 @@ func init() {
 					return IvyEval(c, string(char))
 				},
 				vectorType: func(c Context, v Value) Value {
-					text := v.(Vector)
+					text := v.(*Vector)
 					if !text.AllChars() {
 						Errorf("ivy: value is not a vector of char")
 					}
@@ -1122,18 +1145,18 @@ func init() {
 				bigFloatType: self,
 				complexType:  self,
 				vectorType: func(c Context, v Value) Value {
-					u := v.(Vector)
-					if len(u) == 0 {
+					u := v.(*Vector)
+					if u.Len() == 0 {
 						return zero // TODO: If we add prototypes, this is a place it matters.
 					}
-					return u[0]
+					return u.At(0)
 				},
 				matrixType: func(c Context, v Value) Value {
 					u := v.(*Matrix).data
-					if len(u) == 0 {
+					if u.Len() == 0 {
 						return zero // TODO: If we add prototypes, this is a place it matters.
 					}
-					return u[0]
+					return u.At(0)
 				},
 			},
 		},

@@ -179,7 +179,8 @@ func (e *variableExpr) ProgString() string {
 // may require parentheses around it when printed to maintain correct evaluation order.
 func isCompound(x interface{}) bool {
 	switch x := x.(type) {
-	case value.Char, value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Complex, value.Vector, value.Matrix:
+	// TODO: probably *value.Matrix not value.Matrix?
+	case value.Char, value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Complex, *value.Vector, value.Matrix:
 		return false
 	case sliceExpr, *variableExpr:
 		return false
@@ -523,7 +524,7 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 			right: p.expr(),
 		}
 	case scan.Identifier:
-		if p.context.DefinedUnary(tok.Text) {
+		if p.context.DefinedUnary(strings.Trim(tok.Text, "@")) {
 			expr = &unary{
 				op:    tok.Text,
 				right: p.expr(),
