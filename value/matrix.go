@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/bits"
+	"slices"
 	"sort"
 	"strings"
 
@@ -50,10 +51,8 @@ func (m *Matrix) Data() *Vector {
 }
 
 func (m *Matrix) Copy() Value {
-	shape := make([]int, len(m.shape))
-	data := make([]Value, m.data.Len())
-	copy(shape, m.shape)
-	copy(data, m.data.All())
+	shape := slices.Clone(m.shape)
+	data := slices.Clone(m.data.All())
 	return &Matrix{
 		shape: shape,
 		data:  NewVector(data),
@@ -578,8 +577,7 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 	var data []Value
 	var nrows int
 	setShape := func(m *Matrix, extra int) {
-		shape = make([]int, m.Rank())
-		copy(shape, m.shape)
+		shape = slices.Clone(m.shape)
 		shape[len(shape)-1] += extra
 		nrows = size(shape[:len(shape)-1])
 	}
@@ -651,26 +649,22 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 
 	case x.Rank() == y.Rank() && sameShape(x.shape[1:], y.shape[1:]):
 		// list, list
-		shape = make([]int, x.Rank())
-		copy(shape, x.shape)
+		shape = slices.Clone(x.shape)
 		shape[0] = x.shape[0] + y.shape[0]
 
 	case x.Rank() == y.Rank()+1 && sameShape(x.shape[1:], y.shape):
 		// list, elem
-		shape = make([]int, x.Rank())
-		copy(shape, x.shape)
+		shape = slices.Clone(x.shape)
 		shape[0]++
 
 	case x.Rank()+1 == y.Rank() && sameShape(x.shape, y.shape[1:]):
 		// elem, list
-		shape = make([]int, y.Rank())
-		copy(shape, y.shape)
+		shape = slices.Clone(y.shape)
 		shape[0]++
 
 	case x.Rank() == 1 && x.shape[0] == 1 && y.Rank() > 1:
 		// scalar extension, list
-		shape = make([]int, y.Rank())
-		copy(shape, y.shape)
+		shape = slices.Clone(y.shape)
 		shape[0]++
 		elem := y.ElemSize()
 		a := x.data.At(0)
@@ -682,8 +676,7 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 
 	case x.Rank() > 1 && y.Rank() == 1 && y.shape[0] == 1:
 		// list, scalar extension
-		shape = make([]int, x.Rank())
-		copy(shape, x.shape)
+		shape = slices.Clone(x.shape)
 		shape[0]++
 		elem := x.ElemSize()
 		b := y.data.At(0)
@@ -726,8 +719,7 @@ func (m *Matrix) sel(c Context, v *Vector) *Matrix {
 		count *= int64(m.shape[len(m.shape)-1])
 	}
 
-	shape := make([]int, len(m.shape))
-	copy(shape, m.shape)
+	shape := slices.Clone(m.shape)
 	shape[len(shape)-1] = int(count)
 
 	for _, dim := range shape[:len(shape)-1] {
