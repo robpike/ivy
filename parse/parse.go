@@ -392,7 +392,7 @@ func (p *Parser) readTokensToNewline(inFunction bool) bool {
 			p.errorf("%s", tok)
 		case scan.Newline:
 			// Need a truly blank line to terminate the function body.
-			if !inFunction || len(tok.Text) <= 1 {
+			if !inFunction || len(tok.Text) <= 1 || len(p.tokens) > 0 {
 				return true
 			}
 			continue
