@@ -199,7 +199,7 @@ func (r BigRat) toType(op string, conf *config.Config, which valueType) Value {
 	case vectorType:
 		return oneElemVector(r)
 	case matrixType:
-		return NewMatrix([]int{1, 1}, []Value{r})
+		return NewMatrix([]int{1, 1}, NewVector([]Value{r}))
 	}
 	Errorf("%s: cannot convert rational to %s", op, which)
 	return nil

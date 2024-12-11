@@ -180,8 +180,8 @@ func toBool(t Value) bool {
 // andBool is like toBool but handles vectors by and'ing the values together.
 // The results are known to be Ints, as they come from comparison operations.
 func andBool(t Value) bool {
-	if v, ok := t.(Vector); ok {
-		for _, x := range v {
+	if v, ok := t.(*Vector); ok {
+		for _, x := range v.All() {
 			if x == zero {
 				return false
 			}
@@ -383,12 +383,12 @@ func init() {
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					// Projection of u onto v
-					uu, vv := u.(Vector), v.(Vector)
-					if len(uu) != len(vv) {
-						Errorf("mismatched lengths %d, %d in vector mdiv", len(uu), len(vv))
+					uu, vv := u.(*Vector), v.(*Vector)
+					if uu.Len() != vv.Len() {
+						Errorf("mismatched lengths %d, %d in vector mdiv", uu.Len(), vv.Len())
 					}
-					for i := range uu {
-						if whichType(uu[i]) >= complexType || whichType(vv[i]) >= complexType {
+					for i := range uu.All() {
+						if whichType(uu.At(i)) >= complexType || whichType(vv.At(i)) >= complexType {
 							Errorf("non-real element in vector mdiv")
 						}
 					}
@@ -958,26 +958,26 @@ func init() {
 				vectorType: func(c Context, u, v Value) Value {
 					// A decode B is the result of polyomial B at x=A.
 					// If A is a vector, the elements of A align with B.
-					A, B := u.(Vector), v.(Vector)
-					if len(A) == 0 || len(B) == 0 {
+					A, B := u.(*Vector), v.(*Vector)
+					if A.Len() == 0 || B.Len() == 0 {
 						return zero
 					}
-					if allChars(A) {
+					if allChars(A.All()) {
 						// Special case for times.
 						return decodeTime(c, A, B)
 					}
-					if len(A) == 1 || len(B) == 1 || len(A) == len(B) {
+					if A.Len() == 1 || B.Len() == 1 || A.Len() == B.Len() {
 						result := Value(zero)
 						prod := Value(one)
-						get := func(v Vector, i int) Value {
-							if len(v) == 1 {
-								return v[0]
+						get := func(v *Vector, i int) Value {
+							if v.Len() == 1 {
+								return v.At(0)
 							}
-							return v[i]
+							return v.At(i)
 						}
-						n := len(A)
-						if len(B) > n {
-							n = len(B)
+						n := A.Len()
+						if B.Len() > n {
+							n = B.Len()
 						}
 						for i := n - 1; i >= 0; i-- {
 							result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", get(B, i)))
@@ -985,25 +985,25 @@ func init() {
 						}
 						return result
 					}
-					if len(A) != len(B) {
+					if A.Len() != B.Len() {
 						Errorf("decode of unequal lengths")
 					}
 					return nil
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					A, B := u.(Vector), v.(*Matrix)
-					if len(A) != 1 && B.shape[0] != 1 && len(A) != B.shape[0] {
-						Errorf("decode of length %d and shape %s", len(A), NewIntVector(B.shape...))
+					A, B := u.(*Vector), v.(*Matrix)
+					if A.Len() != 1 && B.shape[0] != 1 && A.Len() != B.shape[0] {
+						Errorf("decode of length %d and shape %s", A.Len(), NewIntVector(B.shape...))
 					}
 					shape := B.shape[1:]
-					elems := make([]Value, len(B.data)/B.shape[0])
-					get := func(v Vector, i int) Value {
-						if len(v) == 1 {
-							return v[0]
+					elems := make([]Value, B.data.Len()/B.shape[0])
+					get := func(v *Vector, i int) Value {
+						if v.Len() == 1 {
+							return v.At(0)
 						}
-						return v[i]
+						return v.At(i)
 					}
-					n := len(A)
+					n := A.Len()
 					if B.shape[0] > n {
 						n = B.shape[0]
 					}
@@ -1012,9 +1012,9 @@ func init() {
 							result := Value(zero)
 							prod := Value(one)
 							for i := n - 1; i >= 0; i-- {
-								Bslice := B.data
+								Bslice := B.data.All()
 								if B.shape[0] > 1 {
-									Bslice = B.data[i*len(elems) : (i+1)*len(elems)]
+									Bslice = B.data.Slice(i*len(elems), (i+1)*len(elems))
 								}
 								result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", Bslice[j]))
 								prod = c.EvalBinary(prod, "*", get(A, i))
@@ -1025,7 +1025,7 @@ func init() {
 					if len(shape) == 1 {
 						return NewVector(elems)
 					}
-					return NewMatrix(shape, elems)
+					return NewMatrix(shape, NewVector(elems))
 				},
 			},
 		},
@@ -1044,34 +1044,34 @@ func init() {
 					// If they are negative the answers disagree with APL because
 					// of how modulo arithmetic works.
 					const op = "encode"
-					A, B := u.(Vector), v.(Vector)
-					if allChars(A) {
+					A, B := u.(*Vector), v.(*Vector)
+					if allChars(A.All()) {
 						// Special case for times.
 						return encodeTime(c, A, B)
 					}
 					// Scalar.
-					if len(A) == 1 && len(B) == 1 {
-						_, rem := QuoRem(op, c, B[0], A[0])
+					if A.Len() == 1 && B.Len() == 1 {
+						_, rem := QuoRem(op, c, B.At(0), A.At(0))
 						return rem
 					}
 					// Vector.
-					if len(B) == 1 {
+					if B.Len() == 1 {
 						// 2 2 2 2 encode 11 is 1 0 1 1.
-						elems := make([]Value, len(A))
-						b := B[0]
-						for i := len(A) - 1; i >= 0; i-- {
-							quo, rem := QuoRem(op, c, b, A[i])
+						elems := make([]Value, A.Len())
+						b := B.At(0)
+						for i := A.Len() - 1; i >= 0; i-- {
+							quo, rem := QuoRem(op, c, b, A.At(i))
 							elems[i] = rem
 							b = quo
 						}
 						return NewVector(elems)
 					}
-					if len(A) == 1 {
+					if A.Len() == 1 {
 						// 3 encode 1 2 3 4 is 1 2 0 1
-						elems := make([]Value, len(B))
-						a := A[0]
-						for i := range B {
-							_, rem := QuoRem(op, c, B[i], a)
+						elems := make([]Value, B.Len())
+						a := A.At(0)
+						for i := range B.All() {
+							_, rem := QuoRem(op, c, B.At(i), a)
 							elems[i] = rem
 						}
 						return NewVector(elems)
@@ -1080,36 +1080,36 @@ func init() {
 					// 2 2 encode 1 2 3 has 3 columns encoding 1 2 3 downwards:
 					// 0 1 1
 					// 1 0 1
-					elems := make([]Value, len(A)*len(B))
-					shape := []int{len(A), len(B)}
-					pfor(true, len(A), len(B), func(lo, hi int) {
+					elems := make([]Value, A.Len()*B.Len())
+					shape := []int{A.Len(), B.Len()}
+					pfor(true, A.Len(), B.Len(), func(lo, hi int) {
 						for j := lo; j < hi; j++ {
-							b := B[j]
-							for i := len(A) - 1; i >= 0; i-- {
-								quo, rem := QuoRem(op, c, b, A[i])
-								elems[j+i*len(B)] = rem
+							b := B.At(j)
+							for i := A.Len() - 1; i >= 0; i-- {
+								quo, rem := QuoRem(op, c, b, A.At(i))
+								elems[j+i*B.Len()] = rem
 								b = quo
 							}
 						}
 					})
-					return NewMatrix(shape, elems)
+					return NewMatrix(shape, NewVector(elems))
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					A, B := u.(Vector), v.(*Matrix)
-					elems := make([]Value, len(A)*len(B.data))
-					shape := append([]int{len(A)}, B.Shape()...)
+					A, B := u.(*Vector), v.(*Matrix)
+					elems := make([]Value, A.Len()*B.data.Len())
+					shape := append([]int{A.Len()}, B.Shape()...)
 					const op = "encode"
-					pfor(true, len(A), len(B.data), func(lo, hi int) {
+					pfor(true, A.Len(), B.data.Len(), func(lo, hi int) {
 						for j := lo; j < hi; j++ {
-							b := B.data[j]
-							for i := len(A) - 1; i >= 0; i-- {
-								quo, rem := QuoRem(op, c, b, A[i])
-								elems[j+i*len(B.data)] = rem
+							b := B.data.At(j)
+							for i := A.Len() - 1; i >= 0; i-- {
+								quo, rem := QuoRem(op, c, b, A.At(i))
+								elems[j+i*B.data.Len()] = rem
 								b = quo
 							}
 						}
 					})
-					return NewMatrix(shape, elems)
+					return NewMatrix(shape, NewVector(elems))
 				},
 			},
 		},
@@ -1120,7 +1120,7 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					return NewVector(membership(c, u.(Vector), v.(Vector))).shrink()
+					return NewVector(membership(c, u.(*Vector), v.(*Vector))).shrink()
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					m := u.(*Matrix)
@@ -1128,7 +1128,7 @@ func init() {
 					if m.Rank() <= 1 {
 						return NewVector(data).shrink()
 					}
-					return NewMatrix(m.shape, data)
+					return NewMatrix(m.shape, NewVector(data))
 				},
 			},
 		},
@@ -1139,24 +1139,24 @@ func init() {
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					// A⍳B: The location (index) of B in A; 0 if not found. (APL does 1+⌈/⍳⍴A)
-					A, B := u.(Vector), v.(Vector)
+					A, B := u.(*Vector), v.(*Vector)
 					type indexed struct {
 						v     Value
 						index int
 					}
 					origin := c.Config().Origin()
-					sortedA := make([]indexed, len(A))
-					for i, a := range A {
+					sortedA := make([]indexed, A.Len())
+					for i, a := range A.All() {
 						sortedA[i] = indexed{a, i + origin}
 					}
 					sort.SliceStable(sortedA, func(i, j int) bool {
 						return c.EvalBinary(sortedA[i].v, "<", sortedA[j].v) == one
 					})
-					indices := make([]Value, len(B))
-					work := 2 * (1 + int(math.Log2(float64(len(A)))))
-					pfor(true, work, len(B), func(lo, hi int) {
+					indices := make([]Value, B.Len())
+					work := 2 * (1 + int(math.Log2(float64(A.Len()))))
+					pfor(true, work, B.Len(), func(lo, hi int) {
 						for i := lo; i < hi; i++ {
-							b := B[i]
+							b := B.At(i)
 							indices[i] = Int(origin - 1)
 							pos := sort.Search(len(sortedA), func(j int) bool {
 								return c.EvalBinary(sortedA[j].v, ">=", b) == one
@@ -1180,13 +1180,13 @@ func init() {
 					if len(shape) == 0 {
 						shape = []int{1}
 					}
-					n := len(A.data) / A.shape[0] // elements in each comparison
-					indices := make([]Value, len(B.data)/n)
-					pfor(true, n, len(B.data)/n, func(lo, hi int) {
+					n := A.data.Len() / A.shape[0] // elements in each comparison
+					indices := make([]Value, B.data.Len()/n)
+					pfor(true, n, B.data.Len()/n, func(lo, hi int) {
 						for i := lo; i < hi; i++ {
 							indices[i] = Int(origin - 1)
-							for j := 0; j < len(A.data); j += n {
-								if andBool(c.EvalBinary(A.data[j:j+n], "==", B.data[i*n:(i+1)*n])) {
+							for j := 0; j < A.data.Len(); j += n {
+								if andBool(c.EvalBinary(NewVector(A.data.Slice(j, j+n)), "==", NewVector(B.data.Slice(i*n, (i+1)*n)))) {
 									indices[i] = Int(j/n + origin)
 									break
 								}
@@ -1196,7 +1196,7 @@ func init() {
 					if len(shape) == 1 {
 						return NewVector(indices)
 					}
-					return NewMatrix(shape, indices)
+					return NewMatrix(shape, NewVector(indices))
 				},
 			},
 		},
@@ -1288,7 +1288,7 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					return reshape(u.(Vector), v.(Vector))
+					return reshape(u.(*Vector), v.(*Vector))
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					// LHS must be a vector underneath.
@@ -1306,9 +1306,8 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					uu := u.(Vector)
-					uu = uu[:len(uu):len(uu)]
-					return append(uu, v.(Vector)...)
+					uu := u.(*Vector)
+					return NewVector(append(uu.All(), v.(*Vector).All()...))
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return u.(*Matrix).catenate(v.(*Matrix))
@@ -1321,9 +1320,8 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					uu := u.(Vector)
-					uu = uu[:len(uu):len(uu)]
-					return append(uu, v.(Vector)...)
+					uu := u.(*Vector)
+					return NewVector(append(uu.All(), v.(*Vector).All()...))
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return u.(*Matrix).catenateFirst(v.(*Matrix))
@@ -1336,17 +1334,17 @@ func init() {
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					uu := u.(Vector)
-					vv := v.(Vector)
-					if len(uu) != 1 {
+					uu := u.(*Vector)
+					vv := v.(*Vector)
+					if uu.Len() != 1 {
 						// Need to expand to a matrix.
-						return NewMatrix([]int{len(vv)}, vv).take(c, uu)
+						return NewMatrix([]int{vv.Len()}, vv).take(c, uu)
 					}
-					n, ok := uu[0].(Int) // Number of elements in result.
+					n, ok := uu.At(0).(Int) // Number of elements in result.
 					if !ok {
-						Errorf("bad count %s in take", uu[0])
+						Errorf("bad count %s in take", uu.At(0))
 					}
-					len := Int(len(vv)) // Length of rhs vector.
+					len := Int(vv.Len()) // Length of rhs vector.
 					nElems := n
 					if n < 0 {
 						nElems = -nElems
@@ -1359,9 +1357,9 @@ func init() {
 							for i := 0; i < int(nElems-len); i++ {
 								elems[i] = fill
 							}
-							copy(elems[nElems-len:], vv)
+							copy(elems[nElems-len:], vv.Slice(0, int(len)))
 						} else {
-							copy(elems, vv[len-nElems:])
+							copy(elems, vv.Slice(int(len-nElems), vv.Len()))
 						}
 					case n == 0:
 					case n > 0:
@@ -1370,12 +1368,12 @@ func init() {
 								elems[i] = fill
 							}
 						}
-						copy(elems, vv)
+						copy(elems, vv.All())
 					}
 					return NewVector(elems)
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					return v.(*Matrix).take(c, u.(Vector))
+					return v.(*Matrix).take(c, u.(*Vector))
 				},
 			},
 		},
@@ -1385,33 +1383,33 @@ func init() {
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					vv := v.(Vector)
-					uu, ok := u.(Vector)
-					if !ok || len(uu) != 1 {
+					vv := v.(*Vector)
+					uu, ok := u.(*Vector)
+					if !ok || uu.Len() != 1 {
 						Errorf("bad count %s in drop", u)
 					}
-					n, ok := uu[0].(Int) // Number of elements in result.
+					n, ok := uu.At(0).(Int) // Number of elements in result.
 					if !ok {
-						Errorf("bad count %s in drop", uu[0])
+						Errorf("bad count %s in drop", uu.At(0))
 					}
-					len := Int(len(vv)) // Length of rhs vector.
+					len := Int(vv.Len()) // Length of rhs vector.
 					switch {
 					case n < 0:
 						if -n > len {
 							return empty
 						}
-						vv = vv[0 : len+n]
+						vv = NewVector(vv.Slice(0, int(len+n)))
 					case n == 0:
 					case n > 0:
 						if n > len {
 							return empty
 						}
-						vv = vv[n:]
+						vv = NewVector(vv.Slice(int(n), vv.Len()))
 					}
 					return vv.Copy()
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					return v.(*Matrix).drop(c, u.(Vector))
+					return v.(*Matrix).drop(c, u.(*Vector))
 				},
 			},
 		},
@@ -1421,19 +1419,19 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					countVec := u.(Vector)
-					count, ok := countVec[0].(Int)
+					countVec := u.(*Vector)
+					count, ok := countVec.At(0).(Int)
 					if !ok {
 						Errorf("rot: count must be small integer")
 					}
-					return v.(Vector).rotate(int(count))
+					return v.(*Vector).rotate(int(count))
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					countMat := u.(*Matrix)
-					if countMat.Rank() != 1 || len(countMat.data) != 1 {
+					if countMat.Rank() != 1 || countMat.data.Len() != 1 {
 						Errorf("rot: count must be small integer")
 					}
-					count, ok := countMat.data[0].(Int)
+					count, ok := countMat.data.At(0).(Int)
 					if !ok {
 						Errorf("rot: count must be small integer")
 					}
@@ -1447,22 +1445,22 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					countVec := u.(Vector)
-					if len(countVec) != 1 {
+					countVec := u.(*Vector)
+					if countVec.Len() != 1 {
 						Errorf("flip: count must be small integer")
 					}
-					count, ok := countVec[0].(Int)
+					count, ok := countVec.At(0).(Int)
 					if !ok {
 						Errorf("flip: count must be small integer")
 					}
-					return v.(Vector).rotate(int(count))
+					return v.(*Vector).rotate(int(count))
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					countMat := u.(*Matrix)
-					if countMat.Rank() != 1 || len(countMat.data) != 1 {
+					if countMat.Rank() != 1 || countMat.data.Len() != 1 {
 						Errorf("flip: count must be small integer")
 					}
-					count, ok := countMat.data[0].(Int)
+					count, ok := countMat.data.At(0).(Int)
 					if !ok {
 						Errorf("flip: count must be small integer")
 					}
@@ -1476,15 +1474,15 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					i := u.(Vector)
-					j := v.(Vector)
-					if len(i) == 0 {
+					i := u.(*Vector)
+					j := v.(*Vector)
+					if i.Len() == 0 {
 						return empty
 					}
 					// All lhs values must be small integers.
 					var count int64
 					numLeft := 0
-					for _, x := range i {
+					for _, x := range i.All() {
 						y, ok := x.(Int)
 						if !ok {
 							Errorf("fill: left operand must be small integers")
@@ -1499,8 +1497,8 @@ func init() {
 							count += int64(y)
 						}
 					}
-					if numLeft != len(j) {
-						Errorf("fill: count > 0 on left (%d) must equal length of right (%d)", numLeft, len(j))
+					if numLeft != j.Len() {
+						Errorf("fill: count > 0 on left (%d) must equal length of right (%d)", numLeft, j.Len())
 					}
 					if count > 1e8 {
 						Errorf("fill: result too large: %d elements", count)
@@ -1513,7 +1511,7 @@ func init() {
 					} else {
 						zeroVal = zero
 					}
-					for _, x := range i {
+					for _, x := range i.All() {
 						y := x.(Int)
 						switch {
 						case y == 0:
@@ -1524,7 +1522,7 @@ func init() {
 							}
 						default:
 							for ; y > 0; y-- {
-								result = append(result, j[jx])
+								result = append(result, j.At(jx))
 							}
 							jx++
 						}
@@ -1539,14 +1537,14 @@ func init() {
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					i := u.(Vector)
-					j := v.(Vector)
-					if len(i) == 0 {
+					i := u.(*Vector)
+					j := v.(*Vector)
+					if i.Len() == 0 {
 						return empty
 					}
 					// All lhs values must be small integers.
 					var count int64
-					for _, x := range i {
+					for _, x := range i.All() {
 						y, ok := x.(Int)
 						if !ok {
 							Errorf("sel: left operand must be small integers")
@@ -1571,22 +1569,22 @@ func init() {
 							result = append(result, what)
 						}
 					}
-					if len(i) == 1 {
-						for _, y := range j {
-							add(i[0], y)
+					if i.Len() == 1 {
+						for _, y := range j.All() {
+							add(i.At(0), y)
 						}
 					} else {
-						if len(i) != len(j) {
-							Errorf("sel: unequal lengths %d != %d", len(i), len(j))
+						if i.Len() != j.Len() {
+							Errorf("sel: unequal lengths %d != %d", i.Len(), j.Len())
 						}
-						for x, y := range j {
-							add(i[x], y)
+						for x, y := range j.All() {
+							add(i.At(x), y)
 						}
 					}
 					return NewVector(result)
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					return v.(*Matrix).sel(c, u.(Vector))
+					return v.(*Matrix).sel(c, u.(*Vector))
 				},
 			},
 		},
@@ -1596,7 +1594,7 @@ func init() {
 			whichType: vectorAndMatrixType,
 			fn: [numType]binaryFn{
 				matrixType: func(c Context, u, v Value) Value {
-					m := v.(*Matrix).binaryTranspose(c, u.(Vector))
+					m := v.(*Matrix).binaryTranspose(c, u.(*Vector))
 					if m.Rank() <= 1 {
 						return m.Data()
 					}

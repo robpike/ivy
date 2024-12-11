@@ -76,7 +76,7 @@ func (c *Context) Local(i int) value.Value {
 // AssignLocal assigns the local variable with the given index the value.
 func (c *Context) AssignLocal(i int, val value.Value) {
 	switch v := val.(type) {
-	case value.Vector:
+	case *value.Vector:
 		val = v.Copy()
 	case *value.Matrix:
 		val = v.Copy()
@@ -89,7 +89,7 @@ func (c *Context) AssignLocal(i int, val value.Value) {
 // Inside a function, new variables become locals.
 func (c *Context) AssignGlobal(name string, val value.Value) {
 	switch v := val.(type) {
-	case value.Vector:
+	case *value.Vector:
 		val = v.Copy()
 	case *value.Matrix:
 		val = v.Copy()
