@@ -5,6 +5,7 @@
 package value
 
 import (
+	"iter"
 	"math/big"
 	"runtime"
 	"strings"
@@ -482,18 +483,15 @@ func dataShape(v Value) []int {
 	return []int{}
 }
 
-// TODO: When we update to Go 1.23, Edit ,s/iterSeq/iter.Seq[Value]/g
-type iterSeq[T any] func(yield func(T) bool)
-
 // eachOne returns an iterator that yields v once.
-func eachOne(v Value) iterSeq[Value] {
+func eachOne(v Value) iter.Seq[Value] {
 	return func(yield func(Value) bool) {
 		yield(v)
 	}
 }
 
 // eachVector returns an iterator that yields each element of v.
-func eachVector(v *Vector) iterSeq[Value] {
+func eachVector(v *Vector) iter.Seq[Value] {
 	return func(yield func(Value) bool) {
 		for _, x := range v.All() {
 			if !yield(x) {
@@ -509,7 +507,7 @@ func eachVector(v *Vector) iterSeq[Value] {
 // If dim == len(m.shape)-1, the iterator yields each innermost row of m.
 // Otherwise the iterator yields each submatrix obtained by indexing
 // the first dim dimensions of m.
-func eachMatrix(m *Matrix, dim int) iterSeq[Value] {
+func eachMatrix(m *Matrix, dim int) iter.Seq[Value] {
 	if dim == len(m.shape) {
 		return eachVector(m.data)
 	}
@@ -537,7 +535,7 @@ func eachMatrix(m *Matrix, dim int) iterSeq[Value] {
 // eachAny returns an iterator that yields subparts of v
 // iterating over the first dim dimensions of v.
 // The caller has checked that dim is in range for v.
-func eachValue(v Value, dim int) iterSeq[Value] {
+func eachValue(v Value, dim int) iter.Seq[Value] {
 	if dim == 0 {
 		return eachOne(v)
 	}
@@ -592,20 +590,11 @@ func BinaryEach(c Context, lv Value, op string, rv Value) Value {
 	innerOp := op[ld : len(op)-rd]
 	data := []Value{}
 
-	/*TODO: When we update to Go 1.23:
 	for x := range lhs {
 		for y := range rhs {
 			data = append(data, c.EvalBinary(x, innerOp, y))
 		}
 	}
-	*/
-	lhs(func(x Value) bool {
-		rhs(func(y Value) bool {
-			data = append(data, c.EvalBinary(x, innerOp, y))
-			return true
-		})
-		return true
-	})
 
 	if ld+rd == 1 {
 		return NewVector(data)
@@ -628,15 +617,9 @@ func Each(c Context, op string, v Value) Value {
 	}
 
 	data := []Value{}
-	/*TODO: When we update to Go 1.23:
 	for x := range eachValue(v, d) {
 		data = append(data, c.EvalUnary(op[:len(op)-d], x))
 	}
-	*/
-	eachValue(v, d)(func(x Value) bool {
-		data = append(data, c.EvalUnary(op[:len(op)-d], x))
-		return true
-	})
 
 	if d == 1 {
 		return NewVector(data)
