@@ -300,7 +300,7 @@ func lexAny(l *Scanner) stateFn {
 		// Must be after after = so == is an operator,
 		// and after numbers, so '-' can be a sign.
 		return lexOperator
-	case isAlphaNumeric(r):
+	case isAlphaNumeric(r), r == '@':
 		l.backup()
 		return lexIdentifier
 	case r == '[':
@@ -335,14 +335,24 @@ func lexSpace(l *Scanner) stateFn {
 // If the input base is greater than 10, some identifiers
 // are actually numbers. We handle this here.
 func lexIdentifier(l *Scanner) stateFn {
+	eachLeft := 0
+	for l.peek() == '@' {
+		eachLeft++
+		l.next()
+	}
 	for isAlphaNumeric(l.peek()) {
 		l.next()
 	}
 	if !l.atTerminator() {
 		return l.errorf("bad character %#U", l.next())
 	}
+	eachRight := 0
+	for l.peek() == '@' {
+		eachRight++
+		l.next()
+	}
 	// Some identifiers are operators.
-	word := l.input[l.start:l.pos]
+	word := l.input[l.start+eachLeft : l.pos-eachRight]
 	switch {
 	case word == "op":
 		return l.emit(Op)
@@ -352,10 +362,16 @@ func lexIdentifier(l *Scanner) stateFn {
 		return lexOperator
 	case l.defined(word):
 		return lexOperator
+	case word == "" || eachLeft > 0:
+		return l.errorf("invalid operator %q", l.input[l.start:l.pos])
 	case isAllDigits(word, l.context.Config().InputBase()):
 		// Mistake: back up and scan it as a number.
 		l.pos = l.start
 		return lexComplex
+	}
+	if !l.context.UserDefined(word, false) {
+		// Lexed word@ but word is not a unary operator; leave @ for next time.
+		l.pos -= eachRight
 	}
 	return l.emit(Identifier)
 }
@@ -365,7 +381,8 @@ func lexIdentifier(l *Scanner) stateFn {
 func lexOperator(l *Scanner) stateFn {
 	// It might be an inner product or reduction, but only if it is a binary operator.
 	word := l.input[l.start:l.pos]
-	if word == "o" || value.BinaryOps[word] != nil || l.context.UserDefined(word, true) {
+	w := strings.Trim(word, "@")
+	if word == "o" || value.BinaryOps[w] != nil || l.context.UserDefined(w, true) {
 		switch l.peek() {
 		case '/', '\\':
 			// Reduction or scan.
@@ -383,7 +400,7 @@ func lexOperator(l *Scanner) stateFn {
 			prevPos := l.pos
 			r := l.next()
 			switch {
-			case l.isOperator(r):
+			case l.isOperatorToken(r):
 			case isAlphaNumeric(r):
 				for isAlphaNumeric(r) {
 					r = l.next()
@@ -678,6 +695,22 @@ func isAllDigits(s string, base int) bool {
 // isOperator reports whether r is an operator. It may advance the lexer one character
 // if it is a two-character operator.
 func (l *Scanner) isOperator(r rune) bool {
+	n := 0
+	for r == '@' {
+		r = l.next()
+		n++
+	}
+	if !l.isOperatorToken(r) {
+		l.pos -= n
+		return false
+	}
+	for l.peek() == '@' {
+		l.next()
+	}
+	return true
+}
+
+func (l *Scanner) isOperatorToken(r rune) bool {
 	switch r {
 	case '?', '+', '-', '/', '&', '|', '^':
 		// No follow-on possible.
