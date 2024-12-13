@@ -150,7 +150,7 @@ func printValues(conf *config.Config, writer io.Writer, values []value.Value) bo
 	}
 	printed := false
 	for _, v := range values {
-		if _, ok := v.(parse.Assignment); ok {
+		if _, ok := v.(value.Assignment); ok {
 			continue
 		}
 		s := v.Sprint(conf)

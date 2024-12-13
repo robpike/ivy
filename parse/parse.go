@@ -5,9 +5,7 @@
 package parse // import "robpike.io/ivy/parse"
 
 import (
-	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"robpike.io/ivy/exec"
@@ -28,7 +26,7 @@ func tree(e interface{}) string {
 		return fmt.Sprintf("<float %s>", e)
 	case value.Complex:
 		return fmt.Sprintf("<complex %s>", e)
-	case sliceExpr:
+	case value.VectorExpr:
 		s := "<"
 		for i, x := range e {
 			if i > 0 {
@@ -38,17 +36,17 @@ func tree(e interface{}) string {
 		}
 		s += ">"
 		return s
-	case *variableExpr:
-		return fmt.Sprintf("<var %s>", e.name)
-	case *unary:
-		return fmt.Sprintf("(%s %s)", e.op, tree(e.right))
-	case *binary:
-		return fmt.Sprintf("(%s %s %s)", tree(e.left), e.op, tree(e.right))
-	case conditional:
-		return tree(e.binary)
-	case *index:
-		s := fmt.Sprintf("(%s[", tree(e.left))
-		for i, v := range e.right {
+	case *value.VarExpr:
+		return fmt.Sprintf("<var %s>", e.Name)
+	case *value.UnaryExpr:
+		return fmt.Sprintf("(%s %s)", e.Op, tree(e.Right))
+	case *value.BinaryExpr:
+		return fmt.Sprintf("(%s %s %s)", tree(e.Left), e.Op, tree(e.Right))
+	case *value.CondExpr:
+		return tree(e.Cond)
+	case *value.IndexExpr:
+		s := fmt.Sprintf("(%s[", tree(e.Left))
+		for i, v := range e.Right {
 			if i > 0 {
 				s += "; "
 			}
@@ -72,207 +70,6 @@ func tree(e interface{}) string {
 	default:
 		return fmt.Sprintf("%T", e)
 	}
-}
-
-// sliceExpr holds a syntactic vector to be verified and evaluated.
-type sliceExpr []value.Expr
-
-func (s sliceExpr) Eval(context value.Context) value.Value {
-	v := make([]value.Value, len(s))
-	// Evaluate right to left, as is the usual rule.
-	// This also means things like
-	//	x=1000; x + x=2
-	// (yielding 4) work.
-	for i := len(s) - 1; i >= 0; i-- {
-		v[i] = s[i].Eval(context)
-	}
-	return value.NewVector(v)
-}
-
-var charEscape = map[rune]string{
-	'\\': "\\\\",
-	'\'': "\\'",
-	'\a': "\\a",
-	'\b': "\\b",
-	'\f': "\\f",
-	'\n': "\\n",
-	'\r': "\\r",
-	'\t': "\\t",
-	'\v': "\\v",
-}
-
-func (s sliceExpr) ProgString() string {
-	var b bytes.Buffer
-	// If it's all Char, we can do a prettier job.
-	if s.allChars() {
-		b.WriteRune('\'')
-		for _, v := range s {
-			c := rune(v.(value.Char))
-			esc := charEscape[c]
-			if esc != "" {
-				b.WriteString(esc)
-				continue
-			}
-			if !strconv.IsPrint(c) {
-				if c <= 0xFFFF {
-					fmt.Fprintf(&b, "\\u%04x", c)
-				} else {
-					fmt.Fprintf(&b, "\\U%08x", c)
-				}
-				continue
-			}
-			b.WriteRune(c)
-		}
-		b.WriteRune('\'')
-	} else {
-		for i, v := range s {
-			if i > 0 {
-				b.WriteRune(' ')
-			}
-			if isCompound(v) {
-				b.WriteString("(" + v.ProgString() + ")")
-			} else {
-				b.WriteString(v.ProgString())
-			}
-		}
-	}
-	return b.String()
-}
-
-func (s sliceExpr) allChars() bool {
-	for _, c := range s {
-		if _, ok := c.(value.Char); !ok {
-			return false
-		}
-	}
-	return true
-}
-
-// variableExpr identifies a variable to be looked up and evaluated.
-type variableExpr struct {
-	name  string
-	local int // local index, or 0 for global
-}
-
-func (e *variableExpr) Eval(context value.Context) value.Value {
-	var v value.Value
-	if e.local >= 1 {
-		v = context.Local(e.local)
-	} else {
-		v = context.Global(e.name)
-	}
-	if v == nil {
-		kind := "global"
-		if e.local >= 1 {
-			kind = "local"
-		}
-		value.Errorf("undefined %s variable %q", kind, e.name)
-	}
-	return v
-}
-
-func (e *variableExpr) ProgString() string {
-	return e.name
-}
-
-// isCompound reports whether the item is a non-trivial expression tree, one that
-// may require parentheses around it when printed to maintain correct evaluation order.
-func isCompound(x interface{}) bool {
-	switch x := x.(type) {
-	case value.Char, value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Complex, *value.Vector, *value.Matrix:
-		return false
-	case sliceExpr, *variableExpr:
-		return false
-	case *index:
-		return isCompound(x.left)
-	default:
-		return true
-	}
-}
-
-type unary struct {
-	op    string
-	right value.Expr
-}
-
-func (u *unary) ProgString() string {
-	return fmt.Sprintf("%s %s", u.op, u.right.ProgString())
-}
-
-func (u *unary) Eval(context value.Context) value.Value {
-	return context.EvalUnary(u.op, u.right.Eval(context).Inner())
-}
-
-type binary struct {
-	op    string
-	left  value.Expr
-	right value.Expr
-}
-
-func (b *binary) ProgString() string {
-	var left string
-	if isCompound(b.left) {
-		left = fmt.Sprintf("(%s)", b.left.ProgString())
-	} else {
-		left = b.left.ProgString()
-	}
-	return fmt.Sprintf("%s %s %s", left, b.op, b.right.ProgString())
-}
-
-func (b *binary) Eval(context value.Context) value.Value {
-	if b.op == "=" {
-		return assignment(context, b)
-	}
-	rhs := b.right.Eval(context).Inner()
-	lhs := b.left.Eval(context)
-	return context.EvalBinary(lhs, b.op, rhs)
-}
-
-type index struct {
-	op    string
-	left  value.Expr
-	right []value.Expr
-}
-
-func (x *index) ProgString() string {
-	var s strings.Builder
-	if isCompound(x.left) {
-		s.WriteString("(")
-		s.WriteString(x.left.ProgString())
-		s.WriteString(")")
-	} else {
-		s.WriteString(x.left.ProgString())
-	}
-	s.WriteString("[")
-	for i, v := range x.right {
-		if i > 0 {
-			s.WriteString("; ")
-		}
-		if v != nil {
-			s.WriteString(v.ProgString())
-		}
-	}
-	s.WriteString("]")
-	return s.String()
-}
-
-func (x *index) Eval(context value.Context) value.Value {
-	return value.Index(context, x, x.left, x.right)
-}
-
-// conditional is a conditional executor: expression ":" expression
-type conditional struct {
-	*binary // Implements Expr through embedding.
-}
-
-var _ = value.Decomposable(conditional{})
-
-func (c conditional) Operator() string {
-	return ":"
-}
-
-func (c conditional) Operands() (left, right value.Expr) {
-	return c.left, c.right
 }
 
 // Parser stores the state for the ivy parser.
@@ -430,11 +227,11 @@ func (p *Parser) statementList() ([]value.Expr, bool) {
 	expr := p.expr()
 	if expr != nil && p.peek().Type == scan.Colon {
 		tok := p.next()
-		expr = conditional{
-			&binary{
-				left:  expr,
-				op:    tok.Text,
-				right: p.expr(),
+		expr = &value.CondExpr{
+			&value.BinaryExpr{
+				Left:  expr,
+				Op:    tok.Text,
+				Right: p.expr(),
 			},
 		}
 	}
@@ -466,40 +263,40 @@ func (p *Parser) expr() value.Expr {
 	case scan.Identifier:
 		if p.context.DefinedBinary(tok.Text) {
 			p.next()
-			return &binary{
-				left:  expr,
-				op:    tok.Text,
-				right: p.expr(),
+			return &value.BinaryExpr{
+				Left:  expr,
+				Op:    tok.Text,
+				Right: p.expr(),
 			}
 		}
 	case scan.Assign:
 		p.next()
 		switch lhs := expr.(type) {
-		case *variableExpr, *index:
-			return &binary{
-				left:  lhs,
-				op:    tok.Text,
-				right: p.expr(),
+		case *value.VarExpr, *value.IndexExpr:
+			return &value.BinaryExpr{
+				Left:  lhs,
+				Op:    tok.Text,
+				Right: p.expr(),
 			}
-		case sliceExpr:
+		case value.VectorExpr:
 			for _, v := range lhs {
-				if _, ok := v.(*variableExpr); !ok {
+				if _, ok := v.(*value.VarExpr); !ok {
 					p.errorf("cannot assign to %s", v.ProgString())
 				}
 			}
-			return &binary{
-				left:  lhs,
-				op:    tok.Text,
-				right: p.expr(),
+			return &value.BinaryExpr{
+				Left:  lhs,
+				Op:    tok.Text,
+				Right: p.expr(),
 			}
 		}
 		p.errorf("cannot assign to %s", expr.ProgString())
 	case scan.Operator:
 		p.next()
-		return &binary{
-			left:  expr,
-			op:    tok.Text,
-			right: p.expr(),
+		return &value.BinaryExpr{
+			Left:  expr,
+			Op:    tok.Text,
+			Right: p.expr(),
 		}
 	}
 	p.errorf("after expression: unexpected %s", p.peek())
@@ -518,15 +315,15 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 	var expr value.Expr
 	switch tok.Type {
 	case scan.Operator:
-		expr = &unary{
-			op:    tok.Text,
-			right: p.expr(),
+		expr = &value.UnaryExpr{
+			Op:    tok.Text,
+			Right: p.expr(),
 		}
 	case scan.Identifier:
 		if p.context.DefinedUnary(strings.Trim(tok.Text, "@")) {
-			expr = &unary{
-				op:    tok.Text,
-				right: p.expr(),
+			expr = &value.UnaryExpr{
+				Op:    tok.Text,
+				Right: p.expr(),
 			}
 			break
 		}
@@ -555,9 +352,9 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 		if tok.Type != scan.RightBrack {
 			p.errorf("expected right bracket, found %s", tok)
 		}
-		expr = &index{
-			left:  expr,
-			right: list,
+		expr = &value.IndexExpr{
+			Left:  expr,
+			Right: list,
 		}
 	}
 	return expr
@@ -637,12 +434,12 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 		// Further vector elements follow.
 		done = false
 	}
-	var slice sliceExpr
+	var slice value.VectorExpr
 	if expr == nil {
 		// Must be a string.
-		slice = sliceExpr{evalString(str)}
+		slice = value.VectorExpr{evalString(str)}
 	} else {
-		slice = sliceExpr{expr}
+		slice = value.VectorExpr{expr}
 	}
 	if !done {
 	Loop:
@@ -679,9 +476,9 @@ func isScalar(v value.Value) bool {
 	return v.Rank() == 0
 }
 
-func (p *Parser) variable(name string) *variableExpr {
-	return &variableExpr{
-		name: name,
+func (p *Parser) variable(name string) *value.VarExpr {
+	return &value.VarExpr{
+		Name: name,
 	}
 }
 
@@ -696,5 +493,5 @@ func evalString(str string) value.Expr {
 	for i, c := range r {
 		v[i] = value.Char(c)
 	}
-	return sliceExpr(v)
+	return value.VectorExpr(v)
 }

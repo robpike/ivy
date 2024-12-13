@@ -143,13 +143,13 @@ func references(c *exec.Context, body []value.Expr) []exec.OpDef {
 	for _, expr := range body {
 		walk(expr, false, func(expr value.Expr, _ bool) {
 			switch e := expr.(type) {
-			case *unary:
-				if c.UnaryFn[e.op] != nil {
-					addReference(&refs, e.op, false)
+			case *value.UnaryExpr:
+				if c.UnaryFn[e.Op] != nil {
+					addReference(&refs, e.Op, false)
 				}
-			case *binary:
-				if c.BinaryFn[e.op] != nil {
-					addReference(&refs, e.op, true)
+			case *value.BinaryExpr:
+				if c.BinaryFn[e.Op] != nil {
+					addReference(&refs, e.Op, true)
 				}
 			}
 		})
@@ -195,17 +195,17 @@ func funcVars(fn *exec.Function) {
 	}
 	f := func(expr value.Expr, assign bool) {
 		switch e := expr.(type) {
-		case *variableExpr:
-			x, ok := known[e.name]
+		case *value.VarExpr:
+			x, ok := known[e.Name]
 			if !ok {
 				if assign {
-					addLocal(e.name)
+					addLocal(e.Name)
 				} else {
-					known[e.name] = 0
+					known[e.Name] = 0
 				}
-				x = known[e.name]
+				x = known[e.Name]
 			}
-			e.local = x
+			e.Local = x
 		}
 	}
 	for _, e := range fn.Body {
@@ -220,23 +220,23 @@ func funcVars(fn *exec.Function) {
 // after which it calls f(expr, assign).
 func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
 	switch e := expr.(type) {
-	case *unary:
-		walk(e.right, false, f)
-	case conditional:
-		walk(e.binary, false, f)
-	case *binary:
-		walk(e.right, false, f)
-		walk(e.left, e.op == "=", f)
-	case *index:
-		for i := len(e.right) - 1; i >= 0; i-- {
-			x := e.right[i]
+	case *value.UnaryExpr:
+		walk(e.Right, false, f)
+	case *value.CondExpr:
+		walk(e.Cond, false, f)
+	case *value.BinaryExpr:
+		walk(e.Right, false, f)
+		walk(e.Left, e.Op == "=", f)
+	case *value.IndexExpr:
+		for i := len(e.Right) - 1; i >= 0; i-- {
+			x := e.Right[i]
 			if x != nil { // Not a placeholder index.
-				walk(e.right[i], false, f)
+				walk(e.Right[i], false, f)
 			}
 		}
-		walk(e.left, false, f)
-	case *variableExpr:
-	case sliceExpr:
+		walk(e.Left, false, f)
+	case *value.VarExpr:
+	case value.VectorExpr:
 		for i := len(e) - 1; i >= 0; i-- {
 			walk(e[i], assign, f)
 		}
