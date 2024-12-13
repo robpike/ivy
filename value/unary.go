@@ -123,7 +123,7 @@ var IvyEval func(context Context, s string) Value
 var UnaryOps = make(map[string]UnaryOp)
 
 func printValue(c Context, v Value) Value {
-	fmt.Printf("%s\n\n", v.Sprint(c.Config()))
+	fmt.Fprintln(c.Config().Output(), v.Sprint(c.Config()))
 	return v
 }
 
