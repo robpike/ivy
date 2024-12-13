@@ -39,6 +39,22 @@ op double u = x = x + u; x*2
 double 3; x
 	206 103
 
+# Vector assignments can be locals.
+x y = 10 20
+op f v = x y = v; x+y
+f 1 2
+x y
+	3
+	10 20
+
+# Vector reads can trigger globals.
+x y = 10 20
+op f v = x y; x y = v; x+y
+f 1 2
+x y
+	3
+	1 2
+
 # in g calling f, f used to assign to global y but read from g's y.
 op f x = y = 99; y
 op g y = f y

@@ -238,7 +238,7 @@ func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
 	case *variableExpr:
 	case sliceExpr:
 		for i := len(e) - 1; i >= 0; i-- {
-			walk(e[i], false, f)
+			walk(e[i], assign, f)
 		}
 	case value.Char:
 	case value.Int:
