@@ -36,40 +36,59 @@ func (p *Parser) functionDefn() {
 	fn := new(exec.Function)
 	// Two identifiers means: op arg.
 	// Three identifiers means: arg op arg.
-	idents := make([]string, 2, 3)
-	idents[0] = p.need(scan.Identifier).Text
-	idents[1] = p.need(scan.Identifier).Text
-	if p.peek().Type == scan.Identifier {
-		idents = append(idents, p.next().Text)
+	// arg can be name or parenthesized list of args.
+	// We scan the op as an arg too, because we're not sure which one it is.
+	args := make([]value.Expr, 2, 3)
+	args[0] = p.funcArg()
+	args[1] = p.funcArg()
+	nameArg := args[0]
+	if p.peek().Type == scan.Identifier || p.peek().Type == scan.LeftParen {
+		nameArg = args[1]
+		args = append(args, p.funcArg())
+	}
+	if x, ok := nameArg.(*value.VarExpr); ok {
+		fn.Name = x.Name
+	} else {
+		p.errorf("invalid function name: %v", nameArg.ProgString())
 	}
 	// Undefine if so requested.
 	if undefine {
 		p.need(scan.EOF)
-		p.context.Undefine(idents[len(idents)-2], len(idents) == 3)
+		p.context.Undefine(fn.Name, len(args) == 3)
 		return
 	}
+
+	// Prepare to declare arguments.
+	argNames := make(map[string]bool)
+	declare := func(x *value.VarExpr) {
+		if x.Name == fn.Name {
+			p.errorf("argument name %q is function name", fn.Name)
+		}
+		if argNames[x.Name] {
+			p.errorf("multiple arguments named %q", x.Name)
+		}
+		argNames[x.Name] = true
+		p.context.Declare(x.Name)
+	}
+
 	// Install the function in the symbol table so recursive ops work. (As if.)
 	var installMap map[string]*exec.Function
-	if len(idents) == 3 {
-		if idents[1] == "o" { // Poor choice due to outer product syntax.
+	if len(args) == 3 {
+		if fn.Name == "o" { // Poor choice due to outer product syntax.
 			p.errorf(`"o" is not a valid name for a binary operator`)
 		}
 		fn.IsBinary = true
-		fn.Left = idents[0]
-		fn.Name = idents[1]
-		fn.Right = idents[2]
-		p.context.Declare(fn.Left)
-		p.context.Declare(fn.Right)
+		fn.Left = args[0]
+		fn.Right = args[2]
+		walkVars(fn.Left, declare)
+		walkVars(fn.Right, declare)
 		installMap = p.context.BinaryFn
 	} else {
-		fn.Name = idents[0]
-		fn.Right = idents[1]
-		p.context.Declare(fn.Right)
+		fn.Right = args[1]
+		walkVars(fn.Right, declare)
 		installMap = p.context.UnaryFn
 	}
-	if fn.Name == fn.Left || fn.Name == fn.Right {
-		p.errorf("argument name %q is function name", fn.Name)
-	}
+
 	// Define it, but prepare to undefine if there's trouble.
 	prevDefn := installMap[fn.Name]
 	p.context.Define(fn)
@@ -131,8 +150,26 @@ func (p *Parser) functionDefn() {
 	funcVars(fn)
 	succeeded = true
 	if p.context.Config().Debug("parse") {
-		p.Printf("op %s %s %s = %s\n", fn.Left, fn.Name, fn.Right, tree(fn.Body))
+		p.Printf("op %s %s %s = %s\n", fn.Left.ProgString(), fn.Name, fn.Right.ProgString(), tree(fn.Body))
 	}
+}
+
+// function argument
+//	name | '(' args ')'
+func (p *Parser) funcArg() value.Expr {
+	tok := p.next()
+	if tok.Type == scan.Identifier {
+		return value.NewVar(tok.Text)
+	}
+	if tok.Type != scan.LeftParen {
+		p.errorf("invalid function argument syntax at %s", tok.Text)
+	}
+	var v value.VectorExpr
+	for p.peek().Type != scan.RightParen {
+		v = append(v, p.funcArg())
+	}
+	p.next()
+	return v
 }
 
 // references returns a list, in appearance order, of the user-defined ops
@@ -183,15 +220,9 @@ func addReference(refs *[]exec.OpDef, name string, isBinary bool) {
 //	x = 1
 func funcVars(fn *exec.Function) {
 	known := make(map[string]int)
-	addLocal := func(name string) {
-		fn.Locals = append(fn.Locals, name)
-		known[name] = len(fn.Locals)
-	}
-	if fn.Left != "" {
-		addLocal(fn.Left)
-	}
-	if fn.Right != "" {
-		addLocal(fn.Right)
+	addLocal := func(e *value.VarExpr) {
+		fn.Locals = append(fn.Locals, e.Name)
+		known[e.Name] = len(fn.Locals)
 	}
 	f := func(expr value.Expr, assign bool) {
 		switch e := expr.(type) {
@@ -199,7 +230,7 @@ func funcVars(fn *exec.Function) {
 			x, ok := known[e.Name]
 			if !ok {
 				if assign {
-					addLocal(e.Name)
+					addLocal(e)
 				} else {
 					known[e.Name] = 0
 				}
@@ -207,6 +238,12 @@ func funcVars(fn *exec.Function) {
 			}
 			e.Local = x
 		}
+	}
+	if fn.Left != nil {
+		walk(fn.Left, true, f)
+	}
+	if fn.Right != nil {
+		walk(fn.Right, true, f)
 	}
 	for _, e := range fn.Body {
 		walk(e, false, f)
@@ -249,7 +286,20 @@ func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
 	case *value.Vector:
 	case *value.Matrix:
 	default:
-		fmt.Printf("unknown %T in references\n", e)
+		fmt.Printf("unknown %T in walk\n", e)
 	}
 	f(expr, assign)
+}
+
+func walkVars(expr value.Expr, f func(*value.VarExpr)) {
+	switch e := expr.(type) {
+	case *value.VarExpr:
+		f(e)
+	case value.VectorExpr:
+		for i := len(e) - 1; i >= 0; i-- {
+			walkVars(e[i], f)
+		}
+	default:
+		fmt.Printf("unknown %T in variable list\n", e)
+	}
 }

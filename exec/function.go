@@ -14,8 +14,8 @@ import (
 type Function struct {
 	IsBinary bool
 	Name     string
-	Left     string
-	Right    string
+	Left     value.Expr
+	Right    value.Expr
 	Body     []value.Expr
 	Locals   []string
 	Globals  []string
@@ -24,9 +24,9 @@ type Function struct {
 func (fn *Function) String() string {
 	left := ""
 	if fn.IsBinary {
-		left = fn.Left + " "
+		left = fn.Left.ProgString() + " "
 	}
-	s := fmt.Sprintf("op %s%s %s =", left, fn.Name, fn.Right)
+	s := fmt.Sprintf("op %s%s %s =", left, fn.Name, fn.Right.ProgString())
 	if len(fn.Body) == 1 {
 		return s + " " + fn.Body[0].ProgString()
 	}
@@ -47,7 +47,7 @@ func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Va
 	}
 	c.push(fn)
 	defer c.pop()
-	c.AssignLocal(1, right)
+	value.Assign(context, fn.Right, right, right)
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
 	if v == nil {
 		value.Errorf("no value returned by %q", fn.Name)
@@ -66,8 +66,8 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	}
 	c.push(fn)
 	defer c.pop()
-	c.AssignLocal(1, left)
-	c.AssignLocal(2, right)
+	value.Assign(context, fn.Left, left, left)
+	value.Assign(context, fn.Right, right, right)
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
 	if v == nil {
 		value.Errorf("no value returned by %q", fn.Name)

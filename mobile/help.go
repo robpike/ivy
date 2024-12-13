@@ -255,6 +255,10 @@ arguments must be identifiers.  For unary operators, write &quot;op name arg&quo
 binary write &quot;op leftarg name rightarg&quot;. The final expression in the body is the
 return value. Operators may have recursive definitions; see the paragraph
 about conditional execution for an example.
+<p>Each formal argument can be a single name or a parenthesized list of formal
+arguments, requiring a vector argument of that same length. Each actual argument
+is assigned to its corresponding formal argument at the start of function execution,
+creating new local variables.
 <p>The body may be a single line (possibly containing semicolons) on the same line
 as the &apos;op&apos;, or it can be multiple lines. For a multiline entry, there is a
 newline after the &apos;=&apos; and the definition ends at the first blank line (ignoring
@@ -296,6 +300,12 @@ result: 2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
 
 1562 gcd !11
 result: 22
+</pre>
+<p>Example: modular exponentiation (unary, with a 3-element vector argument):
+<pre>op modexp (b e m) =  # (b**e) mod m
+	e == 0: 1
+	e % 2: (b * modexp b (e-1) m) mod m
+	modexp ((b**2) mod m) (e&gt;&gt;1) m
 </pre>
 <p>On mobile platforms only, due to I/O restrictions, user-defined operators
 must be presented on a single line. Use semicolons to separate expressions:

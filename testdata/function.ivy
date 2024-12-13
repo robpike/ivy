@@ -495,3 +495,24 @@ d = 1 2; d@left@d
 op x left y = x
 1@left 2
 	1
+
+x y = 100 200
+op f (x y) = +/x y
+f 1 2
+x y
+	3
+	100 200
+
+a b c d = 100*iota 4
+op (a b) f (c d) = +/a b c d
+1 2 f 3 4
+a b c d
+	10
+	100 200 300 400
+
+a b c d e g = 100*iota 6
+op (a (b c)) f ((d e) g) = +/a b c d e g
+1 (2 3) f (4 5) 6
+a b c d e g
+	21
+	100 200 300 400 500 600

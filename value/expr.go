@@ -52,7 +52,7 @@ func (b *BinaryExpr) ProgString() string {
 
 func (b *BinaryExpr) Eval(context Context) Value {
 	if b.Op == "=" {
-		return Assign(context, b)
+		return assign(context, b)
 	}
 	rhs := b.Right.Eval(context).Inner()
 	lhs := b.Left.Eval(context)
@@ -187,6 +187,10 @@ func (x *IndexExpr) Eval(context Context) Value {
 type VarExpr struct {
 	Name  string
 	Local int // local index, or 0 for global
+}
+
+func NewVar(name string) *VarExpr {
+	return &VarExpr{Name: name}
 }
 
 func (e *VarExpr) Eval(context Context) Value {
