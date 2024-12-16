@@ -1015,6 +1015,8 @@ func (m *Matrix) inverse(c Context) Value {
 		return NewMatrix(m.shape, NewVector(m.data).inverse(c).(Vector))
 	case 2:
 		// OK
+	case 3:
+		Errorf("cannot compute inverse of matrix with dimension > 2")
 	}
 	dim := m.shape[0]
 	if m.shape[1] != dim {
