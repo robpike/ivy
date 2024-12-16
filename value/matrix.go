@@ -895,7 +895,7 @@ func (m *Matrix) split() Value {
 	shape, n := m.shape[:len(m.shape)-1], m.shape[len(m.shape)-1]
 	mData := make([]Value, size(shape))
 	for i := range mData {
-		mData[i] = NewVector(m.data[i*n : (i+1)*n])
+		mData[i] = NewVector(m.data[i*n : (i+1)*n]).Copy()
 	}
 	return NewMatrix(shape, mData).shrink()
 }

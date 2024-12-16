@@ -414,3 +414,10 @@ split 1 1 rho iota 1
 
 split 1 0 rho iota 0
 	()
+
+# Issue 183: aliasing.
+x = 3 2 rho iota 6
+y = split x
+x[1;1] = 100
+y
+	(1 2) (3 4) (5 6)
