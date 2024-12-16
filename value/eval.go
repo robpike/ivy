@@ -265,8 +265,8 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		}
 		n := v.shape[0]
 		vstride := v.data.Len() / n
-		data := make([]Value, u.data.Len()/n*vstride)
-		pfor(safeBinary(left) && safeBinary(right), 1, len(data), func(lo, hi int) {
+		data := newVectorEditor(u.data.Len()/n*vstride, nil)
+		pfor(safeBinary(left) && safeBinary(right), 1, data.Len(), func(lo, hi int) {
 			for x := lo; x < hi; x++ {
 				i := x / vstride * n
 				j := x % vstride
@@ -274,17 +274,17 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 				for k := n - 2; k >= 0; k-- {
 					acc = c.EvalBinary(c.EvalBinary(u.data.At(i+k), right, v.data.At(j+k*vstride)), left, acc)
 				}
-				data[x] = acc
+				data.Set(x, acc)
 			}
 		})
 		rank := len(u.shape) + len(v.shape) - 2
 		if rank == 1 {
-			return NewVector(data)
+			return data.Publish()
 		}
 		shape := make([]int, rank)
 		copy(shape, u.shape[:len(u.shape)-1])
 		copy(shape[len(u.shape)-1:], v.shape[1:])
-		return NewMatrix(shape, NewVector(data))
+		return NewMatrix(shape, data.Publish())
 	}
 	Errorf("can't do inner product on %s", whichType(u))
 	panic("not reached")
@@ -296,30 +296,24 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 	switch u := u.(type) {
 	case *Vector:
 		v := v.(*Vector)
-		m := Matrix{
-			shape: []int{u.Len(), v.Len()},
-			data:  NewVector(make([]Value, u.Len()*v.Len())),
-		}
-		pfor(safeBinary(op), 1, m.data.Len(), func(lo, hi int) {
+		data := newVectorEditor(u.Len()*v.Len(), nil)
+		pfor(safeBinary(op), 1, data.Len(), func(lo, hi int) {
 			for x := lo; x < hi; x++ {
-				m.data.Set(x, c.EvalBinary(u.At(x/v.Len()), op, v.At(x%v.Len())))
+				data.Set(x, c.EvalBinary(u.At(x/v.Len()), op, v.At(x%v.Len())))
 			}
 		})
-		return &m // TODO: Shrink?
+		return NewMatrix([]int{u.Len(), v.Len()}, data.Publish())
 	case *Matrix:
 		v := v.(*Matrix)
-		m := Matrix{
-			shape: append(u.Shape(), v.Shape()...),
-			data:  NewVector(make([]Value, u.Data().Len()*v.Data().Len())),
-		}
-		vdata := v.Data()
 		udata := u.Data()
-		pfor(safeBinary(op), 1, m.data.Len(), func(lo, hi int) {
+		vdata := v.Data()
+		data := newVectorEditor(udata.Len()*vdata.Len(), nil)
+		pfor(safeBinary(op), 1, data.Len(), func(lo, hi int) {
 			for x := lo; x < hi; x++ {
-				m.data.Set(x, c.EvalBinary(udata.At(x/vdata.Len()), op, vdata.At(x%vdata.Len())))
+				data.Set(x, c.EvalBinary(udata.At(x/vdata.Len()), op, vdata.At(x%vdata.Len())))
 			}
 		})
-		return &m // TODO: Shrink?
+		return NewMatrix(append(u.Shape(), v.Shape()...), data.Publish())
 	}
 	Errorf("can't do outer product on %s", whichType(u))
 	panic("not reached")
@@ -350,8 +344,8 @@ func Reduce(c Context, op string, v Value) Value {
 			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		shape := v.shape[:v.Rank()-1]
-		data := make([]Value, size(shape))
-		pfor(safeBinary(op), stride, len(data), func(lo, hi int) {
+		data := newVectorEditor(size(shape), nil)
+		pfor(safeBinary(op), stride, data.Len(), func(lo, hi int) {
 			for i := lo; i < hi; i++ {
 				index := stride * i
 				pos := index + stride - 1
@@ -361,13 +355,13 @@ func Reduce(c Context, op string, v Value) Value {
 					acc = c.EvalBinary(v.data.At(pos), op, acc)
 					pos--
 				}
-				data[i] = acc
+				data.Set(i, acc)
 			}
 		})
-		if len(shape) == 1 { // TODO: Matrix.shrink()?
-			return NewVector(data)
+		if len(shape) == 1 {
+			return data.Publish()
 		}
-		return NewMatrix(shape, NewVector(data))
+		return NewMatrix(shape, data.Publish())
 	}
 	Errorf("can't do reduce on %s", whichType(v))
 	panic("not reached")
@@ -394,21 +388,21 @@ func ReduceFirst(c Context, op string, v Value) Value {
 		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	shape := m.shape[1:m.Rank()]
-	data := make([]Value, size(shape))
-	pfor(safeBinary(op), stride, len(data), func(lo, hi int) {
+	data := newVectorEditor(size(shape), nil)
+	pfor(safeBinary(op), stride, data.Len(), func(lo, hi int) {
 		for i := lo; i < hi; i++ {
 			pos := i + m.data.Len() - stride
 			acc := m.data.At(pos)
 			for j := pos - stride; j >= 0; j -= stride {
 				acc = c.EvalBinary(m.data.At(j), op, acc)
 			}
-			data[i] = acc
+			data.Set(i, acc)
 		}
 	})
 	if len(shape) == 1 { // TODO: Matrix.shrink()?
-		return NewVector(data)
+		return data.Publish()
 	}
-	return NewMatrix(shape, NewVector(data))
+	return NewMatrix(shape, data.Publish())
 }
 
 // Scan computes a scan of the op; the \ has been removed.
@@ -422,20 +416,20 @@ func Scan(c Context, op string, v Value) Value {
 		if v.Len() == 0 {
 			return v
 		}
-		values := make([]Value, v.Len())
+		values := newVectorEditor(v.Len(), nil)
 		// This is fundamentally O(n²) in the general case.
 		// We make it O(n) for known associative ops.
-		values[0] = v.At(0)
+		values.Set(0, v.At(0))
 		if knownAssoc(op) {
 			for i := 1; i < v.Len(); i++ {
-				values[i] = c.EvalBinary(values[i-1], op, v.At(i))
+				values.Set(i, c.EvalBinary(values.At(i-1), op, v.At(i)))
 			}
 		} else {
 			for i := 1; i < v.Len(); i++ {
-				values[i] = Reduce(c, op, NewVector(v.Slice(0, i+1)))
+				values.Set(i, Reduce(c, op, NewVectorSeq(v.Slice(0, i+1))))
 			}
 		}
-		return NewVector(values)
+		return values.Publish()
 	case *Matrix:
 		if v.Rank() < 2 {
 			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
@@ -444,26 +438,26 @@ func Scan(c Context, op string, v Value) Value {
 		if stride == 0 {
 			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
-		data := make([]Value, v.data.Len())
+		data := newVectorEditor(v.data.Len(), nil)
 		nrows := size(v.shape[:len(v.shape)-1])
 		pfor(safeBinary(op), stride, nrows, func(lo, hi int) {
 			for i := lo; i < hi; i++ {
 				index := i * stride
 				// This is fundamentally O(n²) in the general case.
 				// We make it O(n) for known associative ops.
-				data[index] = v.data.At(index)
+				data.Set(index, v.data.At(index))
 				if knownAssoc(op) {
 					for j := 1; j < stride; j++ {
-						data[index+j] = c.EvalBinary(data[index+j-1], op, v.data.At(index+j))
+						data.Set(index+j, c.EvalBinary(data.At(index+j-1), op, v.data.At(index+j)))
 					}
 				} else {
 					for j := 1; j < stride; j++ {
-						data[index+j] = Reduce(c, op, NewVector(v.data.Slice(index, index+j+1)))
+						data.Set(index+j, Reduce(c, op, NewVectorSeq(v.data.Slice(index, index+j+1))))
 					}
 				}
 			}
 		})
-		return NewMatrix(v.shape, NewVector(data))
+		return NewMatrix(v.shape, data.Publish())
 	}
 	Errorf("can't do scan on %s", whichType(v))
 	panic("not reached")
@@ -545,11 +539,9 @@ func eachMatrix(m *Matrix, dim int) iter.Seq[Value] {
 		for i := 0; i < m.data.Len(); i += size {
 			var v Value
 			if dim == len(m.shape)-1 {
-				// TODO should Copy
-				v = NewVector(m.data.Slice(i, i+size))
+				v = NewVectorSeq(m.data.Slice(i, i+size))
 			} else {
-				// TODO should Copy
-				v = NewMatrix(m.shape[dim:], NewVector(m.data.Slice(i, i+size)))
+				v = NewMatrix(m.shape[dim:], NewVectorSeq(m.data.Slice(i, i+size)))
 			}
 			if !yield(v) {
 				break
@@ -614,19 +606,19 @@ func BinaryEach(c Context, lv Value, op string, rv Value) Value {
 	rhs := eachValue(rv, rd)
 
 	innerOp := op[ld : len(op)-rd]
-	data := []Value{}
+	data := newVectorEditor(0, nil)
 
 	for x := range lhs {
 		for y := range rhs {
-			data = append(data, c.EvalBinary(x, innerOp, y))
+			data.Append(c.EvalBinary(x, innerOp, y))
 		}
 	}
 
 	if ld+rd == 1 {
-		return NewVector(data)
+		return data.Publish()
 	}
 	shape := append(append([]int{}, l.shape[:ld]...), r.shape[:rd]...)
-	return NewMatrix(shape, NewVector(data))
+	return NewMatrix(shape, data.Publish())
 }
 
 // Each computes the result of running op on each element of v.
@@ -642,127 +634,127 @@ func Each(c Context, op string, v Value) Value {
 		Errorf("%s: arg is scalar", op)
 	}
 
-	data := []Value{}
+	data := newVectorEditor(0, nil)
 	for x := range eachValue(v, d) {
-		data = append(data, c.EvalUnary(op[:len(op)-d], x))
+		data.Append(c.EvalUnary(op[:len(op)-d], x))
 	}
 
 	if d == 1 {
-		return NewVector(data)
+		return data.Publish()
 	}
-	return NewMatrix(m.shape[:d], NewVector(data))
+	return NewMatrix(m.shape[:d], data.Publish())
 }
 
 // unaryVectorOp applies op elementwise to i.
 func unaryVectorOp(c Context, op string, i Value) Value {
 	u := i.(*Vector)
-	n := make([]Value, u.Len())
-	pfor(safeUnary(op), 1, len(n), func(lo, hi int) {
+	n := newVectorEditor(u.Len(), nil)
+	pfor(safeUnary(op), 1, n.Len(), func(lo, hi int) {
 		for k := lo; k < hi; k++ {
-			n[k] = c.EvalUnary(op, u.At(k))
+			n.Set(k, c.EvalUnary(op, u.At(k)))
 		}
 	})
-	return NewVector(n)
+	return n.Publish()
 }
 
 // unaryMatrixOp applies op elementwise to i.
 func unaryMatrixOp(c Context, op string, i Value) Value {
 	u := i.(*Matrix)
-	n := make([]Value, u.data.Len())
-	pfor(safeUnary(op), 1, len(n), func(lo, hi int) {
+	n := newVectorEditor(u.data.Len(), nil)
+	pfor(safeUnary(op), 1, n.Len(), func(lo, hi int) {
 		for k := lo; k < hi; k++ {
-			n[k] = c.EvalUnary(op, u.data.At(k))
+			n.Set(k, c.EvalUnary(op, u.data.At(k)))
 		}
 	})
-	return NewMatrix(u.shape, NewVector(n))
+	return NewMatrix(u.shape, n.Publish())
 }
 
 // binaryVectorOp applies op elementwise to i and j.
 func binaryVectorOp(c Context, i Value, op string, j Value) Value {
 	u, v := i.(*Vector), j.(*Vector)
 	if u.Len() == 1 {
-		n := make([]Value, v.Len())
-		pfor(safeBinary(op), 1, len(n), func(lo, hi int) {
+		n := newVectorEditor(v.Len(), nil)
+		pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 			for k := lo; k < hi; k++ {
-				n[k] = c.EvalBinary(u.At(0), op, v.At(k))
+				n.Set(k, c.EvalBinary(u.At(0), op, v.At(k)))
 			}
 		})
-		return NewVector(n)
+		return n.Publish()
 	}
 	if v.Len() == 1 {
-		n := make([]Value, u.Len())
-		pfor(safeBinary(op), 1, len(n), func(lo, hi int) {
+		n := newVectorEditor(u.Len(), nil)
+		pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 			for k := lo; k < hi; k++ {
-				n[k] = c.EvalBinary(u.At(k), op, v.At(0))
+				n.Set(k, c.EvalBinary(u.At(k), op, v.At(0)))
 			}
 		})
-		return NewVector(n)
+		return n.Publish()
 	}
 	u.sameLength(v)
-	n := make([]Value, u.Len())
-	pfor(safeBinary(op), 1, len(n), func(lo, hi int) {
+	n := newVectorEditor(u.Len(), nil)
+	pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 		for k := lo; k < hi; k++ {
-			n[k] = c.EvalBinary(u.At(k), op, v.At(k))
+			n.Set(k, c.EvalBinary(u.At(k), op, v.At(k)))
 		}
 	})
-	return NewVector(n)
+	return n.Publish()
 }
 
 // binaryMatrixOp applies op elementwise to i and j.
 func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 	u, v := i.(*Matrix), j.(*Matrix)
 	shape := u.shape
-	var n []Value
+	var n *vectorEditor
 
 	// One or the other may be a scalar in disguise.
 	switch {
 	case isScalar(u):
 		// Scalar op Matrix.
 		shape = v.shape
-		n = make([]Value, v.data.Len())
-		pfor(safeBinary(op), 1, len(n), func(lo, hi int) {
+		n = newVectorEditor(v.data.Len(), nil)
+		pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 			for k := lo; k < hi; k++ {
-				n[k] = c.EvalBinary(u.data.At(0), op, v.data.At(k))
+				n.Set(k, c.EvalBinary(u.data.At(0), op, v.data.At(k)))
 			}
 		})
 	case isScalar(v):
 		// Matrix op Scalar.
-		n = make([]Value, u.data.Len())
-		pfor(safeBinary(op), 1, len(n), func(lo, hi int) {
+		n = newVectorEditor(u.data.Len(), nil)
+		pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 			for k := lo; k < hi; k++ {
-				n[k] = c.EvalBinary(u.data.At(k), op, v.data.At(0))
+				n.Set(k, c.EvalBinary(u.data.At(k), op, v.data.At(0)))
 			}
 		})
 	case isVector(u, v.shape):
 		// Vector op Matrix.
 		shape = v.shape
-		n = make([]Value, v.data.Len())
+		n = newVectorEditor(v.data.Len(), nil)
 		dim := u.shape[0]
-		pfor(safeBinary(op), 1, len(n), func(lo, hi int) {
+		pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 			for k := lo; k < hi; k++ {
-				n[k] = c.EvalBinary(u.data.At(k%dim), op, v.data.At(k))
+				n.Set(k, c.EvalBinary(u.data.At(k%dim), op, v.data.At(k)))
 			}
 		})
 	case isVector(v, u.shape):
 		// Matrix op Vector.
-		n = make([]Value, u.data.Len())
+		n = newVectorEditor(u.data.Len(), nil)
 		dim := v.shape[0]
-		pfor(safeBinary(op), 1, len(n), func(lo, hi int) {
+		pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 			for k := lo; k < hi; k++ {
-				n[k] = c.EvalBinary(u.data.At(k), op, v.data.At(k%dim))
+				n.Set(k, c.EvalBinary(u.data.At(k), op, v.data.At(k%dim)))
 			}
 		})
 	default:
 		// Matrix op Matrix.
 		u.sameShape(v)
-		n = make([]Value, u.data.Len())
-		pfor(safeBinary(op), 1, len(n), func(lo, hi int) {
+		n = newVectorEditor(u.data.Len(), nil)
+		pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 			for k := lo; k < hi; k++ {
-				n[k] = c.EvalBinary(u.data.At(k), op, v.data.At(k))
+				n.Set(k, c.EvalBinary(u.data.At(k), op, v.data.At(k)))
 			}
 		})
 	}
-	return NewMatrix(shape, NewVector(n))
+	return NewMatrix(shape, n.Publish())
 }
 
 // IsScalarType reports whether u is an actual scalar, an int or float etc.
@@ -1038,31 +1030,38 @@ func EvalFunctionBody(context Context, fnName string, body []Expr) Value {
 }
 
 // flatten returns a simple vector containing the scalar elements of v.
-func flatten(v Value) []Value {
-	if IsScalarType(v) {
-		return []Value{v}
+func flatten(v Value) iter.Seq2[int, Value] {
+	return func(yield func(int, Value) bool) {
+		flattenTo(0, v, yield)
 	}
+}
+
+// flatternTo flattens the values contained in v,
+// caling yield(off, x0), yield(off+1, x1), ... for successive values.
+// It returns the new next offset to use
+// and whether the iteration should continue at all.
+func flattenTo(off int, v Value, yield func(int, Value) bool) (newOff int, cont bool) {
 	switch v := v.(type) {
-	case *Vector:
-		if v.allScalars() {
-			return v.Copy().(*Vector).All()
-		}
-		elems := make([]Value, 0, v.Len())
-		for _, elem := range v.All() {
-			if IsScalarType(elem) {
-				elems = append(elems, elem)
-			} else {
-				elems = append(elems, flatten(elem)...)
-			}
-		}
-		return elems
 	case *Matrix:
-		return flatten(v.data)
+		return flattenTo(off, v.data, yield)
+	case *Vector:
+		for _, elem := range v.All() {
+			newOff, cont := flattenTo(off, elem, yield)
+			if !cont {
+				return 0, false
+			}
+			off = newOff
+		}
+		return off, true
+	default:
+		if !yield(off, v) {
+			return 0, false
+		}
+		return off + 1, true
 	}
-	panic("flatten: can't happen")
 }
 
 // box returns its argument wrapped into a one-element vector.
 func box(c Context, v Value) Value {
-	return NewVector([]Value{v})
+	return NewVector(v)
 }

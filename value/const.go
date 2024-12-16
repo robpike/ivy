@@ -36,7 +36,7 @@ var (
 )
 
 var (
-	empty = NewVector([]Value{})
+	empty = NewVector()
 
 	bigIntZero     = bigInt64(0)
 	bigIntOne      = bigInt64(1)

@@ -357,10 +357,10 @@ Switch:
 		name := p.need(scan.Identifier).Text
 		value := p.context.Global(name)
 		if value == nil {
-			p.errorf("%q not defined", name)
+			p.errorf("undefined global variable %q", name)
 		}
 		fmt.Printf("%s = ", name)
-		put(conf, conf.Output(), value, false)
+		put(conf, conf.Output(), value.Value(), false)
 		fmt.Print("\n")
 	default:
 		p.errorf(")%s: not recognized", text)

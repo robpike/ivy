@@ -40,7 +40,7 @@ func (m *Matrix) Rank() int {
 
 func (m *Matrix) shrink() Value {
 	if len(m.shape) == 1 {
-		return NewVector(m.data.All())
+		return m.data
 	}
 	return m
 }
@@ -48,15 +48,6 @@ func (m *Matrix) shrink() Value {
 // Data returns the data of the matrix as a vector.
 func (m *Matrix) Data() *Vector {
 	return m.data
-}
-
-func (m *Matrix) Copy() Value {
-	shape := slices.Clone(m.shape)
-	data := slices.Clone(m.data.All())
-	return &Matrix{
-		shape: shape,
-		data:  NewVector(data),
-	}
 }
 
 // elemStrs returns the formatted elements of the matrix and the width of the widest element.
@@ -67,7 +58,7 @@ func (m *Matrix) elemStrs(conf *config.Config) ([][]string, int) {
 	// In the formatting, there's no need for spacing the elements as we'll cut
 	// them apart ourselves using column information. Spaces will be added
 	// when needed in write2d.
-	v := NewVector(m.data.All())
+	v := m.data
 	lines, cols := v.multiLineSprint(conf, v.allScalars(), v.AllChars(), !withSpaces, !trimTrailingSpace)
 	strs := make([][]string, m.data.Len())
 	wid := 0
@@ -199,7 +190,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 				if i > 0 {
 					b.WriteByte('\n')
 				}
-				fmt.Fprintf(&b, "%s", NewVector(m.data.Slice(i*ncols, (i+1)*ncols)).Sprint(conf))
+				fmt.Fprintf(&b, "%s", NewVectorSeq(m.data.Slice(i*ncols, (i+1)*ncols)).Sprint(conf))
 			}
 			break
 		}
@@ -215,7 +206,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 				if i > 0 {
 					b.WriteString("\n\n")
 				}
-				fmt.Fprintf(&b, "%s", NewMatrix(m.shape[1:], NewVector(m.data.Slice(index, index+ElemSize))).Sprint(conf))
+				fmt.Fprintf(&b, "%s", NewMatrix(m.shape[1:], NewVectorSeq(m.data.Slice(index, index+ElemSize))).Sprint(conf))
 				index += ElemSize
 			}
 			break
@@ -232,7 +223,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 			}
 			m := Matrix{
 				shape: m.shape[1:],
-				data:  NewVector(m.data.Slice(start, start+size)),
+				// no data; write2d uses strs, not data
 			}
 			m.write2d(&b, strs[start:start+size], nested, wid)
 			start += size
@@ -258,7 +249,7 @@ func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) 
 	for i := 0; i < dim; i++ {
 		inner := Matrix{
 			shape: m.shape[1:],
-			data:  NewVector(m.data.Slice(i*m.ElemSize(), m.data.Len())),
+			data:  NewVectorSeq(m.data.Slice(i*m.ElemSize(), m.data.Len())),
 		}
 		if i > 0 {
 			b.WriteString("\n\n")
@@ -389,7 +380,7 @@ func reshape(A, B *Vector) Value {
 		B = NewIntVector(0)
 	}
 	if A.Len() == 0 {
-		return NewVector(nil)
+		return NewVector()
 	}
 	nelems := Int(1)
 	shape := make([]int, A.Len())
@@ -404,16 +395,20 @@ func reshape(A, B *Vector) Value {
 		}
 		shape[i] = int(n)
 	}
-	values := make([]Value, nelems)
-	n := copy(values, B.All())
-	// replicate as needed by doubling in values.
-	for n < len(values) {
-		n += copy(values[n:], values[:n])
+	t := newVectorEditor(int(nelems), nil)
+	blen := B.Len()
+	for i := 0; i < blen && i < int(nelems); i++ {
+		t.Set(i, B.At(i))
 	}
+	// replicate as needed
+	for i := blen; i < int(nelems); i++ {
+		t.Set(i, t.At(i-blen))
+	}
+	v := t.Publish()
 	if A.Len() == 1 {
-		return NewVector(values)
+		return v
 	}
-	return NewMatrix(shape, NewVector(values))
+	return NewMatrix(shape, v)
 }
 
 // rotate returns a copy of v with elements rotated left by n.
@@ -422,7 +417,7 @@ func (m *Matrix) rotate(n int) Value {
 	if m.Rank() == 0 {
 		return &Matrix{}
 	}
-	elems := make([]Value, m.data.Len())
+	elems := newVectorEditor(m.data.Len(), nil)
 	dim := m.shape[m.Rank()-1]
 	n %= dim
 	if n < 0 {
@@ -431,10 +426,10 @@ func (m *Matrix) rotate(n int) Value {
 	pfor(true, dim, m.data.Len()/dim, func(lo, hi int) {
 		for i := lo; i < hi; i++ {
 			j := i * dim
-			doRotate(elems[j:j+dim], m.data.Slice(j, j+dim), n)
+			doRotate(elems, j, dim, m.data, j, n)
 		}
 	})
-	return NewMatrix(m.shape, NewVector(elems))
+	return NewMatrix(m.shape, elems.Publish())
 }
 
 // vrotate returns a copy of v with elements rotated down by n.
@@ -447,7 +442,7 @@ func (m *Matrix) vrotate(n int) Value {
 		return m
 	}
 
-	elems := make([]Value, m.data.Len())
+	elems := newVectorEditor(m.data.Len(), nil)
 	dim := m.data.Len() / m.shape[0]
 
 	n *= dim
@@ -460,24 +455,26 @@ func (m *Matrix) vrotate(n int) Value {
 		for i := lo; i < hi; i++ {
 			j := i * dim
 			n := (n + j) % m.data.Len()
-			copy(elems[j:j+dim], m.data.Slice(n, n+dim))
+			for k := range dim {
+				elems.Set(j+k, m.data.At(n+k))
+			}
 		}
 	})
 
-	return NewMatrix(m.shape, NewVector(elems))
+	return NewMatrix(m.shape, elems.Publish())
 }
 
 // transpose returns (as a new matrix) the transposition of the argument.
 func (m *Matrix) transpose(c Context) *Matrix {
 	// Fast version for common 2d case.
 	if len(m.shape) == 2 {
-		data := make([]Value, m.data.Len())
+		data := newVectorEditor(m.data.Len(), nil)
 		xdim, ydim := m.shape[0], m.shape[1] // For new matrix.
-		pfor(true, 1, len(data), func(lo, hi int) {
+		pfor(true, 1, data.Len(), func(lo, hi int) {
 			nx := lo / ydim
 			ny := lo % ydim
 			for _, v := range m.data.Slice(lo, hi) {
-				data[ny*xdim+nx] = v
+				data.Set(ny*xdim+nx, v)
 				ny++
 				if ny >= ydim {
 					nx++
@@ -485,14 +482,14 @@ func (m *Matrix) transpose(c Context) *Matrix {
 				}
 			}
 		})
-		return NewMatrix([]int{ydim, xdim}, NewVector(data))
+		return NewMatrix([]int{ydim, xdim}, data.Publish())
 	}
-	nShape := make([]Value, len(m.shape))
+	nShape := newVectorEditor(len(m.shape), nil)
 	origin := c.Config().Origin()
-	for i := range nShape {
-		nShape[len(nShape)-1-i] = Int(i + origin)
+	for i := range nShape.Len() {
+		nShape.Set(len(m.shape)-1-i, Int(i+origin))
 	}
-	return m.binaryTranspose(c, NewVector(nShape))
+	return m.binaryTranspose(c, nShape.Publish())
 }
 
 // binaryTranspose returns the transposition of m specified by v,
@@ -540,8 +537,8 @@ func (m *Matrix) binaryTranspose(c Context, v *Vector) *Matrix {
 	}
 
 	old := m.data
-	data := make([]Value, sz)
-	pfor(true, 1, len(data), func(lo, hi int) {
+	data := newVectorEditor(sz, nil)
+	pfor(true, 1, data.Len(), func(lo, hi int) {
 		// Compute starting index
 		index := make([]int, rank)
 		i := lo
@@ -558,7 +555,7 @@ func (m *Matrix) binaryTranspose(c Context, v *Vector) *Matrix {
 				oi = oi*m.shape[j] + index[oldToNew[j]]
 			}
 
-			data[i] = old.At(oi)
+			data.Set(i, old.At(oi))
 
 			// Increment index.
 			for j := rank - 1; j >= 0; j-- {
@@ -570,7 +567,7 @@ func (m *Matrix) binaryTranspose(c Context, v *Vector) *Matrix {
 		}
 	})
 
-	return NewMatrix(shape, NewVector(data))
+	return NewMatrix(shape, data.Publish())
 }
 
 // catenate returns the catenation x, y, along the last axis.
@@ -586,7 +583,7 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 		Errorf("rank 0 matrix for ,")
 	}
 	var shape []int
-	var data []Value
+	data := newVectorEditor(0, nil)
 	var nrows int
 	setShape := func(m *Matrix, extra int) {
 		shape = slices.Clone(m.shape)
@@ -596,10 +593,14 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 	copyElems := func(nLeft, advLeft, nRight, advRight int) {
 		di, li, ri := 0, 0, 0
 		for i := 0; i < nrows; i++ {
-			copy(data[di:di+nLeft], x.data.Slice(li, li+nLeft))
+			for k := range nLeft {
+				data.Set(di+k, x.data.At(li+k))
+			}
 			di += nLeft
 			li += advLeft
-			copy(data[di:di+nRight], y.data.Slice(ri, ri+nRight))
+			for k := range nRight {
+				data.Set(di+k, y.data.At(ri+k))
+			}
 			di += nRight
 			ri += advRight
 		}
@@ -611,14 +612,14 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 	case x.Rank() == y.Rank() && sameShape(x.shape[:len(x.shape)-1], y.shape[:len(y.shape)-1]):
 		// list, list
 		setShape(x, y.shape[len(y.shape)-1])
-		data = make([]Value, x.data.Len()+y.data.Len())
+		data.Resize(x.data.Len() + y.data.Len())
 		xsize, ysize := x.shape[len(x.shape)-1], y.shape[len(y.shape)-1]
 		copyElems(xsize, xsize, ysize, ysize)
 
 	case x.Rank() == y.Rank()+1 && sameShape(x.shape[:len(x.shape)-1], y.shape):
 		// list, elem
 		setShape(x, 1)
-		data = make([]Value, x.data.Len()+y.data.Len())
+		data.Resize(x.data.Len() + y.data.Len())
 		xsize := x.shape[len(x.shape)-1]
 		ysize := y.Size() / nrows
 		copyElems(xsize, xsize, ysize, ysize)
@@ -626,7 +627,7 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 	case x.Rank()+1 == y.Rank() && sameShape(x.shape, y.shape[:len(y.shape)-1]):
 		// elem, list
 		setShape(y, 1)
-		data = make([]Value, y.data.Len()+x.data.Len())
+		data.Resize(y.data.Len() + x.data.Len())
 		xsize := x.Size() / nrows
 		ysize := y.shape[len(y.shape)-1]
 		copyElems(xsize, xsize, ysize, ysize)
@@ -634,18 +635,18 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 	case x.Rank() == 1 && x.shape[0] == 1 && y.Rank() > 1:
 		// scalar extension, list
 		setShape(y, 1)
-		data = make([]Value, y.data.Len()+nrows)
+		data.Resize(y.data.Len() + nrows)
 		ysize := y.shape[len(y.shape)-1]
 		copyElems(1, 0, ysize, ysize)
 
 	case x.Rank() > 1 && y.Rank() == 1 && y.shape[0] == 1:
 		// list, scalar extension
 		setShape(x, 1)
-		data = make([]Value, x.data.Len()+nrows)
+		data.Resize(x.data.Len() + nrows)
 		xsize := x.shape[len(x.shape)-1]
 		copyElems(xsize, xsize, 1, 0)
 	}
-	return NewMatrix(shape, NewVector(data))
+	return NewMatrix(shape, data.Publish())
 }
 
 // catenateFirst returns the catenation x, y, along the first axis.
@@ -654,7 +655,7 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 		Errorf("rank 0 matrix for ,%%")
 	}
 	var shape []int
-	var data []Value
+	var data *vectorEditor
 	switch {
 	default:
 		Errorf("catenateFirst shape mismatch: %v, %v", NewIntVector(x.shape...), NewIntVector(y.shape...))
@@ -678,13 +679,15 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 		// scalar extension, list
 		shape = slices.Clone(y.shape)
 		shape[0]++
-		elem := y.ElemSize()
 		a := x.data.At(0)
-		data = make([]Value, elem+y.data.Len())
-		for i := 0; i < elem; i++ {
-			data[i] = a
+		data = newVectorEditor(0, nil)
+		elem := y.ElemSize()
+		for range elem {
+			data.Append(a)
 		}
-		copy(data[elem:], y.data.All())
+		for _, e := range y.data.All() {
+			data.Append(e)
+		}
 
 	case x.Rank() > 1 && y.Rank() == 1 && y.shape[0] == 1:
 		// list, scalar extension
@@ -692,19 +695,18 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 		shape[0]++
 		elem := x.ElemSize()
 		b := y.data.At(0)
-		data = make([]Value, elem+x.data.Len())
-		copy(data, x.data.All())
-		ext := data[x.data.Len():]
-		for i := 0; i < elem; i++ {
-			ext[i] = b
+		data = x.data.edit()
+		for range elem {
+			data.Append(b)
 		}
 	}
 	if data == nil {
-		data = make([]Value, x.data.Len()+y.data.Len())
-		copy(data, x.data.All())
-		copy(data[x.data.Len():], y.data.All())
+		data = x.data.edit()
+		for _, e := range y.data.All() {
+			data.Append(e)
+		}
 	}
-	return NewMatrix(shape, NewVector(data))
+	return NewMatrix(shape, data.Publish())
 }
 
 // sel returns the selection of m according to v.
@@ -741,7 +743,7 @@ func (m *Matrix) sel(c Context, v *Vector) *Matrix {
 		Errorf("sel: result too large: %d elements", count)
 	}
 
-	result := make([]Value, 0, count)
+	result := newVectorEditor(0, nil)
 	for i, y := range m.data.All() {
 		c := v.At(i % v.Len()).(Int)
 		if c < 0 {
@@ -749,11 +751,11 @@ func (m *Matrix) sel(c Context, v *Vector) *Matrix {
 			y = zero
 		}
 		for ; c > 0; c-- {
-			result = append(result, y)
+			result.Append(y)
 		}
 	}
 
-	return NewMatrix(shape, NewVector(result))
+	return NewMatrix(shape, result.Publish())
 }
 
 // take returns v take m.
@@ -775,12 +777,11 @@ func (m *Matrix) take(c Context, v *Vector) *Matrix {
 		m = NewMatrix(shape, m.data)
 	}
 	if v.Len() < m.Rank() {
-		ext := make([]Value, m.Rank())
-		copy(ext, v.All())
-		for i := v.Len(); i < m.Rank(); i++ {
-			ext[i] = Int(m.shape[i])
+		ext := v.edit()
+		for ext.Len() < m.Rank() {
+			ext.Append(Int(m.shape[ext.Len()]))
 		}
-		v = NewVector(ext)
+		v = ext.Publish()
 	}
 
 	// Compute new shape.
@@ -817,10 +818,10 @@ func (m *Matrix) take(c Context, v *Vector) *Matrix {
 	}
 
 	// TODO Is there a faster way?
-	fill := fillValue(m.data.All())
+	fill := fillValue(m.data)
 	rCoords := make([]int, len(shape)) // Matrix coordinates in result.
-	result := make([]Value, count, count)
-	for i := range result {
+	result := newVectorEditor(int(count), nil)
+	for i := range result.Len() {
 		inside := true
 		mi := 0
 		// See if this location is inside the bounding box for m.
@@ -835,9 +836,9 @@ func (m *Matrix) take(c Context, v *Vector) *Matrix {
 			mi += loc
 		}
 		if inside {
-			result[i] = m.data.At(mi) // TODO
+			result.Set(i, m.data.At(mi)) // TODO
 		} else {
-			result[i] = fill
+			result.Set(i, fill)
 		}
 		// Increment destination indexes.
 		for k := len(rCoords) - 1; k >= 0; k-- {
@@ -848,7 +849,7 @@ func (m *Matrix) take(c Context, v *Vector) *Matrix {
 			rCoords[k] = 0
 		}
 	}
-	return NewMatrix(shape, NewVector(result))
+	return NewMatrix(shape, result.Publish())
 }
 
 // partition returns a vector of the subblocks of m, selected and grouped
@@ -864,7 +865,7 @@ func (m *Matrix) partition(scoreM *Matrix) Value {
 		if n := score.uintAt(0, "part: score"); n == 0 {
 			Errorf("part: empty score")
 		}
-		return m.Copy()
+		return m
 	}
 	if score.Len() != m.shape[len(m.shape)-1] {
 		Errorf("part: length mismatch")
@@ -885,32 +886,31 @@ func (m *Matrix) drop(c Context, v *Vector) *Matrix {
 		Errorf("drop: left operand must be small integers")
 	}
 	if v.Len() < m.Rank() {
-		ext := make([]Value, m.Rank())
-		copy(ext, v.All())
-		for i := v.Len(); i < m.Rank(); i++ {
-			ext[i] = zero
+		ext := v.edit()
+		for range m.Rank() - v.Len() {
+			ext.Append(zero)
 		}
-		v = NewVector(ext)
+		v = ext.Publish()
 	}
 
 	// All lhs values must be small integers in range for m's shape.
 	// Convert to parameters for take.
 	//	1 drop x = (1 - N) take x
 	//	-1 drop x = (N - 1) take x
-	take := make([]Value, v.Len())
+	take := v.edit()
 	for i, x := range v.All() {
 		x := int(x.(Int))
 		switch {
 		case x < -m.shape[i], x > m.shape[i]:
-			take[i] = zero
+			take.Set(i, zero)
 		case x >= 0:
-			take[i] = Int(x - m.shape[i])
+			take.Set(i, Int(x-m.shape[i]))
 		case x < 0:
-			take[i] = Int(m.shape[i] + x)
+			take.Set(i, Int(m.shape[i]+x))
 		}
 	}
 
-	return m.take(c, NewVector(take))
+	return m.take(c, take.Publish())
 }
 
 // split reduces the matrix by one dimension.
@@ -921,18 +921,18 @@ func (m *Matrix) split() Value {
 	}
 	// Matrix of vectors.
 	shape, n := m.shape[:len(m.shape)-1], m.shape[len(m.shape)-1]
-	mData := make([]Value, size(shape))
-	for i := range mData {
-		mData[i] = NewVector(m.data.Slice(i*n, (i+1)*n)).Copy()
+	mData := newVectorEditor(size(shape), nil)
+	for i := range mData.Len() {
+		mData.Set(i, NewVectorSeq(m.data.Slice(i*n, (i+1)*n)))
 	}
-	return NewMatrix(shape, NewVector(mData)).shrink()
+	return NewMatrix(shape, mData.Publish()).shrink()
 }
 
 // mix builds a matrix from the elements of the nested matrix.
 func (m *Matrix) mix(c Context) Value {
 	// If it's all scalar, nothing to do.
-	if allScalars(m.data.All()) {
-		return m.Copy()
+	if m.data.allScalars() {
+		return m
 	}
 	shape := []int{0}
 	for _, e := range m.data.All() {
@@ -956,7 +956,7 @@ func (m *Matrix) mix(c Context) Value {
 			}
 		}
 	}
-	var data []Value
+	data := newVectorEditor(0, nil)
 	vshape := NewIntVector(shape...)
 	for _, e := range m.data.All() {
 		var nm *Matrix
@@ -966,7 +966,7 @@ func (m *Matrix) mix(c Context) Value {
 		}
 		switch e := e.(type) {
 		default:
-			nm = NewMatrix(takeShape, NewVector([]Value{e})).take(c, vshape)
+			nm = NewMatrix(takeShape, NewVector(e)).take(c, vshape)
 		case *Vector:
 			takeShape[len(takeShape)-1] = e.Len()
 			nm = NewMatrix(takeShape, e).take(c, vshape)
@@ -984,9 +984,11 @@ func (m *Matrix) mix(c Context) Value {
 				nm = NewMatrix(takeShape, e.data).take(c, vshape)
 			}
 		}
-		data = append(data, nm.data.All()...)
+		for _, elem := range nm.data.All() {
+			data.Append(elem)
+		}
 	}
-	return NewMatrix(append(m.shape, shape...), NewVector(data))
+	return NewMatrix(append(m.shape, shape...), data.Publish())
 }
 
 // grade returns as a Vector the indexes that sort the rows of m
@@ -1124,9 +1126,9 @@ func (m *Matrix) inverse(c Context) Value {
 		}
 	}
 	// Now extract the right hand side of the working area.
-	data := make([]Value, 0, m.data.Len())
+	data := newVectorEditor(0, nil)
 	for _, row := range t {
-		data = append(data, row[dim:]...)
+		data.Append(row[dim:]...)
 	}
-	return NewMatrix(m.shape, NewVector(data))
+	return NewMatrix(m.shape, data.Publish())
 }

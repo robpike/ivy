@@ -54,13 +54,6 @@ func (c Complex) Eval(Context) Value {
 	return c
 }
 
-func (c Complex) Copy() Value {
-	return Complex{
-		real: c.real.Copy(),
-		imag: c.real.Copy(),
-	}
-}
-
 func (c Complex) Inner() Value {
 	return c
 }
@@ -83,7 +76,7 @@ func (c Complex) toType(op string, conf *config.Config, which valueType) Value {
 	case vectorType:
 		return oneElemVector(c)
 	case matrixType:
-		return NewMatrix([]int{1, 1}, NewVector([]Value{c}))
+		return NewMatrix([]int{1, 1}, NewVector(c))
 	}
 	Errorf("%s: cannot convert complex to %s", op, which)
 	return nil

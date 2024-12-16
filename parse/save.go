@@ -118,7 +118,7 @@ func save(c *exec.Context, file string) {
 		sorted := sortSyms(syms)
 		for _, sym := range sorted {
 			fmt.Fprintf(out, "%s = ", sym.name)
-			put(conf, out, sym.val, false)
+			put(conf, out, sym.val.Value(), false)
 			fmt.Fprint(out, "\n")
 		}
 	}
@@ -134,7 +134,7 @@ func save(c *exec.Context, file string) {
 // saveSym holds a variable's name and value so we can sort them for saving.
 type saveSym struct {
 	name string
-	val  value.Value
+	val  *value.Var
 }
 
 type sortingSyms []saveSym
@@ -143,7 +143,7 @@ func (s sortingSyms) Len() int           { return len(s) }
 func (s sortingSyms) Less(i, j int) bool { return s[i].name < s[j].name }
 func (s sortingSyms) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-func sortSyms(syms map[string]value.Value) []saveSym {
+func sortSyms(syms map[string]*value.Var) []saveSym {
 	s := make(sortingSyms, len(syms))
 	i := 0
 	for k, v := range syms {

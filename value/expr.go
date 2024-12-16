@@ -81,15 +81,15 @@ func (c *CondExpr) Operands() (left, right Expr) {
 type VectorExpr []Expr
 
 func (e VectorExpr) Eval(context Context) Value {
-	v := make([]Value, len(e))
+	v := newVectorEditor(len(e), nil)
 	// Evaluate right to left, as is the usual rule.
 	// This also means things like
 	//	x=1000; x + x=2
 	// (yielding 4) work.
 	for i := len(e) - 1; i >= 0; i-- {
-		v[i] = e[i].Eval(context)
+		v.Set(i, e[i].Eval(context))
 	}
-	return NewVector(v)
+	return v.Publish()
 }
 
 var charEscape = map[rune]string{
@@ -189,16 +189,18 @@ type VarExpr struct {
 	Local int // local index, or 0 for global
 }
 
-func NewVar(name string) *VarExpr {
+func NewVarExpr(name string) *VarExpr {
 	return &VarExpr{Name: name}
 }
 
 func (e *VarExpr) Eval(context Context) Value {
 	var v Value
 	if e.Local >= 1 {
-		v = context.Local(e.Local)
+		v = context.Local(e.Local).Value()
 	} else {
-		v = context.Global(e.Name)
+		if g := context.Global(e.Name); g != nil {
+			v = g.Value()
+		}
 	}
 	if v == nil {
 		kind := "global"

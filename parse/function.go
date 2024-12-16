@@ -159,7 +159,7 @@ func (p *Parser) functionDefn() {
 func (p *Parser) funcArg() value.Expr {
 	tok := p.next()
 	if tok.Type == scan.Identifier {
-		return value.NewVar(tok.Text)
+		return value.NewVarExpr(tok.Text)
 	}
 	if tok.Type != scan.LeftParen {
 		p.errorf("invalid function argument syntax at %s", tok.Text)

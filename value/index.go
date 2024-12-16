@@ -10,9 +10,10 @@ import "sync"
 // the values denoted by an index expression left[index],
 // which is evaluated to lhs[indexes].
 type indexState struct {
-	lhs   Value
-	slice []Value // underlying data slice for lhs
-	shape []int   // underlying shape for lhs
+	lhs    Value
+	vector *Vector
+	edit   *vectorEditor
+	shape  []int // underlying shape for lhs
 
 	indexes []*Vector // Vectors of all Int, all in range for shape
 
@@ -23,7 +24,9 @@ type indexState struct {
 // init initializes ix to describe top, which is left[index].
 // Left and index will be evaluated (right to left),
 // while top is only for its ProgString method.
-func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
+// If lvar is not nil, then it is the variable corresponding to left,
+// to be used for assignments.
+func (ix *indexState) init(context Context, top, left Expr, lvar *Var, index []Expr) {
 	// Evaluate indexes, make sure all are Vector of Int.
 	// Compute shape of result as we go.
 	// Scalar indexes drop a dimension,
@@ -45,7 +48,7 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 		default:
 			Errorf("invalid index %s (type %s) in %s", index[i].ProgString(), whichType(x), top.ProgString())
 		case Int:
-			ix.indexes[i] = NewVector([]Value{x})
+			ix.indexes[i] = NewVector(x)
 		case *Vector:
 			ix.indexes[i] = x
 			ix.outShape = append(ix.outShape, x.Len())
@@ -80,10 +83,16 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 	default:
 		Errorf("cannot index %s (%v)", left.ProgString(), whichType(lhs))
 	case *Matrix:
-		ix.slice = lhs.Data().Writable()
+		ix.vector = lhs.data
+		if lvar != nil {
+			ix.edit = lvar.editor()
+		}
 		ix.shape = lhs.Shape()
 	case *Vector:
-		ix.slice = lhs.Writable()
+		ix.vector = lhs
+		if lvar != nil {
+			ix.edit = lvar.editor()
+		}
 		ix.shape = []int{lhs.Len()}
 	}
 
@@ -96,9 +105,9 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 	j := 0
 	for i := range ix.indexes {
 		if missing[i] {
-			x := constIota(int(origin), ix.shape[i])
-			ix.indexes[i] = NewVector(x)
-			ix.outShape[outShapeToUpdate[j]] = len(x)
+			x := newIota(int(origin), ix.shape[i])
+			ix.indexes[i] = x
+			ix.outShape[outShapeToUpdate[j]] = x.Len()
 			j++
 		}
 	}
@@ -133,7 +142,7 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 // while top is only for its ProgString method.
 func Index(context Context, top, left Expr, index []Expr) Value {
 	var ix indexState
-	ix.init(context, top, left, index)
+	ix.init(context, top, left, nil, index)
 	origin := Int(context.Config().Origin())
 
 	if len(ix.outShape) == 0 {
@@ -145,12 +154,12 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 			}
 			offset += int(ix.indexes[j].At(0).(Int) - origin)
 		}
-		return ix.slice[offset]
+		return ix.vector.At(offset)
 	}
 
-	data := make([]Value, ix.outSize)
+	data := newVectorEditor(ix.outSize, nil)
 	copySize := int(size(ix.shape[len(ix.indexes):]))
-	n := len(data) / copySize
+	n := data.Len() / copySize
 	coord := make([]int, len(ix.indexes))
 	for i := 0; i < n; i++ {
 		// Copy data for indexes[coord].
@@ -161,7 +170,9 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 			}
 			offset += int(ix.indexes[j].At(coord[j]).(Int) - origin)
 		}
-		copy(data[i*copySize:(i+1)*copySize], ix.slice[offset*copySize:(offset+1)*copySize])
+		for k := range copySize {
+			data.Set(i*copySize+k, ix.vector.At(offset*copySize+k))
+		}
 
 		// Increment coord.
 		for j := len(coord) - 1; j >= 0; j-- {
@@ -173,27 +184,27 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 	}
 
 	if len(ix.outShape) == 0 {
-		return data[0]
+		return data.At(0)
 	}
 	if len(ix.outShape) == 1 {
-		return NewVector(data)
+		return data.Publish()
 	}
-	return NewMatrix(ix.outShape, NewVector(data))
+	return NewMatrix(ix.outShape, data.Publish())
 }
 
 // IndexAssign handles general assignment to indexed expressions on the LHS.
 // Left and index will be evaluated (right to left),
 // while top is only for its ProgString method.
-// The caller must check that left is a variable expression,
-// so that the assignment is not being written into a temporary.
-func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs Value) {
+// The caller must check that left is a variable expression
+// and pass lvar, the variable corresponding to left.
+func IndexAssign(context Context, top, left Expr, lvar *Var, index []Expr, right Expr, rhs Value) {
 	var ix indexState
-	ix.init(context, top, left, index)
+	ix.init(context, top, left, lvar, index)
 
 	// Unless assigning to a single cell, RHS must be scalar or
 	// have same shape as indexed expression.
 	var rscalar Value
-	var rslice []Value
+	var rvector *Vector
 	if len(ix.outShape) == 0 {
 		rscalar = rhs
 	} else {
@@ -216,19 +227,12 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 			if len(ix.outShape) != 1 || ix.outShape[0] != rhs.Len() {
 				badShape(rhs.Len())
 			}
-			rslice = rhs.All()
+			rvector = rhs
 		case *Matrix:
 			if !sameShape(ix.outShape, rhs.Shape()) {
 				badShape(rhs.Shape()...)
 			}
-			rslice = rhs.Data().All()
-			if rhs == ix.lhs {
-				// Assigning entire rhs to some permutation of lhs.
-				// Make copy of slice to avoid problems with overwriting
-				// values we need to read later. Uncommon.
-				rslice = make([]Value, len(rslice))
-				copy(rslice, rhs.Data().All())
-			}
+			rvector = rhs.data
 		}
 	}
 
@@ -242,7 +246,7 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 			}
 			offset += int(ix.indexes[j].At(0).(Int) - origin)
 		}
-		ix.slice[offset] = rscalar.Copy()
+		ix.edit.Set(offset, rscalar)
 		return
 	}
 
@@ -268,14 +272,14 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 				}
 				offset += int(ix.indexes[j].At(coord[j]).(Int) - origin)
 			}
-			dst := ix.slice[offset*copySize : (offset+1)*copySize]
+			dstOff := offset * copySize
 			if rscalar != nil {
-				for j := range dst {
-					dst[j] = rscalar.Copy()
+				for j := range copySize {
+					ix.edit.Set(dstOff+j, rscalar)
 				}
 			} else {
-				for j := range dst {
-					dst[j] = rslice[j+i*copySize].Copy()
+				for j := range copySize {
+					ix.edit.Set(dstOff+j, rvector.At(j+i*copySize))
 				}
 			}
 
@@ -315,10 +319,7 @@ func newIota(origin, n int) *Vector {
 	if n < 0 || maxInt < n {
 		Errorf("bad iota %d", n)
 	}
-	data := constIota(origin, int(n))
-	v := make([]Value, n)
-	copy(v, data)
-	return NewVector(v)
+	return NewVector(constIota(origin, int(n))...)
 }
 
 func growIota(n int) {

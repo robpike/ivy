@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/big"
 	"math/bits"
-	"unicode/utf8"
 )
 
 // Unary operators.
@@ -124,12 +123,16 @@ func floatSelf(c Context, v Value) BigFloat {
 // text returns a vector of Chars holding the string representation
 // of the value.
 func text(c Context, v Value) Value {
-	str := v.Sprint(c.Config())
-	elem := make([]Value, utf8.RuneCountInString(str))
-	for i, r := range str {
-		elem[i] = Char(r)
+	return newCharVector(v.Sprint(c.Config()))
+}
+
+// newCharVector takes a string and returns its representation as a Vector of Chars.
+func newCharVector(s string) Value {
+	edit := newVectorEditor(0, nil)
+	for _, r := range s {
+		edit.Append(Char(r))
 	}
-	return NewVector(elem)
+	return edit.Publish()
 }
 
 // Implemented in package run, handled as a func to avoid a dependency loop.
@@ -659,13 +662,13 @@ func init() {
 						}
 					}
 					origin := c.Config().Origin()
-					elems := make([]Value, nElems)
+					elems := newVectorEditor(nElems, nil)
 					counter := make([]int, vv.Len())
 					for i := range counter {
 						counter[i] = origin
 					}
-					for i := range elems {
-						elems[i] = NewIntVector(counter...)
+					for i := range nElems {
+						elems.Set(i, NewIntVector(counter...))
 						for axis := len(counter) - 1; axis >= 0; axis-- {
 							counter[axis]++
 							if counter[axis]-origin < shape[axis] {
@@ -674,7 +677,7 @@ func init() {
 							counter[axis] = origin
 						}
 					}
-					return NewMatrix(shape, NewVector(elems))
+					return NewMatrix(shape, elems.Publish())
 				},
 			},
 		},
@@ -766,20 +769,20 @@ func init() {
 				},
 				vectorType: func(c Context, v Value) Value {
 					vec := v.(*Vector)
-					result := []Value{}
+					result := newVectorEditor(0, nil)
 					origin := c.Config().Origin()
 					for i := range vec.Len() {
 						e := vec.uintAt(i, "where argument")
 						for range e {
-							result = append(result, Int(origin+i))
+							result.Append(Int(origin + i))
 						}
 					}
-					return NewVector(result)
+					return result.Publish()
 				},
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix)
 					shape, vec := m.shape, m.data
-					result := []Value{}
+					result := newVectorEditor(0, nil)
 					coords := make([]int, len(shape)) // Zero-indexed.
 					origin := c.Config().Origin()
 					// Loop over the data in the matrix while odometer-counting
@@ -787,11 +790,11 @@ func init() {
 					for i := range vec.Len() {
 						e := vec.uintAt(i, "where argument")
 						for range e {
-							c := make([]Value, len(shape))
+							c := newVectorEditor(len(shape), nil)
 							for i, x := range coords {
-								c[i] = Int(x + origin)
+								c.Set(i, Int(x+origin))
 							}
-							result = append(result, NewVector(c))
+							result.Append(c.Publish())
 						}
 						for j := len(coords) - 1; j >= 0; j-- {
 							if coords[j]++; coords[j] < shape[j] {
@@ -800,7 +803,7 @@ func init() {
 							coords[j] = 0
 						}
 					}
-					return NewVector(result)
+					return result.Publish()
 				},
 			},
 		},
@@ -826,7 +829,7 @@ func init() {
 					return oneElemVector(v)
 				},
 				vectorType: func(c Context, v Value) Value {
-					return NewVector(flatten(v.(*Vector)))
+					return NewVectorSeq(flatten(v.(*Vector)))
 				},
 				matrixType: func(c Context, v Value) Value {
 					return c.EvalUnary("flatten", v.(*Matrix).data)
@@ -858,7 +861,7 @@ func init() {
 				complexType:  vectorSelf,
 				vectorType:   self,
 				matrixType: func(c Context, v Value) Value {
-					return v.(*Matrix).data.Copy()
+					return v.(*Matrix).data
 				},
 			},
 		},
@@ -910,7 +913,7 @@ func init() {
 					return v.(*Vector).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
-					m := v.(*Matrix).Copy().(*Matrix)
+					m := v.(*Matrix)
 					if m.Rank() == 0 {
 						return m
 					}
@@ -919,7 +922,7 @@ func init() {
 					}
 					size := int(m.Size())
 					ncols := m.shape[m.Rank()-1]
-					x := m.data
+					x := m.data.edit()
 					for index := 0; index <= size-ncols; index += ncols {
 						for i, j := 0, ncols-1; i < j; i, j = i+1, j-1 {
 							xi, xj := x.At(index+i), x.At(index+j)
@@ -927,7 +930,7 @@ func init() {
 							x.Set(index+j, xi)
 						}
 					}
-					return m
+					return &Matrix{shape: m.shape, data: x.Publish()}
 				},
 			},
 		},
@@ -945,7 +948,7 @@ func init() {
 					return v.(*Vector).reverse()
 				},
 				matrixType: func(c Context, v Value) Value {
-					m := v.(*Matrix).Copy().(*Matrix)
+					m := v.(*Matrix)
 					if m.Rank() == 0 {
 						return m
 					}
@@ -954,7 +957,7 @@ func init() {
 					}
 					elemSize := int(m.ElemSize())
 					size := int(m.Size())
-					x := m.data
+					x := m.data.edit()
 					lo := 0
 					hi := size - elemSize
 					for lo < hi {
@@ -966,7 +969,7 @@ func init() {
 						lo += elemSize
 						hi -= elemSize
 					}
-					return m
+					return &Matrix{shape: m.shape, data: x.Publish()}
 				},
 			},
 		},
@@ -980,9 +983,7 @@ func init() {
 				bigRatType:   self,
 				bigFloatType: self,
 				complexType:  self,
-				vectorType: func(c Context, v Value) Value {
-					return v.(*Vector).Copy()
-				},
+				vectorType:   self,
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix)
 					if m.Rank() == 1 {

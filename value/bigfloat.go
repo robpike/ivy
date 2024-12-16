@@ -144,12 +144,6 @@ func (f BigFloat) Eval(Context) Value {
 	return f
 }
 
-func (f BigFloat) Copy() Value {
-	var x big.Float
-	x.Set(f.Float)
-	return BigFloat{&x}
-}
-
 func (f BigFloat) Inner() Value {
 	return f
 }
@@ -163,7 +157,7 @@ func (f BigFloat) toType(op string, conf *config.Config, which valueType) Value 
 	case vectorType:
 		return oneElemVector(f)
 	case matrixType:
-		return NewMatrix([]int{1}, NewVector([]Value{f}))
+		return NewMatrix([]int{1}, NewVector(f))
 	}
 	Errorf("%s: cannot convert float to %s", op, which)
 	return nil

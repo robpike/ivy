@@ -7,7 +7,9 @@ package value
 import (
 	"bytes"
 	"fmt"
+	"iter"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -16,31 +18,110 @@ import (
 )
 
 type Vector struct {
-	data []Value
+	ro []Value
 }
 
 // Len returns the number of elements in v.
-func (v *Vector) Len() int { return len(v.data) }
+func (v *Vector) Len() int { return len(v.ro) }
 
 // At returns the i'th element of v.
-func (v *Vector) At(i int) Value { return v.data[i] }
-
-// Set sets v[i] = x.
-func (v *Vector) Set(i int, x Value) { v.data[i] = x }
+func (v *Vector) At(i int) Value { return v.ro[i] }
 
 // All returns all the elements in v, for reading.
-func (v *Vector) All() []Value { return v.data[:len(v.data):len(v.data)] }
-
-// Writable returns all the elements in v, for writing.
-func (v *Vector) Writable() []Value { return v.data }
+func (v *Vector) All() iter.Seq2[int, Value] { return slices.All(v.ro) }
 
 // Slice returns a slice v[i:j], for reading.
-func (v *Vector) Slice(i, j int) []Value { return v.data[i:j:j] }
+func (v *Vector) Slice(i, j int) iter.Seq2[int, Value] { return slices.All(v.ro[i:j]) }
 
 func (v *Vector) String() string {
 	return "(" + v.Sprint(debugConf) + ")"
 }
 
+// edit returns a vectorEditor for creating a modified copy of v.
+func (v *Vector) edit() *vectorEditor {
+	return &vectorEditor{data: slices.Clone(v.ro)}
+}
+
+// A vectorEditor prepares a new vector by applying a sequence
+// of edits to a copy of an existing vector.
+type vectorEditor struct {
+	data []Value
+}
+
+// newVectorEditor returns a vectorEditor editing a vector of length size
+// with all elements set to def.
+func newVectorEditor(size int, def Value) *vectorEditor {
+	data := make([]Value, size)
+	for i := range size {
+		data[i] = def
+	}
+	return &vectorEditor{data: data}
+}
+
+// All returns all the elements in v, for reading.
+func (v *vectorEditor) All() iter.Seq2[int, Value] {
+	return slices.All(v.data)
+}
+
+// Len returns the number of elements in v.
+func (v *vectorEditor) Len() int { return len(v.data) }
+
+// At returns the i'th element of v.
+func (v *vectorEditor) At(i int) Value { return v.data[i] }
+
+// Set sets the i'th element of v to x.
+func (v *vectorEditor) Set(i int, x Value) {
+	v.data[i] = x
+}
+
+// Append appends the values to v.
+func (v *vectorEditor) Append(values ...Value) {
+	for _, x := range values {
+		v.data = append(v.data, x)
+	}
+}
+
+// Resize resizes v to have n elements.
+// The value of newly accessible elements is undefined.
+// (It is expected that the caller will set them.)
+func (v *vectorEditor) Resize(n int) {
+	for cap(v.data) < n {
+		v.data = append(v.data[:cap(v.data)], nil)
+	}
+	v.data = v.data[:n]
+}
+
+// Publish returns the edited state as an immutable Vector.
+// The vectorEditor must not be used after Publish.
+func (v *vectorEditor) Publish() *Vector {
+	data := v.data
+	v.data = nil
+	return &Vector{ro: data}
+}
+
+// NewVectorSeq creates a new vector from a sequence.
+func NewVectorSeq(seq ...iter.Seq2[int, Value]) *Vector {
+	edit := newVectorEditor(0, nil)
+	for _, s := range seq {
+		for _, v := range s {
+			edit.Append(v)
+		}
+	}
+	return edit.Publish()
+}
+
+// repeat returns a sequence of n copies of v.
+func repeat(v Value, n int) iter.Seq2[int, Value] {
+	return func(yield func(int, Value) bool) {
+		for i := range n {
+			if !yield(int(i), v) {
+				return
+			}
+		}
+	}
+}
+
+// Sprint returns the formatting of v according to conf.
 func (v *Vector) Sprint(conf *config.Config) string {
 	allChars := v.AllChars()
 	lines, _ := v.multiLineSprint(conf, v.allScalars(), allChars, !allChars, trimTrailingSpace)
@@ -238,42 +319,39 @@ func blanks(n int) string {
 }
 
 // fillValue returns a zero or a space as the appropriate fill type for the data
-func fillValue(v []Value) Value {
-	if len(v) == 0 {
+func fillValue(v *Vector) Value {
+	if v.Len() == 0 {
 		return zero
 	}
 	var fill Value = zero
-	if allChars(v) {
+	if v.AllChars() {
 		fill = Char(' ')
 	}
-	if IsScalarType(v[0]) {
+	first := v.At(0)
+	if IsScalarType(first) {
 		return fill
 	}
-	switch v := v[0].(type) {
+	switch v := first.(type) {
 	case *Vector:
 		data := make([]Value, v.Len())
 		for i := range data {
 			data[i] = fill
 		}
-		return NewVector(data)
+		return newVectorEditor(v.Len(), fill).Publish()
 	case *Matrix:
-		data := make([]Value, v.data.Len())
-		for i := range data {
-			data[i] = fill
-		}
-		return NewMatrix(v.shape, NewVector(data))
+		return NewMatrix(v.shape, newVectorEditor(v.data.Len(), fill).Publish())
 	}
 	return zero
 }
 
 // fillValue returns a zero or a space as the appropriate fill type for the vector
 func (v *Vector) fillValue() Value {
-	return fillValue(v.All())
+	return fillValue(v)
 }
 
-// allChars reports whether the top level of the data contains only Chars.
-func allChars(v []Value) bool {
-	for _, c := range v {
+// AllChars reports whether the vector contains only Chars.
+func (v *Vector) AllChars() bool {
+	for _, c := range v.All() {
 		if _, ok := c.Inner().(Char); !ok {
 			return false
 		}
@@ -281,19 +359,9 @@ func allChars(v []Value) bool {
 	return true
 }
 
-// AllChars reports whether the vector contains only Chars.
-func (v *Vector) AllChars() bool {
-	return allChars(v.All())
-}
-
 // allScalars reports whether all the elements are scalar.
 func (v *Vector) allScalars() bool {
-	return allScalars(v.All())
-}
-
-// allScalars reports whether all the elements are scalar.
-func allScalars(v []Value) bool {
-	for _, x := range v {
+	for _, x := range v.All() {
 		if !IsScalarType(x) {
 			return false
 		}
@@ -311,20 +379,22 @@ func (v *Vector) AllInts() bool {
 	return true
 }
 
-func NewVector(elems []Value) *Vector {
-	return &Vector{elems}
+func NewVector(elems ...Value) *Vector {
+	edit := newVectorEditor(0, nil)
+	edit.Append(elems...)
+	return edit.Publish()
 }
 
 func oneElemVector(elem Value) *Vector {
-	return NewVector([]Value{elem})
+	return newVectorEditor(1, elem).Publish()
 }
 
 func NewIntVector(elems ...int) *Vector {
-	vec := make([]Value, len(elems))
+	edit := newVectorEditor(len(elems), nil)
 	for i, elem := range elems {
-		vec[i] = Int(elem)
+		edit.Set(i, Int(elem))
 	}
-	return NewVector(vec)
+	return edit.Publish()
 }
 
 func (v *Vector) Eval(Context) Value {
@@ -333,12 +403,6 @@ func (v *Vector) Eval(Context) Value {
 
 func (v *Vector) Inner() Value {
 	return v
-}
-
-func (v *Vector) Copy() Value {
-	elem := make([]Value, v.Len())
-	copy(elem, v.All())
-	return NewVector(elem)
 }
 
 func (v *Vector) toType(op string, conf *config.Config, which valueType) Value {
@@ -370,9 +434,9 @@ func (v *Vector) rotate(n int) Value {
 	if n < 0 {
 		n += v.Len()
 	}
-	elems := make([]Value, v.Len())
-	doRotate(elems, v.All(), n%len(elems))
-	return NewVector(elems)
+	edit := v.edit()
+	doRotate(edit, 0, v.Len(), v, 0, n)
+	return edit.Publish()
 }
 
 // sel returns a Vector with each element repeated n times. n must be either one
@@ -383,7 +447,7 @@ func (v *Vector) sel(n *Vector, elemCount int) *Vector {
 	if n.Len() != 1 && n.Len() != elemCount {
 		Errorf("sel length mismatch")
 	}
-	result := make([]Value, 0)
+	result := newVectorEditor(0, nil)
 	for i := range v.Len() {
 		count := n.intAt(i%n.Len(), "sel count")
 		val := v.At(i)
@@ -391,36 +455,35 @@ func (v *Vector) sel(n *Vector, elemCount int) *Vector {
 			count = -count
 			val = allZeros(val)
 		}
-		for k := 0; k < int(count); k++ {
-			result = append(result, val)
+		for range count {
+			result.Append(val)
 		}
 	}
-	return NewVector(result)
+	return result.Publish()
 }
 
 // zeros returns a value with the shape of v, but all zeroed out.
 func allZeros(v Value) Value {
-	v = v.Copy()
-	switch u := v.(type) {
+	switch v := v.(type) {
 	case Char:
 		return Char(' ')
 	case *Vector:
+		u := newVectorEditor(v.Len(), nil)
 		for i := range u.Len() {
-			u.Set(i, allZeros(u.At(i)))
+			u.Set(i, allZeros(v.At(i)))
 		}
+		return u.Publish()
 	case *Matrix:
-		for i := range u.data.Len() {
-			u.data.Set(i, allZeros(u.data.At(i)))
-		}
+		return &Matrix{shape: v.shape, data: allZeros(v.data).(*Vector)}
 	default:
-		v = zero
+		return zero
 	}
-	return v
 }
 
-func doRotate(dst, src []Value, j int) {
-	n := copy(dst, src[j:])
-	copy(dst[n:n+j], src[:j])
+func doRotate(dst *vectorEditor, i, n int, src *Vector, j, off int) {
+	for k := range n {
+		dst.Set(i+k, src.At(j+(off+k)%n))
+	}
 }
 
 // uintAt returns the ith element of v, erroring out if it is not a
@@ -461,26 +524,27 @@ func (v *Vector) partition(score *Vector) Value {
 // integer returned is the width (last dimension) to use when partitioning a
 // matrix.
 func (v *Vector) doPartition(score *Vector) (*Vector, int) {
-	var accum, result []Value
+	accum := newVectorEditor(0, nil)
+	result := newVectorEditor(0, nil)
 	dim := -1
 	for i, sc, prev := 0, 0, 0; i < v.Len(); i, prev = i+1, sc {
 		j := i % score.Len()
 		sc = score.uintAt(j, "part: score")
 		if sc != 0 { // Ignore elements with zero score.
 			if i > 0 && (sc > prev || j == 0) { // Add current subvector, start new one.
-				result = append(result, NewVector(accum))
-				accum = nil
+				result.Append(accum.Publish())
+				accum.Resize(0)
 			}
-			accum = append(accum, v.At(i))
+			accum.Append(v.At(i))
 		}
 		if dim < 0 && i > 0 && j == 0 { // Score rolled over for first time; set dim.
-			dim = len(result)
+			dim = result.Len()
 		}
 	}
-	if len(accum) > 0 {
-		result = append(result, NewVector(accum))
+	if accum.Len() > 0 {
+		result.Append(accum.Publish())
 	}
-	return NewVector(result), dim
+	return result.Publish(), dim
 }
 
 // grade returns as a Vector the indexes that sort the vector into increasing order
@@ -501,13 +565,13 @@ func (v *Vector) grade(c Context) *Vector {
 
 // reverse returns the reversal of a vector.
 func (v *Vector) reverse() *Vector {
-	r := v.Copy().(*Vector)
+	r := v.edit()
 	for i, j := 0, r.Len()-1; i < j; i, j = i+1, j-1 {
 		ri, rj := r.At(i), r.At(j)
 		r.Set(i, rj)
 		r.Set(j, ri)
 	}
-	return r
+	return r.Publish()
 }
 
 // inverse returns the inverse of a vector, defined to be (conj v) / v +.* conj v
@@ -519,7 +583,7 @@ func (v *Vector) inverse(c Context) Value {
 		return inverse(c, v)
 	}
 	// We could do this evaluation using "conj" and "+.*" but avoid the overhead.
-	conj := v.Copy().(*Vector)
+	conj := v.edit()
 	for i, x := range conj.All() {
 		if !IsScalarType(x) {
 			Errorf("inverse of vector with non-scalar element")
@@ -538,32 +602,48 @@ func (v *Vector) inverse(c Context) Value {
 	for i, x := range conj.All() {
 		conj.Set(i, c.EvalBinary(x, "/", mag))
 	}
-	return conj
+	return conj.Publish()
 }
 
 // membership creates a vector of size len(u) reporting
 // whether each element of u is an element of v.
 // Algorithm is O(nV log nV + nU log nV) where nU==len(u) and nV==len(V).
-func membership(c Context, u, v *Vector) []Value {
-	values := make([]Value, u.Len())
+func membership(c Context, u, v *Vector) *Vector {
+	values := newVectorEditor(u.Len(), nil)
 	sortedV := v.sortedCopy(c)
 	work := 2 * (1 + int(math.Log2(float64(v.Len()))))
-	pfor(true, work, len(values), func(lo, hi int) {
+	pfor(true, work, values.Len(), func(lo, hi int) {
 		for i := lo; i < hi; i++ {
-			values[i] = toInt(sortedV.contains(c, u.At(i)))
+			values.Set(i, toInt(sortedV.contains(c, u.At(i))))
 		}
 	})
-	return values
+	return values.Publish()
+}
+
+type vectorByOrderedCompare struct {
+	c Context
+	e *vectorEditor
+}
+
+func (v *vectorByOrderedCompare) Len() int {
+	return v.e.Len()
+}
+
+func (v *vectorByOrderedCompare) Swap(i, j int) {
+	vi, vj := v.e.At(i), v.e.At(j)
+	v.e.Set(i, vj)
+	v.e.Set(j, vi)
+}
+
+func (v *vectorByOrderedCompare) Less(i, j int) bool {
+	return OrderedCompare(v.c, v.e.At(i), v.e.At(j)) < 0
 }
 
 // sortedCopy returns a copy of v, in ascending sorted order.
 func (v *Vector) sortedCopy(c Context) *Vector {
-	sortedV := make([]Value, v.Len())
-	copy(sortedV, v.All())
-	sort.Slice(sortedV, func(i, j int) bool {
-		return OrderedCompare(c, sortedV[i], sortedV[j]) < 0
-	})
-	return NewVector(sortedV)
+	edit := v.edit()
+	sort.Sort(&vectorByOrderedCompare{c, edit})
+	return edit.Publish()
 }
 
 // contains reports whether x is in v, which must be already in ascending

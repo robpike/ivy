@@ -55,7 +55,7 @@ func sys(c Context, v Value) Value {
 	vv := v.(*Vector)
 	conf := c.Config()
 
-	if allChars(vv.All()) { // single argument
+	if vv.AllChars() { // single argument
 		verb := vecText(vv)
 		if fn, ok := sys1[verb]; ok {
 			return fn(conf)
@@ -66,10 +66,14 @@ func sys(c Context, v Value) Value {
 		Errorf("sys %q not defined", verb)
 	}
 
-	if v1, ok := vv.At(0).(*Vector); ok && allChars(v1.All()) { // multiple arguments, verb first
+	if v1, ok := vv.At(0).(*Vector); ok && v1.AllChars() { // multiple arguments, verb first
 		verb := vecText(v1)
 		if fn, ok := sysN[verb]; ok {
-			return fn(conf, vv.Slice(1, vv.Len()))
+			var args []Value
+			for _, v := range vv.Slice(1, vv.Len()) {
+				args = append(args, v)
+			}
+			return fn(conf, args)
 		}
 		if _, ok := sys1[verb]; ok {
 			Errorf("sys %q takes no arguments", verb)
@@ -91,11 +95,13 @@ var sys1 = map[string]func(conf *config.Config) Value{
 	},
 	"cpu": func(conf *config.Config) Value {
 		real, user, sys := conf.CPUTime()
-		vec := make([]Value, 3)
-		vec[0] = BigFloat{big.NewFloat(real.Seconds())}
-		vec[1] = BigFloat{big.NewFloat(user.Seconds())}
-		vec[2] = BigFloat{big.NewFloat(sys.Seconds())}
-		return NewVector(vec)
+		edit := newVectorEditor(0, nil)
+		edit.Append(
+			BigFloat{big.NewFloat(real.Seconds())},
+			BigFloat{big.NewFloat(user.Seconds())},
+			BigFloat{big.NewFloat(sys.Seconds())},
+		)
+		return edit.Publish()
 	},
 	"date": func(conf *config.Config) Value {
 		return newCharVector(time.Now().In(conf.Location()).Format(time.UnixDate))
@@ -148,7 +154,7 @@ func sysRead(conf *config.Config, args []Value) Value {
 		usage()
 	}
 	v, ok := args[0].(*Vector)
-	if !ok || !allChars(v.All()) {
+	if !ok || !v.AllChars() {
 		usage()
 	}
 	file := vecText(v)
@@ -159,26 +165,16 @@ func sysRead(conf *config.Config, args []Value) Value {
 	}
 	defer f.Close()
 
-	var out []Value
+	edit := newVectorEditor(0, nil)
 	s := bufio.NewScanner(f)
 	s.Buffer(nil, math.MaxInt)
 	for s.Scan() {
-		out = append(out, newCharVector(s.Text()))
+		edit.Append(newCharVector(s.Text()))
 	}
 	if err := s.Err(); err != nil {
 		Errorf("%v", err)
 	}
-	return NewVector(out)
-}
-
-// newCharVector takes a string and returns its representation as a Vector of Chars.
-func newCharVector(s string) Value {
-	chars := []Char(s)
-	vec := make([]Value, len(chars))
-	for i, r := range chars {
-		vec[i] = r
-	}
-	return NewVector(vec)
+	return edit.Publish()
 }
 
 // encodeTime returns a sys "time" vector given a seconds value.
@@ -196,17 +192,14 @@ func encodeTime(c Context, u, v *Vector) Value {
 // and time zone offset in seconds east of UTC.
 func timeVec(date time.Time) *Vector {
 	y, m, d := date.Date()
-	vec := make([]Value, 7)
-	vec[0] = Int(y)
-	vec[1] = Int(m)
-	vec[2] = Int(d)
-	vec[3] = Int(date.Hour())
-	vec[4] = Int(date.Minute())
 	sec := float64(date.Second()) + float64(date.Nanosecond())/1e9
-	vec[5] = BigFloat{big.NewFloat(sec)}
 	_, offset := date.Zone()
-	vec[6] = Int(offset)
-	return NewVector(vec)
+	edit := newVectorEditor(0, nil)
+	edit.Append(
+		Int(y), Int(m), Int(d),
+		Int(date.Hour()), Int(date.Minute()), BigFloat{big.NewFloat(sec)},
+		Int(offset))
+	return edit.Publish()
 }
 
 // decodeTime returns a second value given a sys "time" vector.
