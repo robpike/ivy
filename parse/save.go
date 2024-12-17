@@ -185,12 +185,12 @@ func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
 		put(conf, out, real, false)
 		fmt.Fprintf(out, "j")
 		put(conf, out, imag, false)
-	case value.Vector:
+	case *value.Vector:
 		if val.AllChars() {
 			fmt.Fprintf(out, "%q", val.Sprint(conf))
 			return
 		}
-		for i, v := range val {
+		for i, v := range val.All() {
 			if i > 0 {
 				fmt.Fprint(out, " ")
 			}

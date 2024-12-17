@@ -39,12 +39,12 @@ func fmtText(c Context, u, v Value) Value {
 		formatOne(c, &b, format, verb, val.real)
 		b.WriteByte('j')
 		formatOne(c, &b, format, verb, val.imag)
-	case Vector:
+	case *Vector:
 		if val.AllChars() && strings.ContainsRune("boOqsvxX", rune(verb)) {
 			// Print the string as a unit.
 			fmt.Fprintf(&b, format, val.Sprint(debugConf))
 		} else {
-			for i, v := range val {
+			for i, v := range val.All() {
 				if i > 0 {
 					b.WriteByte(' ')
 				}
@@ -72,7 +72,7 @@ func formatString(c *config.Config, u Value) (string, byte) {
 	case Char:
 		s := fmt.Sprintf("%%%c", val)
 		return s, verbOf(s) // Error check is in there.
-	case Vector:
+	case *Vector:
 		if val.AllChars() {
 			s := val.Sprint(c)
 			if !strings.ContainsRune(s, '%') {
@@ -82,17 +82,17 @@ func formatString(c *config.Config, u Value) (string, byte) {
 			return s, verb
 		}
 		char := Char('f')
-		switch len(val) {
+		switch val.Len() {
 		case 1:
 			// Decimal count only.
-			dec, ok := val[0].(Int)
+			dec, ok := val.At(0).(Int)
 			if ok {
 				return fmt.Sprintf("%%.%df", dec), 'f'
 			}
 		case 3:
 			// Width count, and char.
 			var ok bool
-			char, ok = val[2].(Char)
+			char, ok = val.At(2).(Char)
 			if !ok {
 				break
 			}
@@ -103,8 +103,8 @@ func formatString(c *config.Config, u Value) (string, byte) {
 			fallthrough
 		case 2:
 			// Width and decimal count.
-			wid, ok1 := val[0].(Int)
-			dec, ok2 := val[1].(Int)
+			wid, ok1 := val.At(0).(Int)
+			dec, ok2 := val.At(1).(Int)
 			if ok1 && ok2 {
 				return fmt.Sprintf("%%%d.%d%c", wid, dec, char), byte(char)
 			}

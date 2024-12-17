@@ -246,7 +246,7 @@ func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
 	case value.BigRat:
 	case value.BigFloat:
 	case value.Complex:
-	case value.Vector:
+	case *value.Vector:
 	case *value.Matrix:
 	default:
 		fmt.Printf("unknown %T in references\n", e)
