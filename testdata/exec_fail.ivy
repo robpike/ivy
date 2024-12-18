@@ -66,3 +66,7 @@ sys 'read'
 # Expect: sys "abc" not defined
 sys 'abc'
 	#
+
+# Expect: rot: count must be small integer
+0 1 rot iota 6
+	#

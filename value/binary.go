@@ -1421,7 +1421,7 @@ func init() {
 				vectorType: func(c Context, u, v Value) Value {
 					countVec := u.(*Vector)
 					count, ok := countVec.At(0).(Int)
-					if !ok {
+					if !ok || countVec.Len() != 1 {
 						Errorf("rot: count must be small integer")
 					}
 					return v.(*Vector).rotate(int(count))
