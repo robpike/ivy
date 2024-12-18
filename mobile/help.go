@@ -147,7 +147,7 @@ Circle                A○B             Trigonometric functions of B selected by
                             tan       tan(B); ivy uses traditional name.
 Deal                  A?B   ?         A distinct integers selected randomly from the first B integers
 Membership            A∈B   in        1 for elements of A present in B; 0 where not.
-Intersection          A∩B   intersect A with all elements that are also in B removed
+Intersection          A∩B   intersect A with all elements not in B removed
 Union                 A∪B   union     A followed by all members of B not already in A
 Maximum               A⌈B   max       The greater value of A or B
 Minimum               A⌊B   min       The smaller value of A or B

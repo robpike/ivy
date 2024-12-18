@@ -137,7 +137,7 @@ var helpLines = []string{
 	"\t                            tan       tan(B); ivy uses traditional name.",
 	"\tDeal                  A?B   ?         A distinct integers selected randomly from the first B integers",
 	"\tMembership            A∈B   in        1 for elements of A present in B; 0 where not.",
-	"\tIntersection          A∩B   intersect A with all elements that are also in B removed",
+	"\tIntersection          A∩B   intersect A with all elements not in B removed",
 	"\tUnion                 A∪B   union     A followed by all members of B not already in A",
 	"\tMaximum               A⌈B   max       The greater value of A or B",
 	"\tMinimum               A⌊B   min       The smaller value of A or B",
