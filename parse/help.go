@@ -159,7 +159,7 @@ var helpLines = []string{
 	"\t                                      In ivy: abs(A) gives count, A <= 0 inserts zero",
 	"\tIndex of              A⍳B   iota      The location (index) of B in A; 1+⌈/⍳⍴A if not found",
 	"\t                                      In ivy: origin-1 if not found (i.e. 0 if one-indexed)",
-	"\tMatrix divide         A⌹B   mdiv      Solution to system of linear equations Ax = B",
+	"\tMatrix divide         A⌹B   mdiv      Solution to system of linear equations Bx = A",
 	"\t                                      For real vectors, the magnitude of A projected on B",
 	"\tRotation              A⌽B   rot       The elements of B are rotated A positions left",
 	"\tRotation              A⊖B   flip      The elements of B are rotated A positions along the first axis",

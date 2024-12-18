@@ -169,7 +169,7 @@ Compression           A/B   sel       Select elements in B corresponding to ones
                                       In ivy: abs(A) gives count, A &lt;= 0 inserts zero
 Index of              A⍳B   iota      The location (index) of B in A; 1+⌈/⍳⍴A if not found
                                       In ivy: origin-1 if not found (i.e. 0 if one-indexed)
-Matrix divide         A⌹B   mdiv      Solution to system of linear equations Ax = B
+Matrix divide         A⌹B   mdiv      Solution to system of linear equations Bx = A
                                       For real vectors, the magnitude of A projected on B
 Rotation              A⌽B   rot       The elements of B are rotated A positions left
 Rotation              A⊖B   flip      The elements of B are rotated A positions along the first axis
