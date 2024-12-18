@@ -237,7 +237,7 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		// Say we're doing +.*
 		// result[i,j] = +/(u[row i] * v[column j])
 		// Number of columns of u must be the number of rows of v: (-1 take rho u) == (1 take rho v)
-		// The result is has shape (-1 drop rho u), (1 drop rho v)
+		// The result has shape (-1 drop rho u), (1 drop rho v)
 		v := v.(*Matrix)
 		if u.Rank() < 1 || v.Rank() < 1 || u.shape[len(u.shape)-1] != v.shape[0] {
 			Errorf("inner product: mismatched shapes %s and %s", NewIntVector(u.shape...), NewIntVector(v.shape...))

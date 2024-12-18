@@ -293,7 +293,7 @@ func lexAny(l *Scanner) stateFn {
 		l.next()
 		fallthrough // for ==
 	case l.isOperator(r):
-		// Must be after after = so == is an operator,
+		// Must be after = so == is an operator,
 		// and after numbers, so '-' can be a sign.
 		return lexOperator
 	case isAlphaNumeric(r), r == '@':
@@ -505,7 +505,7 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 func (l *Scanner) scanNumber(followingSlashOK, followingJOK bool) bool {
 	base := l.context.Config().InputBase()
 	digits := digitsForBase(base)
-	// If base 0, acccept octal for 0 or hex for 0x or 0X.
+	// If base 0, accept octal for 0 or hex for 0x or 0X.
 	if base == 0 {
 		if l.accept("0") && l.accept("xX") {
 			digits = digitsForBase(16)

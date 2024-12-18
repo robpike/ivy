@@ -65,7 +65,7 @@ func (r BigRat) floatString(verb byte, prec int) string {
 	case 'f', 'F':
 		return r.Rat.FloatString(prec)
 	case 'e', 'E':
-		// The exponent will alway be >= 0.
+		// The exponent will always be >= 0.
 		sign := ""
 		var x, t big.Rat
 		x.Set(r.Rat)

@@ -47,7 +47,7 @@ type BinaryOp interface {
 // is defined separately, here, because of the dependence on Expr
 // and the import cycle that would otherwise result.
 type Context interface {
-	// Lookup returns the configuration state for evaluation.
+	// Config returns the configuration state for evaluation.
 	Config() *config.Config
 
 	// Local returns the value of the i'th local variable.

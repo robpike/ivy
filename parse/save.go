@@ -26,12 +26,12 @@ possible. Configuration is also saved.
 Saving ops is more subtle. The root issue is inside an op definition there may be
 an expression like
 	x y z
-that could parse as a any of the following:
+that could parse as any of the following:
 	- vector of three values (x y z)
 	- binary operator y applied to x and z
 	- unary operator x applied to vector (y z)
 	- unary operator x applied to unary operator y applied to z
-Which of these it correct depends on which of x and y are operators, and whether
+Which of these is correct depends on which of x and y are operators, and whether
 they are unary or binary. Thus we need to print the source in a way that recovers
 the correct parse.
 
@@ -40,7 +40,7 @@ sufficient to know when parsing an op that all the operators it depends on have
 already been defined. To do this, we can just print the operator definitions in
 the order they originally appeared: if a is an operator, the parse of a is determined
 only by what operators have already been defined.  If none of the identifiers
-mentioned in the defintion are operators, the parse will take them as variables,
+mentioned in the definition are operators, the parse will take them as variables,
 even if those variables are not yet defined.
 
 Thus we can solve the problem by printing all the operator definitions in order,

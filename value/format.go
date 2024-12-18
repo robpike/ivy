@@ -212,7 +212,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		case BigInt:
 			fmt.Fprintf(w, format, val.Int)
 		case BigRat:
-			// This formats numerator and denomator separately,
+			// This formats numerator and denominator separately,
 			// but that's like applying the format to a vector.
 			fmt.Fprintf(w, format, val.Num())
 			fmt.Fprint(w, "/")

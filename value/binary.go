@@ -956,7 +956,7 @@ func init() {
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					// A decode B is the result of polyomial B at x=A.
+					// A decode B is the result of polynomial B at x=A.
 					// If A is a vector, the elements of A align with B.
 					A, B := u.(*Vector), v.(*Vector)
 					if A.Len() == 0 || B.Len() == 0 {

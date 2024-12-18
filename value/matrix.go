@@ -984,8 +984,8 @@ func (m *Matrix) grade(c Context) *Vector {
 // non-scalar elements, they actually "work", but they are probably more confusing
 // than helpful:
 //
-//	 x = 2 2 rho 1 2 3 4; x[1;1]=2 3; inv x
-//	    (2 2/3)   (-1 -1/3)
+//	x = 2 2 rho 1 2 3 4; x[1;1]=2 3; inv x
+//	      (2 2/3)   (-1 -1/3)
 //	  (-3/2 -1/2)     (1 1/2)
 //	x+.*inv x
 //	  (1 1) (0 0)

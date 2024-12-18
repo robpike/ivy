@@ -115,7 +115,7 @@ floor 0.8j0.6
 floor 0.6j0.3
 	0
 
-# This one is peculiar, but happense because of the bias on the diagonal.
+# This one is peculiar, but happens because of the bias on the diagonal.
 # Note: This result agrees with J and the paper but differs with Dyalog,
 # which gets 2j3 apparently because of a > rather than >= in the calculation.
 floor 2.9j2.9

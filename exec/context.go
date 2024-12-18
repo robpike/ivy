@@ -84,7 +84,7 @@ func (c *Context) AssignLocal(i int, val value.Value) {
 	c.stack[len(c.stack)-i] = val
 }
 
-// Assign assigns the global variable the value. The variable must
+// AssignGlobal assigns the global variable the value. The variable must
 // be defined either in the current function or globally.
 // Inside a function, new variables become locals.
 func (c *Context) AssignGlobal(name string, val value.Value) {

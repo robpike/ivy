@@ -108,7 +108,7 @@ func (c *Config) Format() string {
 	return c.format
 }
 
-// Format returns the formatting string for rationals.
+// RatFormat returns the formatting string for rationals.
 func (c *Config) RatFormat() string {
 	return c.ratFormat
 }
@@ -226,7 +226,7 @@ func (c *Config) MaxBits() uint {
 	return c.maxBits
 }
 
-// MaxBits sets the maximum integer size to store, in bits.
+// SetMaxBits sets the maximum integer size to store, in bits.
 func (c *Config) SetMaxBits(digits uint) {
 	c.init()
 	c.maxBits = digits

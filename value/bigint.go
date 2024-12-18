@@ -87,7 +87,7 @@ func (i BigInt) floatString(verb byte, prec int) string {
 		}
 		return str
 	case 'e', 'E':
-		// The exponent will alway be >= 0.
+		// The exponent will always be >= 0.
 		sign := ""
 		var x big.Int
 		x.Set(i.Int)

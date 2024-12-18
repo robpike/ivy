@@ -93,7 +93,7 @@ func product(doPar bool, f []int) *big.Int {
 }
 
 // factorial returns factorial of n using a "swinging
-// factorial" for rougly 2x speedup.
+// factorial" for roughly 2x speedup.
 func factorial(n int64) *big.Int {
 	if n < 0 {
 		Errorf("negative value %d for factorial", n)

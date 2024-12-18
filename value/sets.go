@@ -174,7 +174,7 @@ func scalarEqual(c Context, u, v Value) bool {
 //
 // When comparing identically-typed values:
 //   - Complex is ordered first by real component, then by imaginary.
-//   - Vector and Matrix are ordered first by number  of elements,
+//   - Vector and Matrix are ordered first by number of elements,
 //     then in lexical order of elements.
 //
 // These are unusual rules, but they are provide a unique ordering of elements
