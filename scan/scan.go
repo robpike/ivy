@@ -378,6 +378,11 @@ func lexIdentifier(l *Scanner) stateFn {
 // lexOperator completes scanning an operator. We have already accepted the + or
 // whatever; there may be a reduction or inner or outer product.
 func lexOperator(l *Scanner) stateFn {
+	// Might have been called for symbol like + and not scanned trailing @s yet.
+	for l.peek() == '@' {
+		l.next()
+	}
+
 	// It might be an inner product or reduction, but only if it is a binary operator.
 	word := l.input[l.start:l.pos]
 	w := strings.Trim(word, "@")
