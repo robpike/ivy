@@ -6,19 +6,6 @@ package value
 
 import "robpike.io/ivy/config"
 
-// Expr and Context are defined here to avoid import cycles
-// between parse and value.
-
-// Expr is the interface for a parsed expression.
-// Also implemented by Value.
-type Expr interface {
-	// ProgString returns the unambiguous representation of the
-	// expression to be used in program source.
-	ProgString() string
-
-	Eval(Context) Value
-}
-
 // Decomposable allows one to pull apart a parsed expression.
 // Only implemented by Expr types that need to be decomposed
 // in function evaluation.
