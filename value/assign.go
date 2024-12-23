@@ -16,63 +16,44 @@ type Assignment struct {
 
 var scalarShape = []int{1} // The assignment shape vector for a scalar
 
-func Assign(context Context, b *BinaryExpr) Value {
+func assign(context Context, b *BinaryExpr) Value {
+	rhs := b.Right.Eval(context).Inner()
+	Assign(context, b.Left, b.Right, rhs)
+	return Assignment{Value: rhs.Copy()}
+}
+
+func Assign(context Context, left, right Expr, rhs Value) {
 	// We know the left is a variableExpr or index expression.
 	// Special handling as we must not evaluate the left - it is an l-
 	// But we need to process the indexing, if it is an index expression.
-	rhs := b.Right.Eval(context).Inner()
-	switch lhs := b.Left.(type) {
+	switch lhs := left.(type) {
 	case *VarExpr:
 		if lhs.Local >= 1 {
 			context.AssignLocal(lhs.Local, rhs)
 		} else {
 			context.AssignGlobal(lhs.Name, rhs)
 		}
-		return Assignment{Value: rhs}
+		return
 	case *IndexExpr:
 		switch lhs.Left.(type) {
 		case *VarExpr:
-			IndexAssign(context, lhs, lhs.Left, lhs.Right, b.Right, rhs)
-			return Assignment{Value: rhs}
-		case *IndexExpr:
-			// Old x[i][j]. Show new syntax.
-			n := 0
-			for x := lhs; x != nil; x, _ = x.Left.(*IndexExpr) {
-				n += len(x.Right)
-			}
-			list := make([]Expr, n)
-			last := lhs.Left
-			for x := lhs; x != nil; x, _ = x.Left.(*IndexExpr) {
-				n -= len(x.Right)
-				copy(list[n:], x.Right)
-				last = x.Left
-			}
-			fixed := &IndexExpr{Left: last, Right: list}
-			Errorf("cannot assign to %s; use %v", b.Left.ProgString(), fixed.ProgString())
+			IndexAssign(context, lhs, lhs.Left, lhs.Right, right, rhs)
+			return
 		}
 	case VectorExpr:
 		// Simultaneous assignment requires evaluation of RHS before assignment.
-		rhs, ok := b.Right.Eval(context).Inner().(*Vector)
+		rhs, ok := rhs.(*Vector)
 		if !ok {
 			Errorf("rhs of assignment to (%s) not a vector", lhs.ProgString())
 		}
 		if len(lhs) != rhs.Len() {
 			Errorf("length mismatch in assignment to (%s)", lhs.ProgString())
 		}
-		values := make([]Value, rhs.Len())
 		for i := rhs.Len() - 1; i >= 0; i-- {
-			values[i] = rhs.At(i).Eval(context).Inner()
+			Assign(context, lhs[i], nil, rhs.At(i))
 		}
-		for i, v := range lhs {
-			vbl := v.(*VarExpr) // Guaranteed to be only a variable on LHS.
-			if vbl.Local >= 1 {
-				context.AssignLocal(vbl.Local, values[i])
-			} else {
-				context.AssignGlobal(vbl.Name, values[i])
-			}
-		}
-		return Assignment{NewVector(values)}
+		return
 	}
-	Errorf("cannot assign to %s", b.Left.ProgString())
-	panic("not reached")
+	// unexpected: parser should have caught this
+	Errorf("internal error: cannot assign to %s", left.ProgString())
 }

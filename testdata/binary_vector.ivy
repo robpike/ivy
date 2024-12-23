@@ -835,3 +835,15 @@ x y=(2 7)(3 1); y * x mdiv y # Vector projection of x onto y
 
 x y=(2 7)(3 1); x-y*x mdiv y # Remaining component of x
 	-19/10 57/10
+
+# Generalized vector assignment
+a (b c) d = 1 (2 3) 4
+a b c d
+	1 2 3 4
+
+# Vector assignment used to double-evaluate rhs (1 2 4 in output)
+n = 0
+op f x = n=n+1; x
+x y = (f 1) (f 2)
+x y n
+	1 2 2

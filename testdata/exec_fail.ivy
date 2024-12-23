@@ -70,3 +70,15 @@ sys 'abc'
 # Expect: rot: count must be small integer
 0 1 rot iota 6
 	#
+
+# Expect: argument name "f" is function name
+op f (f x) = x
+
+# Expect: multiple arguments named "x"
+op f (x y x) = x
+
+# Expect: multiple arguments named "x"
+op x f x = x
+
+# Expect: multiple arguments named "x"
+op (x y) f (z x) = x

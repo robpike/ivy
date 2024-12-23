@@ -67,7 +67,7 @@ func (v *Vector) Rank() int {
 
 func (v *Vector) ProgString() string {
 	// There is no such thing as a vector in program listings; they
-	// are represented as a sliceExpr.
+	// are represented as a VectorExpr.
 	panic("vector.ProgString - cannot happen")
 }
 

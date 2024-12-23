@@ -197,21 +197,29 @@ func IndexAssign(context Context, top, left Expr, index []Expr, right Expr, rhs 
 	if len(ix.outShape) == 0 {
 		rscalar = rhs
 	} else {
+		badShape := func(rshape ...int) {
+			var where string
+			if right == nil {
+				where = "to " + top.ProgString()
+			} else {
+				where = top.ProgString() + " = " + right.ProgString()
+			}
+			Errorf("shape mismatch %v != %v in assignment %v",
+				NewIntVector(ix.outShape...), NewIntVector(rshape...),
+				where)
+		}
+
 		switch rhs := rhs.(type) {
 		default:
 			rscalar = rhs
 		case *Vector:
 			if len(ix.outShape) != 1 || ix.outShape[0] != rhs.Len() {
-				Errorf("shape mismatch %v != %v in assignment %v = %v",
-					NewIntVector(ix.outShape...), NewIntVector(rhs.Len()),
-					top.ProgString(), right.ProgString())
+				badShape(rhs.Len())
 			}
 			rslice = rhs.All()
 		case *Matrix:
 			if !sameShape(ix.outShape, rhs.Shape()) {
-				Errorf("shape mismatch %v != %v in assignment %v = %v",
-					NewIntVector(ix.outShape...), NewIntVector(rhs.Shape()...),
-					top.ProgString(), right.ProgString())
+				badShape(rhs.Shape()...)
 			}
 			rslice = rhs.Data().All()
 			if rhs == ix.lhs {

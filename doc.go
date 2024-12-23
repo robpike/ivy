@@ -261,6 +261,11 @@ binary write "op leftarg name rightarg". The final expression in the body is the
 return value. Operators may have recursive definitions; see the paragraph
 about conditional execution for an example.
 
+Each formal argument can be a single name or a parenthesized list of formal
+arguments, requiring a vector argument of that same length. Each actual argument
+is assigned to its corresponding formal argument at the start of function execution,
+creating new local variables.
+
 The body may be a single line (possibly containing semicolons) on the same line
 as the 'op', or it can be multiple lines. For a multiline entry, there is a
 newline after the '=' and the definition ends at the first blank line (ignoring
@@ -309,6 +314,13 @@ Example: greatest common divisor (binary):
 
 	1562 gcd !11
 	result: 22
+
+Example: modular exponentiation (unary, with a 3-element vector argument):
+
+	op modexp (b e m) =  # (b**e) mod m
+		e == 0: 1
+		e % 2: (b * modexp b (e-1) m) mod m
+		modexp ((b**2) mod m) (e>>1) m
 
 On mobile platforms only, due to I/O restrictions, user-defined operators
 must be presented on a single line. Use semicolons to separate expressions:

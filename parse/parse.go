@@ -6,6 +6,7 @@ package parse // import "robpike.io/ivy/parse"
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"robpike.io/ivy/exec"
@@ -271,26 +272,12 @@ func (p *Parser) expr() value.Expr {
 		}
 	case scan.Assign:
 		p.next()
-		switch lhs := expr.(type) {
-		case *value.VarExpr, *value.IndexExpr:
-			return &value.BinaryExpr{
-				Left:  lhs,
-				Op:    tok.Text,
-				Right: p.expr(),
-			}
-		case value.VectorExpr:
-			for _, v := range lhs {
-				if _, ok := v.(*value.VarExpr); !ok {
-					p.errorf("cannot assign to %s", v.ProgString())
-				}
-			}
-			return &value.BinaryExpr{
-				Left:  lhs,
-				Op:    tok.Text,
-				Right: p.expr(),
-			}
+		p.checkAssign(expr)
+		return &value.BinaryExpr{
+			Left:  expr,
+			Op:    tok.Text,
+			Right: p.expr(),
 		}
-		p.errorf("cannot assign to %s", expr.ProgString())
 	case scan.Operator:
 		p.next()
 		return &value.BinaryExpr{
@@ -301,6 +288,36 @@ func (p *Parser) expr() value.Expr {
 	}
 	p.errorf("after expression: unexpected %s", p.peek())
 	return nil
+}
+
+// checkAssign checks that e is assignable.
+func (p *Parser) checkAssign(e value.Expr) {
+	switch e := e.(type) {
+	default:
+		p.errorf("cannot assign to %s", e.ProgString())
+	case *value.VarExpr:
+		// ok
+	case *value.IndexExpr:
+		switch e.Left.(type) {
+		case *value.VarExpr:
+			// ok
+		case *value.IndexExpr:
+			// Old x[i][j]. Show new syntax.
+			var list []value.Expr
+			var last value.Expr
+			for x := e; x != nil; x, _ = x.Left.(*value.IndexExpr) {
+				list = append(list, x.Right...)
+				last = x.Left
+			}
+			slices.Reverse(list)
+			fixed := &value.IndexExpr{Left: last, Right: list}
+			value.Errorf("cannot assign to %s; use %v", e.ProgString(), fixed.ProgString())
+		}
+	case value.VectorExpr:
+		for _, elem := range e {
+			p.checkAssign(elem)
+		}
+	}
 }
 
 // operand
