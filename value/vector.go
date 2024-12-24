@@ -387,7 +387,7 @@ func (v *Vector) grade(c Context) *Vector {
 		x[i] = i
 	}
 	sort.SliceStable(x, func(i, j int) bool {
-		return toBool(c.EvalBinary(v.At(x[i]), "<", v.At(x[j])))
+		return OrderedCompare(c, v.At(x[i]), v.At(x[j])) < 0
 	})
 	origin := c.Config().Origin()
 	for i := range x {

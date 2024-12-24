@@ -236,3 +236,6 @@ mix split 2 2 rho iota 4
 	1 2
 	3 4
 
+up mix 'ab' 'ac' 'aa'
+	3 1 2
+

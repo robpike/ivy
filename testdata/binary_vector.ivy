@@ -498,6 +498,9 @@ rho (6 2 rho "abcdefghijkl") [3 2 rho iota 6]
 x = 1 rho 1; rho x[up x]
 	1
 
+up 'ab' 'ac' 'aa'
+	3 1 2
+
 3 sel 1
 	1 1 1
 

@@ -966,10 +966,11 @@ func (m *Matrix) grade(c Context) *Vector {
 		i = x[i] * stride
 		j = x[j] * stride
 		for k := 0; k < stride; k++ {
-			if toBool(c.EvalBinary(v.At(i+k), "==", v.At(j+k))) {
+			cmp := OrderedCompare(c, v.At(i+k), v.At(j+k))
+			if cmp == 0 {
 				continue
 			}
-			return toBool(c.EvalBinary(v.At(i+k), "<", v.At(j+k)))
+			return cmp < 0
 		}
 		return false
 	})
