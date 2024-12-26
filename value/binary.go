@@ -177,18 +177,16 @@ func toBool(t Value) bool {
 	panic("not reached")
 }
 
-// andBool is like toBool but handles vectors by and'ing the values together.
-// The results are known to be Ints, as they come from comparison operations.
-func andBool(t Value) bool {
-	if v, ok := t.(*Vector); ok {
-		for _, x := range v.All() {
-			if x == zero {
-				return false
-			}
+// andBool returns an elementwise boolean AND of the two slices
+// using OrderedCompare on the individual elements. It will exit
+// early if a false entry is encountered.
+func andBool(c Context, d1, d2 []Value) bool {
+	for i := range d1 {
+		if OrderedCompare(c, d1[i], d2[i]) != 0 {
+			return false
 		}
-		return true
 	}
-	return t.(Int) == 1
+	return true
 }
 
 var BinaryOps = make(map[string]BinaryOp)
@@ -1150,7 +1148,7 @@ func init() {
 						sortedA[i] = indexed{a, i + origin}
 					}
 					sort.SliceStable(sortedA, func(i, j int) bool {
-						return c.EvalBinary(sortedA[i].v, "<", sortedA[j].v) == one
+						return OrderedCompare(c, sortedA[i].v, sortedA[j].v) < 0
 					})
 					indices := make([]Value, B.Len())
 					work := 2 * (1 + int(math.Log2(float64(A.Len()))))
@@ -1159,9 +1157,9 @@ func init() {
 							b := B.At(i)
 							indices[i] = Int(origin - 1)
 							pos := sort.Search(len(sortedA), func(j int) bool {
-								return c.EvalBinary(sortedA[j].v, ">=", b) == one
+								return OrderedCompare(c, sortedA[j].v, b) >= 0
 							})
-							if pos < len(sortedA) && c.EvalBinary(sortedA[pos].v, "==", b) == one {
+							if pos < len(sortedA) && OrderedCompare(c, sortedA[pos].v, b) == 0 {
 								indices[i] = Int(sortedA[pos].index)
 							}
 						}
@@ -1186,7 +1184,7 @@ func init() {
 						for i := lo; i < hi; i++ {
 							indices[i] = Int(origin - 1)
 							for j := 0; j < A.data.Len(); j += n {
-								if andBool(c.EvalBinary(NewVector(A.data.Slice(j, j+n)), "==", NewVector(B.data.Slice(i*n, (i+1)*n)))) {
+								if andBool(c, A.data.Slice(j, j+n), B.data.Slice(i*n, (i+1)*n)) {
 									indices[i] = Int(j/n + origin)
 									break
 								}

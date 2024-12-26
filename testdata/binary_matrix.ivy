@@ -1001,6 +1001,13 @@ rho 5 drop 4 4 rho iota 12
 	11 12 13
 	 6  7  8
 
+# Values compare regardless of type
+(box 1 2) iota 4 4 rho ,\iota 3
+	0 1 0 0
+	1 0 0 1
+	0 0 1 0
+	0 1 0 0
+
 # Odd APL semantics: fill with zeros reshaping empty vector.
 3 4 rho iota 0
 	0 0 0 0

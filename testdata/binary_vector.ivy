@@ -799,6 +799,11 @@ circle 10
 1 2 intersect iota 0
 	#
 
+x =(,\iota 4); y = box 1 2 3; x; '\n'; y; '\n'; x iota y
+	1 (1 2) (1 2 3) (1 2 3 4)
+	(1 2 3)
+	3
+
 # Chars are extra tricky
 1 2 'a' 'b' 'c' 3 4 intersect 2 'c' 'a' 5 1 'x'
 	1 2 a c
