@@ -229,7 +229,7 @@ func (p *Parser) statementList() ([]value.Expr, bool) {
 	if expr != nil && p.peek().Type == scan.Colon {
 		tok := p.next()
 		expr = &value.CondExpr{
-			&value.BinaryExpr{
+			Cond: &value.BinaryExpr{
 				Left:  expr,
 				Op:    tok.Text,
 				Right: p.expr(),

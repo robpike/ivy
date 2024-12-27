@@ -380,6 +380,36 @@ func doRotate(dst, src []Value, j int) {
 	copy(dst[n:n+j], src[:j])
 }
 
+// partition returns a vector of the elements of v, selected and grouped
+// by the values in score. Elements with score 0 are ignored.
+// Elements with non-zero score are included, grouped with boundaries
+// at every point where the score exceeds the previous score.
+func (v *Vector) partition(score *Vector) Value {
+	if score.Len() != v.Len() {
+		Errorf("part: length mismatch")
+	}
+	var accum, result []Value
+	for i, sc, prev := 0, Int(0), Int(0); i < score.Len(); i, prev = i+1, sc {
+		var ok bool
+		sc, ok = score.At(i).(Int)
+		if !ok || sc < 0 {
+			Errorf("part: score must be non-negative integer")
+		}
+		if sc == 0 { // Ignore elements with zero score.
+			continue
+		}
+		if i > 0 && sc > prev { // Add current subvector, start new one.
+			result = append(result, NewVector(accum))
+			accum = nil
+		}
+		accum = append(accum, v.At(i))
+	}
+	if len(accum) > 0 {
+		result = append(result, NewVector(accum))
+	}
+	return NewVector(result)
+}
+
 // grade returns as a Vector the indexes that sort the vector into increasing order
 func (v *Vector) grade(c Context) *Vector {
 	x := make([]int, v.Len())

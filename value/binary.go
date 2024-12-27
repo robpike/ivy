@@ -1588,6 +1588,16 @@ func init() {
 		},
 
 		{
+			name:      "part",
+			whichType: atLeastVectorType,
+			fn: [numType]binaryFn{
+				vectorType: func(c Context, u, v Value) Value {
+					return v.(*Vector).partition(u.(*Vector))
+				},
+			},
+		},
+
+		{
 			name:      "transp",
 			whichType: vectorAndMatrixType,
 			fn: [numType]binaryFn{

@@ -167,8 +167,11 @@ Expansion             A\B   fill      Insert zeros (or blanks) in B correspondin
                                       In ivy: abs(A) gives count, A &lt;= 0 inserts zero (or blank)
 Compression           A/B   sel       Select elements in B corresponding to ones in A
                                       In ivy: abs(A) gives count, A &lt;= 0 inserts zero
+Partition             A⊆B   part      Vector of subvectors of B grouped by elements of A:
+                                      If 0, ignore; otherwise start new group at boundaries
+                                      where elements of A increase
 Index of              A⍳B   iota      The location (index) of B in A; 1+⌈/⍳⍴A if not found
-                                      In ivy: origin-1 if not found (i.e. 0 if one-indexed)
+                                      In ivy: origin-1 if not found (that is, 0 if one-indexed)
 Matrix divide         A⌹B   mdiv      Solution to system of linear equations Bx = A
                                       For real vectors, the magnitude of A projected on B
 Rotation              A⌽B   rot       The elements of B are rotated A positions left
