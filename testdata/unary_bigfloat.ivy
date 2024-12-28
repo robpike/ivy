@@ -201,6 +201,24 @@ box sqrt 2
 first sqrt 2
 	1.41421356237
 
+# Random numbers
+)seed 0
+rand 3
+	1.96599645204
+
+# High precision, not float64s.
+)seed 0
+1e1000 * rand 1e-1000
+	0.655332150681
+
+# Test stats. For a uniform distribution, ideally: mean = .5,  𝛔 = 1/√12 = 0.2887
+)seed 0
+x = rand@ 0 != iota 10000
+mean = (+/ x) / 10000
+sigma = sqrt 1/10000 * +/(x - mean) ** 2
+mean sigma
+	0.500853881349 0.288396812059
+
 # There is a (possible?) but in big.Float.Copy that made this not work.
 # BigFloat.inverse would change the value of floatOne. This is a simple
 # check against that; when broken, the output is 0.5 0.5 (!).

@@ -7,6 +7,7 @@ package value
 import (
 	"fmt"
 	"math/big"
+	"math/bits"
 	"unicode/utf8"
 )
 
@@ -127,6 +128,34 @@ func printValue(c Context, v Value) Value {
 	return v
 }
 
+// bigRand returns a uniformly distributed BigFloat in the range [0, f).
+// For [0, 1), the mean should be 0.5 and 𝛔 should be 1/√12, or 0.2887.
+// A test of a million values yielded 0.500161824174 0.288777488704.
+func bigRand(c Context, f *big.Float) Value {
+	if f.Sign() < 0 {
+		Errorf("rand of negative number")
+	}
+	// We want two integers FloatPrec bits long.
+	prec := c.Config().FloatPrec()
+	// Word is a uint. We build max by setting all FloatPrec bits.
+	// (If FloatPrec is not a multiple of UintSize, it's still OK, we'll
+	// just make integers longer than the precision will hold, but not much.)
+	maxBits := make([]big.Word, (prec+(bits.UintSize-1))/bits.UintSize)
+	for i := range len(maxBits) {
+		maxBits[i] = big.Word(^uint(0))
+	}
+	max := big.NewInt(0).SetBits(maxBits)
+	max.Add(max, bigIntOne.Int) // big.Int.Rand is [0,n)
+	// Now pick a random integer from [0 to max)
+	rand := big.NewInt(0).Rand(c.Config().Random(), max)
+	// Make it a float and normalize it.
+	x := big.NewFloat(0).SetInt(rand)
+	x.Quo(x, big.NewFloat(0).SetInt(max))
+	// Finally, scale it up to [0,v).
+	x.Mul(x, f)
+	return BigFloat{x}
+}
+
 func init() {
 	ops := []*unaryOp{
 		{
@@ -145,6 +174,31 @@ func init() {
 						Errorf("illegal roll value %v", v)
 					}
 					return unaryBigIntOp(c, bigIntRand, v)
+				},
+			},
+		},
+
+		{
+			name:        "rand",
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType: func(c Context, v Value) Value {
+					var x big.Float
+					x.SetInt64(int64(v.(Int)))
+					return bigRand(c, &x)
+				},
+				bigIntType: func(c Context, v Value) Value {
+					var x big.Float
+					x.SetInt(v.(BigInt).Int)
+					return bigRand(c, &x)
+				},
+				bigRatType: func(c Context, v Value) Value {
+					var x big.Float
+					x.SetRat(v.(BigRat).Rat)
+					return bigRand(c, &x)
+				},
+				bigFloatType: func(c Context, v Value) Value {
+					return bigRand(c, v.(BigFloat).Float)
 				},
 			},
 		},

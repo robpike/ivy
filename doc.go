@@ -69,6 +69,7 @@ Unary operators
 
 	Name              APL   Ivy     Meaning
 	Roll              ?B    ?       One integer selected randomly from the first B integers
+	Random            ?0    rand    Like ?, but floating point. (APL uses ?0 as rand in [0,1)).
 	Ceiling           ⌈B    ceil    Least integer greater than or equal to B
 	                                If B is complex, the complex ceiling, as defined by McDonnell
 	Floor             ⌊B    floor   Greatest integer less than or equal to B
