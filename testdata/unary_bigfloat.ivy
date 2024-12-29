@@ -213,7 +213,7 @@ rand 3
 
 # Test stats. For a uniform distribution, ideally: mean = .5,  𝛔 = 1/√12 = 0.2887
 )seed 0
-x = rand@ 0 != iota 10000
+x = rand 10000 rho 1
 mean = (+/ x) / 10000
 sigma = sqrt 1/10000 * +/(x - mean) ** 2
 mean sigma

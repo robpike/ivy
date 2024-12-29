@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -42,6 +43,7 @@ type Config struct {
 	debug       [len(DebugFlags)]bool
 	source      rand.Source
 	random      *rand.Rand
+	randLock    sync.Mutex
 	maxBits     uint           // Maximum length of an integer; 0 means no limit.
 	maxDigits   uint           // Above this size, ints print in floating format.
 	maxStack    uint           // Maximum call stack depth.
@@ -210,14 +212,30 @@ func (c *Config) Random() *rand.Rand {
 
 // RandomSeed returns the seed used to initialize the random number generator.
 func (c *Config) RandomSeed() int64 {
-	return c.seed
+	c.LockRandom()
+	seed := c.seed
+	c.UnlockRandom()
+	return seed
 }
 
 // SetRandomSeed sets the seed for the random number generator.
 func (c *Config) SetRandomSeed(seed int64) {
 	c.init()
+	c.LockRandom()
 	c.seed = seed
 	c.source.Seed(seed)
+	c.UnlockRandom()
+}
+
+// LockRandom serializes access to the random number generator.
+// Needed because pfor can cause concurrent calls to the generator.
+func (c *Config) LockRandom() {
+	c.randLock.Lock()
+}
+
+// UnlockRandom releases the lock on the random number generator.
+func (c *Config) UnlockRandom() {
+	c.randLock.Unlock()
 }
 
 // MaxBits returns the maximum integer size to store, in bits.

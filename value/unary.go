@@ -54,8 +54,11 @@ func bigFloatWrap(op func(*big.Float, *big.Float) *big.Float) func(Context, *big
 
 // bigIntRand sets a to a random number in [origin, origin+b].
 func bigIntRand(c Context, a, b *big.Int) *big.Int {
-	a.Rand(c.Config().Random(), b)
-	return a.Add(a, c.Config().BigOrigin())
+	config := c.Config()
+	config.LockRandom()
+	a.Rand(config.Random(), b)
+	config.UnlockRandom()
+	return a.Add(a, config.BigOrigin())
 }
 
 func self(c Context, v Value) Value {
@@ -128,15 +131,16 @@ func printValue(c Context, v Value) Value {
 	return v
 }
 
-// bigRand returns a uniformly distributed BigFloat in the range [0, f).
+// bigFloatRand returns a uniformly distributed BigFloat in the range [0, f).
 // For [0, 1), the mean should be 0.5 and 𝛔 should be 1/√12, or 0.2887.
 // A test of a million values yielded 0.500161824174 0.288777488704.
-func bigRand(c Context, f *big.Float) Value {
+func bigFloatRand(c Context, f *big.Float) Value {
 	if f.Sign() < 0 {
 		Errorf("rand of negative number")
 	}
 	// We want two integers FloatPrec bits long.
-	prec := c.Config().FloatPrec()
+	config := c.Config()
+	prec := config.FloatPrec()
 	// Word is a uint. We build max by setting all FloatPrec bits.
 	// (If FloatPrec is not a multiple of UintSize, it's still OK, we'll
 	// just make integers longer than the precision will hold, but not much.)
@@ -147,7 +151,9 @@ func bigRand(c Context, f *big.Float) Value {
 	max := big.NewInt(0).SetBits(maxBits)
 	max.Add(max, bigIntOne.Int) // big.Int.Rand is [0,n)
 	// Now pick a random integer from [0 to max)
+	config.LockRandom()
 	rand := big.NewInt(0).Rand(c.Config().Random(), max)
+	config.UnlockRandom()
 	// Make it a float and normalize it.
 	x := big.NewFloat(0).SetInt(rand)
 	x.Quo(x, big.NewFloat(0).SetInt(max))
@@ -167,7 +173,10 @@ func init() {
 					if i <= 0 {
 						Errorf("illegal roll value %v", v)
 					}
-					return Int(c.Config().Origin()) + Int(c.Config().Random().Int63n(i))
+					c.Config().LockRandom()
+					res := Int(c.Config().Origin()) + Int(c.Config().Random().Int63n(i))
+					c.Config().UnlockRandom()
+					return res
 				},
 				bigIntType: func(c Context, v Value) Value {
 					if v.(BigInt).Sign() <= 0 {
@@ -185,20 +194,20 @@ func init() {
 				intType: func(c Context, v Value) Value {
 					var x big.Float
 					x.SetInt64(int64(v.(Int)))
-					return bigRand(c, &x)
+					return bigFloatRand(c, &x)
 				},
 				bigIntType: func(c Context, v Value) Value {
 					var x big.Float
 					x.SetInt(v.(BigInt).Int)
-					return bigRand(c, &x)
+					return bigFloatRand(c, &x)
 				},
 				bigRatType: func(c Context, v Value) Value {
 					var x big.Float
 					x.SetRat(v.(BigRat).Rat)
-					return bigRand(c, &x)
+					return bigFloatRand(c, &x)
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return bigRand(c, v.(BigFloat).Float)
+					return bigFloatRand(c, v.(BigFloat).Float)
 				},
 			},
 		},
