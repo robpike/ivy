@@ -23,6 +23,7 @@ var DebugFlags = [...]string{
 	"panic",
 	"parse",
 	"tokens",
+	"trace",
 	"types",
 }
 
@@ -40,7 +41,8 @@ type Config struct {
 	origin      int
 	bigOrigin   *big.Int
 	seed        int64
-	debug       [len(DebugFlags)]bool
+	debug       [len(DebugFlags)]int
+	traceLevel  int
 	source      rand.Source
 	random      *rand.Rand
 	randLock    sync.Mutex
@@ -153,22 +155,31 @@ func (c *Config) FloatFormat() (verb byte, prec int, ok bool) {
 	return c.formatVerb, c.formatPrec, c.formatFloat
 }
 
-// Debug returns the value of the specified boolean debugging flag.
-func (c *Config) Debug(flag string) bool {
+// Debug returns the value of the specified debugging flag, -1 if the
+// flag is unknown.
+func (c *Config) Debug(flag string) int {
 	for i, f := range DebugFlags {
 		if f == flag {
 			return c.debug[i]
 		}
 	}
-	return false
+	return -1
+}
+
+// Tracing reports whether the tracing level is set at or above level.
+func (c *Config) Tracing(level int) bool {
+	return c.traceLevel >= level
 }
 
 // SetDebug sets the value of the specified boolean debugging flag.
 // It returns false if the flag is unknown.
-func (c *Config) SetDebug(flag string, state bool) bool {
+func (c *Config) SetDebug(flag string, state int) bool {
 	c.init()
 	for i, f := range DebugFlags {
 		if f == flag {
+			if flag == "trace" {
+				c.traceLevel = state
+			}
 			c.debug[i] = state
 			return true
 		}

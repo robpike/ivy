@@ -50,7 +50,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 	conf := context.Config()
 	writer := conf.Output()
 	defer func() {
-		if conf.Debug("panic") {
+		if conf.Debug("panic") > 0 {
 			return
 		}
 		err := recover()
@@ -95,7 +95,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 			return true
 		}
 		if interactive {
-			if exprs != nil && conf.Debug("cpu") {
+			if exprs != nil && conf.Debug("cpu") > 0 {
 				if real, _, _ := conf.CPUTime(); real != 0 {
 					fmt.Printf("(%s)\n", conf.PrintCPUTime())
 				}
@@ -139,7 +139,7 @@ func printValues(conf *config.Config, writer io.Writer, values []value.Value) bo
 	if len(values) == 0 {
 		return false
 	}
-	if conf.Debug("types") {
+	if conf.Debug("types") > 0 {
 		for i, v := range values {
 			if i > 0 {
 				fmt.Fprint(writer, ",")

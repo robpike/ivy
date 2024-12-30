@@ -152,12 +152,12 @@ func bigFloatRand(c Context, f *big.Float) Value {
 	max.Add(max, bigIntOne.Int) // big.Int.Rand is [0,n)
 	// Now pick a random integer from [0 to max)
 	config.LockRandom()
-	rand := big.NewInt(0).Rand(c.Config().Random(), max)
+	rand := big.NewInt(0).Rand(config.Random(), max)
 	config.UnlockRandom()
 	// Make it a float and normalize it.
 	x := big.NewFloat(0).SetInt(rand)
 	x.Quo(x, big.NewFloat(0).SetInt(max))
-	// Finally, scale it up to [0,v).
+	// Finally, scale it up to [0, f).
 	x.Mul(x, f)
 	return BigFloat{x}
 }

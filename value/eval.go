@@ -5,6 +5,7 @@
 package value
 
 import (
+	"fmt"
 	"iter"
 	"math/big"
 	"runtime"
@@ -39,6 +40,20 @@ type unaryOp struct {
 	fn          [numType]unaryFn
 }
 
+// TraceUnary prints a trace line for a unary operator.
+func TraceUnary(c Context, level int, op string, v Value) {
+	if c.Config().Tracing(level) {
+		fmt.Fprintf(c.Config().ErrOutput(), "\t%s> %s %s\n", c.TraceIndent(), op, v)
+	}
+}
+
+// TraceBinary prints a trace line for a binary operator.
+func TraceBinary(c Context, level int, u Value, op string, v Value) {
+	if c.Config().Tracing(level) {
+		fmt.Fprintf(c.Config().ErrOutput(), "\t%s> %s %s %s\n", c.TraceIndent(), u, op, v)
+	}
+}
+
 func (op *unaryOp) EvalUnary(c Context, v Value) Value {
 	which := whichType(v)
 	fn := op.fn[which]
@@ -52,6 +67,9 @@ func (op *unaryOp) EvalUnary(c Context, v Value) Value {
 			}
 		}
 		Errorf("unary %s not implemented on type %s", op.name, which)
+	}
+	if c.Config().Tracing(2) {
+		fmt.Printf("\t%s> %s %s\n", c.TraceIndent(), op.name, v)
 	}
 	return fn(c, v)
 }
@@ -104,6 +122,9 @@ func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 			}
 		}
 		Errorf("binary %s not implemented on type %s", op.name, whichV)
+	}
+	if conf.Tracing(2) {
+		fmt.Printf("\t%s> %s %s %s\n", c.TraceIndent(), u, op.name, v)
 	}
 	return fn(c, u, v)
 }

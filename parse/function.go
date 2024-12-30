@@ -149,7 +149,7 @@ func (p *Parser) functionDefn() {
 	p.context.Define(fn)
 	funcVars(fn)
 	succeeded = true
-	if p.context.Config().Debug("parse") {
+	if p.context.Config().Debug("parse") > 0 {
 		p.Printf("op %s %s %s = %s\n", fn.Left.ProgString(), fn.Name, fn.Right.ProgString(), tree(fn.Body))
 	}
 }

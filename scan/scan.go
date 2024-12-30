@@ -177,7 +177,7 @@ func (l *Scanner) emit(t Type) stateFn {
 	}
 	text := l.input[l.start:l.pos]
 	config := l.context.Config()
-	if config.Debug("tokens") {
+	if config.Debug("tokens") > 0 {
 		fmt.Fprintf(config.Output(), "%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, text})
 	}
 	l.token = Token{t, l.line, text}

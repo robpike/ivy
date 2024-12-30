@@ -180,26 +180,27 @@ Switch:
 	case "debug":
 		if p.peek().Type == scan.EOF {
 			for _, f := range config.DebugFlags {
-				p.Printf("%s\t%d\n", f, truth(conf.Debug(f)))
+				p.Printf("%s\t%d\n", f, conf.Debug(f))
 			}
+			p.Println("For trace: 1 traces user-defined only, 2 traces all operators")
 			break Switch
 		}
 		name := p.need(scan.Identifier).Text
+		val := conf.Debug(name)
+		if val < 0 {
+			p.Println("no such debug flag:", name)
+			break Switch
+		}
 		if p.peek().Type == scan.EOF {
 			// Toggle the value
-			if !conf.SetDebug(name, !conf.Debug(name)) {
-				p.Println("no such debug flag:", name)
+			conf.SetDebug(name, truth(val == 0))
+			p.Println(conf.Debug(name))
+		} else {
+			number := p.nextDecimalNumber()
+			if number < 0 {
+				p.Println("illegal value")
 			}
-			if conf.Debug(name) {
-				p.Println("1")
-			} else {
-				p.Println("0")
-			}
-			break
-		}
-		number := p.nextDecimalNumber()
-		if !conf.SetDebug(name, number != 0) {
-			p.Println("no such debug flag:", name)
+			conf.SetDebug(name, number)
 		}
 	case "demo":
 		p.need(scan.EOF)
@@ -443,7 +444,7 @@ func (p *Parser) runUntilError(name string) error {
 				continue
 			}
 			p.context.AssignGlobal("_", val)
-			fmt.Fprintf(p.context.Config().Output(), "%v\n", val.Sprint(p.context.Config()))
+			p.Println(val.Sprint(p.context.Config()))
 		}
 		if !ok {
 			return io.EOF

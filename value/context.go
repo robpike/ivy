@@ -60,4 +60,7 @@ type Context interface {
 
 	// UserDefined reports whether the specified op is user-defined.
 	UserDefined(op string, isBinary bool) bool
+
+	// TraceIndent returns an indentation marker showing the depth of the stack.
+	TraceIndent() string
 }

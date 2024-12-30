@@ -114,6 +114,17 @@ func (c *Context) pop() {
 	c.stack = c.stack[:len(c.stack)-n]
 }
 
+var indent = "| "
+
+// TraceIndent returns an indentation marker showing the depth of the stack.
+func (c *Context) TraceIndent() string {
+	n := 2 * len(c.frameSizes)
+	if len(indent) < n {
+		indent = strings.Repeat("| ", n+10)
+	}
+	return indent[:n]
+}
+
 // Eval evaluates a list of expressions.
 func (c *Context) Eval(exprs []value.Expr) []value.Value {
 	var values []value.Value
@@ -131,39 +142,47 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 	if len(op) > 1 {
 		switch op[len(op)-1] {
 		case '/':
+			value.TraceUnary(c, 2, op, right)
 			return value.Reduce(c, op[:len(op)-1], right)
 		case '\\':
+			value.TraceUnary(c, 2, op, right)
 			return value.Scan(c, op[:len(op)-1], right)
 		case '%':
 			if len(op) > 2 {
 				switch op[len(op)-2] {
 				case '/':
+					value.TraceUnary(c, 2, op, right)
 					return value.ReduceFirst(c, op[:len(op)-2], right)
 				case '\\':
+					value.TraceUnary(c, 2, op, right)
 					return value.ScanFirst(c, op[:len(op)-2], right)
 				}
 			}
 		case '@':
+			value.TraceUnary(c, 2, op, right)
 			return value.Each(c, op, right)
 		}
 	}
-	fn := c.Unary(op)
+	fn, userDefined := c.unary(op)
 	if fn == nil {
 		value.Errorf("unary %q not implemented", op)
+	}
+	if userDefined {
+		value.TraceUnary(c, 1, op, right)
 	}
 	return fn.EvalUnary(c, right)
 }
 
-func (c *Context) Unary(op string) value.UnaryOp {
+func (c *Context) unary(op string) (fn value.UnaryOp, userDefined bool) {
 	userFn := c.UnaryFn[op]
 	if userFn != nil {
-		return userFn
+		return userFn, true
 	}
 	builtin := value.UnaryOps[op]
 	if builtin != nil {
-		return builtin
+		return builtin, false
 	}
-	return nil
+	return nil, false
 }
 
 func (c *Context) UserDefined(op string, isBinary bool) bool {
@@ -180,32 +199,38 @@ func (c *Context) EvalBinary(left value.Value, op string, right value.Value) val
 	if op == "==" || op == "!=" {
 		v, ok := value.EvalCharEqual(left, op == "==", right)
 		if ok {
+			value.TraceBinary(c, 2, left, op, right) // Only trace if we've done it.
 			return v
 		}
 	}
 	if strings.Trim(op, "@") != op {
+		value.TraceBinary(c, 2, left, op, right)
 		return value.BinaryEach(c, left, op, right)
 	}
 	if strings.Contains(op, ".") {
+		value.TraceBinary(c, 2, left, op, right)
 		return value.Product(c, left, op, right)
 	}
-	fn := c.Binary(op)
+	fn, userDefined := c.binary(op)
 	if fn == nil {
 		value.Errorf("binary %q not implemented", op)
+	}
+	if userDefined {
+		value.TraceBinary(c, 1, left, op, right)
 	}
 	return fn.EvalBinary(c, left, right)
 }
 
-func (c *Context) Binary(op string) value.BinaryOp {
+func (c *Context) binary(op string) (fn value.BinaryOp, userDefined bool) {
 	user := c.BinaryFn[op]
 	if user != nil {
-		return user
+		return user, true
 	}
 	builtin := value.BinaryOps[op]
 	if builtin != nil {
-		return builtin
+		return builtin, false
 	}
-	return nil
+	return nil, false
 }
 
 // Define defines the function and installs it. It also performs

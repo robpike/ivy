@@ -215,7 +215,7 @@ func (p *Parser) expressionList() ([]value.Expr, bool) {
 	default:
 		p.errorf("unexpected %s", tok)
 	}
-	if len(exprs) > 0 && p.context.Config().Debug("parse") {
+	if len(exprs) > 0 && p.context.Config().Debug("parse") > 0 {
 		p.Println(tree(exprs))
 	}
 	return exprs, ok

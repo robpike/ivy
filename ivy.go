@@ -78,7 +78,7 @@ func main() {
 
 	if len(*debugFlag) > 0 {
 		for _, debug := range strings.Split(*debugFlag, ",") {
-			if !conf.SetDebug(debug, true) {
+			if !conf.SetDebug(debug, 1) {
 				fmt.Fprintf(os.Stderr, "ivy: unknown debug flag %q\n", debug)
 				os.Exit(2)
 			}
