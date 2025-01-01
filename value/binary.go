@@ -1613,6 +1613,36 @@ func init() {
 
 		// Special cases that mix types, so don't promote them.
 		{
+			name:      "===",
+			whichType: noPromoteType,
+			fn: [numType]binaryFn{
+				intType:      equal,
+				charType:     equal,
+				bigIntType:   equal,
+				bigRatType:   equal,
+				bigFloatType: equal,
+				complexType:  equal,
+				vectorType:   equal,
+				matrixType:   equal,
+			},
+		},
+
+		{
+			name:      "!==",
+			whichType: noPromoteType,
+			fn: [numType]binaryFn{
+				intType:      notEqual,
+				charType:     notEqual,
+				bigIntType:   notEqual,
+				bigRatType:   notEqual,
+				bigFloatType: notEqual,
+				complexType:  notEqual,
+				vectorType:   notEqual,
+				matrixType:   notEqual,
+			},
+		},
+
+		{
 			name:      "intersect",
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{

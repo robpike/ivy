@@ -291,6 +291,9 @@ func lexAny(l *Scanner) stateFn {
 			return l.emit(Assign)
 		}
 		l.next()
+		if l.peek() == '=' { // For ===
+			l.next()
+		}
 		fallthrough // for ==
 	case l.isOperator(r):
 		// Must be after = so == is an operator,
@@ -717,6 +720,9 @@ func (l *Scanner) isOperatorToken(r rune) bool {
 	case '!':
 		if l.peek() == '=' {
 			l.next()
+			if l.peek() == '=' { // For !==
+				l.next()
+			}
 		}
 	case '>':
 		switch l.peek() {

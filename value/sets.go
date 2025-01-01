@@ -158,6 +158,17 @@ func scalarEqual(c Context, u, v Value) bool {
 	return OrderedCompare(c, u, v) == 0
 }
 
+// equal returns 1 or 0 according to whether u and v are equal as a unit
+// as opposed to elementwise.
+func equal(c Context, u, v Value) Value {
+	return toInt(OrderedCompare(c, u, v) == 0)
+}
+
+// notEqual is the inverse of equal.
+func notEqual(c Context, u, v Value) Value {
+	return toInt(OrderedCompare(c, u, v) != 0)
+}
+
 // OrderedCompare returns -1, 0, or 1 according to whether u is less than, equal
 // to, or greater than v, according to total ordering rules. Total ordering is not
 // the usual mathematical definition, as we honor things like 1.0 == 1, comparison

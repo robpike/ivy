@@ -38,8 +38,14 @@
 (sqrt 2) == (sqrt iota 3)
 	0 1 0
 
+(sqrt 2) === (sqrt 2); (sqrt 2) !== (sqrt 2)
+	1 0
+
 (sqrt 2) != (sqrt iota 3)
 	1 0 1
+
+(sqrt 2) === (sqrt 3); (sqrt 2) !== (sqrt 3)
+	0 1
 
 (sqrt 2) < (sqrt iota 3)
 	0 0 1

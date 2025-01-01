@@ -227,6 +227,16 @@
 	0 0 0
 	0 1 0
 
+# The thorough tests of operation for === and !== are in ../order_test.go.
+(2 3 rho iota 10) === 5
+	0
+
+(2 3 rho iota 10) !== 5
+	1
+
+x = (2 3 rho iota 10); y=x; y[1;1]=0; x===x; x!==x; x===y; x!==y
+	1 0 0 1
+
 'a' == 3 4 rho 'a'
 	1 1 1 1
 	1 1 1 1

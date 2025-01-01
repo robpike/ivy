@@ -186,12 +186,14 @@ Dyadic format         A⍕B   text      Format B into a character matrix accordi
                                       &apos;T&apos; text B formats seconds value B as a Unix date
 General transpose     A⍉B   transp    The axes of B are ordered by A
 Combinations          A!B   !         Number of combinations of B taken A at a time
-Less than             A&lt;B   &lt;         Comparison: 1 if true, 0 if false
-Less than or equal    A≤B   &lt;=        Comparison: 1 if true, 0 if false
-Equal                 A=B   ==        Comparison: 1 if true, 0 if false
-Greater than or equal A≥B   &gt;=        Comparison: 1 if true, 0 if false
-Greater than          A&gt;B   &gt;         Comparison: 1 if true, 0 if false
-Not equal             A≠B   !=        Comparison: 1 if true, 0 if false
+Less than             A&lt;B   &lt;         Comparison (elementwise): 1 if true, 0 if false
+Less than or equal    A≤B   &lt;=        Comparison (elementwise): 1 if true, 0 if false
+Equal                 A=B   ==        Comparison (elementwise): 1 if true, 0 if false
+Greater than or equal A≥B   &gt;=        Comparison (elementwise): 1 if true, 0 if false
+Greater than          A&gt;B   &gt;         Comparison (elementwise): 1 if true, 0 if false
+Not equal             A≠B   !=        Comparison (elementwise): 1 if true, 0 if false
+Match                 A≡B   ===       Comparison (overall): 1 if true, 0 if false
+Not match             A≠B   !==       Comparison (overall): 1 if true, 0 if false
 Or                    A∨B   or        Logic: 0 if A and B are 0; 1 otherwise
 And                   A∧B   and       Logic: 1 if A and B are 1; 0 otherwise
 Nor                   A⍱B   nor       Logic: 1 if both A and B are 0; otherwise 0
