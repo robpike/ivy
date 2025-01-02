@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -40,10 +40,10 @@ type Config struct {
 	formatFloat bool // Whether format is floating-point.
 	origin      int
 	bigOrigin   *big.Int
-	seed        int64
+	seed        uint64
 	debug       [len(DebugFlags)]int
 	traceLevel  int
-	source      rand.Source
+	source      *rand.PCG
 	random      *rand.Rand
 	randLock    sync.Mutex
 	maxBits     uint           // Maximum length of an integer; 0 means no limit.
@@ -66,9 +66,9 @@ func (c *Config) init() {
 		c.output = os.Stdout
 		c.errOutput = os.Stderr
 		c.origin = 1
-		c.seed = time.Now().UnixNano()
+		c.seed = uint64(time.Now().UnixNano())
 		c.bigOrigin = big.NewInt(1)
-		c.source = rand.NewSource(c.seed)
+		c.source = rand.NewPCG(c.seed, c.seed) // Need two words. Oh well.
 		c.random = rand.New(c.source)
 		c.maxBits = 1e6
 		c.maxDigits = 1e4
@@ -222,7 +222,7 @@ func (c *Config) Random() *rand.Rand {
 }
 
 // RandomSeed returns the seed used to initialize the random number generator.
-func (c *Config) RandomSeed() int64 {
+func (c *Config) RandomSeed() uint64 {
 	c.LockRandom()
 	seed := c.seed
 	c.UnlockRandom()
@@ -230,11 +230,11 @@ func (c *Config) RandomSeed() int64 {
 }
 
 // SetRandomSeed sets the seed for the random number generator.
-func (c *Config) SetRandomSeed(seed int64) {
+func (c *Config) SetRandomSeed(seed uint64) {
 	c.init()
 	c.LockRandom()
 	c.seed = seed
-	c.source.Seed(seed)
+	c.source.Seed(seed, seed) // All we can do for now.
 	c.UnlockRandom()
 }
 

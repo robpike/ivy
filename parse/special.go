@@ -329,7 +329,7 @@ Switch:
 			p.Println(conf.RandomSeed())
 			break Switch
 		}
-		conf.SetRandomSeed(p.nextDecimalNumber64())
+		conf.SetRandomSeed(uint64(p.nextDecimalNumber64()))
 	case "timezone":
 		if p.peek().Type == scan.EOF {
 			_, offset := time.Now().In(conf.Location()).Zone()

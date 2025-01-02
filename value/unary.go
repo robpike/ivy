@@ -55,10 +55,19 @@ func bigFloatWrap(op func(*big.Float, *big.Float) *big.Float) func(Context, *big
 // bigIntRand sets a to a random number in [origin, origin+b].
 func bigIntRand(c Context, a, b *big.Int) *big.Int {
 	config := c.Config()
+	bWords := b.Bits()
+	words := make([]big.Word, len(bWords))
 	config.LockRandom()
-	a.Rand(config.Random(), b)
+	// Words are in little-endian order.
+	for i := range words {
+		if i < len(words)-1 || words[i] == (1<<bits.UintSize)-1 { // Word is a uint.
+			words[i] = big.Word(c.Config().Random().Uint64())
+		} else {
+			words[i] = big.Word(c.Config().Random().Uint64N(uint64(bWords[i])))
+		}
+	}
 	config.UnlockRandom()
-	return a.Add(a, config.BigOrigin())
+	return a.SetBits(words).Add(a, config.BigOrigin())
 }
 
 func self(c Context, v Value) Value {
@@ -149,13 +158,12 @@ func bigFloatRand(c Context, f *big.Float) Value {
 		maxBits[i] = big.Word(^uint(0))
 	}
 	max := big.NewInt(0).SetBits(maxBits)
-	max.Add(max, bigIntOne.Int) // big.Int.Rand is [0,n)
-	// Now pick a random integer from [0 to max)
-	config.LockRandom()
-	rand := big.NewInt(0).Rand(config.Random(), max)
-	config.UnlockRandom()
+	max.Add(max, bigIntOne.Int) // We want range [0,n) but we have n-1.
+	// Now grab a random integer from [0, max)
+	randInt := big.NewInt(0)
+	bigIntRand(c, randInt, max)
 	// Make it a float and normalize it.
-	x := big.NewFloat(0).SetInt(rand)
+	x := big.NewFloat(0).SetInt(randInt)
 	x.Quo(x, big.NewFloat(0).SetInt(max))
 	// Finally, scale it up to [0, f).
 	x.Mul(x, f)
@@ -174,9 +182,9 @@ func init() {
 						Errorf("illegal roll value %v", v)
 					}
 					c.Config().LockRandom()
-					res := Int(c.Config().Origin()) + Int(c.Config().Random().Int63n(i))
+					res := Int(c.Config().Random().Int64N(int64(i)))
 					c.Config().UnlockRandom()
-					return res
+					return Int(c.Config().Origin()) + res
 				},
 				bigIntType: func(c Context, v Value) Value {
 					if v.(BigInt).Sign() <= 0 {
