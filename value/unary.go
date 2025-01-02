@@ -61,9 +61,11 @@ func bigIntRand(c Context, a, b *big.Int) *big.Int {
 	// Words are in little-endian order.
 	for i := range words {
 		if i < len(words)-1 || words[i] == (1<<bits.UintSize)-1 { // Word is a uint.
-			words[i] = big.Word(c.Config().Random().Uint64())
+			// This will work on a 32-bit machine but the golden tests will fail.
+			// Probably not worth fixing.
+			words[i] = big.Word(c.Config().Random().Uint())
 		} else {
-			words[i] = big.Word(c.Config().Random().Uint64N(uint64(bWords[i])))
+			words[i] = big.Word(c.Config().Random().UintN(uint(bWords[i])))
 		}
 	}
 	config.UnlockRandom()
