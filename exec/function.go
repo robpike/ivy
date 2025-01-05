@@ -21,12 +21,19 @@ type Function struct {
 	Globals  []string
 }
 
+func argString(v value.Expr) string {
+	if _, ok := v.(value.VectorExpr); ok {
+		return "(" + v.ProgString() + ")"
+	}
+	return v.ProgString()
+}
+
 func (fn *Function) String() string {
 	left := ""
 	if fn.IsBinary {
-		left = fn.Left.ProgString() + " "
+		left = argString(fn.Left) + " "
 	}
-	s := fmt.Sprintf("op %s%s %s =", left, fn.Name, fn.Right.ProgString())
+	s := fmt.Sprintf("op %s%s %s =", left, fn.Name, argString(fn.Right))
 	if len(fn.Body) == 1 {
 		return s + " " + fn.Body[0].ProgString()
 	}
