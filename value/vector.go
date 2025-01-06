@@ -378,6 +378,7 @@ func (v *Vector) rotate(n int) Value {
 // repl returns a Vector with each element repeated n times. n must be either one
 // integer or a vector of the same length as v. elemCount is the number of elements
 // we are to duplicate; this will be number of columns for a matrix's data.
+// If the count is negative, we replicate zeros of the appropriate shape.
 func (v *Vector) repl(n *Vector, elemCount int) *Vector {
 	if n.Len() != 1 && n.Len() != elemCount {
 		Errorf("repl length mismatch")
@@ -389,11 +390,35 @@ func (v *Vector) repl(n *Vector, elemCount int) *Vector {
 			Errorf("repl count must be small integer")
 		}
 		val := v.At(i)
+		if count < 0 { // Thanks, APL.
+			count = -count
+			val = allZeros(val)
+		}
 		for k := 0; k < int(count); k++ {
 			result = append(result, val)
 		}
 	}
 	return NewVector(result)
+}
+
+// zeros returns a value with the shape of v, but all zeroed out.
+func allZeros(v Value) Value {
+	v = v.Copy()
+	switch u := v.(type) {
+	case Char:
+		return Char(' ')
+	case *Vector:
+		for i := range u.Len() {
+			u.Set(i, allZeros(u.At(i)))
+		}
+	case *Matrix:
+		for i := range u.data.Len() {
+			u.data.Set(i, allZeros(u.data.At(i)))
+		}
+	default:
+		v = zero
+	}
+	return v
 }
 
 func doRotate(dst, src []Value, j int) {
