@@ -1132,6 +1132,28 @@ func init() {
 		},
 
 		{
+			name:      "repl",
+			whichType: atLeastVectorType,
+			fn: [numType]binaryFn{
+				vectorType: func(c Context, u, v Value) Value {
+					countV, data := u.(*Vector), v.(*Vector)
+					return data.repl(countV, data.Len())
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					count, m := u.(*Matrix), v.(*Matrix)
+					if len(count.shape) != 1 {
+						Errorf("repl count cannot be matrix")
+					}
+					result := m.data.repl(count.data, m.shape[len(m.shape)-1])
+					newShape := make([]int, len(m.shape))
+					copy(newShape, m.shape)
+					newShape[len(m.shape)-1] = result.Len() / size(m.shape[:len(m.shape)-1])
+					return NewMatrix(newShape, result)
+				},
+			},
+		},
+
+		{
 			name:      "iota",
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{

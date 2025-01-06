@@ -375,6 +375,27 @@ func (v *Vector) rotate(n int) Value {
 	return NewVector(elems)
 }
 
+// repl returns a Vector with each element repeated n times. n must be either one
+// integer or a vector of the same length as v. elemCount is the number of elements
+// we are to duplicate; this will be number of columns for a matrix's data.
+func (v *Vector) repl(n *Vector, elemCount int) *Vector {
+	if n.Len() != 1 && n.Len() != elemCount {
+		Errorf("repl length mismatch")
+	}
+	result := make([]Value, 0)
+	for i := range v.Len() {
+		count, ok := n.At(i % n.Len()).(Int)
+		if !ok {
+			Errorf("repl count must be small integer")
+		}
+		val := v.At(i)
+		for k := 0; k < int(count); k++ {
+			result = append(result, val)
+		}
+	}
+	return NewVector(result)
+}
+
 func doRotate(dst, src []Value, j int) {
 	n := copy(dst, src[j:])
 	copy(dst[n:n+j], src[:j])
