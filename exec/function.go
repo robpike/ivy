@@ -6,6 +6,7 @@ package exec
 
 import (
 	"fmt"
+	"strings"
 
 	"robpike.io/ivy/value"
 )
@@ -21,19 +22,48 @@ type Function struct {
 	Globals  []string
 }
 
+// argProgString builds a string representation of arg, to be used in printing the
+// source to an op. If the argument is a vector, it needs special handling to get
+// parentheses and nesting.
+func argProgString(b *strings.Builder, arg value.Expr) {
+	switch expr := arg.(type) {
+	case *value.VarExpr:
+		b.WriteString(expr.ProgString())
+		return
+	case value.VectorExpr:
+		b.WriteRune('(')
+		for i, elem := range expr {
+			if i > 0 {
+				b.WriteRune(' ')
+			}
+			argProgString(b, elem)
+		}
+		b.WriteRune(')')
+	default:
+		b.WriteString(fmt.Sprintf("<unknown type in op print: %T>", arg))
+	}
+}
+
 func (fn *Function) String() string {
-	left := ""
+	var b strings.Builder
+	b.WriteString("op ")
 	if fn.IsBinary {
-		left = fn.Left.ProgString() + " "
+		argProgString(&b, fn.Left)
+		b.WriteRune(' ')
 	}
-	s := fmt.Sprintf("op %s%s %s =", left, fn.Name, fn.Right.ProgString())
+	b.WriteString(fn.Name)
+	b.WriteRune(' ')
+	argProgString(&b, fn.Right)
+	b.WriteString(" = ")
 	if len(fn.Body) == 1 {
-		return s + " " + fn.Body[0].ProgString()
+		b.WriteString(fn.Body[0].ProgString())
+	} else {
+		for _, stmt := range fn.Body {
+			b.WriteString("\n\t")
+			b.WriteString(stmt.ProgString())
+		}
 	}
-	for _, stmt := range fn.Body {
-		s += "\n\t" + stmt.ProgString()
-	}
-	return s
+	return b.String()
 }
 
 func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Value {

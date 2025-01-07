@@ -94,6 +94,19 @@ op a x b = a + b
 )op x
 	op a x b = a + b
 
+# Vector arguments
+op f (b (c d)) = b + c + d
+)op f
+	op f (b (c d)) = b + c + d
+
+op a f (b (c d)) = a + b + c + d
+)op f
+	op a f (b (c d)) = a + b + c + d
+
+op (x y) f (b (c d)) = x + y + b + c + d
+)op f
+	op (x y) f (b (c d)) = x + y + b + c + d
+
 # Character escapes and other formatting details.
 op x a =
  'abc\u0001\U0010FFFF\\\'\a\b\f\n\r\t\v\n'
