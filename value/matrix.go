@@ -600,7 +600,7 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 		// list, list
 		setShape(x, y.shape[len(y.shape)-1])
 		data = make([]Value, x.data.Len()+y.data.Len())
-		xsize, ysize := x.ElemSize(), y.ElemSize()
+		xsize, ysize := x.shape[len(x.shape)-1], y.shape[len(y.shape)-1]
 		copyElems(xsize, xsize, ysize, ysize)
 
 	case x.Rank() == y.Rank()+1 && sameShape(x.shape[:len(x.shape)-1], y.shape):
