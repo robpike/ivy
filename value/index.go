@@ -43,7 +43,7 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 		x := index[i].Eval(context).Inner()
 		switch x := x.(type) {
 		default:
-			Errorf("invalid index %s (%s) in %s", index[i].ProgString(), whichType(x), top.ProgString())
+			Errorf("invalid index %s (type %s) in %s", index[i].ProgString(), whichType(x), top.ProgString())
 		case Int:
 			ix.indexes[i] = NewVector([]Value{x})
 		case *Vector:
@@ -59,7 +59,7 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 		}
 		for _, v := range ix.indexes[i].All() {
 			if _, ok := v.(Int); !ok {
-				Errorf("invalid index %s (%s) in %s in %s", v, whichType(v), index[i].ProgString(), top.ProgString())
+				Errorf("invalid index %s (type %s) in %s", v, whichType(v), top.ProgString())
 			}
 		}
 	}
