@@ -386,6 +386,9 @@ func ReduceFirst(c Context, op string, v Value) Value {
 	if v.Rank() < 2 {
 		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
+	if m.shape[0] == 0 {
+		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+	}
 	stride := size(m.shape[1:m.Rank()])
 	if stride == 0 {
 		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))

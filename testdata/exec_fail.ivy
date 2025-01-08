@@ -82,3 +82,11 @@ op x f x = x
 
 # Expect: multiple arguments named "x"
 op (x y) f (z x) = x
+
+# Issue 199: no check for reduce first of degenerate matrix. Reduce had the check.
+# Expect: shape for matrix is degenerate: (0 3 0)
++/ (0 rho 0) o.== 1 2 3 o.== 0 rho 0
+
+# Expect: shape for matrix is degenerate: (0 3)
++/% (0 rho 0) o.== 1 2 3
+
