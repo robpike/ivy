@@ -220,8 +220,10 @@ func IsCompound(x interface{}) bool {
 	switch x := x.(type) {
 	case Char, Int, BigInt, BigRat, BigFloat, Complex, *Vector, *Matrix:
 		return false
-	case VectorExpr, *VarExpr:
+	case *VarExpr:
 		return false
+	case VectorExpr:
+		return true
 	case *IndexExpr:
 		return IsCompound(x.Left)
 	default:

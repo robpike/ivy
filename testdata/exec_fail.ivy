@@ -25,7 +25,7 @@ x
 (log 2)[1]
 	#
 
-# Expect: invalid index (2) (float) in 1 2 (float 2) in 1 2[1 2 (float 2)]
+# Expect: invalid index (2) (float) in 1 2 (float 2) in (1 2)[1 2 (float 2)]
 1 2[1 2 (float 2)]
 	#
 

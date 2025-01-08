@@ -107,6 +107,11 @@ op (x y) f (b (c d)) = x + y + b + c + d
 )op f
 	op (x y) f (b (c d)) = x + y + b + c + d
 
+# Nested vectors in the body
+op f x = 1 2 (3 (4 x))
+)op f
+	op f x = 1 2 (3 (4 x))
+
 # Character escapes and other formatting details.
 op x a =
  'abc\u0001\U0010FFFF\\\'\a\b\f\n\r\t\v\n'
