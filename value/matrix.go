@@ -91,12 +91,16 @@ func (m *Matrix) elemStrs(conf *config.Config) ([][]string, int) {
 // write2d prints the 2d matrix m into the buffer.
 // elems is a slice (of slices) of already-printed values.
 // The receiver provides only the shape of the matrix.
-func (m *Matrix) write2d(b *bytes.Buffer, elems [][]string, width int) {
+func (m *Matrix) write2d(b *bytes.Buffer, elems [][]string, nested bool, width int) {
 	nrows := m.shape[0]
 	ncols := m.shape[1]
 	index := 0
 	for row := 0; row < nrows; row++ {
 		if row > 0 {
+			// When printing nested matrices, an extra newline aids readability.
+			if nested && b.Bytes()[b.Len()-1] != '\n' {
+				b.WriteByte('\n')
+			}
 			b.WriteByte('\n')
 		}
 		// Don't print the line if it has no content.
@@ -166,6 +170,17 @@ func (m *Matrix) String() string {
 }
 
 func (m *Matrix) Sprint(conf *config.Config) string {
+	// If the matrix is mostly nested elements, space it out a bit more.
+	numNested := 0
+	for _, e := range m.data.All() {
+		_, ok := e.(*Matrix)
+		if ok && len(m.shape) > 1 {
+			numNested++
+		}
+	}
+	// Heuristic avoids spacing out matrices with few nested elements.
+	nested := numNested >= m.data.Len()/2
+
 	var b bytes.Buffer
 	switch m.Rank() {
 	case 0:
@@ -189,7 +204,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 			break
 		}
 		strs, wid := m.elemStrs(conf)
-		m.write2d(&b, strs, wid)
+		m.write2d(&b, strs, nested, wid)
 	case 3:
 		// If it's all chars, print it without padding or quotes.
 		if m.data.AllChars() {
@@ -219,7 +234,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 				shape: m.shape[1:],
 				data:  NewVector(m.data.Slice(start, start+size)),
 			}
-			m.write2d(&b, strs[start:start+size], wid)
+			m.write2d(&b, strs[start:start+size], nested, wid)
 			start += size
 		}
 	default:
