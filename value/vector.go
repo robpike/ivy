@@ -375,19 +375,19 @@ func (v *Vector) rotate(n int) Value {
 	return NewVector(elems)
 }
 
-// repl returns a Vector with each element repeated n times. n must be either one
+// sel returns a Vector with each element repeated n times. n must be either one
 // integer or a vector of the same length as v. elemCount is the number of elements
 // we are to duplicate; this will be number of columns for a matrix's data.
 // If the count is negative, we replicate zeros of the appropriate shape.
-func (v *Vector) repl(n *Vector, elemCount int) *Vector {
+func (v *Vector) sel(n *Vector, elemCount int) *Vector {
 	if n.Len() != 1 && n.Len() != elemCount {
-		Errorf("repl length mismatch")
+		Errorf("sel length mismatch")
 	}
 	result := make([]Value, 0)
 	for i := range v.Len() {
 		count, ok := n.At(i % n.Len()).(Int)
 		if !ok {
-			Errorf("repl count must be small integer")
+			Errorf("sel count must be small integer")
 		}
 		val := v.At(i)
 		if count < 0 { // Thanks, APL.

@@ -171,7 +171,6 @@ Compression           A/B   sel       Select elements in B corresponding to ones
 Partition             A⊆B   part      Vector of subvectors of B grouped by elements of A:
                                       If 0, ignore; otherwise start new group at boundaries
                                       where elements of A increase
-Replicate             A/B   repl      Replicate elements of B A times
 Index of              A⍳B   iota      The location (index) of B in A; 1+⌈/⍳⍴A if not found
                                       In ivy: origin-1 if not found (that is, 0 if one-indexed)
 Matrix divide         A⌹B   mdiv      Solution to system of linear equations Bx = A

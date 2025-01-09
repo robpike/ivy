@@ -1132,28 +1132,6 @@ func init() {
 		},
 
 		{
-			name:      "repl",
-			whichType: atLeastVectorType,
-			fn: [numType]binaryFn{
-				vectorType: func(c Context, u, v Value) Value {
-					countV, data := u.(*Vector), v.(*Vector)
-					return data.repl(countV, data.Len())
-				},
-				matrixType: func(c Context, u, v Value) Value {
-					count, m := u.(*Matrix), v.(*Matrix)
-					if len(count.shape) != 1 {
-						Errorf("repl count cannot be matrix")
-					}
-					result := m.data.repl(count.data, m.shape[len(m.shape)-1])
-					newShape := make([]int, len(m.shape))
-					copy(newShape, m.shape)
-					newShape[len(m.shape)-1] = result.Len() / size(m.shape[:len(m.shape)-1])
-					return NewMatrix(newShape, result)
-				},
-			},
-		},
-
-		{
 			name:      "iota",
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
@@ -1554,57 +1532,22 @@ func init() {
 
 		{
 			name:      "sel",
-			whichType: vectorAndAtLeastVectorType,
+			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					i := u.(*Vector)
-					j := v.(*Vector)
-					if i.Len() == 0 {
-						return empty
-					}
-					// All lhs values must be small integers.
-					var count int64
-					for _, x := range i.All() {
-						y, ok := x.(Int)
-						if !ok {
-							Errorf("sel: left operand must be small integers")
-						}
-						if y < 0 {
-							count -= int64(y)
-						} else {
-							count += int64(y)
-						}
-					}
-					if count > 1e8 {
-						Errorf("sel: result too large: %d elements", count)
-					}
-					result := make([]Value, 0, count)
-					add := func(howMany, what Value) {
-						hm := int(howMany.(Int))
-						if hm < 0 {
-							hm = -hm
-							what = zero
-						}
-						for ; hm > 0; hm-- {
-							result = append(result, what)
-						}
-					}
-					if i.Len() == 1 {
-						for _, y := range j.All() {
-							add(i.At(0), y)
-						}
-					} else {
-						if i.Len() != j.Len() {
-							Errorf("sel: unequal lengths %d != %d", i.Len(), j.Len())
-						}
-						for x, y := range j.All() {
-							add(i.At(x), y)
-						}
-					}
-					return NewVector(result)
+					countV, data := u.(*Vector), v.(*Vector)
+					return data.sel(countV, data.Len())
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					return v.(*Matrix).sel(c, u.(*Vector))
+					count, m := u.(*Matrix), v.(*Matrix)
+					if len(count.shape) != 1 {
+						Errorf("sel count cannot be matrix")
+					}
+					result := m.data.sel(count.data, m.shape[len(m.shape)-1])
+					newShape := make([]int, len(m.shape))
+					copy(newShape, m.shape)
+					newShape[len(m.shape)-1] = result.Len() / size(m.shape[:len(m.shape)-1])
+					return NewMatrix(newShape, result)
 				},
 			},
 		},
