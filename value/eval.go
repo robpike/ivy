@@ -536,8 +536,10 @@ func eachMatrix(m *Matrix, dim int) iter.Seq[Value] {
 		return eachVector(m.data)
 	}
 	size := m.data.Len()
-	for d := 0; d < dim; d++ {
-		size /= m.shape[d]
+	if size > 0 {
+		for d := 0; d < dim; d++ {
+			size /= m.shape[d]
+		}
 	}
 	return func(yield func(Value) bool) {
 		for i := 0; i < m.data.Len(); i += size {

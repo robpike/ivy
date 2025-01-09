@@ -484,6 +484,14 @@ iota@@ 3 2 rho iota 6
 rho iota@@ 3 2 1 rho iota 6
 	3 2
 
+op nop x = x
+rho nop@ 1 0 2 rho 1
+rho nop@@ 1 0 2 rho 1
+rho nop@@@ 1 0 2 rho 1
+	0
+	1 0
+	1 0 2
+
 op x left y = x
 d = 1 2; d @left 1
 	1 2
