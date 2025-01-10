@@ -7,10 +7,10 @@ package value
 // Code for assignment, a little intricate as there are many cases and many
 // validity checks.
 
-// Assignment is an implementation of Value that is created as the result of an assignment.
-// It can be type-asserted to discover whether the returned value was created by assignment,
-// such as is done in the interpreter to avoid printing the results of assignment expressions.
-type Assignment struct {
+// QuietValue is an implementation of Value that is created as the result of an
+// assignment or print operator. It can be type-asserted to discover whether to
+// avoid printing the results of the expression.
+type QuietValue struct {
 	Value
 }
 
@@ -19,7 +19,7 @@ var scalarShape = []int{1} // The assignment shape vector for a scalar
 func assign(context Context, b *BinaryExpr) Value {
 	rhs := b.Right.Eval(context).Inner()
 	Assign(context, b.Left, b.Right, rhs)
-	return Assignment{Value: rhs.Copy()}
+	return QuietValue{Value: rhs.Copy()}
 }
 
 func Assign(context Context, left, right Expr, rhs Value) {

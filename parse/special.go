@@ -440,7 +440,7 @@ func (p *Parser) runUntilError(name string) error {
 			if val == nil {
 				continue
 			}
-			if _, ok := val.(value.Assignment); ok {
+			if _, ok := val.(value.QuietValue); ok {
 				continue
 			}
 			p.context.AssignGlobal("_", val)
