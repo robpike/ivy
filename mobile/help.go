@@ -66,9 +66,9 @@ operations are supported.
 <p>Semicolons separate multiple statements on a line. Variables are
 alphanumeric and are assigned with the = operator. Assignment is
 an expression.
-<p>After each successful expression evaluation, the result is stored
-in the variable called _ (underscore) so it can be used in the next
-expression.
+<p>After each successful expression evaluation, except for assignments
+and calls to the print operator, the result is stored in the variable
+called _ (underscore) so it can be used in the next expression
 <p>The APL operators, adapted from
 <a href="https://en.wikipedia.org/wiki/APL_syntax_and_symbols">https://en.wikipedia.org/wiki/APL_syntax_and_symbols</a>, and their
 correspondence are listed here. The correspondence is incomplete

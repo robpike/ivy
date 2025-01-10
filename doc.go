@@ -56,9 +56,9 @@ Semicolons separate multiple statements on a line. Variables are
 alphanumeric and are assigned with the = operator. Assignment is
 an expression.
 
-After each successful expression evaluation, the result is stored
-in the variable called _ (underscore) so it can be used in the next
-expression.
+After each successful expression evaluation, except for assignments
+and calls to the print operator, the result is stored in the variable
+called _ (underscore) so it can be used in the next expression
 
 The APL operators, adapted from
 https://en.wikipedia.org/wiki/APL_syntax_and_symbols, and their
