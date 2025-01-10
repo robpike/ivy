@@ -88,6 +88,7 @@ Not               ∼B    not     Logical: not 1 is 0, not 0 is 1
 Absolute value    ∣B    abs     Magnitude of B
 Index generator   ⍳B    iota    Vector of the first B integers
                                 If B is a vector, matrix of coordinates
+Where             ⍸B    where   Vector of indexes where B is non-zero
 Unique            ∪B    unique  Remove all duplicate elements from B
 Enclose           ⊂B    box     Wrap B in one level of nesting
 Disclose          ⊃B    first   First element of B in ravel order

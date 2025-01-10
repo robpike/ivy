@@ -748,6 +748,82 @@ func init() {
 		},
 
 		{
+			name: "where",
+			fn: [numType]unaryFn{
+				intType: func(c Context, v Value) Value {
+					return empty
+				},
+				charType: func(c Context, v Value) Value {
+					return empty
+				},
+				bigIntType: func(c Context, v Value) Value {
+					return empty
+				},
+				bigRatType: func(c Context, v Value) Value {
+					return empty
+				},
+				bigFloatType: func(c Context, v Value) Value {
+					return empty
+				},
+				complexType: func(c Context, v Value) Value {
+					return empty
+				},
+				vectorType: func(c Context, v Value) Value {
+					vec := v.(*Vector)
+					result := []Value{}
+					origin := c.Config().Origin()
+					for i := range vec.Len() {
+						e, ok := vec.At(i).(Int)
+						if ok && e != 0 {
+							if e < 0 {
+								Errorf("where argument must be non-negative")
+							}
+							for range e {
+								result = append(result, Int(origin+i))
+							}
+						}
+					}
+					return NewVector(result)
+				},
+				matrixType: func(c Context, v Value) Value {
+					m := v.(*Matrix)
+					shape, vec := m.shape, m.data
+					result := []Value{}
+					coords := make([]Value, len(shape))
+					origin := Int(c.Config().Origin())
+					for i := range coords {
+						coords[i] = origin
+					}
+					// Loop over the data in the matrix while odometer-counting
+					// the coordinates.
+					for i := range vec.Len() {
+						e, ok := vec.At(i).(Int)
+						if ok && e != 0 {
+							if e < 0 {
+								Errorf("where argument must be non-negative")
+							}
+							for range e {
+								c := make([]Value, len(shape))
+								copy(c, coords)
+								result = append(result, NewVector(c))
+							}
+						}
+					CoordLoop:
+						for j := len(coords) - 1; j >= 0; j-- {
+							n := coords[j].(Int)
+							n++
+							coords[j] = n
+							if n < origin+Int(shape[j]) {
+								break CoordLoop
+							}
+							coords[j] = origin
+						}
+					}
+					return NewVector(result)
+				},
+			},
+		},
+		{
 			name: "flatten",
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {

@@ -59,7 +59,7 @@ func (ix *indexState) init(context Context, top, left Expr, index []Expr) {
 		}
 		for _, v := range ix.indexes[i].All() {
 			if _, ok := v.(Int); !ok {
-				Errorf("invalid index %s (type %s) in %s", v, whichType(v), top.ProgString())
+				Errorf("Xinvalid index %s (type %s) in %s", v, whichType(v), top.ProgString())
 			}
 		}
 	}

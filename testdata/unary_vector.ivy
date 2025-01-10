@@ -239,3 +239,8 @@ mix split 2 2 rho iota 4
 up mix 'ab' 'ac' 'aa'
 	3 1 2
 
+where 0==2 mod iota 6
+	1 2
+
+x[where not (x=3*iota 10) mod 5]
+	15 30
