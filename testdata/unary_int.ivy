@@ -136,6 +136,33 @@ first 3
 print 1; print 2
 	1
 	2
+
+(print 1) (print 2)
+	2
+	1
 	1 2
 
+x=print 1
+x
+	1
+	1
 
+1
+print 2
+_
+	1
+	2
+	1
+
+1
+x=2
+_
+	1
+	1
+
+1
+print x=2
+_
+	1
+	2
+	1

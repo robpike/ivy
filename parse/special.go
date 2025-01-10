@@ -443,6 +443,9 @@ func (p *Parser) runUntilError(name string) error {
 			if _, ok := val.(value.Assignment); ok {
 				continue
 			}
+			if _, ok := val.(value.Printed); ok {
+				continue
+			}
 			p.context.AssignGlobal("_", val)
 			p.Println(val.Sprint(p.context.Config()))
 		}

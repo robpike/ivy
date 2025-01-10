@@ -153,6 +153,9 @@ func printValues(conf *config.Config, writer io.Writer, values []value.Value) bo
 		if _, ok := v.(value.Assignment); ok {
 			continue
 		}
+		if _, ok := v.(value.Printed); ok {
+			continue
+		}
 		s := v.Sprint(conf)
 		if printed && len(s) > 0 && s[len(s)-1] != '\n' {
 			fmt.Fprint(writer, " ")
