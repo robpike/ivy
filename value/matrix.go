@@ -508,17 +508,14 @@ func (m *Matrix) binaryTranspose(c Context, v *Vector) *Matrix {
 	oldToNew := make([]int, v.Len())
 	rank := -1
 	for i := range v.All() {
-		vi, ok := v.At(i).(Int)
-		if !ok {
-			Errorf("transp: non-int index %v", v.At(i))
-		}
-		if vi < Int(origin) || vi >= Int(origin+m.Rank()) {
+		vi := v.intAt(i, "transp index")
+		if vi < origin || vi >= origin+m.Rank() {
 			Errorf("transp: out-of-range index %v", vi)
 		}
-		vi -= Int(origin)
-		oldToNew[i] = int(vi)
-		if rank <= int(vi) {
-			rank = int(vi) + 1
+		vi -= origin
+		oldToNew[i] = vi
+		if rank <= vi {
+			rank = vi + 1
 		}
 	}
 
@@ -852,6 +849,30 @@ func (m *Matrix) take(c Context, v *Vector) *Matrix {
 		}
 	}
 	return NewMatrix(shape, NewVector(result))
+}
+
+// partition returns a vector of the subblocks of m, selected and grouped
+// by the values in score. Subblocks with score 0 are ignored.
+// Subblocks with non-zero score are included, grouped with boundaries
+// at every point where the score exceeds the previous score.
+func (m *Matrix) partition(scoreM *Matrix) Value {
+	if len(scoreM.shape) != 1 {
+		Errorf("part: left argument must be scalar or vector")
+	}
+	score := scoreM.data
+	if scoreM.shape[0] == 1 {
+		if n := score.uintAt(0, "part: score"); n == 0 {
+			Errorf("part: empty score")
+		}
+		return m.Copy()
+	}
+	if score.Len() != m.shape[len(m.shape)-1] {
+		Errorf("part: length mismatch")
+	}
+	res, dim := m.data.doPartition(score)
+	newShape := append([]int{}, m.shape...)
+	newShape[len(newShape)-1] = dim
+	return NewMatrix(newShape, res)
 }
 
 // drop returns v drop m.

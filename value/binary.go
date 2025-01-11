@@ -1338,11 +1338,8 @@ func init() {
 						// Need to expand to a matrix.
 						return NewMatrix([]int{vv.Len()}, vv).take(c, uu)
 					}
-					n, ok := uu.At(0).(Int) // Number of elements in result.
-					if !ok {
-						Errorf("bad count %s in take", uu.At(0))
-					}
-					len := Int(vv.Len()) // Length of rhs vector.
+					n := uu.intAt(0, "take count") // Number of elements in result.
+					len := vv.Len()                // Length of rhs vector.
 					nElems := n
 					if n < 0 {
 						nElems = -nElems
@@ -1352,12 +1349,12 @@ func init() {
 					switch {
 					case n < 0:
 						if nElems > len {
-							for i := 0; i < int(nElems-len); i++ {
+							for i := 0; i < nElems-len; i++ {
 								elems[i] = fill
 							}
-							copy(elems[nElems-len:], vv.Slice(0, int(len)))
+							copy(elems[nElems-len:], vv.Slice(0, len))
 						} else {
-							copy(elems, vv.Slice(int(len-nElems), vv.Len()))
+							copy(elems, vv.Slice(len-nElems, vv.Len()))
 						}
 					case n == 0:
 					case n > 0:
@@ -1386,23 +1383,20 @@ func init() {
 					if !ok || uu.Len() != 1 {
 						Errorf("bad count %s in drop", u)
 					}
-					n, ok := uu.At(0).(Int) // Number of elements in result.
-					if !ok {
-						Errorf("bad count %s in drop", uu.At(0))
-					}
-					len := Int(vv.Len()) // Length of rhs vector.
+					n := uu.intAt(0, "drop count")
+					len := vv.Len() // Length of rhs vector.
 					switch {
 					case n < 0:
 						if -n > len {
 							return empty
 						}
-						vv = NewVector(vv.Slice(0, int(len+n)))
+						vv = NewVector(vv.Slice(0, len+n))
 					case n == 0:
 					case n > 0:
 						if n > len {
 							return empty
 						}
-						vv = NewVector(vv.Slice(int(n), vv.Len()))
+						vv = NewVector(vv.Slice(n, vv.Len()))
 					}
 					return vv.Copy()
 				},
@@ -1418,22 +1412,17 @@ func init() {
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					countVec := u.(*Vector)
-					count, ok := countVec.At(0).(Int)
-					if !ok || countVec.Len() != 1 {
+					if countVec.Len() != 1 {
 						Errorf("rot: count must be small integer")
 					}
-					return v.(*Vector).rotate(int(count))
+					return v.(*Vector).rotate(countVec.intAt(0, "rot count"))
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					countMat := u.(*Matrix)
 					if countMat.Rank() != 1 || countMat.data.Len() != 1 {
 						Errorf("rot: count must be small integer")
 					}
-					count, ok := countMat.data.At(0).(Int)
-					if !ok {
-						Errorf("rot: count must be small integer")
-					}
-					return v.(*Matrix).rotate(int(count))
+					return v.(*Matrix).rotate(countMat.data.intAt(0, "rot count"))
 				},
 			},
 		},
@@ -1447,22 +1436,14 @@ func init() {
 					if countVec.Len() != 1 {
 						Errorf("flip: count must be small integer")
 					}
-					count, ok := countVec.At(0).(Int)
-					if !ok {
-						Errorf("flip: count must be small integer")
-					}
-					return v.(*Vector).rotate(int(count))
+					return v.(*Vector).rotate(countVec.intAt(0, "flip count"))
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					countMat := u.(*Matrix)
 					if countMat.Rank() != 1 || countMat.data.Len() != 1 {
 						Errorf("flip: count must be small integer")
 					}
-					count, ok := countMat.data.At(0).(Int)
-					if !ok {
-						Errorf("flip: count must be small integer")
-					}
-					return v.(*Matrix).vrotate(int(count))
+					return v.(*Matrix).vrotate(countMat.data.intAt(0, "flip count"))
 				},
 			},
 		},
@@ -1558,6 +1539,9 @@ func init() {
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					return v.(*Vector).partition(u.(*Vector))
+				},
+				matrixType: func(c Context, u, v Value) Value {
+					return v.(*Matrix).partition(u.(*Matrix))
 				},
 			},
 		},

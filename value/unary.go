@@ -643,11 +643,7 @@ func init() {
 						return empty
 					}
 					if vv.Len() == 1 {
-						i, ok := vv.At(0).(Int)
-						if !ok {
-							Errorf("bad coordinate in iota %s", vv.At(0))
-						}
-						return newIota(c.Config().Origin(), int(i))
+						return newIota(c.Config().Origin(), vv.intAt(0, "iota argument"))
 					}
 					nElems := 1
 					shape := make([]int, vv.Len())
@@ -773,14 +769,9 @@ func init() {
 					result := []Value{}
 					origin := c.Config().Origin()
 					for i := range vec.Len() {
-						e, ok := vec.At(i).(Int)
-						if ok && e != 0 {
-							if e < 0 {
-								Errorf("where argument must be non-negative")
-							}
-							for range e {
-								result = append(result, Int(origin+i))
-							}
+						e := vec.uintAt(i, "where argument")
+						for range e {
+							result = append(result, Int(origin+i))
 						}
 					}
 					return NewVector(result)
@@ -794,18 +785,13 @@ func init() {
 					// Loop over the data in the matrix while odometer-counting
 					// the coordinates.
 					for i := range vec.Len() {
-						e, ok := vec.At(i).(Int)
-						if ok && e != 0 {
-							if e < 0 {
-								Errorf("where argument must be non-negative")
+						e := vec.uintAt(i, "where argument")
+						for range e {
+							c := make([]Value, len(shape))
+							for i, x := range coords {
+								c[i] = Int(x + origin)
 							}
-							for range e {
-								c := make([]Value, len(shape))
-								for i, x := range coords {
-									c[i] = Int(x + origin)
-								}
-								result = append(result, NewVector(c))
-							}
+							result = append(result, NewVector(c))
 						}
 						for j := len(coords) - 1; j >= 0; j-- {
 							if coords[j]++; coords[j] < shape[j] {

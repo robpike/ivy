@@ -385,10 +385,7 @@ func (v *Vector) sel(n *Vector, elemCount int) *Vector {
 	}
 	result := make([]Value, 0)
 	for i := range v.Len() {
-		count, ok := n.At(i % n.Len()).(Int)
-		if !ok {
-			Errorf("sel count must be small integer")
-		}
+		count := n.intAt(i%n.Len(), "sel count")
 		val := v.At(i)
 		if count < 0 { // Thanks, APL.
 			count = -count
@@ -426,6 +423,27 @@ func doRotate(dst, src []Value, j int) {
 	copy(dst[n:n+j], src[:j])
 }
 
+// uintAt returns the ith element of v, erroring out if it is not a
+// non-negative integer. It's called uintAt but returns an int.
+// The vector is known to be long enough.
+func (v *Vector) uintAt(i int, msg string) int {
+	n, ok := v.At(i).(Int)
+	if !ok || n < 0 {
+		Errorf("%s must be a non-negative integer: %s", msg, v.At(i))
+	}
+	return int(n)
+}
+
+// intAt returns the ith element of v, which must be an Int.
+// The vector is known to be long enough.
+func (v *Vector) intAt(i int, msg string) int {
+	n, ok := v.At(i).(Int)
+	if !ok {
+		Errorf("%s must be a small integer: %d", msg, v.At(i))
+	}
+	return int(n)
+}
+
 // partition returns a vector of the elements of v, selected and grouped
 // by the values in score. Elements with score 0 are ignored.
 // Elements with non-zero score are included, grouped with boundaries
@@ -434,26 +452,35 @@ func (v *Vector) partition(score *Vector) Value {
 	if score.Len() != v.Len() {
 		Errorf("part: length mismatch")
 	}
+	res, _ := v.doPartition(score)
+	return res
+}
+
+// doPartition iterates along the vector to do the partitioning. It is called from
+// vector and matrix partitioning code, which use different length checks. The
+// integer returned is the width (last dimension) to use when partitioning a
+// matrix.
+func (v *Vector) doPartition(score *Vector) (*Vector, int) {
 	var accum, result []Value
-	for i, sc, prev := 0, Int(0), Int(0); i < score.Len(); i, prev = i+1, sc {
-		var ok bool
-		sc, ok = score.At(i).(Int)
-		if !ok || sc < 0 {
-			Errorf("part: score must be non-negative integer")
+	dim := -1
+	for i, sc, prev := 0, 0, 0; i < v.Len(); i, prev = i+1, sc {
+		j := i % score.Len()
+		sc = score.uintAt(j, "part: score")
+		if sc != 0 { // Ignore elements with zero score.
+			if i > 0 && (sc > prev || j == 0) { // Add current subvector, start new one.
+				result = append(result, NewVector(accum))
+				accum = nil
+			}
+			accum = append(accum, v.At(i))
 		}
-		if sc == 0 { // Ignore elements with zero score.
-			continue
+		if dim < 0 && i > 0 && j == 0 { // Score rolled over for first time; set dim.
+			dim = len(result)
 		}
-		if i > 0 && sc > prev { // Add current subvector, start new one.
-			result = append(result, NewVector(accum))
-			accum = nil
-		}
-		accum = append(accum, v.At(i))
 	}
 	if len(accum) > 0 {
 		result = append(result, NewVector(accum))
 	}
-	return NewVector(result)
+	return NewVector(result), dim
 }
 
 // grade returns as a Vector the indexes that sort the vector into increasing order
