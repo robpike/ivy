@@ -802,7 +802,7 @@ func init() {
 							for range e {
 								c := make([]Value, len(shape))
 								for i, x := range coords {
-									c[i] = Int(x+origin)
+									c[i] = Int(x + origin)
 								}
 								result = append(result, NewVector(c))
 							}
