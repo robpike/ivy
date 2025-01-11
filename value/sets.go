@@ -100,6 +100,50 @@ func intersect(c Context, u, v Value) Value {
 	return NewVector(elems)
 }
 
+func without(c Context, u, v Value) Value {
+	uType := whichType(u)
+	vType := whichType(v)
+	if uType < vectorType && vType < vectorType {
+		// Scalars
+		if scalarEqual(c, u, v) {
+			return u
+		}
+		return empty
+	}
+	// Neither can be a matrix. Yet. TODO
+	if uType == matrixType || vType == matrixType {
+		Errorf("binary not not implemented on type matrix")
+	}
+	// At least one is a Vector.
+	elems := []Value{}
+	switch {
+	case vType != vectorType:
+		uu := u.(*Vector)
+		for _, x := range uu.All() {
+			if !scalarEqual(c, x, v) {
+				elems = append(elems, x)
+			}
+		}
+	case uType != vectorType:
+		vv := v.(*Vector)
+		for _, x := range vv.All() {
+			if scalarEqual(c, u, x) {
+				return empty
+			}
+		}
+		return oneElemVector(u)
+	default: // Both vectors.
+		uu := u.(*Vector)
+		present := membership(c, uu, v.(*Vector))
+		for i, x := range uu.All() {
+			if present[i] != one {
+				elems = append(elems, x)
+			}
+		}
+	}
+	return NewVector(elems)
+}
+
 func unique(c Context, v Value) Value {
 	vType := whichType(v)
 	if vType < vectorType {

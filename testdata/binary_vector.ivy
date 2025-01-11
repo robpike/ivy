@@ -840,6 +840,24 @@ x =(,\iota 4); y = box 1 2 3; x; '\n'; y; '\n'; x iota y
 x=iota 100000; y=x intersect x; z = x union x; +/y==z
 	100000
 
+1 2 3 without 2 3 4
+	1
+
+3 without 3 3 3
+	#
+
+3 3 without 3
+	#
+
+1 2 3 1 2 3 without 3
+	1 2 1 2
+
+(0 rho 0) without 3 3 3
+	#
+
+1 2 3 without (0 rho 0)
+	1 2 3
+
 # Fixed bug: don't use user-defined functions in core calculations.
 op a mod b = 99
 op a div b = 99

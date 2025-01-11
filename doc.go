@@ -145,6 +145,7 @@ Binary operators
 	Membership            A∈B   in        1 for elements of A present in B; 0 where not.
 	Intersection          A∩B   intersect A with all elements not in B removed
 	Union                 A∪B   union     A followed by all members of B not already in A
+	Without               A~B   without   A with all elements in B removed
 	Maximum               A⌈B   max       The greater value of A or B
 	Minimum               A⌊B   min       The smaller value of A or B
 	Reshape               A⍴B   rho       Array of shape A with data B

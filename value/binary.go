@@ -1636,6 +1636,20 @@ func init() {
 		},
 
 		{
+			name:      "without",
+			whichType: noPromoteType,
+			fn: [numType]binaryFn{
+				intType:      without,
+				charType:     without,
+				bigIntType:   without,
+				bigRatType:   without,
+				bigFloatType: without,
+				complexType:  without,
+				vectorType:   without,
+			},
+		},
+
+		{
 			name:      "text",
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
