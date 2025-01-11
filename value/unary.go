@@ -789,11 +789,8 @@ func init() {
 					m := v.(*Matrix)
 					shape, vec := m.shape, m.data
 					result := []Value{}
-					coords := make([]Value, len(shape))
-					origin := Int(c.Config().Origin())
-					for i := range coords {
-						coords[i] = origin
-					}
+					coords := make([]int, len(shape)) // Zero-indexed.
+					origin := c.Config().Origin()
 					// Loop over the data in the matrix while odometer-counting
 					// the coordinates.
 					for i := range vec.Len() {
@@ -804,19 +801,17 @@ func init() {
 							}
 							for range e {
 								c := make([]Value, len(shape))
-								copy(c, coords)
+								for i, x := range coords {
+									c[i] = Int(x+origin)
+								}
 								result = append(result, NewVector(c))
 							}
 						}
-					CoordLoop:
 						for j := len(coords) - 1; j >= 0; j-- {
-							n := coords[j].(Int)
-							n++
-							coords[j] = n
-							if n < origin+Int(shape[j]) {
-								break CoordLoop
+							if coords[j]++; coords[j] < shape[j] {
+								break
 							}
-							coords[j] = origin
+							coords[j] = 0
 						}
 					}
 					return NewVector(result)
