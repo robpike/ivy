@@ -270,12 +270,13 @@ creating new local variables.
 as the &apos;op&apos;, or it can be multiple lines. For a multiline entry, there is a
 newline after the &apos;=&apos; and the definition ends at the first blank line (ignoring
 spaces).
-<p>Conditional execution is done with the &quot;:&quot; binary conditional return operator,
-which is valid only within the code for a user-defined operator. The left
-operand must be a scalar. If it is non-zero, the right operand is returned as
-the value of the function. Otherwise, execution continues normally. The &quot;:&quot;
-operator has a lower precedence than any other operator; in effect it breaks
-the line into two separate expressions.
+<p>Conditional execution is done with the &quot;:&quot; binary conditional return
+operator, which is valid only within the code for a user-defined
+operator. The left operand must be a scalar or one-element vector
+or matrix. If it is non-zero, the right operand is returned as the
+value of the function. Otherwise, execution continues normally. The
+&quot;:&quot; operator has a lower precedence than any other operator; in
+effect it breaks the line into two separate expressions.
 <p>Example: average of a vector (unary):
 <pre>op avg x = (+/x)/rho x
 avg iota 11

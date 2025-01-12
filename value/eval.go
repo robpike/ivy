@@ -857,7 +857,7 @@ func compare(v Value, i int) int {
 }
 
 // isTrue reports whether v represents boolean truth. If v is not
-// a scalar, an error results.
+// ultimately a scalar, an error results.
 func isTrue(fnName string, v Value) bool {
 	switch i := v.(type) {
 	case Char:
@@ -872,10 +872,17 @@ func isTrue(fnName string, v Value) bool {
 		return i.Float.Sign() != 0
 	case Complex:
 		return !isZero(v)
-	default:
-		Errorf("invalid expression %s for conditional inside %q", v, fnName)
-		return false
+	case *Vector:
+		if i.Len() == 1 {
+			return isTrue(fnName, i.At(0))
+		}
+	case *Matrix:
+		if i.data.Len() == 1 {
+			return isTrue(fnName, i.data.At(0))
+		}
 	}
+	Errorf("invalid expression %s for conditional inside %q", v, fnName)
+	return false
 }
 
 // sgn is a wrapper for calling "sgn v".

@@ -247,7 +247,7 @@ fac 10
 	3628800
 	22
 
-# Char and big scalars as guard expression.
+# Char, big scalars, one-element vectors and matrices as guard expression.
 # Big integers and rationals always succeed: because of
 # value shrinking zero is always a simple Int or Char.
 op a test b =
@@ -262,12 +262,20 @@ op a test b =
 1/10 test "succeed"
 (sqrt 2) test "succeed"
 (float 0) test "succeed"
+(1 rho 1) test "succeed"
+(1 rho 0) test "succeed"
+(1 1 1 rho 1) test "succeed"
+(1 1 1 rho 0) test "succeed"
 	fail
 	succeed
 	succeed
 	fail
 	succeed
 	succeed
+	succeed
+	fail
+	succeed
+	fail
 	succeed
 	fail
 
