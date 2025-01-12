@@ -148,10 +148,6 @@ func (i Int) Eval(Context) Value {
 	return i
 }
 
-func (i Int) Copy() Value {
-	return i
-}
-
 func (i Int) Inner() Value {
 	return i
 }
@@ -171,7 +167,7 @@ func (i Int) toType(op string, conf *config.Config, which valueType) Value {
 	case vectorType:
 		return oneElemVector(i)
 	case matrixType:
-		return NewMatrix([]int{1}, NewVector([]Value{i}))
+		return NewMatrix([]int{1}, NewVector(i))
 	}
 	Errorf("%s: cannot convert int to %s", op, which)
 	return nil

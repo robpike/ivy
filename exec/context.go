@@ -11,8 +11,8 @@ import (
 	"robpike.io/ivy/value"
 )
 
-// Symtab is a symbol table, a map of names to values.
-type Symtab map[string]value.Value
+// Symtab is a symbol table, a map of names to variables.
+type Symtab map[string]*value.Var
 
 // Context holds execution context, specifically the binding of names to values and operators.
 // It is the only implementation of ../value/Context, but since it references the value
@@ -23,7 +23,7 @@ type Context struct {
 	config *config.Config
 
 	frameSizes []int // size of each stack frame on the call stack
-	stack      []value.Value
+	stack      []*value.Var
 
 	Globals Symtab
 
@@ -63,38 +63,29 @@ func (c *Context) SetConstants() {
 	c.AssignGlobal("pi", pi)
 }
 
-// Global returns the value of a global symbol, or nil if the symbol is not defined globally.
-func (c *Context) Global(name string) value.Value {
+// Global returns a global variable, or nil if the symbol is not defined globally.
+func (c *Context) Global(name string) *value.Var {
 	return c.Globals[name]
 }
 
-// Local returns the value of the local variable with index i.
-func (c *Context) Local(i int) value.Value {
-	return c.stack[len(c.stack)-i]
-}
-
-// AssignLocal assigns the local variable with the given index the value.
-func (c *Context) AssignLocal(i int, val value.Value) {
-	switch v := val.(type) {
-	case *value.Vector:
-		val = v.Copy()
-	case *value.Matrix:
-		val = v.Copy()
-	}
-	c.stack[len(c.stack)-i] = val
-}
-
-// AssignGlobal assigns the global variable the value. The variable must
-// be defined either in the current function or globally.
-// Inside a function, new variables become locals.
+// AssignGlobal assigns to the named global variable, creating it if needed.
 func (c *Context) AssignGlobal(name string, val value.Value) {
-	switch v := val.(type) {
-	case *value.Vector:
-		val = v.Copy()
-	case *value.Matrix:
-		val = v.Copy()
+	v := c.Globals[name]
+	if v == nil {
+		c.Globals[name] = value.NewVar(name, val)
+	} else {
+		v.Assign(val)
 	}
-	c.Globals[name] = val
+}
+
+// Local returns the value of the local variable with index i.
+func (c *Context) Local(i int) *value.Var {
+	v := c.stack[len(c.stack)-i]
+	if v == nil {
+		v = value.NewVar("", nil)
+		c.stack[len(c.stack)-i] = v
+	}
+	return v
 }
 
 // push pushes a new local frame onto the context stack.
@@ -298,7 +289,7 @@ func (c *Context) noVar(name string) {
 	if sym == nil {
 		return
 	}
-	if i, ok := sym.(value.Int); ok && i == 0 {
+	if i, ok := sym.Value().(value.Int); ok && i == 0 {
 		delete(c.Globals, name)
 		return
 	}

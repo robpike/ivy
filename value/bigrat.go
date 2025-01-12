@@ -177,12 +177,6 @@ func (r BigRat) Eval(Context) Value {
 	return r
 }
 
-func (r BigRat) Copy() Value {
-	var x big.Rat
-	x.Set(r.Rat)
-	return BigRat{&x}
-}
-
 func (r BigRat) Inner() Value {
 	return r
 }
@@ -199,7 +193,7 @@ func (r BigRat) toType(op string, conf *config.Config, which valueType) Value {
 	case vectorType:
 		return oneElemVector(r)
 	case matrixType:
-		return NewMatrix([]int{1, 1}, NewVector([]Value{r}))
+		return NewMatrix([]int{1, 1}, NewVector(r))
 	}
 	Errorf("%s: cannot convert rational to %s", op, which)
 	return nil

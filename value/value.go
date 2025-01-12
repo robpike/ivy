@@ -24,9 +24,6 @@ type Value interface {
 	// Eval evaluates (simplifies) the Value.
 	Eval(Context) Value
 
-	// Copy returns a copy of the Value.
-	Copy() Value
-
 	// Inner retrieves the value, without evaluation. But for Assignments,
 	// it returns the right-hand side.
 	Inner() Value

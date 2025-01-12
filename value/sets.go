@@ -18,7 +18,7 @@ func union(c Context, u, v Value) Value {
 		if scalarEqual(c, u, v) {
 			return u
 		}
-		return NewVector([]Value{u, v})
+		return NewVector(u, v)
 	}
 	// Neither can be a matrix.
 	if uType == matrixType || vType == matrixType {
@@ -27,32 +27,36 @@ func union(c Context, u, v Value) Value {
 	// At least one is a Vector.
 	switch {
 	case vType != vectorType:
-		uu := u.(*Vector).Copy().(*Vector)
+		uu := u.(*Vector)
 		for _, x := range uu.All() {
 			if scalarEqual(c, x, v) {
 				return uu
 			}
 		}
-		return NewVector(append(uu.All(), v))
+		tv := uu.edit()
+		tv.Append(v)
+		return tv.Publish()
 	case uType != vectorType:
 		vv := v.(*Vector)
-		elems := []Value{u}
+		tv := newVectorEditor(0, nil)
+		tv.Append(u)
 		for _, x := range vv.All() {
 			if !scalarEqual(c, u, x) {
-				elems = append(elems, x)
+				tv.Append(x)
 			}
 		}
-		return NewVector(elems)
+		return tv.Publish()
 	default: // Both vectors.
-		uu := u.(*Vector).Copy().(*Vector).All()
+		uu := u.(*Vector)
 		vv := v.(*Vector)
-		present := membership(c, vv, NewVector(uu))
+		present := membership(c, vv, uu)
+		tv := uu.edit()
 		for i, x := range vv.All() {
-			if present[i] != one {
-				uu = append(uu, x)
+			if present.At(i) != one {
+				tv.Append(x)
 			}
 		}
-		return NewVector(uu)
+		return tv.Publish()
 	}
 }
 
@@ -71,13 +75,13 @@ func intersect(c Context, u, v Value) Value {
 		Errorf("binary intersect not implemented on type matrix")
 	}
 	// At least one is a Vector.
-	elems := []Value{}
+	elems := newVectorEditor(0, nil)
 	switch {
 	case vType != vectorType:
 		uu := u.(*Vector)
 		for _, x := range uu.All() {
 			if scalarEqual(c, x, v) {
-				elems = append(elems, x)
+				elems.Append(x)
 			}
 		}
 	case uType != vectorType:
@@ -92,12 +96,12 @@ func intersect(c Context, u, v Value) Value {
 		uu := u.(*Vector)
 		present := membership(c, uu, v.(*Vector))
 		for i, x := range uu.All() {
-			if present[i] == one {
-				elems = append(elems, x)
+			if present.At(i) == one {
+				elems.Append(x)
 			}
 		}
 	}
-	return NewVector(elems)
+	return elems.Publish()
 }
 
 func unique(c Context, v Value) Value {
@@ -145,11 +149,11 @@ func unique(c Context, v Value) Value {
 	sort.Slice(uniqued, func(i, j int) bool {
 		return uniqued[i].i < uniqued[j].i
 	})
-	elems := make([]Value, len(uniqued))
+	elems := newVectorEditor(len(uniqued), nil)
 	for i, x := range uniqued {
-		elems[i] = x.v
+		elems.Set(i, x.v)
 	}
-	return NewVector(elems)
+	return elems.Publish()
 }
 
 // scalarEqual is faster(ish) comparison to make set ops more efficient.

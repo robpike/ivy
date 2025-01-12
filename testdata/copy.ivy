@@ -1,0 +1,7 @@
+# testing copy on write
+
+m = 1000 1000 rho 1
+op m step2 n = n==0: m; m step2 n-1
+op m step1 n = n==0: m; (m step2 100) step1 n-1
+rho m step1 100
+	1000 1000

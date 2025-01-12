@@ -67,7 +67,7 @@ func newMatrixData(data ...int) *value.Vector {
 	for i := range data {
 		v[i] = value.Int(data[i])
 	}
-	return value.NewVector(v)
+	return value.NewVector(v...)
 }
 
 func TestOrderedCompare(t *testing.T) {

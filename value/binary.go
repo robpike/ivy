@@ -177,12 +177,12 @@ func toBool(t Value) bool {
 	panic("not reached")
 }
 
-// andBool returns an elementwise boolean AND of the two slices
+// allEqual returns an elementwise boolean AND of the two slices
 // using OrderedCompare on the individual elements. It will exit
 // early if a false entry is encountered.
-func andBool(c Context, d1, d2 []Value) bool {
-	for i := range d1 {
-		if OrderedCompare(c, d1[i], d2[i]) != 0 {
+func allEqual(c Context, x *Vector, xlo int, y *Vector, ylo, n int) bool {
+	for i := range n {
+		if OrderedCompare(c, x.At(xlo+i), y.At(ylo+i)) != 0 {
 			return false
 		}
 	}
@@ -940,11 +940,11 @@ func init() {
 					}
 					ints := c.Config().Random().Perm(int(B))
 					origin := c.Config().Origin()
-					res := make([]Value, A)
-					for i := range res {
-						res[i] = Int(ints[i] + origin)
+					res := newVectorEditor(int(A), nil)
+					for i := range res.Len() {
+						res.Set(i, Int(ints[i]+origin))
 					}
-					return NewVector(res)
+					return res.Publish()
 				},
 			},
 		},
@@ -960,7 +960,7 @@ func init() {
 					if A.Len() == 0 || B.Len() == 0 {
 						return zero
 					}
-					if allChars(A.All()) {
+					if A.AllChars() {
 						// Special case for times.
 						return decodeTime(c, A, B)
 					}
@@ -994,7 +994,7 @@ func init() {
 						Errorf("decode of length %d and shape %s", A.Len(), NewIntVector(B.shape...))
 					}
 					shape := B.shape[1:]
-					elems := make([]Value, B.data.Len()/B.shape[0])
+					elems := newVectorEditor(B.data.Len()/B.shape[0], nil)
 					get := func(v *Vector, i int) Value {
 						if v.Len() == 1 {
 							return v.At(0)
@@ -1005,25 +1005,25 @@ func init() {
 					if B.shape[0] > n {
 						n = B.shape[0]
 					}
-					pfor(true, n, len(elems), func(lo, hi int) {
+					pfor(true, n, elems.Len(), func(lo, hi int) {
 						for j := lo; j < hi; j++ {
 							result := Value(zero)
 							prod := Value(one)
 							for i := n - 1; i >= 0; i-- {
-								Bslice := B.data.All()
+								bj := j
 								if B.shape[0] > 1 {
-									Bslice = B.data.Slice(i*len(elems), (i+1)*len(elems))
+									bj += i * elems.Len()
 								}
-								result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", Bslice[j]))
+								result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", B.data.At(bj)))
 								prod = c.EvalBinary(prod, "*", get(A, i))
 							}
-							elems[j] = result
+							elems.Set(j, result)
 						}
 					})
 					if len(shape) == 1 {
-						return NewVector(elems)
+						return elems.Publish()
 					}
-					return NewMatrix(shape, NewVector(elems))
+					return NewMatrix(shape, elems.Publish())
 				},
 			},
 		},
@@ -1043,7 +1043,7 @@ func init() {
 					// of how modulo arithmetic works.
 					const op = "encode"
 					A, B := u.(*Vector), v.(*Vector)
-					if allChars(A.All()) {
+					if A.AllChars() {
 						// Special case for times.
 						return encodeTime(c, A, B)
 					}
@@ -1055,46 +1055,46 @@ func init() {
 					// Vector.
 					if B.Len() == 1 {
 						// 2 2 2 2 encode 11 is 1 0 1 1.
-						elems := make([]Value, A.Len())
+						elems := newVectorEditor(A.Len(), nil)
 						b := B.At(0)
 						for i := A.Len() - 1; i >= 0; i-- {
 							quo, rem := QuoRem(op, c, b, A.At(i))
-							elems[i] = rem
+							elems.Set(i, rem)
 							b = quo
 						}
-						return NewVector(elems)
+						return elems.Publish()
 					}
 					if A.Len() == 1 {
 						// 3 encode 1 2 3 4 is 1 2 0 1
-						elems := make([]Value, B.Len())
+						elems := newVectorEditor(B.Len(), nil)
 						a := A.At(0)
 						for i := range B.All() {
 							_, rem := QuoRem(op, c, B.At(i), a)
-							elems[i] = rem
+							elems.Set(i, rem)
 						}
-						return NewVector(elems)
+						return elems.Publish()
 					}
 					// Matrix.
 					// 2 2 encode 1 2 3 has 3 columns encoding 1 2 3 downwards:
 					// 0 1 1
 					// 1 0 1
-					elems := make([]Value, A.Len()*B.Len())
+					elems := newVectorEditor(A.Len()*B.Len(), nil)
 					shape := []int{A.Len(), B.Len()}
 					pfor(true, A.Len(), B.Len(), func(lo, hi int) {
 						for j := lo; j < hi; j++ {
 							b := B.At(j)
 							for i := A.Len() - 1; i >= 0; i-- {
 								quo, rem := QuoRem(op, c, b, A.At(i))
-								elems[j+i*B.Len()] = rem
+								elems.Set(j+i*B.Len(), rem)
 								b = quo
 							}
 						}
 					})
-					return NewMatrix(shape, NewVector(elems))
+					return NewMatrix(shape, elems.Publish())
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					A, B := u.(*Vector), v.(*Matrix)
-					elems := make([]Value, A.Len()*B.data.Len())
+					elems := newVectorEditor(A.Len()*B.data.Len(), nil)
 					shape := append([]int{A.Len()}, B.Shape()...)
 					const op = "encode"
 					pfor(true, A.Len(), B.data.Len(), func(lo, hi int) {
@@ -1102,12 +1102,12 @@ func init() {
 							b := B.data.At(j)
 							for i := A.Len() - 1; i >= 0; i-- {
 								quo, rem := QuoRem(op, c, b, A.At(i))
-								elems[j+i*B.data.Len()] = rem
+								elems.Set(j+i*B.data.Len(), rem)
 								b = quo
 							}
 						}
 					})
-					return NewMatrix(shape, NewVector(elems))
+					return NewMatrix(shape, elems.Publish())
 				},
 			},
 		},
@@ -1118,15 +1118,15 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					return NewVector(membership(c, u.(*Vector), v.(*Vector))).shrink()
+					return membership(c, u.(*Vector), v.(*Vector)).shrink()
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					m := u.(*Matrix)
 					data := membership(c, m.data, v.(*Matrix).data)
 					if m.Rank() <= 1 {
-						return NewVector(data).shrink()
+						return data.shrink()
 					}
-					return NewMatrix(m.shape, NewVector(data))
+					return NewMatrix(m.shape, data)
 				},
 			},
 		},
@@ -1150,21 +1150,21 @@ func init() {
 					sort.SliceStable(sortedA, func(i, j int) bool {
 						return OrderedCompare(c, sortedA[i].v, sortedA[j].v) < 0
 					})
-					indices := make([]Value, B.Len())
+					indices := newVectorEditor(B.Len(), nil)
 					work := 2 * (1 + int(math.Log2(float64(A.Len()))))
 					pfor(true, work, B.Len(), func(lo, hi int) {
 						for i := lo; i < hi; i++ {
 							b := B.At(i)
-							indices[i] = Int(origin - 1)
+							indices.Set(i, Int(origin-1))
 							pos := sort.Search(len(sortedA), func(j int) bool {
 								return OrderedCompare(c, sortedA[j].v, b) >= 0
 							})
 							if pos < len(sortedA) && OrderedCompare(c, sortedA[pos].v, b) == 0 {
-								indices[i] = Int(sortedA[pos].index)
+								indices.Set(i, Int(sortedA[pos].index))
 							}
 						}
 					})
-					return NewVector(indices)
+					return indices.Publish()
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					A, B := u.(*Matrix), v.(*Matrix)
@@ -1179,22 +1179,22 @@ func init() {
 						shape = []int{1}
 					}
 					n := A.data.Len() / A.shape[0] // elements in each comparison
-					indices := make([]Value, B.data.Len()/n)
+					indices := newVectorEditor(B.data.Len()/n, nil)
 					pfor(true, n, B.data.Len()/n, func(lo, hi int) {
 						for i := lo; i < hi; i++ {
-							indices[i] = Int(origin - 1)
+							indices.Set(i, Int(origin-1))
 							for j := 0; j < A.data.Len(); j += n {
-								if andBool(c, A.data.Slice(j, j+n), B.data.Slice(i*n, (i+1)*n)) {
-									indices[i] = Int(j/n + origin)
+								if allEqual(c, A.data, j, B.data, i*n, n) {
+									indices.Set(i, Int(j/n+origin))
 									break
 								}
 							}
 						}
 					})
 					if len(shape) == 1 {
-						return NewVector(indices)
+						return indices.Publish()
 					}
-					return NewMatrix(shape, NewVector(indices))
+					return NewMatrix(shape, indices.Publish())
 				},
 			},
 		},
@@ -1305,7 +1305,7 @@ func init() {
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					uu := u.(*Vector)
-					return NewVector(append(uu.All(), v.(*Vector).All()...))
+					return NewVectorSeq(uu.All(), v.(*Vector).All())
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return u.(*Matrix).catenate(v.(*Matrix))
@@ -1319,7 +1319,7 @@ func init() {
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
 					uu := u.(*Vector)
-					return NewVector(append(uu.All(), v.(*Vector).All()...))
+					return NewVectorSeq(uu.All(), v.(*Vector).All())
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return u.(*Matrix).catenateFirst(v.(*Matrix))
@@ -1344,28 +1344,22 @@ func init() {
 					if n < 0 {
 						nElems = -nElems
 					}
-					elems := make([]Value, nElems)
 					fill := vv.fillValue()
 					switch {
 					case n < 0:
 						if nElems > len {
-							for i := 0; i < nElems-len; i++ {
-								elems[i] = fill
-							}
-							copy(elems[nElems-len:], vv.Slice(0, len))
-						} else {
-							copy(elems, vv.Slice(len-nElems, vv.Len()))
+							return NewVectorSeq(repeat(fill, nElems-len), vv.All())
 						}
+						return NewVectorSeq(vv.Slice(int(len-nElems), vv.Len()))
 					case n == 0:
+						return NewVectorSeq()
 					case n > 0:
 						if nElems > len {
-							for i := len; i < nElems; i++ {
-								elems[i] = fill
-							}
+							return NewVectorSeq(vv.All(), repeat(fill, int(nElems-len)))
 						}
-						copy(elems, vv.All())
+						return NewVectorSeq(vv.Slice(0, int(nElems)))
 					}
-					return NewVector(elems)
+					panic("unreachable")
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return v.(*Matrix).take(c, u.(*Vector))
@@ -1390,15 +1384,15 @@ func init() {
 						if -n > len {
 							return empty
 						}
-						vv = NewVector(vv.Slice(0, len+n))
+						vv = NewVectorSeq(vv.Slice(0, len+n))
 					case n == 0:
 					case n > 0:
 						if n > len {
 							return empty
 						}
-						vv = NewVector(vv.Slice(n, vv.Len()))
+						vv = NewVectorSeq(vv.Slice(n, vv.Len()))
 					}
-					return vv.Copy()
+					return vv
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return v.(*Matrix).drop(c, u.(*Vector))
@@ -1482,7 +1476,7 @@ func init() {
 					if count > 1e8 {
 						Errorf("fill: result too large: %d elements", count)
 					}
-					result := make([]Value, 0, count)
+					result := newVectorEditor(0, nil)
 					jx := 0
 					var zeroVal Value
 					if j.AllChars() {
@@ -1494,19 +1488,19 @@ func init() {
 						y := x.(Int)
 						switch {
 						case y == 0:
-							result = append(result, zeroVal)
+							result.Append(zeroVal)
 						case y < 0:
 							for y = -y; y > 0; y-- {
-								result = append(result, zeroVal)
+								result.Append(zeroVal)
 							}
 						default:
 							for ; y > 0; y-- {
-								result = append(result, j.At(jx))
+								result.Append(j.At(jx))
 							}
 							jx++
 						}
 					}
-					return NewVector(result)
+					return result.Publish()
 				},
 			},
 		},

@@ -40,10 +40,6 @@ func (c Char) Eval(Context) Value {
 	return c
 }
 
-func (c Char) Copy() Value {
-	return c
-}
-
 func (c Char) Inner() Value {
 	return c
 }
@@ -55,7 +51,7 @@ func (c Char) toType(op string, conf *config.Config, which valueType) Value {
 	case vectorType:
 		return oneElemVector(c)
 	case matrixType:
-		return NewMatrix([]int{1}, NewVector([]Value{c}))
+		return NewMatrix([]int{1}, NewVector(c))
 	}
 	Errorf("%s: cannot convert char to %s", op, which)
 	return nil

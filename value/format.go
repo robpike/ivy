@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"robpike.io/ivy/config"
 )
@@ -56,12 +55,7 @@ func fmtText(c Context, u, v Value) Value {
 	default:
 		Errorf("cannot format '%s'", val.Sprint(config))
 	}
-	str := b.String()
-	elem := make([]Value, utf8.RuneCountInString(str))
-	for i, r := range str {
-		elem[i] = Char(r)
-	}
-	return NewVector(elem)
+	return newCharVector(b.String())
 }
 
 // formatString returns the format string given u, the lhs of a binary text invocation.
