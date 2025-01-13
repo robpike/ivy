@@ -865,6 +865,12 @@ rho transp 1 0 2 rho 0
 	 (9 10) (12)
 	(13 14) (16)
 
+0 part 2 2 rho iota 4
+	#
+
+rho 0 part 2 2 rho iota 4
+	2 0
+
 1 1 0 0 part 4 4  rho iota 16
 	  (1 2)
 	  (5 6)

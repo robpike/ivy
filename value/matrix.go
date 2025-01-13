@@ -898,11 +898,8 @@ func (m *Matrix) partition(scoreM *Matrix) Value {
 	score := scoreM.data
 	lastDim := m.shape[len(m.shape)-1]
 	if scoreM.shape[0] == 1 {
-		n := score.uintAt(0, "part: score")
-		if n == 0 {
-			Errorf("part: empty score")
-		}
 		// Make a new score the width of the matrix.
+		n := score.uintAt(0, "part: score")
 		x := make([]Value, lastDim)
 		for i := range x {
 			x[i] = Int(n)
