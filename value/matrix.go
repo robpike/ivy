@@ -894,14 +894,22 @@ func (m *Matrix) partition(scoreM *Matrix) Value {
 	if len(scoreM.shape) != 1 {
 		Errorf("part: left argument must be scalar or vector")
 	}
+	// TODO WHAT ABOUT EMPTY MATRIX
 	score := scoreM.data
+	lastDim := m.shape[len(m.shape)-1]
 	if scoreM.shape[0] == 1 {
-		if n := score.uintAt(0, "part: score"); n == 0 {
+		n := score.uintAt(0, "part: score")
+		if n == 0 {
 			Errorf("part: empty score")
 		}
-		return m
+		// Make a new score the width of the matrix.
+		x := make([]Value, lastDim)
+		for i := range x {
+			x[i] = Int(n)
+		}
+		score = NewVector(x...)
 	}
-	if score.Len() != m.shape[len(m.shape)-1] {
+	if score.Len() != lastDim {
 		Errorf("part: length mismatch")
 	}
 	res, dim := m.data.doPartition(score)
