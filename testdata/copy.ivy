@@ -1,7 +1,29 @@
-# testing copy on write
-
+# Copy-on-write variable test.
+# Runs incredibly slowly if each recursion copies m.
+# Since m is never modified, runs very quickly with copy-on-write variables.
 m = 1000 1000 rho 1
 op m step2 n = n==0: m; m step2 n-1
 op m step1 n = n==0: m; (m step2 100) step1 n-1
 rho m step1 100
 	1000 1000
+
+# Persistent vector test.
+# Runs incredibly slowly and runs out of memory if each modification copies all of m
+# (especially because all the copies on the stack are preserved during the recursion,
+# so copies are never freed).
+# Runs quickly when only the modified subsections are copied,
+# so that all the live copies share most of their storage.
+op fibinit m = m[1] = 1; m[2] = 1; m
+op m fib n = n <= 2: fibinit m; m = m fib n-1; m[n] = m[n-1] + m[n-2]; m
+((100000 rho 0) fib 100000)[100]
+	354224848179261915075
+
+# Another persistent vector test.
+# Checks that iterated append is efficient.
+op islowta n = n <= 1: 1; (islowta n-1), n
+rho islowta 100000
+	100000
+
+op mslowta n = n <= 1: 1 1 rho 1; (mslowta n-1) ,% n
+rho mslowta 100000
+	100000 1

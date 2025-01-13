@@ -9,29 +9,29 @@ import (
 	"fmt"
 	"iter"
 	"math"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
 
 	"robpike.io/ivy/config"
+	"robpike.io/ivy/value/persist"
 )
 
 type Vector struct {
-	ro []Value
+	s *persist.Slice[Value]
 }
 
 // Len returns the number of elements in v.
-func (v *Vector) Len() int { return len(v.ro) }
+func (v *Vector) Len() int { return v.s.Len() }
 
 // At returns the i'th element of v.
-func (v *Vector) At(i int) Value { return v.ro[i] }
+func (v *Vector) At(i int) Value { return v.s.At(i) }
 
 // All returns all the elements in v, for reading.
-func (v *Vector) All() iter.Seq2[int, Value] { return slices.All(v.ro) }
+func (v *Vector) All() iter.Seq2[int, Value] { return v.s.All() }
 
 // Slice returns a slice v[i:j], for reading.
-func (v *Vector) Slice(i, j int) iter.Seq2[int, Value] { return slices.All(v.ro[i:j]) }
+func (v *Vector) Slice(i, j int) iter.Seq2[int, Value] { return v.s.Slice(i, j) }
 
 func (v *Vector) String() string {
 	return "(" + v.Sprint(debugConf) + ")"
@@ -39,64 +39,52 @@ func (v *Vector) String() string {
 
 // edit returns a vectorEditor for creating a modified copy of v.
 func (v *Vector) edit() *vectorEditor {
-	return &vectorEditor{data: slices.Clone(v.ro)}
+	return &vectorEditor{v.s.Transient()}
 }
 
 // A vectorEditor prepares a new vector by applying a sequence
 // of edits to a copy of an existing vector.
 type vectorEditor struct {
-	data []Value
+	t *persist.TransientSlice[Value]
 }
 
 // newVectorEditor returns a vectorEditor editing a vector of length size
 // with all elements set to def.
 func newVectorEditor(size int, def Value) *vectorEditor {
-	data := make([]Value, size)
-	for i := range size {
-		data[i] = def
+	t := new(persist.TransientSlice[Value])
+	if size > 0 {
+		t.Resize(size)
+		for i := range size {
+			t.Set(i, def)
+		}
 	}
-	return &vectorEditor{data: data}
+	return &vectorEditor{t: t}
 }
 
 // All returns all the elements in v, for reading.
-func (v *vectorEditor) All() iter.Seq2[int, Value] {
-	return slices.All(v.data)
-}
+func (v *vectorEditor) All() iter.Seq2[int, Value] { return v.t.All() }
 
 // Len returns the number of elements in v.
-func (v *vectorEditor) Len() int { return len(v.data) }
+func (v *vectorEditor) Len() int { return v.t.Len() }
 
 // At returns the i'th element of v.
-func (v *vectorEditor) At(i int) Value { return v.data[i] }
+func (v *vectorEditor) At(i int) Value { return v.t.At(i) }
 
 // Set sets the i'th element of v to x.
-func (v *vectorEditor) Set(i int, x Value) {
-	v.data[i] = x
-}
+func (v *vectorEditor) Set(i int, x Value) { v.t.Set(i, x) }
 
 // Append appends the values to v.
-func (v *vectorEditor) Append(values ...Value) {
-	for _, x := range values {
-		v.data = append(v.data, x)
-	}
-}
+func (v *vectorEditor) Append(values ...Value) { v.t.Append(values...) }
 
 // Resize resizes v to have n elements.
 // The value of newly accessible elements is undefined.
 // (It is expected that the caller will set them.)
-func (v *vectorEditor) Resize(n int) {
-	for cap(v.data) < n {
-		v.data = append(v.data[:cap(v.data)], nil)
-	}
-	v.data = v.data[:n]
-}
+func (v *vectorEditor) Resize(n int) { v.t.Resize(n) }
 
 // Publish returns the edited state as an immutable Vector.
 // The vectorEditor must not be used after Publish.
 func (v *vectorEditor) Publish() *Vector {
-	data := v.data
-	v.data = nil
-	return &Vector{ro: data}
+	return &Vector{v.t.Persist()}
 }
 
 // NewVectorSeq creates a new vector from a sequence.
@@ -662,4 +650,13 @@ func (v *Vector) shrink() Value {
 		return v.At(0)
 	}
 	return v
+}
+
+// catenate returns the concatenation v, x.
+func (v *Vector) catenate(x *Vector) *Vector {
+	edit := v.edit()
+	for _, e := range x.All() {
+		edit.Append(e)
+	}
+	return edit.Publish()
 }
