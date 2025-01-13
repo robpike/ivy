@@ -50,10 +50,44 @@ func (m *Matrix) Data() *Vector {
 	return m.data
 }
 
+// widths is a type that records the maximum widths of each column,
+// then reports them back as needed. It handles two cases: If all
+// widths are small, it always replies with the maximum width seen;
+// otherwise it replies with the maximum for this column alone.
+type widths struct {
+	wid []int // Maximum width seen in each column.
+	max int   // The maximum over all columns.
+
+}
+
+const widthThreshold = 5 // All widths below this -> regular grid.
+
+// addColumn records the width for column i, either updating that
+// column or adding a new one. i is never more than len(w.wid).
+func (w *widths) addColumn(i, wid int) {
+	switch {
+	case i < len(w.wid):
+		w.wid[i] = max(wid, w.wid[i])
+	case i == len(w.wid):
+		w.wid = append(w.wid, wid)
+	default:
+		Errorf("cannot happen: out of range in addColumn")
+	}
+	w.max = max(w.max, wid)
+}
+
+// column returns the width to use to display column i.
+func (w *widths) column(i int) int {
+	if w.max < widthThreshold {
+		return w.max
+	}
+	return w.wid[i]
+}
+
 // elemStrs returns the formatted elements of the matrix and the width of the widest element.
 // Each element is represented by a slice of lines, that is, the return value is indexed by
 // [elem][line].
-func (m *Matrix) elemStrs(conf *config.Config) ([][]string, int) {
+func (m *Matrix) elemStrs(conf *config.Config) ([][]string, *widths) {
 	// Format the matrix as a vector, and then in write2d we rearrange the pieces.
 	// In the formatting, there's no need for spacing the elements as we'll cut
 	// them apart ourselves using column information. Spaces will be added
@@ -61,28 +95,28 @@ func (m *Matrix) elemStrs(conf *config.Config) ([][]string, int) {
 	v := m.data
 	lines, cols := v.multiLineSprint(conf, v.allScalars(), v.AllChars(), !withSpaces, !trimTrailingSpace)
 	strs := make([][]string, m.data.Len())
-	wid := 0
+	wid := widths{}
+	lastDim := m.shape[len(m.shape)-1]
 	for i := range m.data.All() {
 		rows := make([]string, len(lines))
 		for j, line := range lines {
 			if i == 0 {
 				rows[j] = line[:cols[0]]
+				wid.addColumn(0, len(rows[j]))
 			} else {
 				rows[j] = line[cols[i-1]:cols[i]]
+				wid.addColumn(i%lastDim, len(rows[j]))
 			}
-		}
-		if len(rows[0]) > wid {
-			wid = len(rows[0])
 		}
 		strs[i] = rows
 	}
-	return strs, wid
+	return strs, &wid
 }
 
 // write2d prints the 2d matrix m into the buffer.
 // elems is a slice (of slices) of already-printed values.
 // The receiver provides only the shape of the matrix.
-func (m *Matrix) write2d(b *bytes.Buffer, elems [][]string, nested bool, width int) {
+func (m *Matrix) write2d(b *bytes.Buffer, elems [][]string, nested bool, wid *widths) {
 	nrows := m.shape[0]
 	ncols := m.shape[1]
 	index := 0
@@ -113,7 +147,7 @@ func (m *Matrix) write2d(b *bytes.Buffer, elems [][]string, nested bool, width i
 			}
 			for col := 0; col < ncols; col++ {
 				str := elems[index+col][line]
-				b.WriteString(blanks(width - len(str)))
+				b.WriteString(blanks(wid.column(col) - len(str)))
 				b.WriteString(str)
 				if (col+1)%ncols != 0 {
 					b.WriteString(" ")
@@ -194,8 +228,8 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 			}
 			break
 		}
-		strs, wid := m.elemStrs(conf)
-		m.write2d(&b, strs, nested, wid)
+		strs, width := m.elemStrs(conf)
+		m.write2d(&b, strs, nested, width)
 	case 3:
 		// If it's all chars, print it without padding or quotes.
 		if m.data.AllChars() {
@@ -215,7 +249,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 		// global width, and use that to print each 2d submatrix.
 		n2d := m.shape[0]    // number of 2d submatrices.
 		size := m.ElemSize() // number of elems in each submatrix.
-		strs, wid := m.elemStrs(conf)
+		strs, width := m.elemStrs(conf)
 		start := 0
 		for i := 0; i < n2d; i++ {
 			if i > 0 {
@@ -225,7 +259,7 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 				shape: m.shape[1:],
 				// no data; write2d uses strs, not data
 			}
-			m.write2d(&b, strs[start:start+size], nested, wid)
+			m.write2d(&b, strs[start:start+size], nested, width)
 			start += size
 		}
 	default:
