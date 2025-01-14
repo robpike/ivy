@@ -4,7 +4,10 @@
 
 package value
 
-import "sync"
+import (
+	"slices"
+	"sync"
+)
 
 // An indexState holds the state needed to locate
 // the values denoted by an index expression left[index],
@@ -15,7 +18,9 @@ type indexState struct {
 	edit   *vectorEditor
 	shape  []int // underlying shape for lhs
 
-	indexes []*Vector // Vectors of all Int, all in range for shape
+	indexes     []*Vector // Vectors of all Int, all in range for shape...
+	indexVector *Vector   // ... or vector of index vectors
+	indexDim    int       // number of dimensions indexed
 
 	outShape []int // output shape (nil is scalar)
 	outSize  int   // output size (# scalars)
@@ -24,9 +29,9 @@ type indexState struct {
 // init initializes ix to describe top, which is left[index].
 // Left and index will be evaluated (right to left),
 // while top is only for its ProgString method.
-// If lvar is not nil, then it is the variable corresponding to left,
-// to be used for assignments.
-func (ix *indexState) init(context Context, top, left Expr, lvar *Var, index []Expr) {
+// If lvarx is not nil, then it is the variable expression
+// corresponding to left, to be used for assignments.
+func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, index []Expr) {
 	// Evaluate indexes, make sure all are Vector of Int.
 	// Compute shape of result as we go.
 	// Scalar indexes drop a dimension,
@@ -60,17 +65,11 @@ func (ix *indexState) init(context Context, top, left Expr, lvar *Var, index []E
 				ix.outShape = append(ix.outShape, shape[j])
 			}
 		}
-		for _, v := range ix.indexes[i].All() {
-			if _, ok := v.(Int); !ok {
-				Errorf("invalid index %s (type %s) in %s", v, whichType(v), top.ProgString())
-			}
-		}
 	}
 
 	// Walked indexes right-to-left, so reverse shape.
-	for i, j := 0, len(ix.outShape)-1; i < j; i, j = i+1, j-1 {
-		ix.outShape[i], ix.outShape[j] = ix.outShape[j], ix.outShape[i]
-	}
+	slices.Reverse(ix.outShape)
+
 	// The offsets stored in outShapeToUpdate must also be flipped.
 	for i, o := range outShapeToUpdate {
 		outShapeToUpdate[i] = len(ix.outShape) - o - 1
@@ -78,7 +77,20 @@ func (ix *indexState) init(context Context, top, left Expr, lvar *Var, index []E
 
 	// Can now safely evaluate left side
 	// (must wait until indexes have been evaluated, R-to-L).
-	ix.lhs = left.Eval(context)
+	var lvar *Var
+	if lvarx != nil {
+		if lvarx.Local >= 1 {
+			lvar = context.Local(lvarx.Local)
+		} else {
+			lvar = context.Global(lvarx.Name)
+			if lvar == nil {
+				Errorf("undefined global variable %q", lvarx.Name)
+			}
+		}
+		ix.lhs = lvar.value
+	} else {
+		ix.lhs = left.Eval(context)
+	}
 	switch lhs := ix.lhs.(type) {
 	default:
 		Errorf("cannot index %s (%v)", left.ProgString(), whichType(lhs))
@@ -96,8 +108,12 @@ func (ix *indexState) init(context Context, top, left Expr, lvar *Var, index []E
 		ix.shape = []int{lhs.Len()}
 	}
 
-	// Finish the result shape.
 	origin := Int(context.Config().Origin())
+	if ix.initVectorIndex(origin) {
+		return
+	}
+
+	// Finish the result shape.
 	if len(ix.indexes) > len(ix.shape) {
 		Errorf("too many dimensions in %s indexing shape %v", top.ProgString(), NewIntVector(ix.shape...))
 	}
@@ -113,9 +129,15 @@ func (ix *indexState) init(context Context, top, left Expr, lvar *Var, index []E
 	}
 	ix.outShape = append(ix.outShape, ix.shape[len(index):]...)
 	ix.outSize = size(ix.outShape)
+	ix.indexDim = len(index)
 
 	// Check indexes are all valid.
 	for i, v := range ix.indexes {
+		for _, vj := range v.All() {
+			if _, ok := vj.(Int); !ok {
+				Errorf("invalid index %s (type %s) in %s", vj, whichType(vj), top.ProgString())
+			}
+		}
 		for j := range v.All() {
 			vj := v.At(j).(Int)
 			if vj < origin || vj-origin >= Int(ix.shape[i]) {
@@ -135,6 +157,48 @@ func (ix *indexState) init(context Context, top, left Expr, lvar *Var, index []E
 			}
 		}
 	}
+}
+
+func (ix *indexState) initVectorIndex(origin Int) bool {
+	// Check for single index, vector of vectors,
+	// all of which have the same length <= rank of lhs.
+	if len(ix.indexes) != 1 || ix.indexes[0] == nil || ix.indexes[0].Len() == 0 {
+		return false
+	}
+	data := ix.indexes[0]
+	v, ok := data.At(0).(*Vector)
+	if !ok {
+		return false
+	}
+	if v.Len() > len(ix.shape) {
+		Errorf("index vector (%v) too long for shape %v", v, NewIntVector(ix.shape...))
+	}
+	n := v.Len()
+	for _, x := range data.All() {
+		v, ok := x.(*Vector)
+		if !ok {
+			Errorf("mixed vector and non-vector indices %v and %v", data.At(0), x)
+		}
+		if v.Len() != n {
+			Errorf("index vectors of mixed lengths %v and %v", data.At(0), v)
+		}
+		// Check vector content against shape.
+		for j, vj := range v.All() {
+			k, ok := vj.(Int)
+			if !ok {
+				Errorf("index vector %v contains invalid index %v (type %s)", v, vj, whichType(vj))
+			}
+			if k < origin || k-origin >= Int(ix.shape[j]) {
+				Errorf("index vector %v out of range for shape %v", v, NewIntVector(ix.shape...))
+			}
+		}
+	}
+	ix.indexes = nil
+	ix.indexVector = data
+	ix.indexDim = n
+	ix.outShape = append(ix.outShape, ix.shape[n:]...)
+	ix.outSize = size(ix.outShape)
+	return true
 }
 
 // Index returns left[index].
@@ -158,28 +222,44 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 	}
 
 	data := newVectorEditor(ix.outSize, nil)
-	copySize := int(size(ix.shape[len(ix.indexes):]))
+	copySize := int(size(ix.shape[ix.indexDim:]))
 	n := data.Len() / copySize
-	coord := make([]int, len(ix.indexes))
-	for i := 0; i < n; i++ {
-		// Copy data for indexes[coord].
-		offset := 0
-		for j := 0; j < len(ix.indexes); j++ {
-			if j > 0 {
-				offset *= ix.shape[j]
-			}
-			offset += int(ix.indexes[j].At(coord[j]).(Int) - origin)
-		}
-		for k := range copySize {
-			data.Set(i*copySize+k, ix.vector.At(offset*copySize+k))
-		}
 
-		// Increment coord.
-		for j := len(coord) - 1; j >= 0; j-- {
-			if coord[j]++; coord[j] < ix.indexes[j].Len() {
-				break
+	if ix.indexVector != nil {
+		for i, v := range ix.indexVector.All() {
+			offset := 0
+			for j, vj := range v.(*Vector).All() {
+				if j > 0 {
+					offset *= ix.shape[j]
+				}
+				offset += int(vj.(Int) - origin)
 			}
-			coord[j] = 0
+			for k := range copySize {
+				data.Set(i*copySize+k, ix.vector.At(offset*copySize+k))
+			}
+		}
+	} else {
+		coord := make([]int, ix.indexDim)
+		for i := 0; i < n; i++ {
+			// Copy data for indexes[coord].
+			offset := 0
+			for j := 0; j < len(ix.indexes); j++ {
+				if j > 0 {
+					offset *= ix.shape[j]
+				}
+				offset += int(ix.indexes[j].At(coord[j]).(Int) - origin)
+			}
+			for k := range copySize {
+				data.Set(i*copySize+k, ix.vector.At(offset*copySize+k))
+			}
+
+			// Increment coord.
+			for j := len(coord) - 1; j >= 0; j-- {
+				if coord[j]++; coord[j] < ix.indexes[j].Len() {
+					break
+				}
+				coord[j] = 0
+			}
 		}
 	}
 
@@ -197,9 +277,9 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 // while top is only for its ProgString method.
 // The caller must check that left is a variable expression
 // and pass lvar, the variable corresponding to left.
-func IndexAssign(context Context, top, left Expr, lvar *Var, index []Expr, right Expr, rhs Value) {
+func IndexAssign(context Context, top, left Expr, lvarx *VarExpr, index []Expr, right Expr, rhs Value) {
 	var ix indexState
-	ix.init(context, top, left, lvar, index)
+	ix.init(context, top, left, lvarx, index)
 
 	// Unless assigning to a single cell, RHS must be scalar or
 	// have same shape as indexed expression.
@@ -250,9 +330,33 @@ func IndexAssign(context Context, top, left Expr, lvar *Var, index []Expr, right
 		return
 	}
 
-	copySize := int(size(ix.shape[len(ix.indexes):]))
+	copySize := int(size(ix.shape[ix.indexDim:]))
 	n := ix.outSize / copySize
 	pfor(true, copySize, n, func(lo, hi int) {
+		if ix.indexVector != nil {
+			for i := lo; i < hi; i++ {
+				v := ix.indexVector.At(i).(*Vector)
+				offset := 0
+				for j, vj := range v.All() {
+					if j > 0 {
+						offset *= ix.shape[j]
+					}
+					offset += int(vj.(Int) - origin)
+				}
+				dstOff := offset * copySize
+				if rscalar != nil {
+					for j := range copySize {
+						ix.edit.Set(dstOff+j, rscalar)
+					}
+				} else {
+					for j := range copySize {
+						ix.edit.Set(dstOff+j, rvector.At(j+i*copySize))
+					}
+				}
+			}
+			return
+		}
+
 		// Compute starting coordinate index.
 		coord := make([]int, len(ix.indexes))
 		i := lo

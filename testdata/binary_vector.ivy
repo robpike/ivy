@@ -873,3 +873,8 @@ op f x = n=n+1; x
 x y = (f 1) (f 2)
 x y n
 	1 2 2
+
+# Used to evaluate the leftmost v before the index list,
+# so that v=iota 3 hadn't run and v was undefined.
+v[+(v=iota 3) in 1 2 3]
+	1 1 1

@@ -37,16 +37,7 @@ func Assign(context Context, left, right Expr, rhs Value) {
 	case *IndexExpr:
 		switch lv := lhs.Left.(type) {
 		case *VarExpr:
-			var v *Var
-			if lv.Local >= 1 {
-				v = context.Local(lv.Local)
-			} else {
-				v = context.Global(lv.Name)
-				if v == nil {
-					Errorf("undefined global variable %q", lv.Name)
-				}
-			}
-			IndexAssign(context, lhs, lhs.Left, v, lhs.Right, right, rhs)
+			IndexAssign(context, lhs, lhs.Left, lv, lhs.Right, right, rhs)
 			return
 		}
 	case VectorExpr:
