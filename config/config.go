@@ -43,7 +43,7 @@ type Config struct {
 	seed        uint64
 	debug       [len(DebugFlags)]int
 	traceLevel  int
-	source      *rand.PCG
+	source      *rand.ChaCha8
 	random      *rand.Rand
 	randLock    sync.Mutex
 	maxBits     uint           // Maximum length of an integer; 0 means no limit.
@@ -68,7 +68,7 @@ func (c *Config) init() {
 		c.origin = 1
 		c.seed = uint64(time.Now().UnixNano())
 		c.bigOrigin = big.NewInt(1)
-		c.source = rand.NewPCG(c.seed, c.seed) // Need two words. Oh well.
+		c.source = rand.NewChaCha8(makeSeed(c.seed))
 		c.random = rand.New(c.source)
 		c.maxBits = 1e6
 		c.maxDigits = 1e4
@@ -221,6 +221,12 @@ func (c *Config) Random() *rand.Rand {
 	return c.random
 }
 
+// Source returns the underlying source for random numbers.
+func (c *Config) Source() *rand.ChaCha8 {
+	c.init()
+	return c.source
+}
+
 // RandomSeed returns the seed used to initialize the random number generator.
 func (c *Config) RandomSeed() uint64 {
 	c.LockRandom()
@@ -229,12 +235,27 @@ func (c *Config) RandomSeed() uint64 {
 	return seed
 }
 
+// makeSeed copies seed a bunch of times to make a 32-byte seed for ChaCha8.
+func makeSeed(seed uint64) [32]byte {
+	// Seed is 32 bytes. Best we can do I guess.
+	word := [8]uint8{}
+	for i := range 64 / 8 {
+		word[i] = uint8(seed)
+		seed >>= 8
+	}
+	buf := [32]byte{}
+	for i := 0; i < 32; i += 8 {
+		copy(buf[i:], word[:])
+	}
+	return buf
+}
+
 // SetRandomSeed sets the seed for the random number generator.
 func (c *Config) SetRandomSeed(seed uint64) {
 	c.init()
 	c.LockRandom()
 	c.seed = seed
-	c.source.Seed(seed, seed) // All we can do for now.
+	c.source.Seed(makeSeed(seed)) // All we can do for now.
 	c.UnlockRandom()
 }
 

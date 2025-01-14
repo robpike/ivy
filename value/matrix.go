@@ -894,7 +894,6 @@ func (m *Matrix) partition(scoreM *Matrix) Value {
 	if len(scoreM.shape) != 1 {
 		Errorf("part: left argument must be scalar or vector")
 	}
-	// TODO WHAT ABOUT EMPTY MATRIX
 	score := scoreM.data
 	lastDim := m.shape[len(m.shape)-1]
 	if scoreM.shape[0] == 1 {

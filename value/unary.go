@@ -5,9 +5,9 @@
 package value
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math/big"
-	"math/bits"
 )
 
 // Unary operators.
@@ -54,21 +54,16 @@ func bigFloatWrap(op func(*big.Float, *big.Float) *big.Float) func(Context, *big
 // bigIntRand sets a to a random number in [origin, origin+b].
 func bigIntRand(c Context, a, b *big.Int) *big.Int {
 	config := c.Config()
-	bWords := b.Bits()
-	words := make([]big.Word, len(bWords))
 	config.LockRandom()
-	// Words are in little-endian order.
-	for i := range words {
-		if i < len(words)-1 || words[i] == (1<<bits.UintSize)-1 { // Word is a uint.
-			// This will work on a 32-bit machine but the golden tests will fail.
-			// Probably not worth fixing.
-			words[i] = big.Word(c.Config().Random().Uint())
-		} else {
-			words[i] = big.Word(c.Config().Random().UintN(uint(bWords[i])))
+	for {
+		i, err := rand.Int(config.Source(), b)
+		if err == nil {
+			a.Set(i)
+			break
 		}
 	}
 	config.UnlockRandom()
-	return a.SetBits(words).Add(a, config.BigOrigin())
+	return a
 }
 
 func self(c Context, v Value) Value {
@@ -154,16 +149,9 @@ func bigFloatRand(c Context, f *big.Float) Value {
 	}
 	// We want two integers FloatPrec bits long.
 	config := c.Config()
-	prec := config.FloatPrec()
-	// Word is a uint. We build max by setting all FloatPrec bits.
-	// (If FloatPrec is not a multiple of UintSize, it's still OK, we'll
-	// just make integers longer than the precision will hold, but not much.)
-	maxBits := make([]big.Word, (prec+(bits.UintSize-1))/bits.UintSize)
-	for i := range len(maxBits) {
-		maxBits[i] = big.Word(^uint(0))
-	}
-	max := big.NewInt(0).SetBits(maxBits)
-	max.Add(max, bigIntOne.Int) // We want range [0,n) but we have n-1.
+	max := big.NewInt(1)
+	max.Lsh(max, config.FloatPrec())
+	max.Add(max, bigIntOne.Int) // We want range [0,n).
 	// Now grab a random integer from [0, max)
 	randInt := big.NewInt(0)
 	bigIntRand(c, randInt, max)
