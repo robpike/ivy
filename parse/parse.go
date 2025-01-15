@@ -195,6 +195,10 @@ func (p *Parser) readTokensToNewline(inFunction bool) bool {
 			}
 			continue
 		case scan.EOF:
+			if inFunction && len(p.tokens) == 0 {
+				// EOF is fine for terminating a function.
+				return true
+			}
 			return len(p.tokens) > 0
 		}
 		p.tokens = append(p.tokens, tok)
