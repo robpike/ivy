@@ -100,6 +100,9 @@ func (m *Matrix) elemStrs(conf *config.Config) ([][]string, *widths) {
 	for i := range m.data.All() {
 		rows := make([]string, len(lines))
 		for j, line := range lines {
+			if line == "" { // Blank line between blocks (rows[j] is already empty).
+				continue
+			}
 			if i == 0 {
 				rows[j] = line[:cols[0]]
 				wid.addColumn(0, len(rows[j]))

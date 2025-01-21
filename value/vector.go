@@ -266,7 +266,9 @@ func (v *Vector) multiLineSprint(conf *config.Config, allScalars, allChars, spac
 				lastColumn[n] = line.Len()
 			}
 		}
-		cols[i] = lines[0].Len() // By construction all lines have same length.
+		// By construction all lines have same length (except for empty lines, which
+		// are never the zeroth line.)
+		cols[i] = lines[0].Len()
 		if len(strs) < len(lines) {
 			// Right-fill the lines below this element.
 			padding := blanks(cols[i] - lines[len(lines)-1].Len())
