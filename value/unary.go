@@ -218,21 +218,21 @@ func init() {
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return NewComplex(zero, v)
+					return NewComplex(zero, v).shrink()
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return NewComplex(zero, v)
+					return NewComplex(zero, v).shrink()
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return NewComplex(zero, v)
+					return NewComplex(zero, v).shrink()
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return NewComplex(zero, v)
+					return NewComplex(zero, v).shrink()
 				},
 				complexType: func(c Context, v Value) Value {
 					// Multiply by i.
 					u := v.(Complex)
-					return NewComplex(c.EvalUnary("-", u.imag), u.real)
+					return NewComplex(c.EvalUnary("-", u.imag), u.real).shrink()
 				},
 			},
 		},
@@ -301,7 +301,7 @@ func init() {
 					return unaryBigFloatOp(c, bigFloatWrap((*big.Float).Neg), v)
 				},
 				complexType: func(c Context, v Value) Value {
-					return v.(Complex).neg(c)
+					return v.(Complex).neg(c).shrink()
 				},
 			},
 		},
@@ -323,7 +323,7 @@ func init() {
 					return v.(BigFloat).inverse()
 				},
 				complexType: func(c Context, v Value) Value {
-					return v.(Complex).inverse(c)
+					return v.(Complex).inverse(c).shrink()
 				},
 			},
 		},
@@ -345,7 +345,7 @@ func init() {
 					return v.(BigFloat).inverse()
 				},
 				complexType: func(c Context, v Value) Value {
-					return v.(Complex).inverse(c)
+					return v.(Complex).inverse(c).shrink()
 				},
 				vectorType: func(c Context, v Value) Value {
 					return v.(*Vector).inverse(c)
@@ -394,7 +394,7 @@ func init() {
 				bigFloatType: self,
 				complexType: func(c Context, v Value) Value {
 					u := v.(Complex)
-					return NewComplex(u.real, c.EvalUnary("-", u.imag)).shrink()
+					return NewComplex(u.real, c.EvalUnary("-", u.imag)).shrink().shrink()
 				},
 			},
 		},
@@ -481,7 +481,7 @@ func init() {
 					return unaryBigFloatOp(c, bigFloatWrap((*big.Float).Abs), v)
 				},
 				complexType: func(c Context, v Value) Value {
-					return v.(Complex).abs(c)
+					return v.(Complex).abs(c).shrink()
 				},
 			},
 		},
@@ -523,7 +523,7 @@ func init() {
 				bigRatType:   realPhase,
 				bigFloatType: realPhase,
 				complexType: func(c Context, v Value) Value {
-					return v.(Complex).phase(c)
+					return v.(Complex).phase(c).shrink()
 				},
 			},
 		},

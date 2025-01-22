@@ -199,16 +199,16 @@ func init() {
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
 				intType: func(c Context, u, v Value) Value {
-					return NewComplex(u, v)
+					return NewComplex(u, v).shrink()
 				},
 				bigIntType: func(c Context, u, v Value) Value {
-					return NewComplex(u, v)
+					return NewComplex(u, v).shrink()
 				},
 				bigRatType: func(c Context, u, v Value) Value {
-					return NewComplex(u, v)
+					return NewComplex(u, v).shrink()
 				},
 				bigFloatType: func(c Context, u, v Value) Value {
-					return NewComplex(u, v)
+					return NewComplex(u, v).shrink()
 				},
 			},
 		},
@@ -241,7 +241,7 @@ func init() {
 					return binaryBigFloatOp(c, u, (*big.Float).Add, v)
 				},
 				complexType: func(c Context, u, v Value) Value {
-					return u.(Complex).add(c, v.(Complex))
+					return u.(Complex).add(c, v.(Complex)).shrink()
 				},
 			},
 		},
@@ -271,7 +271,7 @@ func init() {
 					return binaryBigFloatOp(c, u, (*big.Float).Sub, v)
 				},
 				complexType: func(c Context, u, v Value) Value {
-					return u.(Complex).sub(c, v.(Complex))
+					return u.(Complex).sub(c, v.(Complex)).shrink()
 				},
 			},
 		},
@@ -303,7 +303,7 @@ func init() {
 					return binaryBigFloatOp(c, u, (*big.Float).Mul, v)
 				},
 				complexType: func(c Context, u, v Value) Value {
-					return u.(Complex).mul(c, v.(Complex))
+					return u.(Complex).mul(c, v.(Complex)).shrink()
 				},
 			},
 		},
@@ -323,7 +323,7 @@ func init() {
 					return binaryBigFloatOp(c, u, (*big.Float).Quo, v)
 				},
 				complexType: func(c Context, u, v Value) Value {
-					return u.(Complex).div(c, v.(Complex))
+					return u.(Complex).div(c, v.(Complex)).shrink()
 				},
 			},
 		},
