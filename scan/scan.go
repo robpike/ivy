@@ -515,8 +515,15 @@ func (l *Scanner) scanNumber(followingSlashOK, followingJOK bool) bool {
 	digits := digitsForBase(base)
 	// If base 0, accept octal for 0 or hex for 0x or 0X.
 	if base == 0 {
-		if l.accept("0") && l.accept("xX") {
-			digits = digitsForBase(16)
+		if l.accept("0") {
+			switch {
+			case l.accept("xX"):
+				digits = digitsForBase(16)
+			case l.accept("oO"):
+				digits = digitsForBase(8)
+			case l.accept("bB"):
+				digits = digitsForBase(2)
+			}
 		}
 		// Otherwise leave it decimal (0); strconv.ParseInt will take care of it.
 		// We can't set it to 8 in case it's a leading-0 float like 0.69 or 09e4.
@@ -551,12 +558,14 @@ func (l *Scanner) scanNumber(followingSlashOK, followingJOK bool) bool {
 var digits [36 + 1]string // base 36 is OK.
 
 const (
-	decimal = "0123456789"
-	lower   = "abcdefghijklmnopqrstuvwxyz"
-	upper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	decimal = "_0123456789"
+	lower   = "_abcdefghijklmnopqrstuvwxyz"
+	upper   = "_ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
 // digitsForBase returns the digit set for numbers in the specified base.
+// Underscores are always admitted, but will only be accepted during
+// parsing (by strconv.ParseInt) if ibase is 0. This is consistent with Go.
 func digitsForBase(base int) string {
 	if base == 0 {
 		base = 10
@@ -568,9 +577,9 @@ func digitsForBase(base int) string {
 			// Whatever the input base, if it's <= 10 let the parser
 			// decide if it's valid. This also helps us get the always-
 			// base-10 numbers for )specials.
-			d = decimal[:10]
+			d = decimal[:1+10]
 		} else {
-			d = decimal + lower[:base-10] + upper[:base-10]
+			d = decimal + lower[:1+base-10] + upper[:1+base-10]
 		}
 		digits[base] = d
 	}
