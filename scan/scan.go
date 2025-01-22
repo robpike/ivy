@@ -532,7 +532,7 @@ func (l *Scanner) scanNumber(followingSlashOK, followingJOK bool) bool {
 	if l.accept(".") {
 		l.acceptRun(digits)
 	}
-	if l.accept("eE") {
+	if l.accept("eEpP") {
 		l.accept("+-")
 		l.acceptRun("0123456789")
 	}
