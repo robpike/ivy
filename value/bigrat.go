@@ -22,7 +22,7 @@ type BigRat struct {
 func setBigRatFromFloatString(s string) (br BigRat, err error) {
 	// Be safe: Verify that it is floating-point, because otherwise
 	// we need to honor ibase.
-	if !strings.ContainsAny(s, ".eE") {
+	if !strings.ContainsAny(s, ".eEpP") {
 		// Most likely a number like "08".
 		Errorf("bad number syntax: %s", s)
 	}
