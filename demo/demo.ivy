@@ -268,7 +268,7 @@ primes 100
 # A234567890JQK (using 0 for 10, for simplicity).
 # Create the deck using outer product with the ravel operator:
 "A234567890JQK" o., "♠♡♣♢"
-# To shuffle it, ravel into into a vector and index that by 1 through 52, shuffled.
+# To shuffle it, ravel it into a vector and index that by 1 through 52, shuffled.
 (, "A234567890JQK" o., "♠♡♣♢")[52?52]
 # There is no looping construct in ivy, but there is a conditional evaluator.
 # Within a user-defined operator, one can write a condition expression
