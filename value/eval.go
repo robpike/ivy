@@ -1036,7 +1036,7 @@ func flatten(v Value) iter.Seq2[int, Value] {
 	}
 }
 
-// flatternTo flattens the values contained in v,
+// flattenTo flattens the values contained in v,
 // caling yield(off, x0), yield(off+1, x1), ... for successive values.
 // It returns the new next offset to use
 // and whether the iteration should continue at all.
