@@ -1304,8 +1304,7 @@ func init() {
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
-					uu := u.(*Vector)
-					return NewVectorSeq(uu.All(), v.(*Vector).All())
+					return u.(*Vector).catenate(v.(*Vector))
 				},
 				matrixType: func(c Context, u, v Value) Value {
 					return u.(*Matrix).catenate(v.(*Matrix))
