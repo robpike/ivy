@@ -78,15 +78,11 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		exprs, ok := p.Line()
 		var values []value.Value
 		if exprs != nil {
-			if interactive {
-				start := time.Now()
-				user, sys := cpuTime()
-				values = context.Eval(exprs)
-				user2, sys2 := cpuTime()
-				conf.SetCPUTime(time.Since(start), user2-user, sys2-sys)
-			} else {
-				values = context.Eval(exprs)
-			}
+			start := time.Now()
+			user, sys := cpuTime()
+			values = context.Eval(exprs)
+			user2, sys2 := cpuTime()
+			conf.SetCPUTime(time.Since(start), user2-user, sys2-sys)
 		}
 		if printValues(conf, writer, values) {
 			context.AssignGlobal("_", values[len(values)-1])
