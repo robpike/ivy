@@ -705,8 +705,8 @@ func isAllDigits(s string, base int) bool {
 	return true
 }
 
-// isOperator reports whether r is an operator. It may advance the lexer one character
-// if it is a two-character operator.
+// isOperator reports whether r is an operator. It may advance the lexer
+// if it is a multi-character operator.
 func (l *Scanner) isOperator(r rune) bool {
 	n := 0
 	for r == '@' {
@@ -731,10 +731,10 @@ func (l *Scanner) isOperatorToken(r rune) bool {
 		if l.peek() == '%' {
 			l.next()
 		}
-	case '!':
+	case '!', '=':
 		if l.peek() == '=' {
 			l.next()
-			if l.peek() == '=' { // For !==
+			if l.peek() == '=' { // For !== and ===
 				l.next()
 			}
 		}
@@ -752,11 +752,6 @@ func (l *Scanner) isOperatorToken(r rune) bool {
 		if l.peek() == '*' {
 			l.next()
 		}
-	case '=':
-		if l.peek() != '=' {
-			return false
-		}
-		l.next()
 	default:
 		return false
 	}

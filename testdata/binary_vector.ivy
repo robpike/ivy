@@ -878,3 +878,10 @@ x y n
 # so that v=iota 3 hadn't run and v was undefined.
 v[+(v=iota 3) in 1 2 3]
 	1 1 1
+
+# Issue 222: Bad scanning of @===.
+(1 2) (3 4) @=== 1 2
+	1 0
+
+(1 2) (3 4) @!== 1 2
+	0 1
