@@ -521,7 +521,7 @@ func (v *Vector) doPartition(score *Vector) (*Vector, int) {
 		j := i % score.Len()
 		sc = score.uintAt(j, "part: score")
 		if sc != 0 { // Ignore elements with zero score.
-			if i > 0 && (sc > prev || j == 0) { // Add current subvector, start new one.
+			if i > 0 && (sc > prev || j == 0) && accum.Len() > 0 { // Add current subvector, start new one.
 				result.Append(accum.Publish())
 				accum.Resize(0)
 			}
