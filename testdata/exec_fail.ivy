@@ -90,3 +90,6 @@ op (x y) f (z x) = x
 # Expect: shape for matrix is degenerate: (0 3)
 +/% (0 rho 0) o.== 1 2 3
 
+# iota argument must be a small integer: (buggy)
+iota box 'buggy'
+

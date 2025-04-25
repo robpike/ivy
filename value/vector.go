@@ -492,7 +492,7 @@ func (v *Vector) uintAt(i int, msg string) int {
 func (v *Vector) intAt(i int, msg string) int {
 	n, ok := v.At(i).(Int)
 	if !ok {
-		Errorf("%s must be a small integer: %d", msg, v.At(i))
+		Errorf("%s must be a small integer: %s", msg, v.At(i))
 	}
 	return int(n)
 }
