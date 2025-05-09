@@ -97,32 +97,67 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 	return BigFloat{z}
 }
 
-// exponential computes exp(x) using the Taylor series. It converges quickly
-// since we call it with only small values of x.
+// exponential computes exp(x) using the Taylor series.
 func exponential(conf *config.Config, x *big.Float) *big.Float {
 	// The Taylor series for e**x, exp(x), is 1 + x + x²/2! + x³/3! ...
 
-	xN := newF(conf).Set(x)
-	term := newF(conf)
-	n := newF(conf)
-	nFactorial := newF(conf).SetUint64(1)
-	z := newF(conf).SetInt64(1)
-
-	for loop := newLoop(conf, "exponential", x, 10); ; { // Big exponentials converge slowly.
-		term.Set(xN)
-		term.Quo(term, nFactorial)
-		z.Add(z, term)
-
-		if loop.done(z) {
-			break
-		}
-		// Advance x**index (multiply by x).
-		xN.Mul(xN, x)
-		// Advance n, n!.
-		nFactorial.Mul(nFactorial, n.SetUint64(loop.i+1))
+	// exp(x) is finite if 0.5 * 2^big.MinExp <= exp(x) < 1 * 2^big.MaxExp
+	//   => log(2) * (big.MinExp-1) <= x < log(2) * big.MaxExp
+	xTemp := new(big.Float)
+	xTemp.Sub(xTemp.SetMantExp(floatLog2, 31), floatLog2) // log(2)*big.MantExp
+	if x.Cmp(xTemp) >= 0 {
+		return new(big.Float).SetInf(false)
+	}
+	xTemp.Sub(xTemp.SetMantExp(xTemp.Neg(floatLog2), 31), floatLog2) // log(2)*(big.MinExp-1)
+	if x.Cmp(xTemp) < 0 {
+		return floatZero
 	}
 
-	return z
+	// We need 64 bits of added precision in the worst case.
+	const prec = 64
+	exp := x.MantExp(nil)
+	xTemp.SetPrec(0).SetPrec(conf.FloatPrec()).Set(x)
+	// scale |x| > 1 to [0.5, 1) for faster convergence.
+	// Scaling |x| further down favorably trades iterations for multiplications
+	// when scaling the result, with diminishing returns and no further benefit
+	// for |x| < 2^-17, so we scale for |x| >= 2^-16.
+	// With exp(1) for example, this results in 17 vs. 59 iterations at the cost
+	// of 16 multiplications to scale z.
+	const minExp = -16
+	if minExp < exp {
+		xTemp.SetMantExp(xTemp, -exp+minExp)
+		exp += -minExp
+	}
+
+	xN := newFxP(conf, prec).Set(xTemp)
+	term := newFxP(conf, prec)
+	n := newF(conf)
+	nFactorial := newFxP(conf, prec).SetUint64(1)
+	z := newFxP(conf, prec).SetInt64(1)
+
+	// TODO: cannot use loop here since it does not handle the extended precision.
+	for i := uint64(1); ; i++ {
+		term.Quo(xN, nFactorial)
+		// if term < 1 ulp, we are done. Note that 0 >= z.exp >= 1, so z.exp-z.prec+1 never overflows.
+		if term.MantExp(nil) < z.MantExp(nil)-int(z.Prec())+1 {
+			break
+		}
+		z.Add(z, term)
+
+		// Advance x**index (multiply by x).
+		xN.Mul(xN, xTemp)
+		// Advance n, n!.
+		nFactorial.Mul(nFactorial, n.SetUint64(i+1))
+	}
+
+	// scale result
+	for range exp {
+		z.Mul(z, z)
+	}
+
+	// use xTemp as the rounded return value since it was allocated with the
+	// proper precision.
+	return xTemp.Set(z)
 }
 
 // integerPower returns x**exp where exp is an int64 of size <= intBits.
