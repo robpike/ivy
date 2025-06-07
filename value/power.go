@@ -106,11 +106,12 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 	// exit early on extreme values to prevent long running times and simplify the
 	// bounds check to x.exp-1 < log2(big.MaxExp)
 	exp := x.MantExp(nil)
-	if x.Sign() < 0 && exp > 31 {
-		return floatZero
-	}
-	if x.Sign() > 0 && exp > 31 {
-		Errorf("exponential overflow")
+	if x.IsInf() || exp > 31 {
+		if x.Sign() < 0 {
+			return floatZero
+		} else {
+			Errorf("exponential overflow")
+		}
 	}
 
 	// The following is based on R. P. Brent, P. Zimmermann, Modern Computer
