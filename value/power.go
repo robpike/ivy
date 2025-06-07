@@ -5,6 +5,7 @@
 package value
 
 import (
+	"math"
 	"math/big"
 
 	"robpike.io/ivy/config"
@@ -97,67 +98,94 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 	return BigFloat{z}
 }
 
-// exponential computes exp(x) using the Taylor series.
+// exponential computes exp(x) using the Taylor series exp(x) = ∑(x^n/n!) for n ≥ 0.
 func exponential(conf *config.Config, x *big.Float) *big.Float {
-	// The Taylor series for e**x, exp(x), is 1 + x + x²/2! + x³/3! ...
-
-	// exp(x) is finite if 0.5 * 2^big.MinExp <= exp(x) < 1 * 2^big.MaxExp
-	//   => log(2) * (big.MinExp-1) <= x < log(2) * big.MaxExp
-	xTemp := new(big.Float)
-	xTemp.Sub(xTemp.SetMantExp(floatLog2, 31), floatLog2) // log(2)*big.MantExp
-	if x.Cmp(xTemp) >= 0 {
-		return new(big.Float).SetInf(false)
-	}
-	xTemp.Sub(xTemp.SetMantExp(xTemp.Neg(floatLog2), 31), floatLog2) // log(2)*(big.MinExp-1)
-	if x.Cmp(xTemp) < 0 {
+	// exp(x) is finite if 0.5 × 2^big.MinExp ≤ exp(x) < 1 × 2^big.MaxExp
+	//   ⇒ log(2) × (big.MinExp-1) ≤ x < log(2) × big.MaxExp
+	// While this function properly handles values of x outside of this range,
+	// exit early on extreme values to prevent long running times and simplify the
+	// bounds check to x.exp-1 < log2(big.MaxExp)
+	exp := x.MantExp(nil)
+	if x.Sign() < 0 && exp > 31 {
 		return floatZero
 	}
-
-	// We need 64 bits of added precision in the worst case.
-	const prec = 64
-	exp := x.MantExp(nil)
-	xTemp.SetPrec(0).SetPrec(conf.FloatPrec()).Set(x)
-	// scale |x| > 1 to [0.5, 1) for faster convergence.
-	// Scaling |x| further down favorably trades iterations for multiplications
-	// when scaling the result, with diminishing returns and no further benefit
-	// for |x| < 2^-17, so we scale for |x| >= 2^-16.
-	// With exp(1) for example, this results in 17 vs. 59 iterations at the cost
-	// of 16 multiplications to scale z.
-	const minExp = -16
-	if minExp < exp {
-		xTemp.SetMantExp(xTemp, -exp+minExp)
-		exp += -minExp
+	if x.Sign() > 0 && exp > 31 {
+		Errorf("exponential overflow")
 	}
 
-	xN := newFxP(conf, prec).Set(xTemp)
-	term := newFxP(conf, prec)
-	n := newF(conf)
-	nFactorial := newFxP(conf, prec).SetUint64(1)
-	z := newFxP(conf, prec).SetInt64(1)
+	// The following is based on R. P. Brent, P. Zimmermann, Modern Computer
+	// Arithmetic, Cambridge Monographs on Computational and Applied Mathematics
+	// (No. 18), Cambridge University Press
+	// https://members.loria.fr/PZimmermann/mca/pub226.html
+	//
+	// Argument reduction: bring x in the range [0.5, 1)×2^-k for faster
+	// convergence. This also brings extreme hvalues of x for which exp(x) is
+	// 0 or +Inf into a computable range (i.e. for z=x^-k, ∑(z^n/n!) is finite).
+
+	var invert bool
+	z := newF(conf).Set(x)
+	// For z < 0, compute exp(-z) = 1/exp(z).
+	// This is to prevent alternating signs in the power series terms and avoid
+	// cancellation in the summation, as well as keeping the summation in a
+	// known range after argument reduction (1 <= ∑(z^n/n!) < 1+2^(-k+1)).
+	if z.Signbit() {
+		invert = true
+		z.Neg(z)
+	}
+	// §4.3.1 & §4.4.2 (k ≥ 1)
+	k := int(math.Ceil(math.Sqrt(float64(conf.FloatPrec()))))
+	// added precision (§4.4)
+	prec := uint(math.Log(float64(conf.FloatPrec()))) + 1
+	if -k < exp {
+		// -k <= -1 < exp
+		exp += k
+		// 0 ≤ k-1 < exp (condition needed to undo argument reduction)
+		z.SetMantExp(z, -exp)
+		// 2 bits of added precision per multiplication when undoing argument reduction.
+		prec += 2 * uint(exp)
+	}
+
+	n := new(big.Float)
+	t := newFxP(conf, prec)
+	term := newFxP(conf, prec).SetUint64(1)
+	term0 := newFxP(conf, prec)
+	sum := newFxP(conf, prec).SetUint64(1)
 
 	// TODO: cannot use loop here since it does not handle the extended precision.
+	// term(n) = tern(n-1) × x/n is faster than term(n) = x^n / n! (saves one .Mul)
 	for i := uint64(1); ; i++ {
-		term.Quo(xN, nFactorial)
-		// if term < 1 ulp, we are done. Note that 0 >= z.exp >= 1, so z.exp-z.prec+1 never overflows.
-		if term.MantExp(nil) < z.MantExp(nil)-int(z.Prec())+1 {
+		t.Quo(z, n.SetUint64(i))
+		// term.Mul(term, t) requires a temp Float for term. Manage that ourselves
+		// by using our own temp term0, then swap the pointers term and term0.
+		term0.Mul(term, t)
+		term0, term = term, term0
+		sum.Add(sum, term)
+
+		// if term < 1 ulp, we are done. This check is done after the summation since
+		// sum may still change if term ≥ 0.5 ulp, depending on rounding mode.
+		// term < 1 ulp of sum         ⇒ term < 0.5 × 2^(sum.exp-sum.prec+1)
+		// 0 ≤ term < 1 × 2^term.exp   ⇒ 2^term.exp ≤ 2^(sum.exp-sum.prec)
+		// Because of argument reduction, 1 ≤ sum < 1+2^(-k+1) ⇒ sum.exp == 1
+		if term.Sign() == 0 || term.MantExp(nil) <= sum.MantExp(nil) /* ==1 */ -int(sum.Prec()) {
 			break
 		}
-		z.Add(z, term)
-
-		// Advance x**index (multiply by x).
-		xN.Mul(xN, xTemp)
-		// Advance n, n!.
-		nFactorial.Mul(nFactorial, n.SetUint64(i+1))
 	}
 
-	// scale result
+	// undo argument reduction if exp > 0
 	for range exp {
-		z.Mul(z, z)
+		// prevent temp allocations using the same trick as above
+		t, sum = sum, t
+		sum.Mul(t, t)
 	}
 
-	// use xTemp as the rounded return value since it was allocated with the
-	// proper precision.
-	return xTemp.Set(z)
+	if invert {
+		// if sum.IsInf the result will be 0 as intended.
+		return z.Quo(n.SetUint64(1), sum)
+	}
+	if sum.IsInf() {
+		Errorf("exponential overflow")
+	}
+	return z.Set(sum)
 }
 
 // integerPower returns x**exp where exp is an int64 of size <= intBits.
