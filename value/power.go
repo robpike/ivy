@@ -120,7 +120,7 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 	// https://members.loria.fr/PZimmermann/mca/pub226.html
 	//
 	// Argument reduction: bring x in the range [0.5, 1)×2^-k for faster
-	// convergence. This also brings extreme hvalues of x for which exp(x) is
+	// convergence. This also brings extreme values of x for which exp(x) is
 	// 0 or +Inf into a computable range (i.e. for z=x^-k, ∑(z^n/n!) is finite).
 
 	var invert bool
@@ -135,34 +135,36 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 	}
 	// §4.3.1 & §4.4.2 (k ≥ 1)
 	k := int(math.Ceil(math.Sqrt(float64(conf.FloatPrec()))))
-	// added precision (§4.4)
-	prec := uint(math.Log(float64(conf.FloatPrec()))) + 1
+	// Extra precision (§4.4)
+	extra := uint(math.Log(float64(conf.FloatPrec()))) + 1
 	if -k < exp {
 		// -k <= -1 < exp
 		exp += k
 		// 0 ≤ k-1 < exp (condition needed to undo argument reduction)
 		z.SetMantExp(z, -exp)
 		// 2 bits of added precision per multiplication when undoing argument reduction.
-		prec += 2 * uint(exp)
+		extra += 2 * uint(exp)
 	}
 
 	n := new(big.Float)
-	t := newFxP(conf, prec)
-	term := newFxP(conf, prec).SetUint64(1)
-	term0 := newFxP(conf, prec)
-	sum := newFxP(conf, prec).SetUint64(1)
+	t0 := newFxP(conf, extra)
+	t1 := newFxP(conf, extra)
+	term := newFxP(conf, extra).SetUint64(1)
+	sum := newFxP(conf, extra).SetUint64(1)
 
 	// TODO: cannot use loop here since it does not handle the extended precision.
 	// term(n) = tern(n-1) × x/n is faster than term(n) = x^n / n! (saves one .Mul)
 	for i := uint64(1); ; i++ {
-		t.Quo(z, n.SetUint64(i))
-		// term.Mul(term, t) requires a temp Float for term. Manage that ourselves
-		// by using our own temp term0, then swap the pointers term and term0.
-		term0.Mul(term, t)
-		term0, term = term, term0
-		sum.Add(sum, term)
+		t0.Quo(z, n.SetUint64(i))
+		// term.Mul(term, t) and sum.Add(sum, term) require a temp Float for the
+		// result. Manage that ourselves by using our own temps t0, t1, then swap the
+		// pointers.
+		t1.Mul(term, t0)
+		t1, term = term, t1
+		t1.Add(sum, term)
+		t1, sum = sum, t1
 
-		// if term < 1 ulp, we are done. This check is done after the summation since
+		// If term < 1 ulp, we are done. This check is done after the summation since
 		// sum may still change if term ≥ 0.5 ulp, depending on rounding mode.
 		// term < 1 ulp of sum         ⇒ term < 0.5 × 2^(sum.exp-sum.prec+1)
 		// 0 ≤ term < 1 × 2^term.exp   ⇒ 2^term.exp ≤ 2^(sum.exp-sum.prec)
@@ -172,15 +174,15 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 		}
 	}
 
-	// undo argument reduction if exp > 0
+	// Undo argument reduction if exp > 0
 	for range exp {
-		// prevent temp allocations using the same trick as above
-		t, sum = sum, t
-		sum.Mul(t, t)
+		// Prevent temp allocations using the same trick as above
+		t0.Mul(sum, sum)
+		t0, sum = sum, t0
 	}
 
 	if invert {
-		// if sum.IsInf the result will be 0 as intended.
+		// If sum.IsInf the result will be 0 as intended.
 		return z.Quo(n.SetUint64(1), sum)
 	}
 	if sum.IsInf() {
