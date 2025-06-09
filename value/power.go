@@ -109,9 +109,8 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 	if x.IsInf() || exp > 31 {
 		if x.Sign() < 0 {
 			return floatZero
-		} else {
-			Errorf("exponential overflow")
 		}
+		Errorf("exponential overflow")
 	}
 
 	// The following is based on R. P. Brent, P. Zimmermann, Modern Computer
@@ -153,7 +152,7 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 	sum := newFxP(conf, extra).SetUint64(1)
 
 	// TODO: cannot use loop here since it does not handle the extended precision.
-	// term(n) = tern(n-1) × x/n is faster than term(n) = x^n / n! (saves one .Mul)
+	// term(n) = term(n-1) × x/n is faster than term(n) = x^n / n! (saves one .Mul)
 	for i := uint64(1); ; i++ {
 		t0.Quo(z, n.SetUint64(i))
 		// term.Mul(term, t) and sum.Add(sum, term) require a temp Float for the
