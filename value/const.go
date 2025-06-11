@@ -81,6 +81,11 @@ func newF(conf *config.Config) *big.Float {
 	return new(big.Float).SetPrec(conf.FloatPrec())
 }
 
+// newFxP returns a new big.Float with extended precision = conf.FloatPrec() + extra.
+func newFxP(conf *config.Config, extra uint) *big.Float {
+	return new(big.Float).SetPrec(conf.FloatPrec() + extra)
+}
+
 func newFloat(c Context) *big.Float {
 	return newF(c.Config())
 }
