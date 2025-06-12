@@ -125,7 +125,7 @@ func floatLog(c Context, x *big.Float) *big.Float {
 	// So log(x) is log(mantissa)+exp*log(2), and 1-x will be
 	// between 0 and 0.5, so the series for 1-x will converge well.
 	// (The series converges slowly in general.)
-	mantissa := newFloat(c)
+	mantissa := new(big.Float)
 	exp2 := x.MantExp(mantissa)
 	exp := newFloat(c).SetInt64(int64(exp2))
 	exp.Mul(exp, floatLog2)
