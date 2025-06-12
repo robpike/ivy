@@ -36,6 +36,9 @@ func (f BigFloat) String() string {
 func (f BigFloat) Sprint(conf *config.Config) string {
 	var mant big.Float
 	exp := f.Float.MantExp(&mant)
+	// MantExp sets mant.prec = f.float.prec. Force mant.prec to conf.FloatPrec()
+	// in order to avoid unexpected rounding issues.
+	mant.SetPrec(conf.FloatPrec())
 	positive := 1
 	if exp < 0 {
 		positive = 0
