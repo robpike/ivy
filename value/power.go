@@ -7,8 +7,6 @@ package value
 import (
 	"math"
 	"math/big"
-
-	"robpike.io/ivy/config"
 )
 
 func power(c Context, u, v Value) Value {
@@ -30,7 +28,7 @@ func exp(c Context, v Value) Value {
 		}
 		v = u.real
 	}
-	z := exponential(c.Config(), floatSelf(c, v).Float)
+	z := exponential(newFloat(c), floatSelf(c, v).Float)
 	return BigFloat{z}.shrink()
 }
 
@@ -41,7 +39,7 @@ func expComplex(c Context, v Complex) Value {
 	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
 	y := floatSelf(c, v.imag).Float
-	eToX := exponential(c.Config(), x)
+	eToX := exponential(newFloat(c), x)
 	cosY := floatCos(c, y)
 	sinY := floatSin(c, y)
 	return NewComplex(BigFloat{cosY.Mul(cosY, eToX)}, BigFloat{sinY.Mul(sinY, eToX)})
@@ -90,7 +88,7 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 		// x**frac is e**(frac*log x)
 		logx := floatLog(c, x)
 		frac.Mul(frac, logx)
-		z.Mul(z, exponential(c.Config(), frac))
+		z.Mul(z, exponential(newFloat(c), frac))
 	}
 	if !positive {
 		z.Quo(floatOne, z)
@@ -98,8 +96,13 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 	return BigFloat{z}
 }
 
-// exponential computes exp(x) using the Taylor series exp(x) = ∑(x^n/n!) for n ≥ 0.
-func exponential(conf *config.Config, x *big.Float) *big.Float {
+// exponential sets z to the rounded value of e^x, and returns it.
+
+// If z's precision is 0, it is changed to x's precision before the operation.
+// Rounding is performed according to z's precision and rounding mode.
+//
+// The operation uses the Taylor series e^x = ∑(x^n/n!) for n ≥ 0.
+func exponential(z *big.Float, x *big.Float) *big.Float {
 	// exp(x) is finite if 0.5 × 2^big.MinExp ≤ exp(x) < 1 × 2^big.MaxExp
 	//   ⇒ log(2) × (big.MinExp-1) ≤ x < log(2) × big.MaxExp
 	// While this function properly handles values of x outside of this range,
@@ -123,7 +126,8 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 	// 0 or +Inf into a computable range (i.e. for z=x^-k, ∑(z^n/n!) is finite).
 
 	var invert bool
-	z := newF(conf).Set(x)
+	z.Set(x)
+	prec := z.Prec()
 	// For z < 0, compute exp(-z) = 1/exp(z).
 	// This is to prevent alternating signs in the power series terms and avoid
 	// cancellation in the summation, as well as keeping the summation in a
@@ -133,23 +137,23 @@ func exponential(conf *config.Config, x *big.Float) *big.Float {
 		z.Neg(z)
 	}
 	// §4.3.1 & §4.4.2 (k ≥ 1)
-	k := int(math.Ceil(math.Sqrt(float64(conf.FloatPrec()))))
-	// Extra precision (§4.4)
-	extra := uint(math.Log(float64(conf.FloatPrec()))) + 1
+	k := int(math.Ceil(math.Sqrt(float64(prec))))
+	// Working precision (§4.4)
+	prec = addPrec(prec, uint(math.Log(float64(prec)))+1)
 	if -k < exp {
 		// -k <= -1 < exp
 		exp += k
 		// 0 ≤ k-1 < exp (condition needed to undo argument reduction)
 		z.SetMantExp(z, -exp)
 		// 2 bits of added precision per multiplication when undoing argument reduction.
-		extra += 2 * uint(exp)
+		prec += 2 * uint(exp)
 	}
 
 	n := new(big.Float)
-	t0 := newFxP(conf, extra)
-	t1 := newFxP(conf, extra)
-	term := newFxP(conf, extra).SetUint64(1)
-	sum := newFxP(conf, extra).SetUint64(1)
+	t0 := newFP(prec)
+	t1 := newFP(prec)
+	term := newFP(prec).SetUint64(1)
+	sum := newFP(prec).SetUint64(1)
 
 	// TODO: cannot use loop here since it does not handle the extended precision.
 	// term(n) = term(n-1) × x/n is faster than term(n) = x^n / n! (saves one .Mul)
