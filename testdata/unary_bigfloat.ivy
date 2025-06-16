@@ -224,3 +224,25 @@ mean sigma
 # check against that; when broken, the output is 0.5 0.5 (!).
 /sqrt 2; /sqrt 2
 	0.707106781187 0.707106781187
+
+# PR 228: argument with prec < conf.floatPrec
+)prec 64
+a = float 2
+)prec 128
+(sqrt a) == sqrt 2
+	1
+
+# PR 228: Argument with prec > conf.floatPrec
+)prec 256
+a = float 2
+)prec 128
+(sqrt a) == sqrt 2
+	1
+
+# PR 228: Same test for BigFloat.Sprint
+)prec 64
+a = float 1 << 10000
+)prec 128
+)format "%.30g"
+a
+	1.99506311688075838488374216268e+3010 

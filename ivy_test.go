@@ -177,6 +177,7 @@ func getText(t *testing.T, fileName string, lineNum int, shouldFail bool, lines 
 }
 
 func reset() {
+	testConf.SetFloatPrec(256)
 	testConf.SetFormat("")
 	testConf.SetMaxBits(1e9)
 	testConf.SetMaxDigits(1e4)
