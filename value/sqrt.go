@@ -61,8 +61,12 @@ func floatSqrt(c Context, x *big.Float) *big.Float {
 	// 	z = z - (z²-x)/2z
 	// z holds the result so far. A good starting point is to halve the exponent.
 	// Experiments show we converge in only a handful of iterations.
-	z := newFloat(c)
+	z := new(big.Float)
 	exp := x.MantExp(z)
+	// MantExp sets mant.prec = f.float.prec. Force mant.prec to conf.FloatPrec()
+	// in order to avoid loss of precision in the result or infinite loops when
+	// expanding the Taylor series if z.prec > conf.FloatPrec().
+	z.SetPrec(c.Config().FloatPrec())
 	z.SetMantExp(z, exp/2)
 
 	// Intermediates, allocated once.
