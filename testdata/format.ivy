@@ -159,3 +159,10 @@
 1e100
 	1e+100
 
+# Issue 225: correct value for values > 0.5×2^10000 (fastFloatPrint).
+# Set prec 256, just in case the default changes
+)prec 256
+# Print with full precision
+)format "%.77g"
+float 1<<11000
+	2.1377273016175946639947418801095121966854178364444088402247933779652136564166e+3311
