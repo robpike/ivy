@@ -166,6 +166,13 @@ func (c *Config) Debug(flag string) int {
 	return -1
 }
 
+// ClearDebug turns off all debugging flags.
+func (c *Config) ClearDebug() {
+	for i := range DebugFlags {
+		c.debug[i] = 0
+	}
+}
+
 // Tracing reports whether the tracing level is set at or above level.
 func (c *Config) Tracing(level int) bool {
 	return c.traceLevel >= level
