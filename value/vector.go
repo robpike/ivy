@@ -254,7 +254,7 @@ func (v *Vector) multiLineSprint(conf *config.Config, allScalars, allChars, spac
 				lastColumn[n] = line.Len()
 			}
 		}
-		// By construction all lines have same length (except for empty lines, which
+		// All lines should have the same length (except for empty lines, which
 		// are never the zeroth line.)
 		cols[i] = lines[0].Len()
 		if len(strs) < len(lines) {
@@ -271,6 +271,18 @@ func (v *Vector) multiLineSprint(conf *config.Config, allScalars, allChars, spac
 			lastColumn[last] = line.Len()
 			if line.Len() > cols[i] {
 				cols[i] = line.Len()
+			}
+		}
+		// Finally, if we missed any alignment because of all the fiddling and flags, fix it now.
+		// One day we should rewrite this code to make it more robust and clear.
+		wid := 0
+		for _, line := range lines {
+			wid = max(wid, line.Len())
+		}
+		cols[i] = wid
+		for _, line := range lines {
+			if line.Len() < wid {
+				line.WriteString(blanks(wid - line.Len()))
 			}
 		}
 	}

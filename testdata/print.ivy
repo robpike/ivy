@@ -260,3 +260,11 @@ x= 3 4 5 rho iota 100; x[2;2;2]=3 4 rho iota 12; x
 	|                           | |                           |
 	||(1 2| (1 2|| |(1 2| (1 2||| ||(1 2| (1 2|| |(1 2| (1 2|||
 	|||3 4) |3 4)) ||3 4) |3 4))) |||3 4) |3 4)) ||3 4) |3 4)))
+
+# Issue 235: Panic in print due to failed invariant in widths.
+2 2 rho "xy" (2 2 rho iota 4)
+	(xy) (1 2|
+	     |3 4)
+	
+	(xy) (1 2|
+	     |3 4)
