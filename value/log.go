@@ -28,7 +28,6 @@ func logn(c Context, v Value) Value {
 
 func logBaseU(c Context, u, v Value) Value {
 	// Handle the integer part exactly when the arguments are exact.
-	var i Int
 	switch u := u.(type) {
 	case Int:
 		log, exact := intLog(u, v.(Int))
@@ -41,14 +40,11 @@ func logBaseU(c Context, u, v Value) Value {
 			return log
 		}
 	}
-	f := c.EvalBinary(logn(c, v), "/", logn(c, u))
-	if i != 0 {
-		f = c.EvalBinary(f, "+", i)
-	}
-	return f
+	return c.EvalBinary(logn(c, v), "/", logn(c, u))
 }
 
 // intLog returns the integer portion of the log base b of v, if it's exact.
+// If inexact, it returns zero.
 func intLog(bI, vI Int) (log uint64, exact bool) {
 	b := uint64(bI)
 	v := uint64(vI)
@@ -71,6 +67,7 @@ func intLog(bI, vI Int) (log uint64, exact bool) {
 }
 
 // bigIntLog returns the integer portion of the log base b of v, if it's exact.
+// If inexact, it returns zero.
 func bigIntLog(b, v BigInt) (log Int, exact bool) {
 	if b.Cmp(bigIntOne.Int) <= 0 || v.Cmp(b.Int) < 0 {
 		return 0, false
