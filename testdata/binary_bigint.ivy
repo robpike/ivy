@@ -458,3 +458,31 @@
 op abs x = 99
 1e100 ** -1 # ** Uses abs internally
 	1/10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+# Fixed bug: don't use user-defined functions in core calculations.
+op abs x = 99
+1e100 ** -1 # ** Uses abs internally
+	1/10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+# Issue 234: integer-based logs of integers was never properly tested and was incorrect.
+# While we're here, check that integer logarithms of integers are returned as integers.
+2 log 3 8 12 (51200*65536) (2**64)
+)debug types
+2 log 3
+2 log 3355443200
+2 log 2**64
+2 log 1+2**64 # Almost invisibly bigger,
+_-64          # but not exactly 64.
+
+	1.58496250072 3 3.58496250072 31.6438561898 64
+	1
+	value.BigFloat
+	1.58496250072
+	value.BigFloat
+	31.6438561898
+	value.Int
+	64
+	value.BigFloat
+	64
+	value.BigFloat
+	7.82086548783e-20
