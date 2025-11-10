@@ -517,10 +517,10 @@ up 'ab' 'ac' 'aa'
 	(1)
 
 x='hello world    '; (x != ' ') part x
-	(hello) (world)
+	hello world
 
 1 2 3 3 4 part 'abcde'
-	(a) (b) (cd) (e)
+	a b cd e
 
 (iota 10) part (iota 10)
 	(1) (2) (3) (4) (5) (6) (7) (8) (9) (10)
@@ -784,7 +784,7 @@ circle 10
 	1 2 a b c 3 4 5 x
 
 1 2 'abc' 3 4 union 2 'cba' 5 1 'x'
-	1 2 (abc) 3 4 (cba) 5 x
+	1 2 abc 3 4 cba 5 x
 
 1j0 2j0 3j1 3j2 union 2 3j1 4 3j3
 	1 2 3j1 3j2 4 3j3
@@ -836,7 +836,7 @@ x =(,\iota 4); y = box 1 2 3; x; '\n'; y; '\n'; x iota y
 	1 2 d
 
 1 2 'abc' 'd' 3 4 'xyz' intersect 2 'abc' 'd' 5 1 'x'
-	1 2 (abc) d
+	1 2 abc d
 
 1j0 2j0 3j1 3j2 intersect 2 3j1 4 3j3
 	2 3j1

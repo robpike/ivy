@@ -118,10 +118,10 @@ rho 'T' encode sys 'sec'
 'T' text 'T' decode -4713 11 24 12 0 0 0
 	Mon Nov 24 12:00:00 UTC -4713
 
-sys 'read' 'testdata/hello.txt'
+box@ sys 'read' 'testdata/hello.txt'
 	(hello world) (Καλημέρα κόσμε) (こんにちは 世界)
 
-sys 'read' 'testdata/no_newline.txt'
+box@ sys 'read' 'testdata/no_newline.txt'
 	(hello world) (Καλημέρα κόσμε) (こんにちは 世界)
 
 mix ivy@ sys 'read' 'testdata/matrix.txt'

@@ -171,6 +171,13 @@ func (v *Vector) oneLineSprint(conf *config.Config, parens, spaces bool) (string
 	return b.String(), cols
 }
 
+// isAllChars reports whether v is an all-chars vector.
+// The empty vector is not considered "all chars".
+func isAllChars(v Value) bool {
+	vv, ok := v.(*Vector)
+	return ok && vv.Len() > 0 && vv.AllChars()
+}
+
 // multiLineSprint formats a vector that may span multiple lines,
 // returning the result as a slice of strings, one per line.
 // Lots of flags:
@@ -230,7 +237,7 @@ func (v *Vector) multiLineSprint(conf *config.Config, allScalars, allChars, spac
 				line.WriteString(" ")
 			}
 		}
-		doParens := !allScalars && !IsScalarType(elem)
+		doParens := !allScalars && !IsScalarType(elem) && !isAllChars(elem)
 		if doParens {
 			lines[0].WriteString("(")
 			lastColumn[0] = lines[0].Len()

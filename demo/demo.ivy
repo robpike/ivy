@@ -149,8 +149,8 @@ x[1 19 3]  # You can index with a vector.
 up x
 x[up x]
 x[down x]
-'hello world'[up 'hello world']
-'hello world'[down 'hello world']
+'hello_world'[up 'hello_world']
+'hello_world'[down 'hello_world']
 # More rolls of a die.
 ?10 rho 6
 # Remember a set of rolls.
