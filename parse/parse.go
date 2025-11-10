@@ -416,6 +416,7 @@ func (p *Parser) indexList() []value.Expr {
 //	variable
 //	variable '[' Expr ']'
 //	'(' Expr ')'
+//	'(' Expr ')' '[' Expr ']'
 //
 // If the value is a string, value.Expr is nil.
 func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
@@ -434,6 +435,7 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 		if tok.Type != scan.RightParen {
 			p.errorf("expected right paren, found %s", tok)
 		}
+		expr = p.index(expr)
 	}
 	if err != nil {
 		p.errorf("%s: %s", text, err)
