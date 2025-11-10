@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/value/persist"
@@ -156,7 +157,7 @@ func (v *Vector) cells(conf *config.Config, ncol int) ([][]string, *widths) {
 			cell = strings.Split(elem.Sprint(conf), "\n")
 		}
 		for _, line := range cell {
-			w.addColumn(i%ncol, len(line))
+			w.addColumn(i%ncol, utf8.RuneCountInString(line))
 		}
 		out = append(out, cell)
 	}
@@ -166,27 +167,51 @@ func (v *Vector) cells(conf *config.Config, ncol int) ([][]string, *widths) {
 // formatRow formats a row of cells, aligning to the widths in width.
 // It returns the lines of output for that row.
 func formatRow(cells [][]string, width *widths) []string {
+	// If there are any heading corners in cells, place them all on the first line
+	// and align all actual content starting on the second line.
+	heading := false
+	head := make([]int, len(cells))
+	for col, cell := range cells {
+		if len(cell) > 0 && isHead(cell[0]) {
+			heading = true
+			head[col] = 1
+		}
+	}
 	height := 1
-	for _, cell := range cells {
-		height = max(height, len(cell))
+	for col, cell := range cells {
+		height = max(height, len(cell)-head[col])
 	}
 
 	// Concatenate each line of each cell into a line of the row.
 	var lines []string
+	if heading {
+		var b strings.Builder
+		blank := 0
+		for col, cell := range cells {
+			if head[col] == 0 {
+				blank += width.column(col) + 1
+				continue
+			}
+			s := cell[0]
+			b.WriteString(blanks(blank + width.column(col) - utf8.RuneCountInString(s)))
+			b.WriteString(s)
+			blank = 1
+		}
+		lines = append(lines, b.String())
+	}
 	for h := range height {
 		var b strings.Builder
 		blank := 0
 		for col, cell := range cells {
 			s := ""
-			if h < len(cell) {
-				s = cell[h]
+			if h+head[col] < len(cell) {
+				s = cell[h+head[col]]
 			}
-			// TODO blank trimming
 			if s == "" {
 				blank += width.column(col) + 1
 				continue
 			}
-			b.WriteString(blanks(blank + width.column(col) - len(s)))
+			b.WriteString(blanks(blank + width.column(col) - utf8.RuneCountInString(s)))
 			b.WriteString(s)
 			blank = 1
 		}
@@ -195,9 +220,17 @@ func formatRow(cells [][]string, width *widths) []string {
 	return lines
 }
 
+func isHead(line string) bool {
+	return strings.Trim(line, " ╭╮┌┐") == "" && strings.ContainsAny(line, "╭╮┌┐")
+}
+
+func isTail(line string) bool {
+	return strings.Trim(line, " ╰╯└┘") == "" && strings.ContainsAny(line, "╰╯└┘")
+}
+
 var (
-	vectorCorners = []string{`(`, `)`, `(`, `|`, `|`, `)`}
-	matrixCorners = []string{`(`, `)`, `(`, `|`, `|`, `)`}
+	vectorCorners = []string{`(`, `)`, `╭`, `╮`, `╰`, `╯`}
+	matrixCorners = []string{`[`, `]`, `┌`, `┐`, `└`, `┘`}
 )
 
 func drawBox(lines, corners []string) []string {
@@ -208,23 +241,42 @@ func drawBox(lines, corners []string) []string {
 	case 0:
 		return []string{corners[0] + corners[1]}
 	case 1:
-		return []string{corners[0] + lines[0] + corners[1]}
+		if corners[0] == "(" {
+			// Common case: one-line vector uses ordinary parens.
+			return []string{corners[0] + lines[0] + corners[1]}
+		}
 	}
-
 	wid := 0
 	for _, line := range lines {
-		wid = max(wid, len(line))
+		wid = max(wid, utf8.RuneCountInString(line))
 	}
+
+	var head, tail string
+	if len(lines) >= 1 && isHead(lines[0]) {
+		// Add corners to existing head line to limit nested vertical expansion.
+		line := lines[0]
+		head = line + blanks(wid-utf8.RuneCountInString(line))
+		lines = lines[1:]
+	} else {
+		// Introduce new head line.
+		head = blanks(wid)
+	}
+	if len(lines) >= 1 && isTail(lines[len(lines)-1]) {
+		// Add corners to existing tail line to limit nested vertical expansion.
+		line := lines[len(lines)-1]
+		tail = line + blanks(wid-utf8.RuneCountInString(line))
+		lines = lines[:len(lines)-1]
+	} else {
+		// Introduce new tail line.
+		tail = blanks(wid)
+	}
+
 	var boxed []string
-	for i, line := range lines {
-		start, end := "|", "|"
-		if i == 0 {
-			start, end = corners[2], corners[3]
-		} else if i == len(lines)-1 {
-			start, end = corners[4], corners[5]
-		}
-		boxed = append(boxed, start+line+blanks(wid-len(line))+end)
+	boxed = append(boxed, corners[2]+head+corners[3])
+	for _, line := range lines {
+		boxed = append(boxed, "│"+line+blanks(wid-utf8.RuneCountInString(line))+"│")
 	}
+	boxed = append(boxed, corners[4]+tail+corners[5])
 	return boxed
 }
 

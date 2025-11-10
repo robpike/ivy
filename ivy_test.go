@@ -69,7 +69,7 @@ func TestAll(t *testing.T) {
 			}
 			if !runTest(t, path, lineNum, shouldFail, input, output) {
 				errCount++
-				if errCount > 3 {
+				if errCount > 100 {
 					t.Fatal("too many errors")
 				}
 			}
