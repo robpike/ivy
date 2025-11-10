@@ -26,7 +26,7 @@ x
 	#
 
 # Expect: invalid index (2) (type float) in (1 2)[1 2 (float 2)]
-1 2[1 2 (float 2)]
+(1 2)[1 2 (float 2)]
 	#
 
 # Expect: zero denominator in rational
