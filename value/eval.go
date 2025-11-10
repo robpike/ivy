@@ -560,6 +560,8 @@ func eachValue(v Value, dim int) iter.Seq[Value] {
 	switch v := v.(type) {
 	default:
 		return eachOne(v)
+	case QuietValue:
+		return eachValue(v.Value, dim)
 	case *Vector:
 		if dim != 1 {
 			panic("impossible eachValue")
