@@ -1203,8 +1203,7 @@ func init() {
 					if !text.AllChars() {
 						Errorf("ivy: value is not a vector of char")
 					}
-					str, _ := text.oneLineSprint(c.Config(), !withParens, !withSpaces)
-					return IvyEval(c, str)
+					return IvyEval(c, text.Sprint(c.Config()))
 				},
 			},
 		},
