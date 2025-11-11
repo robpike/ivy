@@ -416,16 +416,18 @@ func (p *Parser) indexList() []value.Expr {
 //	variable
 //	variable '[' Expr ']'
 //	'(' Expr ')'
+//	'(' Expr ')' '[' Expr ']'
 //
 // If the value is a string, value.Expr is nil.
-func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
+func (p *Parser) number(tok scan.Token) value.Expr {
 	var err error
+	var expr value.Expr
 	text := tok.Text
 	switch tok.Type {
 	case scan.Identifier:
-		expr = p.index(p.variable(text))
+		expr = p.variable(text)
 	case scan.String:
-		str = value.ParseString(text)
+		expr = evalString(value.ParseString(text))
 	case scan.Number, scan.Rational, scan.Complex:
 		expr, err = value.Parse(p.context.Config(), text)
 	case scan.LeftParen:
@@ -435,10 +437,11 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 			p.errorf("expected right paren, found %s", tok)
 		}
 	}
+	expr = p.index(expr)
 	if err != nil {
 		p.errorf("%s: %s", text, err)
 	}
-	return expr, str
+	return expr
 }
 
 // numberOrVector turns the token and what follows into a numeric Value, possibly a vector.
@@ -448,20 +451,14 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 //	string
 //	numberOrVector...
 func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
-	expr, str := p.number(tok)
+	expr := p.number(tok)
 	done := true
 	switch p.peek().Type {
 	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.Identifier, scan.LeftParen:
 		// Further vector elements follow.
 		done = false
 	}
-	var slice value.VectorExpr
-	if expr == nil {
-		// Must be a string.
-		slice = value.VectorExpr{evalString(str)}
-	} else {
-		slice = value.VectorExpr{expr}
-	}
+	slice := value.VectorExpr{expr}
 	if !done {
 	Loop:
 		for {
@@ -475,12 +472,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 				}
 				fallthrough
 			case scan.Number, scan.Rational, scan.Complex, scan.String:
-				expr, str = p.number(p.next())
-				if expr == nil {
-					// Must be a string.
-					slice = append(slice, evalString(str))
-					continue
-				}
+				expr = p.number(p.next())
 			default:
 				break Loop
 			}
