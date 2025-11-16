@@ -110,10 +110,10 @@ c`
 	aaaaaaaaaa
 
 10 rho 'a' 'cd'
-	a (cd) a (cd) a (cd) a (cd) a (cd)
+	a cd a cd a cd a cd a cd
 
 10 rho 'ab' 'cd'
-	(ab) (cd) (ab) (cd) (ab) (cd) (ab) (cd) (ab) (cd)
+	ab cd ab cd ab cd ab cd ab cd
 
 10 rho 'a' 'b'
 	ababababab
@@ -144,17 +144,17 @@ c`
 	abcdef
 
 'abc' 'def'
-	(abc) (def)
+	abc def
 
 3 4 rho 'a' 'bc'
-	   a (bc)    a (bc)
-	   a (bc)    a (bc)
-	   a (bc)    a (bc)
+	 a bc  a bc
+	 a bc  a bc
+	 a bc  a bc
 
 3 4 rho 'ab' 'cd'
-	(ab) (cd) (ab) (cd)
-	(ab) (cd) (ab) (cd)
-	(ab) (cd) (ab) (cd)
+	ab cd ab cd
+	ab cd ab cd
+	ab cd ab cd
 
 rho ''
 	0
