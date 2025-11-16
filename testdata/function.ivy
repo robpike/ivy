@@ -573,3 +573,28 @@ op x sub y = x-y
 
 10 20 @- 1 2
 	(9 8) (19 18)
+
+op x f y = x+y
+1 2 @f 3
+	4 5
+
+op x f y = x+y
+x=1 2
+x @f 3
+	4 5
+
+op x f y = x+y
+(x=1 2) @f 3
+	4 5
+
+op x f y = x+y
+3 f@ x=1 2
+	4 5
+
+op f x = -x
+f@ 1 2
+	-1 -2
+
+op f x = -x
+f@ x=1 2
+	-1 -2
