@@ -173,7 +173,7 @@ func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
 			// These have prec 0 and are easy.
 			// They shouldn't appear anyway, but be safe.
 			fmt.Fprintf(out, "%g", val)
-			return
+			break
 		}
 		// TODO The actual value might not have the same prec as
 		// the configuration, so we might not get this right
@@ -188,7 +188,7 @@ func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
 	case *value.Vector:
 		if val.AllChars() {
 			fmt.Fprintf(out, "%q", val.Sprint(conf))
-			return
+			break
 		}
 		for i, v := range val.All() {
 			if i > 0 {
