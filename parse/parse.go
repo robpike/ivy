@@ -260,7 +260,7 @@ func (p *Parser) statementList() ([]value.Expr, bool) {
 //	operand binop expr
 func (p *Parser) expr() value.Expr {
 	tok := p.next()
-	expr := p.operand(tok, true)
+	expr := p.operand(tok)
 	tok = p.peek()
 	switch tok.Type {
 	case scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon, scan.Colon:
@@ -330,9 +330,8 @@ func (p *Parser) checkAssign(e value.Expr) {
 //	char constant
 //	string constant
 //	vector
-//	operand [ Expr ]...
 //	unop Expr
-func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
+func (p *Parser) operand(tok scan.Token) value.Expr {
 	var expr value.Expr
 	switch tok.Type {
 	case scan.Operator:
@@ -353,9 +352,6 @@ func (p *Parser) operand(tok scan.Token, indexOK bool) value.Expr {
 		expr = p.numberOrVector(tok)
 	default:
 		p.errorf("unexpected %s", tok)
-	}
-	if indexOK {
-		expr = p.index(expr)
 	}
 	return expr
 }
@@ -414,7 +410,6 @@ func (p *Parser) indexList() []value.Expr {
 //	rational
 //	string
 //	variable
-//	variable '[' Expr ']'
 //	'(' Expr ')'
 //
 // If the value is a string, value.Expr is nil.
@@ -423,7 +418,7 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 	text := tok.Text
 	switch tok.Type {
 	case scan.Identifier:
-		expr = p.index(p.variable(text))
+		expr = p.variable(text)
 	case scan.String:
 		str = value.ParseString(text)
 	case scan.Number, scan.Rational, scan.Complex:
@@ -446,21 +441,22 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 //
 //	number
 //	string
+//	numberOrVector '[' Expr ']'
 //	numberOrVector...
 func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 	expr, str := p.number(tok)
 	done := true
 	switch p.peek().Type {
-	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.Identifier, scan.LeftParen:
-		// Further vector elements follow.
+	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.Identifier, scan.LeftParen, scan.LeftBrack:
+		// Further work follows.
 		done = false
 	}
 	var slice value.VectorExpr
 	if expr == nil {
 		// Must be a string.
-		slice = value.VectorExpr{evalString(str)}
+		slice = value.VectorExpr{p.index(evalString(str))}
 	} else {
-		slice = value.VectorExpr{expr}
+		slice = value.VectorExpr{p.index(expr)}
 	}
 	if !done {
 	Loop:
@@ -478,13 +474,17 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 				expr, str = p.number(p.next())
 				if expr == nil {
 					// Must be a string.
-					slice = append(slice, evalString(str))
-					continue
+					expr = evalString(str)
 				}
 			default:
 				break Loop
 			}
 			slice = append(slice, expr)
+			if p.peek().Type == scan.LeftBrack {
+				// Replace the whole slice so far with the index expression slice[next expression].
+				expr = p.index(slice)
+				slice = append(value.VectorExpr{}, expr)
+			}
 		}
 	}
 	if len(slice) == 1 {

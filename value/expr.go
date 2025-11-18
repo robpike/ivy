@@ -159,6 +159,7 @@ type IndexExpr struct {
 
 func (x *IndexExpr) ProgString() string {
 	var s strings.Builder
+	s.WriteString("(") // Always parenthesize an index expression to avoid binding ambiguity.
 	if IsCompound(x.Left) {
 		s.WriteString("(")
 		s.WriteString(x.Left.ProgString())
@@ -175,7 +176,7 @@ func (x *IndexExpr) ProgString() string {
 			s.WriteString(v.ProgString())
 		}
 	}
-	s.WriteString("]")
+	s.WriteString("])")
 	return s.String()
 }
 

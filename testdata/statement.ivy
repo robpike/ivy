@@ -216,7 +216,7 @@ g
 	101
 
 # Assignment makes a copy.
-x = 1 2 3 4; y = x; y[1] = 7; x[1] y[1]
+x = 1 2 3 4; y = x; y[1] = 7; x[1]; y[1]
 	1 7
 
 x = 3 4 rho iota 12; y = x; y[1;1] = 7; +/+/x==y
@@ -245,12 +245,16 @@ x y = 'ab'; x y
 x y = z (z = 4); x y
 	4 4
 
-# Indexed values can appear in vectors; was parsing bug.
+# Indexing is just a binary operator. Before, we had it as a tighter binding but that leads to inconsistencies.
 
-x = 1 2 3 4; x[4] x[3] 7 x[1]
-	4 3 7 1
+)debug parse
+x='abc'; 1 2 3 [2] x[2]
+	1
+	<(<var x> = <'a' 'b' 'c'>); (<((1 2 3)[2]) x>[<int (2)>])>
+	abc
 
-x = 1 2 3 4;  3 4 rho x[2] x[3]
-	2 3 2 3
-	2 3 2 3
-	2 3 2 3
+)debug parse
+x='abc'; 1 2 3 [2] (x[2])
+	1
+	<(<var x> = <'a' 'b' 'c'>); <((1 2 3)[2]) (x[2])>>
+	2 b

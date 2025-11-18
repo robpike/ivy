@@ -109,6 +109,8 @@ avg x
 # Indexing operations
 op g x = x
 op f x = x[1 2; g 3 4; 5 6]
+op h x = 1 2 3 x[2]
+op j x = 1 2 3 (x[2])
 )save "<conf.out>"
 	)prec 256
 	)maxbits 1000000000
@@ -117,7 +119,9 @@ op f x = x[1 2; g 3 4; 5 6]
 	)prompt ""
 	)format ""
 	op g x = x
-	op f x = x[1 2; g 3 4; 5 6]
+	op f x = (x[1 2; g 3 4; 5 6])
+	op h x = ((1 2 3 x)[2])
+	op j x = 1 2 3 (x[2])
 	# Set base 10 for parsing numbers.
 	)base 10
 	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
