@@ -1181,6 +1181,7 @@ func init() {
 		{
 			name: "text",
 			fn: [numType]unaryFn{
+				charType:     func(c Context, v Value) Value { return text(c, v) },
 				intType:      func(c Context, v Value) Value { return text(c, v) },
 				bigIntType:   func(c Context, v Value) Value { return text(c, v) },
 				bigRatType:   func(c Context, v Value) Value { return text(c, v) },
