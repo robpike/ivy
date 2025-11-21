@@ -938,11 +938,29 @@ func init() {
 					if A > B {
 						Errorf("left operand larger than right in %d?%d", A, B)
 					}
-					ints := c.Config().Random().Perm(int(B))
 					origin := c.Config().Origin()
 					res := newVectorEditor(int(A), nil)
-					for i := range res.Len() {
-						res.Set(i, Int(ints[i]+origin))
+					r := c.Config().Random()
+					// If B is large and A is a significant fraction of B, use Perm. Otherwise
+					// just guess and avoid duplicates because if B is large,
+					// even 1?B can be expensive.
+					if B < 100 || A*5 > B {
+						ints := r.Perm(int(B))
+						for i := range res.Len() {
+							res.Set(i, Int(ints[i]+origin))
+						}
+					} else {
+						set := make([]bool, B)
+						for i := range int(A) {
+							for {
+								x := r.Int64N(int64(B))
+								if !set[x] {
+									set[x] = true
+									res.Set(i, Int(x)+Int(origin))
+									break
+								}
+							}
+						}
 					}
 					return res.Publish()
 				},
