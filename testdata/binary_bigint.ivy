@@ -454,6 +454,9 @@
 2e10 iota 1e10 2e10 3e10
 	0 1 0
 
+".3E" text 5?1e1000
+	4.019E+999 4.751E+999 4.099E+999 3.611E+999 7.410E+999
+
 # Fixed bug: don't use user-defined functions in core calculations.
 op abs x = 99
 1e100 ** -1 # ** Uses abs internally

@@ -950,7 +950,7 @@ func init() {
 							res.Set(i, Int(ints[i]+origin))
 						}
 					} else {
-						set := make([]bool, B)
+						set := make(map[int64]bool)
 						for i := range int(A) {
 							for {
 								x := r.Int64N(int64(B))
@@ -959,6 +959,28 @@ func init() {
 									res.Set(i, Int(x)+Int(origin))
 									break
 								}
+							}
+						}
+					}
+					return res.Publish()
+				},
+				bigIntType: func(c Context, u, v Value) Value {
+					// The count, must be modest. A million big ints is enough.
+					if !u.(BigInt).IsInt64() || u.(BigInt).Int64() > 1e6 {
+						Errorf("negative or too-large operand in %d?%d", u, v)
+					}
+					A := int(u.(BigInt).Int64())
+					B := v.(BigInt)
+					res := newVectorEditor(A, nil)
+					set := make(map[string]bool) // Easiest way to make a key from a big.Int.
+					for i := range A {
+						for {
+							x := bigIntRand(c, big.NewInt(0), B.Int)
+							s := x.String()
+							if !set[s] {
+								set[s] = true
+								res.Set(i, BigInt{x})
+								break
 							}
 						}
 					}
