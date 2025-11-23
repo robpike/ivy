@@ -5,7 +5,6 @@
 package value
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math/bits"
@@ -57,7 +56,6 @@ func (m *Matrix) Data() *Vector {
 type widths struct {
 	wid []int // Maximum width seen in each column.
 	max int   // The maximum over all columns.
-
 }
 
 const widthThreshold = 5 // All widths below this -> regular grid.
@@ -84,81 +82,22 @@ func (w *widths) column(i int) int {
 	return w.wid[i]
 }
 
-// elemStrs returns the formatted elements of the matrix and the width of the widest element.
-// Each element is represented by a slice of lines, that is, the return value is indexed by
-// [elem][line].
-func (m *Matrix) elemStrs(conf *config.Config) ([][]string, *widths) {
-	// Format the matrix as a vector, and then in write2d we rearrange the pieces.
-	// In the formatting, there's no need for spacing the elements as we'll cut
-	// them apart ourselves using column information. Spaces will be added
-	// when needed in write2d.
-	v := m.data
-	lines, cols := v.multiLineSprint(conf, v.allScalars(), v.AllChars(), !withSpaces, !trimTrailingSpace)
-	strs := make([][]string, m.data.Len())
-	wid := widths{}
-	lastDim := m.shape[len(m.shape)-1]
-	for i := range m.data.All() {
-		rows := make([]string, len(lines))
-		for j, line := range lines {
-			if line == "" { // Blank line between blocks (rows[j] is already empty).
-				continue
-			}
-			if i == 0 {
-				rows[j] = line[:cols[0]]
-				wid.addColumn(0, len(rows[j]))
-			} else {
-				rows[j] = line[cols[i-1]:cols[i]]
-				wid.addColumn(i%lastDim, len(rows[j]))
-			}
-		}
-		strs[i] = rows
-	}
-	return strs, &wid
+// columns returns the number of columns.
+func (w *widths) columns() int {
+	return len(w.wid)
 }
 
-// write2d prints the 2d matrix m into the buffer.
-// elems is a slice (of slices) of already-printed values.
-// The receiver provides only the shape of the matrix.
-func (m *Matrix) write2d(b *bytes.Buffer, elems [][]string, nested bool, wid *widths) {
-	nrows := m.shape[0]
-	ncols := m.shape[1]
-	index := 0
-	for row := 0; row < nrows; row++ {
-		if row > 0 {
-			// When printing nested matrices, an extra newline aids readability.
-			if nested && b.Bytes()[b.Len()-1] != '\n' {
-				b.WriteByte('\n')
-			}
-			b.WriteByte('\n')
+// write2d formats the 2d grid elements into lines.
+func (m *Matrix) write2d(elems [][]string, cols int, nested bool, w *widths) []string {
+	var lines []string
+	for row := range len(elems) / cols {
+		if row > 0 && nested {
+			lines = append(lines, "")
 		}
-		// Don't print the line if it has no content.
-		nonBlankLine := 0
-		for col := 0; col < ncols; col++ {
-			strs := elems[index+col]
-			for line := nonBlankLine; line < len(strs); line++ {
-				for _, r := range strs[line] {
-					if r != ' ' {
-						nonBlankLine = line
-						break
-					}
-				}
-			}
-		}
-		for line := 0; line < nonBlankLine+1; line++ {
-			if line > 0 {
-				b.WriteByte('\n')
-			}
-			for col := 0; col < ncols; col++ {
-				str := elems[index+col][line]
-				b.WriteString(blanks(wid.column(col) - len(str)))
-				b.WriteString(str)
-				if (col+1)%ncols != 0 {
-					b.WriteString(" ")
-				}
-			}
-		}
-		index += ncols
+		cells := elems[row*cols : (row+1)*cols]
+		lines = append(lines, formatRow(cells, w)...)
 	}
+	return lines
 }
 
 func (m *Matrix) fprintf(c Context, w io.Writer, format string) {
@@ -198,6 +137,10 @@ func (m *Matrix) String() string {
 }
 
 func (m *Matrix) Sprint(conf *config.Config) string {
+	return strings.Join(m.sprint(conf), "\n")
+}
+
+func (m *Matrix) sprint(conf *config.Config) []string {
 	// If the matrix is mostly nested elements, space it out a bit more.
 	numNested := 0
 	for _, e := range m.data.All() {
@@ -209,66 +152,69 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 	// Heuristic avoids spacing out matrices with few nested elements.
 	nested := numNested >= m.data.Len()/2
 
-	var b bytes.Buffer
 	switch m.Rank() {
 	case 0:
 		Errorf("matrix is rank 0") // Can this ever happen?
+		return nil
 	case 1:
-		return m.data.Sprint(conf)
+		return m.data.sprint(conf)
 	case 2:
-		nrows := m.shape[0]
 		ncols := m.shape[1]
+		nrows := m.shape[0]
 		if nrows == 0 || ncols == 0 {
-			return ""
+			return nil
 		}
 		// If it's all chars, print it without padding or quotes.
 		if m.data.AllChars() {
+			var lines []string
 			for i := 0; i < nrows; i++ {
-				if i > 0 {
-					b.WriteByte('\n')
-				}
-				fmt.Fprintf(&b, "%s", NewVectorSeq(m.data.Slice(i*ncols, (i+1)*ncols)).Sprint(conf))
+				// TODO what about embedded newlines?
+				lines = append(lines, NewVectorSeq(m.data.Slice(i*ncols, (i+1)*ncols)).Sprint(conf))
 			}
-			break
+			return lines
 		}
-		strs, width := m.elemStrs(conf)
-		m.write2d(&b, strs, nested, width)
+		cells, width := m.data.cells(conf, ncols)
+		return m.write2d(cells, ncols, nested, width)
 	case 3:
-		// If it's all chars, print it without padding or quotes.
-		if m.data.AllChars() {
-			nelems := m.shape[0]
-			ElemSize := m.ElemSize()
-			index := 0
-			for i := 0; i < nelems; i++ {
-				if i > 0 {
-					b.WriteString("\n\n")
-				}
-				fmt.Fprintf(&b, "%s", NewMatrix(m.shape[1:], NewVectorSeq(m.data.Slice(index, index+ElemSize))).Sprint(conf))
-				index += ElemSize
-			}
-			break
-		}
 		// As for 2d: print the vector elements, compute the
 		// global width, and use that to print each 2d submatrix.
-		n2d := m.shape[0]    // number of 2d submatrices.
+		n2d := m.shape[0] // number of 2d submatrices.
+		nrows := m.shape[1]
+		ncols := m.shape[2]
 		size := m.ElemSize() // number of elems in each submatrix.
-		strs, width := m.elemStrs(conf)
-		start := 0
-		for i := 0; i < n2d; i++ {
+
+		// If it's all chars, print it without padding or quotes.
+		if m.data.AllChars() {
+			var lines []string
+			start := 0
+			for i := range n2d {
+				if i > 0 {
+					lines = append(lines, "")
+				}
+				for range nrows {
+					lines = append(lines, NewVectorSeq(m.data.Slice(start, start+ncols)).sprint(conf)...)
+					start += ncols
+				}
+			}
+			return lines
+		}
+
+		cells, width := m.data.cells(conf, ncols)
+		var lines []string
+		for i := range n2d {
 			if i > 0 {
-				b.WriteString("\n\n")
+				lines = append(lines, "")
 			}
 			m := Matrix{
 				shape: m.shape[1:],
-				// no data; write2d uses strs, not data
+				// no data; write2d uses cells, not data
 			}
-			m.write2d(&b, strs[start:start+size], nested, width)
-			start += size
+			lines = append(lines, m.write2d(cells[i*size:(i+1)*size], ncols, nested, width)...)
 		}
+		return lines
 	default:
 		return m.higherDim(conf, "[", 0)
 	}
-	return b.String()
 }
 
 func (m *Matrix) ProgString() string {
@@ -276,46 +222,36 @@ func (m *Matrix) ProgString() string {
 	panic("matrix.ProgString - cannot happen")
 }
 
-func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) string {
+func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) []string {
 	if m.Rank() <= 3 {
-		return indent(indentation, "%s", m.Sprint(conf))
+		return indent(indentation, m.sprint(conf))
 	}
 	dim := m.shape[0]
 	rest := strings.Repeat(" *", m.Rank()-1)[1:]
-	var b bytes.Buffer
+	var lines []string
 	for i := 0; i < dim; i++ {
 		inner := Matrix{
 			shape: m.shape[1:],
 			data:  NewVectorSeq(m.data.Slice(i*m.ElemSize(), m.data.Len())),
 		}
 		if i > 0 {
-			b.WriteString("\n\n")
+			lines = append(lines, "")
 		}
 		innerPrefix := fmt.Sprintf("%s%d ", prefix, i+conf.Origin())
-		b.WriteString(indent(indentation, "%s%s]:\n", innerPrefix, rest))
-		b.WriteString(inner.higherDim(conf, innerPrefix, indentation+1))
+		lines = append(lines, fmt.Sprintf("%s%s]:", innerPrefix, rest))
+		lines = append(lines, inner.higherDim(conf, innerPrefix, indentation+1)...)
 	}
-	return b.String()
+	return lines
 }
 
-// indent prints the args, indenting each line by the specified amount.
-func indent(indentation int, format string, args ...interface{}) string {
-	s := fmt.Sprintf(format, args...)
-	if indentation == 0 {
-		return s
-	}
-	var b bytes.Buffer
-	lines := strings.SplitAfter(s, "\n")
-	if len(lines) > 0 && lines[len(lines)-1] == "" {
-		lines = lines[:len(lines)-1]
-	}
+// indent add indentation to each element in lines,
+// returning a new slice of lines.
+func indent(indentation int, lines []string) []string {
+	var out []string
 	for _, line := range lines {
-		if len(line) > 0 {
-			b.WriteString(spaces(indentation))
-		}
-		b.WriteString(line)
+		out = append(out, spaces(indentation)+line)
 	}
-	return b.String()
+	return out
 }
 
 // spaces returns 2*n space characters, maxing out at 2*10.

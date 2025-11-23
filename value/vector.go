@@ -5,8 +5,6 @@
 package value
 
 import (
-	"bytes"
-	"fmt"
 	"iter"
 	"math"
 	"sort"
@@ -109,27 +107,6 @@ func repeat(v Value, n int) iter.Seq2[int, Value] {
 	}
 }
 
-// Sprint returns the formatting of v according to conf.
-func (v *Vector) Sprint(conf *config.Config) string {
-	allChars := v.AllChars()
-	lines, _ := v.multiLineSprint(conf, v.allScalars(), allChars, !allChars, trimTrailingSpace)
-	switch len(lines) {
-	case 0:
-		return ""
-	case 1:
-		return lines[0]
-	default:
-		var b strings.Builder
-		for i, line := range lines {
-			if i > 0 {
-				b.WriteString("\n")
-			}
-			b.WriteString(line)
-		}
-		return b.String()
-	}
-}
-
 func (v *Vector) Rank() int {
 	return 1
 }
@@ -140,167 +117,115 @@ func (v *Vector) ProgString() string {
 	panic("vector.ProgString - cannot happen")
 }
 
-// Constants to make it easier to read calls to the printing routines.
-const (
-	withParens        = true
-	withSpaces        = true
-	trimTrailingSpace = true
+// Sprint returns the formatting of v according to conf.
+func (v *Vector) Sprint(conf *config.Config) string {
+	return strings.Join(v.sprint(conf), "\n")
+}
+
+func (v *Vector) sprint(conf *config.Config) []string {
+	if v.AllChars() {
+		b := strings.Builder{}
+		for _, c := range v.All() {
+			b.WriteRune(rune(c.Inner().(Char)))
+		}
+		return strings.Split(b.String(), "\n")
+	}
+	cells, width := v.cells(conf, v.Len())
+	width.max = 1e9
+	return formatRow(cells, width)
+}
+
+// cells returns the content of each element in v
+// as a cell, which is a []string giving the lines of output.
+func (v *Vector) cells(conf *config.Config, ncol int) ([][]string, *widths) {
+	var w widths
+	var out [][]string
+	for i, elem := range v.All() {
+		var cell []string
+		switch elem := elem.(type) {
+		case *Vector:
+			if elem.AllChars() && elem.Len() > 0 {
+				// TODO what about newlines
+				cell = elem.sprint(conf)
+			} else {
+				cell = drawBox(elem.sprint(conf), vectorCorners)
+			}
+		case *Matrix:
+			cell = drawBox(elem.sprint(conf), matrixCorners)
+		default:
+			cell = strings.Split(elem.Sprint(conf), "\n")
+		}
+		for _, line := range cell {
+			w.addColumn(i%ncol, len(line))
+		}
+		out = append(out, cell)
+	}
+	return out, &w
+}
+
+// formatRow formats a row of cells, aligning to the widths in width.
+// It returns the lines of output for that row.
+func formatRow(cells [][]string, width *widths) []string {
+	height := 1
+	for _, cell := range cells {
+		height = max(height, len(cell))
+	}
+
+	// Concatenate each line of each cell into a line of the row.
+	var lines []string
+	for h := range height {
+		var b strings.Builder
+		blank := 0
+		for col, cell := range cells {
+			s := ""
+			if h < len(cell) {
+				s = cell[h]
+			}
+			// TODO blank trimming
+			if s == "" {
+				blank += width.column(col) + 1
+				continue
+			}
+			b.WriteString(blanks(blank + width.column(col) - len(s)))
+			b.WriteString(s)
+			blank = 1
+		}
+		lines = append(lines, b.String())
+	}
+	return lines
+}
+
+var (
+	vectorCorners = []string{`(`, `)`, `(`, `|`, `|`, `)`}
+	matrixCorners = []string{`(`, `)`, `(`, `|`, `|`, `)`}
 )
 
-// oneLineSprint prints a vector as a single line (assuming
-// there are no hidden newlines within) and returns the result.
-// Flags report whether parentheses will be needed and
-// whether to put spaces between the elements.
-func (v *Vector) oneLineSprint(conf *config.Config, parens, spaces bool) (string, []int) {
-	var b bytes.Buffer
-	if parens {
-		spaces = true
+func drawBox(lines, corners []string) []string {
+	if corners == nil {
+		return lines
 	}
-	cols := make([]int, v.Len())
-	for i, elem := range v.All() {
-		if spaces && i > 0 {
-			fmt.Fprint(&b, " ")
-		}
-		if parens && !IsScalarType(elem) {
-			fmt.Fprintf(&b, "(%s)", elem.Sprint(conf))
-		} else {
-			fmt.Fprintf(&b, "%s", elem.Sprint(conf))
-		}
-		cols[i] = b.Len()
+	switch len(lines) {
+	case 0:
+		return []string{corners[0] + corners[1]}
+	case 1:
+		return []string{corners[0] + lines[0] + corners[1]}
 	}
-	return b.String(), cols
-}
 
-// isAllChars reports whether v is an all-chars vector.
-// The empty vector is not considered "all chars".
-func isAllChars(v Value) bool {
-	vv, ok := v.(*Vector)
-	return ok && vv.Len() > 0 && vv.AllChars()
-}
-
-// multiLineSprint formats a vector that may span multiple lines,
-// returning the result as a slice of strings, one per line.
-// Lots of flags:
-//
-//	allScalars: the vector is all scalar values and can be printed without parens.
-//	allChars: the vector is all chars and can be printed extra simply.
-//	spaces: put spaces between elements.
-//	trim: remove trailing spaces from each line.
-//
-// If trim is not set, the lines are all of equal length, bytewise.
-//
-// The return values are the printed lines and, along the other axis,
-// byte positions after each column.
-func (v *Vector) multiLineSprint(conf *config.Config, allScalars, allChars, spaces, trim bool) ([]string, []int) {
-	if allScalars {
-		// Easy case, might as well be efficient.
-		str, cols := v.oneLineSprint(conf, false, spaces)
-		return []string{str}, cols
+	wid := 0
+	for _, line := range lines {
+		wid = max(wid, len(line))
 	}
-	cols := make([]int, v.Len())
-	if allChars {
-		// Special handling as the array may contain newlines.
-		// Ignore all the other flags.
-		// TODO: We can still get newlines for individual elements
-		// in the general case handled below.
-		b := strings.Builder{}
-		for i, c := range v.All() {
-			b.WriteRune(rune(c.Inner().(Char)))
-			cols[i] = b.Len()
+	var boxed []string
+	for i, line := range lines {
+		start, end := "|", "|"
+		if i == 0 {
+			start, end = corners[2], corners[3]
+		} else if i == len(lines)-1 {
+			start, end = corners[4], corners[5]
 		}
-		return strings.Split(b.String(), "\n"), cols // We shouldn't need cols, but be safe.
+		boxed = append(boxed, start+line+blanks(wid-len(line))+end)
 	}
-	lines := []*strings.Builder{}
-	lastColumn := []int{} // For each line, last column with a non-padding character.
-	for i, elem := range v.All() {
-		strs := strings.Split(elem.Sprint(conf), "\n")
-		if len(strs) > len(lines) {
-			wid := 0
-			for _, line := range lines {
-				if line.Len() > wid {
-					wid = line.Len()
-				}
-			}
-			leading := blanks(wid)
-			for j := range strs {
-				if j >= len(lines) {
-					lastColumn = append(lastColumn, 0)
-					lines = append(lines, &strings.Builder{})
-					if j > 0 {
-						lines[j].WriteString(leading)
-					}
-				}
-			}
-		}
-		if spaces && i > 0 {
-			for _, line := range lines {
-				line.WriteString(" ")
-			}
-		}
-		doParens := !allScalars && !IsScalarType(elem) && !isAllChars(elem)
-		if doParens {
-			lines[0].WriteString("(")
-			lastColumn[0] = lines[0].Len()
-		}
-		for n, s := range strs {
-			if s == "" {
-				if _, ok := elem.(*Matrix); ok {
-					// Blank line in matrix output; ignore
-					continue
-				}
-			}
-			line := lines[n]
-			if doParens && n > 0 {
-				line.WriteString("|")
-				lastColumn[n] = line.Len()
-			}
-			line.WriteString(s)
-			lastColumn[n] = line.Len()
-			if doParens && n < len(strs)-1 {
-				line.WriteString("|")
-				lastColumn[n] = line.Len()
-			}
-		}
-		// All lines should have the same length (except for empty lines, which
-		// are never the zeroth line.)
-		cols[i] = lines[0].Len()
-		if len(strs) < len(lines) {
-			// Right-fill the lines below this element.
-			padding := blanks(cols[i] - lines[len(lines)-1].Len())
-			for j := len(strs); j < len(lines); j++ {
-				lines[j].WriteString(padding)
-			}
-		}
-		if doParens {
-			last := len(strs) - 1
-			line := lines[last]
-			line.WriteString(")")
-			lastColumn[last] = line.Len()
-			if line.Len() > cols[i] {
-				cols[i] = line.Len()
-			}
-		}
-		// Finally, if we missed any alignment because of all the fiddling and flags, fix it now.
-		// One day we should rewrite this code to make it more robust and clear.
-		wid := 0
-		for _, line := range lines {
-			wid = max(wid, line.Len())
-		}
-		cols[i] = wid
-		for _, line := range lines {
-			if line.Len() < wid {
-				line.WriteString(blanks(wid - line.Len()))
-			}
-		}
-	}
-	s := make([]string, len(lines))
-	for i := range s {
-		s[i] = lines[i].String()
-		if trim {
-			s[i] = s[i][:lastColumn[i]]
-		}
-	}
-	return s, cols
+	return boxed
 }
 
 var (
