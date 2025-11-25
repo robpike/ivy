@@ -175,14 +175,14 @@ x = 4 4 rho 0; y = 4 4; x[y[1]; y[2]] = 3; x
 	0 0 0 3
 
 # Order of evaluation
-tags = 0 rho 0
+tags = ()
 op f tag =
  tags = tags, tag
  1
 
 op order x =
  x = tags
- tags = 0 rho 0
+ tags = ()
  x
 
 m = 1 1 rho 0

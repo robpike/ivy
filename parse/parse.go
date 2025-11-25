@@ -410,6 +410,7 @@ func (p *Parser) indexList() []value.Expr {
 //	rational
 //	string
 //	variable
+//	'(' ')'
 //	'(' Expr ')'
 //
 // If the value is a string, value.Expr is nil.
@@ -424,10 +425,15 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 	case scan.Number, scan.Rational, scan.Complex:
 		expr, err = value.Parse(p.context.Config(), text)
 	case scan.LeftParen:
-		expr = p.expr()
-		tok := p.next()
-		if tok.Type != scan.RightParen {
-			p.errorf("expected right paren, found %s", tok)
+		if p.peek().Type == scan.RightParen {
+			p.next()
+			expr = value.VectorExpr{}
+		} else {
+			expr = p.expr()
+			tok := p.next()
+			if tok.Type != scan.RightParen {
+				p.errorf("expected right paren, found %s", tok)
+			}
 		}
 	}
 	if err != nil {
