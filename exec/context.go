@@ -254,25 +254,52 @@ func (c *Context) Define(fn *Function) {
 	c.Defs = append(c.Defs, OpDef{fn.Name, fn.IsBinary})
 }
 
-func (c *Context) Undefine(name string, binary bool) {
-	// Is it already defined?
-	for i, def := range c.Defs {
-		if def.Name == name && def.IsBinary == binary {
-			// Yes. Drop it.
-			c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
-			if binary {
-				delete(c.BinaryFn, name)
-			} else {
-				delete(c.UnaryFn, name)
+// UndefineAll deletes all user-defined names of the types
+// specified by the arguments, of which several may be set.
+func (c *Context) UndefineAll(unary, binary, vars bool) {
+	if unary || binary {
+		// Take care in iterating as list changes as we go.
+		defs := make([]OpDef, len(c.Defs))
+		copy(defs, c.Defs)
+		for _, def := range defs {
+			if unary {
+				c.UndefineOp(def.Name, false)
 			}
-			return
+			if binary {
+				c.UndefineOp(def.Name, true)
+			}
 		}
 	}
-	ary := "unary"
-	if binary {
-		ary = "binary"
+	if vars {
+		c.Globals = make(Symtab)
 	}
-	value.Errorf("no definition for %s %s", ary, name)
+}
+
+// UndefineOp removes the op with the given name and arity and reports
+// whether it was present.
+func (c *Context) UndefineOp(name string, binary bool) bool {
+	for i, def := range c.Defs {
+		if def.Name != name || def.IsBinary != binary {
+			continue
+		}
+		if def.IsBinary {
+			delete(c.BinaryFn, name)
+		} else {
+			delete(c.UnaryFn, name)
+		}
+		c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
+		return true
+	}
+	return false
+}
+
+// UndefineVar removes the named variable and reports whether it was present.
+func (c *Context) UndefineVar(name string) bool {
+	if _, ok := c.Globals[name]; ok {
+		delete(c.Globals, name)
+		return true
+	}
+	return false
 }
 
 // noVar guarantees that there is no global variable with that name,

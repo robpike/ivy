@@ -51,14 +51,6 @@ op inc b =
  |
 	#
 
-# Expect: no definition for unary foo
-opdelete foo x
-	#
-
-# Expect: no definition for binary foo
-opdelete x foo y
-	#
-
 # Expect: usage: sys "read" "filename"
 sys 'read'
 	#

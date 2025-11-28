@@ -165,9 +165,6 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 	case scan.Op:
 		p.functionDefn()
 		return nil, true
-	case scan.OpDelete:
-		p.functionDefn()
-		return nil, true
 	}
 	exprs, ok := p.expressionList()
 	if !ok {

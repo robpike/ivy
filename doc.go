@@ -360,11 +360,6 @@ To write to a global without reading it first, insert an unused read.
 	total last
 	result: 12 3
 
-To remove the definition of a unary or binary user-defined operator,
-
-	opdelete foo x
-	opdelete a gcd b
-
 # Special commands
 
 Ivy accepts a number of special commands, introduced by a right paren
@@ -382,6 +377,11 @@ base 10 and must be non-negative on input.
 		octal and 0x10 being hexadecimal. Bases above 16 are disallowed.
 		To output large integers and rationals, base must be one of
 		0 2 8 10 16. Floats are always printed base 10.
+	)clear name ...
+		Remove the definition of the named user-defined items, or all
+		such items if no name is provided. The scope may be limited to
+		one class of identifier by specifying as the first name one of the
+		special words unary, binary or var.
 	) cpu
 		Print the duration of the last interactive calculation.
 	) debug name 0|1

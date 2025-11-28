@@ -17,22 +17,13 @@ import (
 //	"op" name arg <eol>
 //	"op" name arg '=' statements <eol>
 //	"op" arg name arg '=' statements <eol>
-//	"opdelete" name arg <eol>
-//	"opdelete" arg name arg <eol>
 //
 // statements:
 //
 //	expressionList
 //	'\n' (expressionList '\n')+ '\n' # For multiline definition, ending with blank line.
 func (p *Parser) functionDefn() {
-	undefine := false
-	switch tok := p.next(); tok.Type {
-	case scan.Op:
-	case scan.OpDelete:
-		undefine = true
-	default:
-		p.errorf("unexpected %s", tok) // Cannot happen but be safe.
-	}
+	tok := p.need(scan.Op)
 	fn := new(exec.Function)
 	// Two identifiers means: op arg.
 	// Three identifiers means: arg op arg.
@@ -50,12 +41,6 @@ func (p *Parser) functionDefn() {
 		fn.Name = x.Name
 	} else {
 		p.errorf("invalid function name: %v", nameArg.ProgString())
-	}
-	// Undefine if so requested.
-	if undefine {
-		p.need(scan.EOF)
-		p.context.Undefine(fn.Name, len(args) == 3)
-		return
 	}
 
 	// Prepare to declare arguments.
@@ -104,7 +89,7 @@ func (p *Parser) functionDefn() {
 		}
 	}()
 
-	tok := p.next()
+	tok = p.next()
 	switch tok.Type {
 	case scan.Assign:
 		// Either one line:

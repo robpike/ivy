@@ -175,6 +175,47 @@ Switch:
 		case "obase":
 			obase = base
 		}
+	case "clear":
+		want := "all"
+		switch p.peek().Text {
+		case "unary", "binary":
+			want = p.next().Text
+		case "var", "vars": // I keep typing "vars" and the resulting error is confusing.
+			p.next()
+			want = "var"
+		}
+		if p.peek().Type == scan.EOF {
+			// Delete every name of specified type.
+			if want == "all" {
+				p.context.UndefineAll(true, true, true)
+			} else {
+				p.context.UndefineAll(want == "unary", want == "binary", want == "var")
+			}
+			break
+		}
+		// Delete only the named items of specified type.
+		for p.peek().Type == scan.Identifier {
+			name := p.next().Text
+			var found bool
+			switch want {
+			case "unary":
+				found = p.context.UndefineOp(name, false)
+			case "binary":
+				found = p.context.UndefineOp(name, true)
+			case "var":
+				found = p.context.UndefineVar(name)
+			case "all":
+				found = p.context.UndefineVar(name)
+				found = p.context.UndefineOp(name, false) || found
+				found = p.context.UndefineOp(name, true) || found
+			}
+			if !found {
+				p.Println("no matching definition for", name)
+			}
+		}
+		if p.peek().Type != scan.EOF {
+			p.Println("bad item for clear:", p.peek())
+		}
 	case "cpu":
 		p.Printf("%s\n", conf.PrintCPUTime())
 	case "debug":

@@ -288,17 +288,35 @@ foo 3 3 rho iota 10
 
 op a mod b = 7
 5 mod 2
-opdelete a mod b
+)clear mod
 5 mod 2
 	7
 	1
 
 op floor b = 7
 floor 12
-opdelete floor b
+)clear floor
 floor 12
 	7
 	12
+
+# Undefine a variable (not really about functions but let's keep the clear tests together.)
+x = 4
+y = 3
+)vars
+)clear var x
+)vars
+)clear vars
+)vars
+	e
+	pi
+	x
+	y
+	e
+	pi
+	y
+	e
+	pi
 
 # user-defined used to not be recognized mid-expression unless also binary
 op nop x = x

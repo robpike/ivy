@@ -342,10 +342,6 @@ save 9; save 3
 total last
 result: 12 3
 </pre>
-<p>To remove the definition of a unary or binary user-defined operator,
-<pre>opdelete foo x
-opdelete a gcd b
-</pre>
 <h3 id="hdr-Special_commands">Special commands</h3>
 <p>Ivy accepts a number of special commands, introduced by a right paren
 at the beginning of the line. Most report the current value if a new value
@@ -361,6 +357,11 @@ base 10 and must be non-negative on input.
 	octal and 0x10 being hexadecimal. Bases above 16 are disallowed.
 	To output large integers and rationals, base must be one of
 	0 2 8 10 16. Floats are always printed base 10.
+)clear name ...
+	Remove the definition of the named user-defined items, or all
+	such items if no name is provided. The scope may be limited to
+	one class of identifier by specifying as the first name one of the
+	special words unary, binary or var.
 ) cpu
 	Print the duration of the last interactive calculation.
 ) debug name 0|1
