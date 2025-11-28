@@ -373,7 +373,7 @@ var helpLines = []string{
 	"\t\toctal and 0x10 being hexadecimal. Bases above 16 are disallowed.",
 	"\t\tTo output large integers and rationals, base must be one of",
 	"\t\t0 2 8 10 16. Floats are always printed base 10.",
-	"\t)clear name ...",
+	"\t) clear name ...",
 	"\t\tRemove the definition of the named user-defined items, or all",
 	"\t\tsuch items if no name is provided. The scope may be limited to",
 	"\t\tone class of identifier by specifying as the first name one of the",

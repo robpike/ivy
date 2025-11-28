@@ -357,7 +357,7 @@ base 10 and must be non-negative on input.
 	octal and 0x10 being hexadecimal. Bases above 16 are disallowed.
 	To output large integers and rationals, base must be one of
 	0 2 8 10 16. Floats are always printed base 10.
-)clear name ...
+) clear name ...
 	Remove the definition of the named user-defined items, or all
 	such items if no name is provided. The scope may be limited to
 	one class of identifier by specifying as the first name one of the
