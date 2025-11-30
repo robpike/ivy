@@ -39,17 +39,7 @@ func fmtText(c Context, u, v Value) Value {
 		b.WriteByte('j')
 		formatOne(c, &b, format, verb, val.imag)
 	case *Vector:
-		if val.AllChars() && strings.ContainsRune("boOqsvxX", rune(verb)) {
-			// Print the string as a unit.
-			fmt.Fprintf(&b, format, val.Sprint(debugConf))
-		} else {
-			for i, v := range val.All() {
-				if i > 0 {
-					b.WriteByte(' ')
-				}
-				formatOne(c, &b, format, verb, v)
-			}
-		}
+		formatOne(c, &b, format, verb, val)
 	case *Matrix:
 		val.fprintf(c, &b, format)
 	default:
@@ -144,10 +134,27 @@ Loop:
 	panic("not reached")
 }
 
-// formatOne prints a scalar value into b with the specified format.
+// formatOne prints a single value into b with the specified format.
 // How it does this depends on the format, permitting us to use %d on
 // floats and rationals, for example.
 func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
+	if vec, ok := v.(*Vector); ok {
+		// For vectors, apply the format to each element, recursively.
+		// Unlike with regular value printing, we will lose the box markings.
+		// TODO: Should we fix that?
+		if vec.AllChars() && strings.ContainsRune("boOqsvxX", rune(verb)) {
+			// Print the string as a unit.
+			fmt.Fprintf(w, format, vec.Sprint(debugConf))
+			return
+		}
+		for i, v := range vec.All() {
+			if i > 0 {
+				w.Write([]byte{' '})
+			}
+			formatOne(c, w, format, verb, v)
+		}
+		return
+	}
 	switch verb {
 	case 'T': // Time.
 		// Maintain flags etc. but turn T into s.

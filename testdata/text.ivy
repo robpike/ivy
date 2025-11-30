@@ -135,6 +135,13 @@
 '(%d)' text /iota 10 # Odd but semi-intentional. Maybe change one day.
 	(1) (1)/(2) (1)/(3) (1)/(4) (1)/(5) (1)/(6) (1)/(7) (1)/(8) (1)/(9) (1)/(10)
 
+# Was a bug in text, would produce no output for vectors of vectors.
+'q' text "abc" "def"
+	"abc" "def"
+
+'b' text (2 3) (4 5)
+	10 11 100 101
+
 '%.2f' text '1234'
 	49.00 50.00 51.00 52.00
 
