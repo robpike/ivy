@@ -6,18 +6,16 @@
 
 # Initial configuration.
 )save "<conf.out>"
+	)ibase 0
 	)prec 256
 	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
 	)format ""
-	# Set base 10 for parsing numbers.
-	)base 10
+	)obase 0
 	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
 	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
-	)ibase 0
-	)obase 0
 
 # Variables.
 x00 = 3
@@ -34,14 +32,14 @@ x11 = 3 4 rho iota 12
 x11[2;2] = 2 2 rho 6
 strs = 'abc' 'def'
 )save "<conf.out>"
+	)ibase 0
 	)prec 256
 	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
 	)format ""
-	# Set base 10 for parsing numbers.
-	)base 10
+	)obase 0
 	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
 	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
 	strs = ("abc") ("def")
@@ -56,48 +54,46 @@ strs = 'abc' 'def'
 	x09 = 1j2
 	x10 = 1 (2 3) (4 5)
 	x11 = 3 4 rho 1 2 3 4 5 (2 2 rho 6 6 6 6) 7 8 9 10 11 12
-	)ibase 0
-	)obase 0
 
 # Simple definitions.
 op avg x = (+/x) / rho x
 op roll x = x?100
 )save "<conf.out>"
+	)ibase 0
 	)prec 256
 	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
 	)format ""
-	op avg x = (+/ x) / rho x
-	op roll x = x ? 100
-	# Set base 10 for parsing numbers.
-	)base 10
+	)obase 0
+	op avg x = (+/x) / rho x
+	#
+	op roll x = x?100
+	#
 	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
 	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
-	)ibase 0
-	)obase 0
 
 # Mutual recursion.
 op m1 n
 op m2 n = iota m1 n
 op m1 n = n
 )save "<conf.out>"
+	)ibase 0
 	)prec 256
 	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
 	)format ""
+	)obase 0
 	op m1 _
 	op m2 n = iota m1 n
+	#
 	op m1 n = n
-	# Set base 10 for parsing numbers.
-	)base 10
+	#
 	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
 	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
-	)ibase 0
-	)obase 0
 
 # Test that we can see variables and ops created by reading from a file.
 )get "testdata/saved"
@@ -112,22 +108,24 @@ op f x = x[1 2; g 3 4; 5 6]
 op h x = 1 2 3 x[2]
 op j x = 1 2 3 (x[2])
 )save "<conf.out>"
+	)ibase 0
 	)prec 256
 	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
 	)format ""
+	)obase 0
 	op g x = x
-	op f x = (x[1 2; g 3 4; 5 6])
-	op h x = ((1 2 3 x)[2])
+	#
+	op f x = x[1 2; g 3 4; 5 6]
+	#
+	op h x = 1 2 3 x[2]
+	#
 	op j x = 1 2 3 (x[2])
-	# Set base 10 for parsing numbers.
-	)base 10
+	#
 	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
 	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
-	)ibase 0
-	)obase 0
 
 # Multiline function definitions.
 op f x =
@@ -136,20 +134,44 @@ op f x =
 
 op g x = x
 )save "<conf.out>"
+	)ibase 0
 	)prec 256
 	)maxbits 1000000000
 	)maxdigits 10000
 	)origin 1
 	)prompt ""
 	)format ""
+	)obase 0
 	op f x =
-		(x == 1) : 2
-		x
-
+	 x==1: 2
+	 x
+	#
+	#
 	op g x = x
-	# Set base 10 for parsing numbers.
-	)base 10
+	#
 	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
 	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
+
+# Base change.
+x = 17/12
+op ten x = 10
+)base 16
+op tenhex x = 10
+)save "<conf.out>"
 	)ibase 0
-	)obase 0
+	)prec 256
+	)maxbits 1000000000
+	)maxdigits 10000
+	)origin 1
+	)prompt ""
+	)format ""
+	)obase 16
+	)ibase 0
+	op ten x = 10
+	#
+	)ibase 16
+	op tenhex x = 10
+	#
+	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
+	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
+	x = 11/c

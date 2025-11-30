@@ -6,6 +6,7 @@ package parse
 
 import (
 	"fmt"
+	"strings"
 
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/scan"
@@ -22,7 +23,7 @@ import (
 //
 //	expressionList
 //	'\n' (expressionList '\n')+ '\n' # For multiline definition, ending with blank line.
-func (p *Parser) functionDefn() {
+func (p *Parser) functionDefn(start int) {
 	tok := p.need(scan.Op)
 	fn := new(exec.Function)
 	// Two identifiers means: op arg.
@@ -76,7 +77,7 @@ func (p *Parser) functionDefn() {
 
 	// Define it, but prepare to undefine if there's trouble.
 	prevDefn := installMap[fn.Name]
-	p.context.Define(fn)
+	p.context.Define(fn) // Source will come at the end.
 	defer p.context.ForgetAll()
 	succeeded := false
 	defer func() {
@@ -131,9 +132,20 @@ func (p *Parser) functionDefn() {
 	default:
 		p.errorf("expected newline after function declaration, found %s", tok)
 	}
-	p.context.Define(fn)
+	// Was there a leading comment? If so, bind it to the saved textual definition
+	history := p.scanner.History()
+	for start > 0 {
+		if !strings.HasPrefix(strings.TrimSpace(history[start-1]), "#") {
+			break
+		}
+		start--
+	}
+	fn.Source = p.source(start, len(history))
+	// Remember the base so we can parse the source text again after a save.
+	fn.Ibase, _ = p.context.Config().Base()
 	funcVars(fn)
 	succeeded = true
+	p.context.Define(fn)
 	if p.context.Config().Debug("parse") > 0 {
 		p.Printf("op %s %s %s = %s\n", fn.Left.ProgString(), fn.Name, fn.Right.ProgString(), tree(fn.Body))
 	}

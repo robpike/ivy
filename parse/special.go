@@ -210,7 +210,7 @@ Switch:
 				found = p.context.UndefineOp(name, true) || found
 			}
 			if !found {
-				p.Println("no matching definition for", name)
+				p.Printf("%q not defined\n", name)
 			}
 		}
 		if p.peek().Type != scan.EOF {
@@ -268,6 +268,21 @@ Switch:
 		} else {
 			p.runFromFile(p.context, p.getString())
 		}
+	case "last":
+		history := p.scanner.History()
+		end := len(history) - 1 // -1 to suppress ')last'.
+		start := end - 1
+		if p.peek().Type != scan.EOF {
+			start = end - p.nextDecimalNumber()
+		}
+		// Ignore immediately preceding blank lines.
+		for end > 0 && strings.TrimSpace(history[end-1]) == "" {
+			start--
+			end--
+		}
+		start = max(0, start)
+		end = max(start, end)
+		p.Print(p.source(start, end))
 	case "maxbits":
 		if p.peek().Type == scan.EOF {
 			p.Printf("%d\n", conf.MaxBits())
@@ -319,12 +334,12 @@ Switch:
 		fn := p.context.UnaryFn[name]
 		found := false
 		if fn != nil {
-			p.Println(fn)
+			p.Print(fn.Source)
 			found = true
 		}
 		fn = p.context.BinaryFn[name]
 		if fn != nil {
-			p.Println(fn)
+			p.Print(fn.Source)
 			found = true
 		}
 		if !found {

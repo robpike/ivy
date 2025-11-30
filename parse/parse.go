@@ -103,6 +103,11 @@ func (p *Parser) Println(args ...interface{}) {
 	fmt.Fprintln(p.context.Config().Output(), args...)
 }
 
+// Print prints the args and writes them to the configured output writer.
+func (p *Parser) Print(args ...interface{}) {
+	fmt.Fprint(p.context.Config().Output(), args...)
+}
+
 func (p *Parser) next() scan.Token {
 	tok := p.peek()
 	if tok.Type != scan.EOF {
@@ -140,6 +145,16 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 	value.Errorf(format, args...)
 }
 
+// source returns the source code spanning the start and end lines.
+func (p *Parser) source(start, end int) string {
+	src := strings.Builder{}
+	for _, s := range p.scanner.History()[start:end] {
+		src.WriteString(s)
+		src.WriteByte('\n')
+	}
+	return src.String()
+}
+
 // Line reads a line of input and returns the values it evaluates.
 // A nil returned slice means there were no values.
 // The boolean reports whether the line is valid.
@@ -151,6 +166,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 //	expressionList '\n'
 func (p *Parser) Line() ([]value.Expr, bool) {
 	var ok bool
+	start := len(p.scanner.History()) // Remember this location before any leading comments.
 	if !p.readTokensToNewline(false) {
 		return nil, false
 	}
@@ -163,7 +179,7 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 		p.context.SetConstants()
 		return nil, true
 	case scan.Op:
-		p.functionDefn()
+		p.functionDefn(start)
 		return nil, true
 	}
 	exprs, ok := p.expressionList()

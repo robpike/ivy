@@ -20,6 +20,9 @@ type Function struct {
 	Body     []value.Expr
 	Locals   []string
 	Globals  []string
+	Source   string
+	// At time of definition; needed to parse saved source correctly.
+	Ibase int
 }
 
 // argProgString builds a string representation of arg, to be used in printing the

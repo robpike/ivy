@@ -81,6 +81,7 @@ type Scanner struct {
 	pos       int    // current position in the input
 	start     int    // start position of this item
 	token     Token
+	history   []string // Record of input.
 }
 
 // loadLine reads the next line of input and stores it in (appends it to) the input.
@@ -98,6 +99,7 @@ func (l *Scanner) loadLine() {
 			l.buf = append(l.buf, c)
 		}
 		if c == '\n' {
+			l.history = append(l.history, string(l.buf[:len(l.buf)-1])) // Drop the newline.
 			break
 		}
 	}
@@ -109,6 +111,11 @@ func (l *Scanner) loadLine() {
 	} else {
 		l.input += string(l.buf)
 	}
+}
+
+// History returns the history as a slice of strings with newlines elided.
+func (l *Scanner) History() []string {
+	return l.history
 }
 
 // readRune reads the next rune from the input.

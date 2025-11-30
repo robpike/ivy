@@ -399,6 +399,9 @@ base 10 and must be non-negative on input.
 		Read input from the named file; return to interactive execution
 		afterwards. If no file is specified, read from "save.ivy".
 		(Unimplemented on mobile.)
+	) last 1
+		Print the last few lines of user input, default 1 line, ignoring
+		any trailing empty lines.
 	) maxbits 1e6
 		To avoid consuming too much memory, if an integer result would
 		require more than this many bits to store, abort the calculation.
@@ -412,9 +415,9 @@ base 10 and must be non-negative on input.
 		user-defined operators is limited to maxstack.
 	) op X
 		If X is absent, list all user-defined operators. Otherwise,
-		show the definition of the user-defined operator X. Inside the
-		definition, numbers are always shown base 10, ignoring the ibase
-		and obase.
+		show the source of the user-defined operator X as written by
+		the user. Note that if settings such as the output base have
+		changed, the text might not reevaluate to the same definition.
 	) origin 1
 		Set the origin for indexing a vector or matrix. Must be non-negative.
 	) prec 256
@@ -432,6 +435,9 @@ base 10 and must be non-negative on input.
 	) timezone "Local"
 		Set the time zone to be used for display. If the argument is
 		missing, print the name and zone offset in seconds east.
+	) trace 1
+		Toggle execution tracing. Higher values (currently maximum 2)
+		result in more verbose output.
 	) var X
 		If X is absent, list all defined variables. Otherwise, show the
 		definition of the variable X in a form that can be evaluated

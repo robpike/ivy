@@ -12,7 +12,6 @@ import (
 	"io"
 	"os"
 	"sort"
-	"strings"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
@@ -70,16 +69,27 @@ func save(c *exec.Context, file string) {
 		out = buf
 	}
 
-	// Configuration settings. We will set the base below,
-	// after we have printed all numbers in base 10.
+	ibase, obase := conf.Base() // What user has.
+	curIbase := ibase           // Current setting in save file.
+	setIbase := func(base int) {
+		if base != curIbase {
+			fmt.Fprintf(out, ")ibase %d\n", base)
+			curIbase = base
+		}
+	}
+
+	// Configuration settings. Must use base 10 (a.k.a. 0, the default) to input settings correctly.
+	fmt.Fprintf(out, ")ibase 0\n")
 	fmt.Fprintf(out, ")prec %d\n", conf.FloatPrec())
-	ibase, obase := conf.Base()
 	fmt.Fprintf(out, ")maxbits %d\n", conf.MaxBits())
 	fmt.Fprintf(out, ")maxdigits %d\n", conf.MaxDigits())
 	fmt.Fprintf(out, ")origin %d\n", conf.Origin())
 	fmt.Fprintf(out, ")prompt %q\n", conf.Prompt())
 	fmt.Fprintf(out, ")format %q\n", conf.Format())
-	conf.SetBase(10, 10)
+
+	// Return to user's base if needed.
+	setIbase(ibase)
+	fmt.Fprintf(out, ")obase %d\n", obase)
 
 	// Ops.
 	printed := make(map[exec.OpDef]bool)
@@ -100,20 +110,17 @@ func save(c *exec.Context, file string) {
 				printed[ref] = true
 			}
 		}
+		setIbase(fn.Ibase)
+		fmt.Fprintln(out, fn.Source)
 		printed[def] = true
-		s := fn.String()
-		if strings.Contains(s, "\n") {
-			// Multiline def must end in blank line.
-			s += "\n"
-		}
-		fmt.Fprintln(out, s)
 	}
+
+	// Return to user's base if needed.
+	setIbase(ibase)
 
 	// Global variables.
 	syms := c.Globals
 	if len(syms) > 0 {
-		// Set the base strictly to 10 for output.
-		fmt.Fprintf(out, "# Set base 10 for parsing numbers.\n)base 10\n")
 		// Sort the names for consistent output.
 		sorted := sortSyms(syms)
 		for _, sym := range sorted {
@@ -122,13 +129,6 @@ func save(c *exec.Context, file string) {
 			fmt.Fprint(out, "\n")
 		}
 	}
-
-	// Now we can set the base.
-	fmt.Fprintf(out, ")ibase %d\n", ibase)
-	fmt.Fprintf(out, ")obase %d\n", obase)
-
-	// Restore the configuration's own base.
-	conf.SetBase(ibase, obase)
 }
 
 // saveSym holds a variable's name and value so we can sort them for saving.
@@ -163,11 +163,11 @@ func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
 	case value.Char:
 		fmt.Fprintf(out, "%q", rune(val))
 	case value.Int:
-		fmt.Fprintf(out, "%d", int(val))
+		fmt.Fprintf(out, "%s", val.Sprint(conf))
 	case value.BigInt:
-		fmt.Fprintf(out, "%d", val.Int)
+		fmt.Fprintf(out, "%s", val.Sprint(conf))
 	case value.BigRat:
-		fmt.Fprintf(out, "%d/%d", val.Num(), val.Denom())
+		fmt.Fprintf(out, "%s", val.Sprint(conf))
 	case value.BigFloat:
 		if val.Sign() == 0 || val.IsInf() {
 			// These have prec 0 and are easy.

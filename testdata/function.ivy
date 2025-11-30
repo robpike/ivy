@@ -88,6 +88,8 @@ op a x b =
 	144
 
 # Program printing
+# Many old checks, most no longer really needed as source is verbatim but
+# we keep them because why delete them?
 
 # Simple.
 op a x b = a + b
@@ -122,20 +124,20 @@ op x a =
 
 )op x
 	op x a =
-		'abc\u0001\U0010ffff\\\'\a\b\f\n\r\t\v\n'
-		'a'
-		3/2
-		3/2 'a'
-		'abc'
+	 'abc\u0001\U0010FFFF\\\'\a\b\f\n\r\t\v\n'
+	 'a'
+	 1.5
+	 1.5 'a'
+	 'a' 'b' 'c'
+	#
 
-# Parentheses only when required.
 op x a = (3+2)*(3+2)
 )op x
-	op x a = (3 + 2) * 3 + 2
+	op x a = (3+2)*(3+2)
 
 op x a = abs (3+2)
 )op x
-	op x a = abs 3 + 2
+	op x a = abs (3+2)
 
 op x a = 3 + abs -2
 )op x
@@ -143,26 +145,23 @@ op x a = 3 + abs -2
 
 op x a = (sqrt 4)*a
 )op x
-	op x a = (sqrt 4) * a
+	op x a = (sqrt 4)*a
 
 op x a = a*(sqrt 4)*(sqrt 4)
 )op x
-	op x a = a * (sqrt 4) * sqrt 4
+	op x a = a*(sqrt 4)*(sqrt 4)
 
-# Parenthesize compound elements of vectors
 op a x = 1 (sqrt x) 2
 )op a
 	op a x = 1 (sqrt x) 2
 
-# Preserve parens on LHS.
 op f x = (iota x)[1]
 )op f
-	op f x = ((iota x)[1])
+	op f x = (iota x)[1]
 
-# Don't introduce unnecessary parens in x[1].
 op f x = x[1] + x[2]
 )op f
-	op f x = (x[1]) + (x[2])
+	op f x = x[1] + x[2]
 
 # We can define a function with the same name as a zero variable.
 x = 0
