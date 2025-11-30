@@ -376,9 +376,9 @@ base 10 and must be non-negative on input.
 	base used in printing. The format is in the style of golang.org/pkg/fmt.
 	For floating-point formats, flags and width are ignored.
 ) get &quot;save.ivy&quot;
-	Read input from the named file; return to interactive execution
-	afterwards. If no file is specified, read from &quot;save.ivy&quot;.
-	(Unimplemented on mobile.)
+	Read input from the named file, which need not be quoted;
+	return to interactive execution afterwards. If no file is specified,
+	read from &quot;save.ivy&quot;. (Unimplemented on mobile.)
 ) last 1
 	Print the last few lines of user input, default 1 line, ignoring
 	any trailing empty lines.
@@ -407,9 +407,8 @@ base 10 and must be non-negative on input.
 	Set the interactive prompt.
 ) save &quot;save.ivy&quot;
 	Write definitions of user-defined operators and variables to the
-	named file, as ivy textual source. If no file is specified, save to
-	&quot;save.ivy&quot;.
-	(Unimplemented on mobile.)
+	named file, which need not be quoted, as ivy textual source. If
+	no file is specified, save to &quot;save.ivy&quot;. (Unimplemented on mobile.)
 ) seed 0
 	Set the seed for the ? operator.
 ) timezone &quot;Local&quot;

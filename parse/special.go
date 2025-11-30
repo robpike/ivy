@@ -263,11 +263,7 @@ Switch:
 		}
 		conf.SetFormat(p.getString())
 	case "get":
-		if p.peek().Type == scan.EOF {
-			p.runFromFile(p.context, defaultFile)
-		} else {
-			p.runFromFile(p.context, p.getString())
-		}
+		p.runFromFile(p.context, p.getFile(")get", defaultFile))
 	case "last":
 		history := p.scanner.History()
 		end := len(history) - 1 // -1 to suppress ')last'.
@@ -375,11 +371,7 @@ Switch:
 	case "save":
 		// Must restore ibase, obase for save.
 		conf.SetBase(ibase, obase)
-		if p.peek().Type == scan.EOF {
-			save(p.context, defaultFile)
-		} else {
-			save(p.context, p.getString())
-		}
+		save(p.context, p.getFile(")save", defaultFile))
 	case "seed":
 		if p.peek().Type == scan.EOF {
 			p.Println(conf.RandomSeed())
@@ -432,6 +424,29 @@ Switch:
 // getString returns the value of the string that must be next in the input.
 func (p *Parser) getString() string {
 	return value.ParseString(p.need(scan.String).Text)
+}
+
+// getFile returns the file name on this input line.
+// It might be a quoted string, or else just some text.
+// If nothing is present return the default.
+func (p *Parser) getFile(prefix, def string) string {
+	tok := p.next()
+	switch tok.Type {
+	case scan.EOF:
+		return def
+	case scan.String:
+		return value.ParseString(tok.Text)
+	default:
+		// Just grab the rest of the text on the line.
+		// Must drain the scanner first as we aere cheating it.
+		for p.peek().Type != scan.EOF {
+			p.next()
+		}
+		h := p.scanner.History()
+		line := strings.TrimSpace(h[len(h)-1])
+		line = strings.TrimPrefix(line, prefix)
+		return strings.TrimSpace(line)
+	}
 }
 
 var runDepth = 0
