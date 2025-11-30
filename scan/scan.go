@@ -487,7 +487,11 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 		}
 	}
 	if !l.scanNumber(true, realPart) {
-		return false, l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
+		// We could error out here, but that prevents the )get special
+		// command from handling a dot in a file name, so we return what we
+		// have and let the number syntax checking catch the error
+		// otherwise.
+		return true, l.emit(Number)
 	}
 	r := l.peek()
 	if r != '/' {
