@@ -434,9 +434,6 @@ base 10 and must be non-negative on input.
 	) timezone "Local"
 		Set the time zone to be used for display. If the argument is
 		missing, print the name and zone offset in seconds east.
-	) trace 1
-		Toggle execution tracing. Higher values (currently maximum 2)
-		result in more verbose output.
 	) var X
 		If X is absent, list all defined variables. Otherwise, show the
 		definition of the variable X in a form that can be evaluated
