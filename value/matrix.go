@@ -88,12 +88,9 @@ func (w *widths) columns() int {
 }
 
 // write2d formats the 2d grid elements into lines.
-func (m *Matrix) write2d(elems [][]string, cols int, nested bool, w *widths) []string {
+func (m *Matrix) write2d(elems [][]string, cols int, w *widths) []string {
 	var lines []string
 	for row := range len(elems) / cols {
-		if row > 0 && nested {
-			lines = append(lines, "")
-		}
 		cells := elems[row*cols : (row+1)*cols]
 		lines = append(lines, formatRow(cells, w)...)
 	}
@@ -141,17 +138,6 @@ func (m *Matrix) Sprint(conf *config.Config) string {
 }
 
 func (m *Matrix) sprint(conf *config.Config) []string {
-	// If the matrix is mostly nested elements, space it out a bit more.
-	numNested := 0
-	for _, e := range m.data.All() {
-		_, ok := e.(*Matrix)
-		if ok && len(m.shape) > 1 {
-			numNested++
-		}
-	}
-	// Heuristic avoids spacing out matrices with few nested elements.
-	nested := numNested >= m.data.Len()/2
-
 	switch m.Rank() {
 	case 0:
 		Errorf("matrix is rank 0") // Can this ever happen?
@@ -174,7 +160,7 @@ func (m *Matrix) sprint(conf *config.Config) []string {
 			return lines
 		}
 		cells, width := m.data.cells(conf, ncols)
-		return m.write2d(cells, ncols, nested, width)
+		return m.write2d(cells, ncols, width)
 	case 3:
 		// As for 2d: print the vector elements, compute the
 		// global width, and use that to print each 2d submatrix.
@@ -209,7 +195,7 @@ func (m *Matrix) sprint(conf *config.Config) []string {
 				shape: m.shape[1:],
 				// no data; write2d uses cells, not data
 			}
-			lines = append(lines, m.write2d(cells[i*size:(i+1)*size], ncols, nested, width)...)
+			lines = append(lines, m.write2d(cells[i*size:(i+1)*size], ncols, width)...)
 		}
 		return lines
 	default:
