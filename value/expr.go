@@ -59,6 +59,24 @@ func (b *BinaryExpr) Eval(context Context) Value {
 	return context.EvalBinary(lhs, b.Op, rhs)
 }
 
+type ExprList []Expr
+
+func (e ExprList) ProgString() string {
+	var b strings.Builder
+	for _, expr := range e {
+		fmt.Fprintln(&b, expr.ProgString())
+	}
+	return b.String()
+}
+
+func (e ExprList) Eval(context Context) Value {
+	result := Value(empty)
+	for _, expr := range e {
+		result = expr.Eval(context)
+	}
+	return result
+}
+
 // CondExpr is a CondExpr executor: expression ":" expression
 type CondExpr struct {
 	Cond *BinaryExpr

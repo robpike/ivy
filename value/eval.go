@@ -1016,7 +1016,7 @@ func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
 
 // EvalFunctionBody evaluates the list of expressions inside a function,
 // possibly with conditionals that generate an early return.
-func EvalFunctionBody(context Context, fnName string, body []Expr) Value {
+func EvalFunctionBody(context Context, fnName string, body ExprList) Value {
 	var v Value
 	for _, e := range body {
 		if d, ok := e.(Decomposable); ok && d.Operator() == ":" {

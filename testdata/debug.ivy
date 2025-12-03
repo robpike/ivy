@@ -21,7 +21,6 @@
 )debug parse
 op a base b = ((ceil b log a) rho b) encode a
 	1
-	(((ceil (<var b> log <var a>)) rho <var b>) encode <var a>)
 	op a base b = (((ceil (<var b> log <var a>)) rho <var b>) encode <var a>)
 
 )debug tokens

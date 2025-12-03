@@ -123,11 +123,11 @@ func (p *Parser) functionDefn(start int) {
 			p.next() // Consume final newline.
 		} else {
 			// Single line.
-			var ok bool
-			fn.Body, ok = p.expressionList()
+			list, ok := p.expressionList()
 			if !ok {
 				p.errorf("invalid function definition")
 			}
+			fn.Body = list
 		}
 		if len(fn.Body) == 0 {
 			p.errorf("missing function body")

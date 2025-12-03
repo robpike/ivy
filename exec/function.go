@@ -17,7 +17,7 @@ type Function struct {
 	Name     string
 	Left     value.Expr
 	Right    value.Expr
-	Body     []value.Expr
+	Body     value.ExprList
 	Locals   []string
 	Globals  []string
 	Source   string

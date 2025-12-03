@@ -45,6 +45,8 @@ func tree(e interface{}) string {
 		return fmt.Sprintf("(%s %s %s)", tree(e.Left), e.Op, tree(e.Right))
 	case *value.CondExpr:
 		return tree(e.Cond)
+	case value.ExprList:
+		return tree([]value.Expr(e))
 	case *value.IndexExpr:
 		s := fmt.Sprintf("(%s[", tree(e.Left))
 		for i, v := range e.Right {
@@ -164,11 +166,11 @@ func (p *Parser) source(start, end int) string {
 //	) special command '\n'
 //	op function definition
 //	expressionList '\n'
-func (p *Parser) Line() ([]value.Expr, bool) {
+func (p *Parser) Line() (value.ExprList, bool) {
 	var ok bool
 	start := len(p.scanner.History()) // Remember this location before any leading comments.
 	if !p.readTokensToNewline(false) {
-		return nil, false
+		return value.ExprList{}, false
 	}
 	tok := p.peek()
 	switch tok.Type {
@@ -185,6 +187,9 @@ func (p *Parser) Line() ([]value.Expr, bool) {
 	exprs, ok := p.expressionList()
 	if !ok {
 		return nil, false
+	}
+	if len(exprs) > 0 && p.context.Config().Debug("parse") > 0 {
+		p.Println(tree(exprs))
 	}
 	return exprs, true
 }
@@ -220,28 +225,8 @@ func (p *Parser) readTokensToNewline(inFunction bool) bool {
 
 // expressionList:
 //
-//	statementList <eol>
-func (p *Parser) expressionList() ([]value.Expr, bool) {
-	exprs, ok := p.statementList()
-	if !ok {
-		return nil, false
-	}
-	tok := p.next()
-	switch tok.Type {
-	case scan.EOF: // Expect to be at end of line.
-	default:
-		p.errorf("unexpected %s", tok)
-	}
-	if len(exprs) > 0 && p.context.Config().Debug("parse") > 0 {
-		p.Println(tree(exprs))
-	}
-	return exprs, ok
-}
-
-// statementList:
-//
-//	expr [':' expr] [';' statementList]
-func (p *Parser) statementList() ([]value.Expr, bool) {
+//	expr [':' expr] [';' expressionList]
+func (p *Parser) expressionList() (value.ExprList, bool) {
 	expr := p.expr()
 	if expr != nil && p.peek().Type == scan.Colon {
 		tok := p.next()
@@ -255,11 +240,11 @@ func (p *Parser) statementList() ([]value.Expr, bool) {
 	}
 	var exprs []value.Expr
 	if expr != nil {
-		exprs = []value.Expr{expr}
+		exprs = value.ExprList{expr}
 	}
 	if p.peek().Type == scan.Semicolon {
 		p.next()
-		more, ok := p.statementList()
+		more, ok := p.expressionList()
 		if ok {
 			exprs = append(exprs, more...)
 		}
