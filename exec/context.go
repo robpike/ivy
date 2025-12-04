@@ -243,12 +243,9 @@ func (c *Context) Define(fn *Function) {
 		}
 	}
 	// Is it already defined?
-	for i, def := range c.Defs {
-		if def.Name == fn.Name && def.IsBinary == fn.IsBinary {
-			// Yes. Drop it.
-			c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
-			break
-		}
+	i, ok := c.lookupFn(fn.Name, fn.IsBinary)
+	if ok {
+		c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
 	}
 	// It is now the most recent definition.
 	c.Defs = append(c.Defs, OpDef{fn.Name, fn.IsBinary})
@@ -278,19 +275,17 @@ func (c *Context) UndefineAll(unary, binary, vars bool) {
 // UndefineOp removes the op with the given name and arity and reports
 // whether it was present.
 func (c *Context) UndefineOp(name string, binary bool) bool {
-	for i, def := range c.Defs {
-		if def.Name != name || def.IsBinary != binary {
-			continue
-		}
-		if def.IsBinary {
-			delete(c.BinaryFn, name)
-		} else {
-			delete(c.UnaryFn, name)
-		}
-		c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
-		return true
+	i, ok := c.lookupFn(name, binary)
+	if !ok {
+		return false
 	}
-	return false
+	if binary {
+		delete(c.BinaryFn, name)
+	} else {
+		delete(c.UnaryFn, name)
+	}
+	c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
+	return true
 }
 
 // UndefineVar removes the named variable and reports whether it was present.
@@ -300,6 +295,34 @@ func (c *Context) UndefineVar(name string) bool {
 		return true
 	}
 	return false
+}
+
+// RedefineOp restores the argument function to the definition
+// data structures. Used by the parser to replace a function whose
+// redefinition failed, while preserving its definition order.
+func (c *Context) RedefineOp(fn *Function) bool {
+	i, ok := c.lookupFn(fn.Name, fn.IsBinary)
+	if !ok {
+		return false
+	}
+	if fn.IsBinary {
+		c.BinaryFn[fn.Name] = fn
+	} else {
+		c.UnaryFn[fn.Name] = fn
+	}
+	c.Defs[i] = OpDef{fn.Name, fn.IsBinary}
+	return true
+}
+
+// lookupFn returns the index into the definition list for the function.
+func (c *Context) lookupFn(name string, isBinary bool) (int, bool) {
+	for i, def := range c.Defs {
+		if def.Name != name || def.IsBinary != isBinary {
+			continue
+		}
+		return i, true
+	}
+	return 0, false
 }
 
 // noVar guarantees that there is no global variable with that name,

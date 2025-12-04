@@ -82,10 +82,14 @@ func (p *Parser) functionDefn(start int) {
 	succeeded := false
 	defer func() {
 		if !succeeded {
+			var fixed bool
 			if prevDefn == nil {
-				delete(installMap, fn.Name)
+				fixed = p.context.UndefineOp(fn.Name, fn.IsBinary)
 			} else {
-				installMap[fn.Name] = prevDefn
+				fixed = p.context.RedefineOp(prevDefn)
+			}
+			if !fixed {
+				value.Errorf(`internal error: redefinition failure for %q`, fn.Name)
 			}
 		}
 	}()
