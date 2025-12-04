@@ -95,12 +95,39 @@ op m1 n = n
 	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
 	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
 
+# Recursive binary operators
+op x gcd y =
+  not x*y: x+y
+  x > y: (x mod y) gcd y
+  x <= y: x gcd (y mod x)
+
+)save "<conf.out>"
+	)ibase 0
+	)prec 256
+	)maxbits 1000000000
+	)maxdigits 10000
+	)origin 1
+	)prompt ""
+	)format ""
+	)obase 0
+	op _ gcd _
+	op x gcd y =
+	  not x*y: x+y
+	  x > y: (x mod y) gcd y
+	  x <= y: x gcd (y mod x)
+
+
+	e = 2.71828182845904523536028747135266249775724709369995957496696762772407663035355
+	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
+
 # Test that we can see variables and ops created by reading from a file.
 )get "testdata/saved"
 x
 avg x
+12 gcd 15
 	1 2 3 4 5 6 7
 	4
+	3
 
 # Indexing operations
 op g x = x

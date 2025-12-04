@@ -52,6 +52,9 @@ func (p *Parser) functionDefn(start int) {
 		if x.Name == fn.Name {
 			p.errorf("argument name %q is function name", fn.Name)
 		}
+		if x.Name == "_" {
+			return
+		}
 		if argNames[x.Name] {
 			p.errorf("multiple arguments named %q", x.Name)
 		}
