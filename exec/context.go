@@ -243,7 +243,7 @@ func (c *Context) Define(fn *Function) {
 		}
 	}
 	// Is it already defined?
-	i, ok := c.lookupFn(fn.Name, fn.IsBinary)
+	i, ok := c.LookupFn(fn.Name, fn.IsBinary)
 	if ok {
 		c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
 	}
@@ -275,7 +275,7 @@ func (c *Context) UndefineAll(unary, binary, vars bool) {
 // UndefineOp removes the op with the given name and arity and reports
 // whether it was present.
 func (c *Context) UndefineOp(name string, binary bool) bool {
-	i, ok := c.lookupFn(name, binary)
+	i, ok := c.LookupFn(name, binary)
 	if !ok {
 		return false
 	}
@@ -297,25 +297,24 @@ func (c *Context) UndefineVar(name string) bool {
 	return false
 }
 
-// RedefineOp restores the argument function to the definition
-// data structures. Used by the parser to replace a function whose
-// redefinition failed, while preserving its definition order.
-func (c *Context) RedefineOp(fn *Function) bool {
-	i, ok := c.lookupFn(fn.Name, fn.IsBinary)
-	if !ok {
-		return false
-	}
+// RestoreOp restores the argument function to the definition data structures,
+// preserving its order in the definition list. Used by the parser to replace a
+// function whose redefinition failed.
+func (c *Context) RestoreOp(i int, fn *Function) bool {
 	if fn.IsBinary {
 		c.BinaryFn[fn.Name] = fn
 	} else {
 		c.UnaryFn[fn.Name] = fn
 	}
-	c.Defs[i] = OpDef{fn.Name, fn.IsBinary}
+	defs := c.Defs[:i]
+	defs = append(defs, OpDef{fn.Name, fn.IsBinary})
+	defs = append(defs, c.Defs[i:]...)
+	c.Defs = defs
 	return true
 }
 
-// lookupFn returns the index into the definition list for the function.
-func (c *Context) lookupFn(name string, isBinary bool) (int, bool) {
+// LookupFn returns the index into the definition list for the function.
+func (c *Context) LookupFn(name string, isBinary bool) (int, bool) {
 	for i, def := range c.Defs {
 		if def.Name != name || def.IsBinary != isBinary {
 			continue

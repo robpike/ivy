@@ -76,17 +76,16 @@ func (p *Parser) functionDefn(start int) {
 	}
 
 	// Define it, but prepare to undefine if there's trouble.
+	prevIndex, _ := p.context.LookupFn(fn.Name, fn.IsBinary)
 	prevDefn := installMap[fn.Name]
 	p.context.Define(fn) // Source will come at the end.
 	defer p.context.ForgetAll()
 	succeeded := false
 	defer func() {
 		if !succeeded {
-			var fixed bool
-			if prevDefn == nil {
-				fixed = p.context.UndefineOp(fn.Name, fn.IsBinary)
-			} else {
-				fixed = p.context.RedefineOp(prevDefn)
+			fixed := p.context.UndefineOp(fn.Name, fn.IsBinary)
+			if fixed && prevDefn != nil {
+				fixed = p.context.RestoreOp(prevIndex, prevDefn)
 			}
 			if !fixed {
 				value.Errorf(`internal error: redefinition failure for %q`, fn.Name)
