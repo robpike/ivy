@@ -19,18 +19,24 @@ func _() {
 	_ = x[Number-8]
 	_ = x[Operator-9]
 	_ = x[Op-10]
-	_ = x[Rational-11]
-	_ = x[Complex-12]
-	_ = x[RightBrack-13]
-	_ = x[RightParen-14]
-	_ = x[Semicolon-15]
-	_ = x[String-16]
-	_ = x[Colon-17]
+	_ = x[If-11]
+	_ = x[Else-12]
+	_ = x[Elif-13]
+	_ = x[While-14]
+	_ = x[End-15]
+	_ = x[Ret-16]
+	_ = x[Rational-17]
+	_ = x[Complex-18]
+	_ = x[RightBrack-19]
+	_ = x[RightParen-20]
+	_ = x[Semicolon-21]
+	_ = x[String-22]
+	_ = x[Colon-23]
 }
 
-const _Type_name = "EOFErrorNewlineAssignCharIdentifierLeftBrackLeftParenNumberOperatorOpRationalComplexRightBrackRightParenSemicolonStringColon"
+const _Type_name = "EOFErrorNewlineAssignCharIdentifierLeftBrackLeftParenNumberOperatorOpIfElseElifWhileEndRetRationalComplexRightBrackRightParenSemicolonStringColon"
 
-var _Type_index = [...]uint8{0, 3, 8, 15, 21, 25, 35, 44, 53, 59, 67, 69, 77, 84, 94, 104, 113, 119, 124}
+var _Type_index = [...]uint8{0, 3, 8, 15, 21, 25, 35, 44, 53, 59, 67, 69, 71, 75, 79, 84, 87, 90, 98, 105, 115, 125, 134, 140, 145}
 
 func (i Type) String() string {
 	if i < 0 || i >= Type(len(_Type_index)-1) {

@@ -791,6 +791,8 @@ func isVector(u *Matrix, shape []int) bool {
 // isZero reports whether u is a numeric zero.
 func isZero(v Value) bool {
 	switch v := v.(type) {
+	case Char:
+		return v == '\x00'
 	case Int:
 		return v == 0
 	case BigInt:
@@ -836,14 +838,11 @@ func compare(v Value, i int) int {
 		}
 		return 1
 	case BigInt:
-		r := big.NewInt(int64(i))
-		return -r.Sub(r, v.Int).Sign()
+		return v.Int.Cmp(big.NewInt(int64(i)))
 	case BigRat:
-		r := big.NewRat(int64(i), 1)
-		return -r.Sub(r, v.Rat).Sign()
+		return v.Rat.Cmp(big.NewRat(int64(i), 1))
 	case BigFloat:
-		r := big.NewFloat(float64(i))
-		return -r.Sub(r, v.Float).Sign()
+		return v.Float.Cmp(big.NewFloat(float64(i)))
 	case Complex:
 		return -1
 	}
@@ -851,11 +850,11 @@ func compare(v Value, i int) int {
 }
 
 // isTrue reports whether v represents boolean truth. If v is not
-// ultimately a scalar, an error results.
+// ultimately a scalar or empty, an error results.
 func isTrue(fnName string, v Value) bool {
 	switch i := v.(type) {
 	case Char:
-		return i != 0
+		return i != '\x00'
 	case Int:
 		return i != 0
 	case BigInt:
@@ -866,12 +865,20 @@ func isTrue(fnName string, v Value) bool {
 		return i.Float.Sign() != 0
 	case Complex:
 		return !isZero(v)
+	case QuietValue:
+		return isTrue(fnName, i.Value)
 	case *Vector:
-		if i.Len() == 1 {
+		switch i.Len() {
+		case 0:
+			return false
+		case 1:
 			return isTrue(fnName, i.At(0))
 		}
 	case *Matrix:
-		if i.data.Len() == 1 {
+		switch i.data.Len() {
+		case 0:
+			return false
+		case 1:
 			return isTrue(fnName, i.data.At(0))
 		}
 	}
@@ -1015,18 +1022,54 @@ func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
 }
 
 // EvalFunctionBody evaluates the list of expressions inside a function,
-// possibly with conditionals that generate an early return.
-func EvalFunctionBody(context Context, fnName string, body ExprList) Value {
-	var v Value
+// with no default value.
+func EvalFunctionBody(context Context, fnName string, body ExprList) (v Value) {
+	defer func() {
+		// Catch any early returns.
+		err := recover()
+		if err == nil {
+			return
+		}
+		r, ok := err.(*RetExpr)
+		if !ok {
+			panic(err)
+		}
+		v = unQuiet(r.Value)
+	}()
+	v, _ = evalExpressionList(context, fnName, nil, body)
+	return v
+}
+
+// EvalBlock evaluates the list of expressions inside a block, with
+// the empty expression as the default value.
+func EvalBlock(context Context, fnName string, body ExprList) Value {
+	v, _ := evalExpressionList(context, fnName, empty, body)
+	return v
+}
+
+// evalExpressionList evaluates an expression list with a specified
+// default value. A colon expression will give an early return value,
+// signaled by earlyExit. RetExpr is handled in EvalFunctionBody
+// as it must step to the top level of the function.
+func evalExpressionList(context Context, fnName string, v Value, body ExprList) (val Value, earlyExit bool) {
 	for _, e := range body {
-		if d, ok := e.(Decomposable); ok && d.Operator() == ":" {
-			left, right := d.Operands()
-			if isTrue(fnName, left.Eval(context)) {
-				return right.Eval(context)
+		switch expr := e.(type) {
+		case *ColonExpr:
+			if isTrue(fnName, expr.Cond.Eval(context)) {
+				return unQuiet(expr.Value.Eval(context)), true // Early exit value for block.
 			}
 			continue
 		}
 		v = e.Eval(context)
+	}
+	return v, false
+}
+
+// unQuiet returns the value inside a QuietValue. Needed in control structure
+// expressions to guarantee any returned item is visibile.
+func unQuiet(v Value) Value {
+	if q, ok := v.(QuietValue); ok {
+		return q.Value
 	}
 	return v
 }

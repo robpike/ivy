@@ -43,8 +43,18 @@ func tree(e interface{}) string {
 		return fmt.Sprintf("(%s %s)", e.Op, tree(e.Right))
 	case *value.BinaryExpr:
 		return fmt.Sprintf("(%s %s %s)", tree(e.Left), e.Op, tree(e.Right))
-	case *value.CondExpr:
-		return tree(e.Cond)
+	case *value.ColonExpr:
+		return fmt.Sprintf("<%s : %s>", tree(e.Cond), tree(e.Value))
+	case *value.IfExpr:
+		s := fmt.Sprintf("<:if %s; %s; ", tree(e.Cond), tree(e.Body))
+		if e.ElseBody != nil {
+			s += fmt.Sprintf(":else %s; ", tree(e.ElseBody))
+		}
+		return s + ":end>"
+	case *value.WhileExpr:
+		return fmt.Sprintf("<:while %s; %s; :end>", tree(e.Cond), tree(e.Body))
+	case *value.RetExpr:
+		return fmt.Sprintf(":ret %s", tree(e.Expr))
 	case value.ExprList:
 		return tree([]value.Expr(e))
 	case *value.IndexExpr:
@@ -77,12 +87,13 @@ func tree(e interface{}) string {
 
 // Parser stores the state for the ivy parser.
 type Parser struct {
-	scanner  *scan.Scanner
-	tokens   []scan.Token    // Points to tokenBuf.
-	tokenBuf [100]scan.Token // Reusable.
-	fileName string
-	lineNum  int
-	context  *exec.Context
+	scanner    *scan.Scanner
+	tokens     []scan.Token    // Points to tokenBuf.
+	tokenBuf   [100]scan.Token // Reusable.
+	fileName   string
+	lineNum    int
+	context    *exec.Context
+	inOperator bool
 }
 
 // NewParser returns a new parser that will read from the scanner.
@@ -93,6 +104,12 @@ func NewParser(fileName string, scanner *scan.Scanner, context value.Context) *P
 		fileName: fileName,
 		context:  context.(*exec.Context),
 	}
+}
+
+// InOperator sets the in-operator state for the parser, which when set allows some
+// control flow constructs and affects how newlines are handled.
+func (p *Parser) InOperator(t bool) {
+	p.inOperator = t
 }
 
 // Printf formats the args and writes them to the configured output writer.
@@ -166,10 +183,10 @@ func (p *Parser) source(start, end int) string {
 //	) special command '\n'
 //	op function definition
 //	expressionList '\n'
+//
 func (p *Parser) Line() (value.ExprList, bool) {
-	var ok bool
 	start := len(p.scanner.History()) // Remember this location before any leading comments.
-	if !p.readTokensToNewline(false) {
+	if !p.readTokensToNewline() {
 		return value.ExprList{}, false
 	}
 	tok := p.peek()
@@ -184,10 +201,7 @@ func (p *Parser) Line() (value.ExprList, bool) {
 		p.functionDefn(start)
 		return nil, true
 	}
-	exprs, ok := p.expressionList()
-	if !ok {
-		return nil, false
-	}
+	exprs := p.expressionList()
 	if len(exprs) > 0 && p.context.Config().Debug("parse") > 0 {
 		p.Println(tree(exprs))
 	}
@@ -199,7 +213,7 @@ func (p *Parser) Line() (value.ExprList, bool) {
 // We read all tokens before parsing for easy error recovery
 // if an error occurs mid-line. It also gives us lookahead
 // for parsing, which we may use one day.
-func (p *Parser) readTokensToNewline(inFunction bool) bool {
+func (p *Parser) readTokensToNewline() bool {
 	p.tokens = p.tokenBuf[:0]
 	for {
 		tok := p.scanner.Next()
@@ -207,14 +221,14 @@ func (p *Parser) readTokensToNewline(inFunction bool) bool {
 		case scan.Error:
 			p.errorf("%s", tok)
 		case scan.Newline:
-			// Need a truly blank line to terminate the function body.
-			if !inFunction || len(tok.Text) <= 1 || len(p.tokens) > 0 {
+			// Need a truly blank line to terminate a multiline function body.
+			if !p.inOperator || len(tok.Text) <= 1 || len(p.tokens) > 0 {
 				return true
 			}
 			continue
 		case scan.EOF:
-			if inFunction && len(p.tokens) == 0 {
-				// EOF is fine for terminating a function.
+			if p.inOperator && len(p.tokens) == 0 {
+				// EOF is also fine for terminating a function.
 				return true
 			}
 			return len(p.tokens) > 0
@@ -226,42 +240,42 @@ func (p *Parser) readTokensToNewline(inFunction bool) bool {
 // expressionList:
 //
 //	expr [':' expr] [';' expressionList]
-func (p *Parser) expressionList() (value.ExprList, bool) {
+//
+func (p *Parser) expressionList() value.ExprList {
 	expr := p.expr()
 	if expr != nil && p.peek().Type == scan.Colon {
-		tok := p.next()
-		expr = &value.CondExpr{
-			Cond: &value.BinaryExpr{
-				Left:  expr,
-				Op:    tok.Text,
-				Right: p.expr(),
-			},
+		p.next()
+		expr = &value.ColonExpr{
+			Cond:  expr,
+			Value: p.expr(),
 		}
 	}
-	var exprs []value.Expr
+	var exprs value.ExprList
 	if expr != nil {
 		exprs = value.ExprList{expr}
 	}
-	if p.peek().Type == scan.Semicolon {
+	tok := p.peek()
+	if tok.Type == scan.Semicolon {
 		p.next()
-		more, ok := p.expressionList()
-		if ok {
-			exprs = append(exprs, more...)
+		tok = p.peek()
+		if tok.Type != scan.EOF && tok.Type != scan.Else && tok.Type != scan.Elif && tok.Type != scan.End {
+			exprs = append(exprs, p.expressionList()...)
 		}
 	}
-	return exprs, true
+	return exprs
 }
 
 // expr
 //
 //	operand
 //	operand binop expr
+//
 func (p *Parser) expr() value.Expr {
 	tok := p.next()
 	expr := p.operand(tok)
 	tok = p.peek()
 	switch tok.Type {
-	case scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon, scan.Colon:
+	case scan.EOF, scan.RightParen, scan.RightBrack, scan.Semicolon, scan.Colon, scan.If, scan.Else, scan.Elif, scan.While, scan.Ret, scan.End:
 		return expr
 	case scan.Identifier:
 		if p.context.DefinedBinary(tok.Text) {
@@ -288,7 +302,7 @@ func (p *Parser) expr() value.Expr {
 			Right: p.expr(),
 		}
 	}
-	p.errorf("after expression: unexpected %s", p.peek())
+	p.errorf("after expression: unexpected %q", tok.Text)
 	return nil
 }
 
@@ -313,7 +327,7 @@ func (p *Parser) checkAssign(e value.Expr) {
 			}
 			slices.Reverse(list)
 			fixed := &value.IndexExpr{Left: last, Right: list}
-			value.Errorf("cannot assign to %s; use %v", e.ProgString(), fixed.ProgString())
+			value.Errorf("cannot assign to %s; use %s", e.ProgString(), fixed.ProgString())
 		}
 	case value.VectorExpr:
 		for _, elem := range e {
@@ -329,6 +343,7 @@ func (p *Parser) checkAssign(e value.Expr) {
 //	string constant
 //	vector
 //	unop Expr
+//
 func (p *Parser) operand(tok scan.Token) value.Expr {
 	var expr value.Expr
 	switch tok.Type {
@@ -346,7 +361,7 @@ func (p *Parser) operand(tok scan.Token) value.Expr {
 			break
 		}
 		fallthrough
-	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.LeftParen:
+	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.LeftParen, scan.If, scan.While, scan.Ret:
 		expr = p.numberOrVector(tok)
 	default:
 		p.errorf("unexpected %s", tok)
@@ -359,6 +374,7 @@ func (p *Parser) operand(tok scan.Token) value.Expr {
 //	expr
 //	expr [ expr ]
 //	expr [ expr ] [ expr ] ....
+//
 func (p *Parser) index(expr value.Expr) value.Expr {
 	for p.peek().Type == scan.LeftBrack {
 		p.next()
@@ -378,6 +394,7 @@ func (p *Parser) index(expr value.Expr) value.Expr {
 // indexList
 //
 //	[[expr] [';' [expr]] ...]
+//
 func (p *Parser) indexList() []value.Expr {
 	list := []value.Expr{}
 	exprSeen := false // Previous element contained an expression.
@@ -408,6 +425,9 @@ func (p *Parser) indexList() []value.Expr {
 //	rational
 //	string
 //	variable
+//	ifExpr
+//	whileExpr
+//	retExpr
 //	'(' ')'
 //	'(' Expr ')'
 //
@@ -417,11 +437,17 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 	text := tok.Text
 	switch tok.Type {
 	case scan.Identifier:
-		expr = p.variable(text)
+		expr = p.varExpr(text)
 	case scan.String:
 		str = value.ParseString(text)
 	case scan.Number, scan.Rational, scan.Complex:
 		expr, err = value.Parse(p.context.Config(), text)
+	case scan.If:
+		expr = p.ifExpr(tok)
+	case scan.While:
+		expr = p.whileExpr()
+	case scan.Ret:
+		expr = p.retExpr()
 	case scan.LeftParen:
 		if p.peek().Type == scan.RightParen {
 			p.next()
@@ -445,13 +471,14 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 //
 //	number
 //	string
-//	numberOrVector '[' Expr ']'
+//	numberOrVector '[' expr ']'
 //	numberOrVector...
+//
 func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 	expr, str := p.number(tok)
 	done := true
 	switch p.peek().Type {
-	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.Identifier, scan.LeftParen, scan.LeftBrack:
+	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.If, scan.While, scan.Ret, scan.Identifier, scan.LeftParen, scan.LeftBrack:
 		// Further work follows.
 		done = false
 	}
@@ -474,7 +501,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 					break Loop
 				}
 				fallthrough
-			case scan.Number, scan.Rational, scan.Complex, scan.String:
+			case scan.Number, scan.Rational, scan.Complex, scan.String, scan.If, scan.While, scan.Ret:
 				expr, str = p.number(p.next())
 				if expr == nil {
 					// Must be a string.
@@ -497,11 +524,113 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 	return slice
 }
 
-func isScalar(v value.Value) bool {
-	return v.Rank() == 0
+// atLineEnd reports whether we have reached a semicolon or end of line.
+// If we have, it absorbs the line end and loads the next line if necessary.
+// Called only from ifExpr and whileExpr.
+func (p *Parser) atLineEnd() bool {
+	tok := p.peek()
+	switch tok.Type {
+	case scan.Semicolon:
+		// Allow multiple semicolons. TODO?
+		for tok.Type == scan.Semicolon {
+			p.next()
+			tok = p.peek()
+		}
+		return true
+	case scan.EOF:
+		p.next()
+		p.readTokensToNewline()
+		return true
+	}
+	return false
 }
 
-func (p *Parser) variable(name string) *value.VarExpr {
+// if
+//
+// ":if" expr ';' expressionList [":elif" expr ';' expressionList ]... [":else" expressionList ';' ] ":end"
+//
+func (p *Parser) ifExpr(tok scan.Token) value.Expr {
+	cond := p.expr()
+	p.atLineEnd()
+	body := p.block()
+	expr := &value.IfExpr{
+		Cond: cond,
+		Body: body,
+	}
+	tok = p.need(scan.End, scan.Else, scan.Elif)
+	switch tok.Type {
+	case scan.End:
+	case scan.Else:
+		p.atLineEnd()
+		expr.ElseBody = p.block()
+		p.need(scan.End)
+	case scan.Elif:
+		p.atLineEnd()
+		// Just parse as an :if but share the :end.
+		expr.ElseBody = value.ExprList{p.ifExpr(tok)}
+	}
+	return expr
+}
+
+// while
+//
+//	":while" expr ';' expressionList ":end"
+//
+func (p *Parser) whileExpr() value.Expr {
+	cond := p.expr()
+	p.atLineEnd()
+	body := p.block()
+	p.need(scan.End)
+	return &value.WhileExpr{
+		Cond: cond,
+		Body: body,
+	}
+}
+
+// ret
+//
+//	":ret" expr
+//
+func (p *Parser) retExpr() value.Expr {
+	if !p.inOperator {
+		p.errorf(":ret outside operator definition")
+	}
+	return &value.RetExpr{
+		Expr: p.expr(),
+	}
+}
+
+// atBlockEnd reports whether we are at a keyword that can end a block.
+// It does not check that the keyword is the correct one, but the parse
+// itself will take care of that.
+func (p *Parser) atBlockEnd() bool {
+	switch p.peek().Type {
+	case scan.End, scan.Else, scan.Elif:
+		return true
+	}
+	return false
+}
+
+// block parses a possibly multi-line expression list up to a block-ending
+// keyword.
+func (p *Parser) block() value.ExprList {
+	var body value.ExprList
+	for {
+		if p.atBlockEnd() {
+			break
+		}
+		body = append(body, p.expressionList()...)
+		if p.atBlockEnd() {
+			break
+		}
+		if !p.readTokensToNewline() {
+			p.errorf("invalid function definition")
+		}
+	}
+	return body
+}
+
+func (p *Parser) varExpr(name string) *value.VarExpr {
 	return &value.VarExpr{
 		Name: name,
 	}

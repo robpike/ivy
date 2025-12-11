@@ -1,0 +1,107 @@
+# Copyright 2025 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Testing the :if, :when and :ret constructs.
+
+op sign i = :if i >= 0; "positive" :else "negative" :end
+sign@ -1 0 1
+	negative positive positive
+
+# Extra semicolons
+op sign i = :if i >= 0; "positive"; :else; "negative"; :end;
+sign@ -1 0 1
+	negative positive positive
+
+# Now add :elif
+op sign i = :if i > 0; "positive"; :elif i == 0; "zero"; :else "negative"; :end
+sign@ -1 0 1
+	negative zero positive
+
+# Now on multiple lines
+op sign i =
+ :if i > 0
+  "positive"
+ :elif i == 0
+  "zero"
+ :else
+  "negative"
+ :end
+
+sign@ -1 0 1
+	negative zero positive
+
+# A non-executing :if returns empty.
+op foo x = :if x; "hello" :end
+foo@ 0 1
+	() hello
+
+# A colon expression inside.
+op foo i = :if i > 0; 1: "hello"; "shouldn't appear" :end;
+foo@ 0 1
+	() hello
+
+# A :ret expression inside.
+op foo i = :if i > 0; :ret "returned" :end;  "didn't return"
+foo@ 0 1
+	didn't return returned
+
+# Factorial as a loop
+op fac n = f = n; :while n=n-1; f = f * n; :end
+fac 6
+	720
+
+# Multiple lines.
+op fac n =
+ f = n
+ :while n=n-1
+  f = f * n
+ :end
+
+fac 6
+	720
+
+# Colon vs. :ret.
+op foo i =
+  :while 0 < i=i-1
+    k = 5
+    result = :while 0 < k=k-1
+      i k === 2 3: :ret "return" i k
+      k == 3: "colon" i k
+    :end
+    print "loop value" result
+  :end
+
+foo 5
+	loop value (colon 4 3)
+	loop value (colon 3 3)
+	return 2 3
+
+# If is just an expression.
+"beginning" :if 1; "middle" :end "end"
+	beginning middle end
+
+# While is just an expression.
+f = n = 6
+0 :while n=n-1; f = f * n; :end 777
+	0 720 777
+
+# Contributed by rsc in issue #247.
+op firstmod (a b l r) =
+  l > r: 0
+  x i ai bi = 0 0 1 0
+  :while (a != 0) and (b != 0)
+    x i = x i + (0 max ceil (l - x) / a)*(a ai)
+    x i = x i + (0 max ceil (x - r) / b)*(-b) bi
+    (l <= x) and (x <= r): :ret i
+    :if a >= b
+      a ai = a ai + (floor a/b)*((-b) bi)
+    :else
+      b bi = b bi + (floor b/a)*((-a) ai)
+    :end
+  :end
+  0 # failure
+
+firstmod 13 256 1 5; firstmod 14 256 1 1
+	20 0
+

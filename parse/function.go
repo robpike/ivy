@@ -24,6 +24,8 @@ import (
 //	expressionList
 //	'\n' (expressionList '\n')+ '\n' # For multiline definition, ending with blank line.
 func (p *Parser) functionDefn(start int) {
+	p.InOperator(true)
+	defer p.InOperator(false)
 	tok := p.need(scan.Op)
 	fn := new(exec.Function)
 	// Two identifiers means: op arg.
@@ -106,27 +108,19 @@ func (p *Parser) functionDefn(start int) {
 		if p.peek().Type == scan.EOF {
 			// Multiline.
 			p.next() // Skip newline; not strictly necessary.
-			if !p.readTokensToNewline(true) {
+			if !p.readTokensToNewline() {
 				p.errorf("invalid function definition")
 			}
 			for p.peek().Type != scan.EOF {
-				x, ok := p.expressionList()
-				if !ok {
-					p.errorf("invalid function definition")
-				}
-				fn.Body = append(fn.Body, x...)
-				if !p.readTokensToNewline(true) {
+				fn.Body = append(fn.Body, p.expressionList()...)
+				if !p.readTokensToNewline() {
 					p.errorf("invalid function definition")
 				}
 			}
 			p.next() // Consume final newline.
 		} else {
 			// Single line.
-			list, ok := p.expressionList()
-			if !ok {
-				p.errorf("invalid function definition")
-			}
-			fn.Body = list
+			fn.Body = p.expressionList()
 		}
 		if len(fn.Body) == 0 {
 			p.errorf("missing function body")
@@ -150,7 +144,11 @@ func (p *Parser) functionDefn(start int) {
 	succeeded = true
 	p.context.Define(fn)
 	if p.context.Config().Debug("parse") > 0 {
-		p.Printf("op %s %s %s = %s\n", fn.Left.ProgString(), fn.Name, fn.Right.ProgString(), tree(fn.Body))
+		left := ""
+		if fn.Left != nil {
+			left = fn.Left.ProgString()
+		}
+		p.Printf("op %s %s %s = %s\n", left, fn.Name, fn.Right.ProgString(), tree(fn.Body))
 	}
 }
 
@@ -259,8 +257,22 @@ func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
 	switch e := expr.(type) {
 	case *value.UnaryExpr:
 		walk(e.Right, false, f)
-	case *value.CondExpr:
+	case value.ExprList:
+		for _, v := range e {
+			walk(v, false, f)
+		}
+	case *value.ColonExpr:
 		walk(e.Cond, false, f)
+		walk(e.Value, false, f)
+	case *value.IfExpr:
+		walk(e.Cond, false, f)
+		walk(e.Body, false, f)
+		walk(e.ElseBody, false, f)
+	case *value.WhileExpr:
+		walk(e.Cond, false, f)
+		walk(e.Body, false, f)
+	case *value.RetExpr:
+		walk(e.Expr, false, f)
 	case *value.BinaryExpr:
 		walk(e.Right, false, f)
 		walk(e.Left, e.Op == "=", f)

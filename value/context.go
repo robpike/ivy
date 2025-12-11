@@ -10,19 +10,6 @@ import (
 	"robpike.io/ivy/config"
 )
 
-// Decomposable allows one to pull apart a parsed expression.
-// Only implemented by Expr types that need to be decomposed
-// in function evaluation.
-type Decomposable interface {
-	// Operator returns the operator, or "" for a singleton.
-	Operator() string
-
-	// Operands returns the left and right operands, or nil if absent.
-	// For singletons, both will be nil, but ProgString can
-	// give the underlying name or value.
-	Operands() (left, right Expr)
-}
-
 // UnaryOp is the interface implemented by a simple unary operator.
 type UnaryOp interface {
 	EvalUnary(c Context, right Value) Value

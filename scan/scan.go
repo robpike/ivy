@@ -40,6 +40,12 @@ const (
 	Number     // simple number
 	Operator   // known operator
 	Op         // "op", operator definition keyword
+	If         // ":if", loop definition keyword
+	Else       // ":else", else definition keyword
+	Elif       // ":elif", else-if definition keyword (avoids dangling else)
+	While      // ":while", loop definition keyword
+	End        // ":end", 'block' end keyword
+	Ret        // ":ret", function return keyword
 	Rational   // rational number like 2/3
 	Complex    // complex number like 3j2
 	RightBrack // ']'
@@ -311,7 +317,7 @@ func lexAny(l *Scanner) stateFn {
 	case r == '[':
 		return l.emit(LeftBrack)
 	case r == ':':
-		return l.emit(Colon)
+		return lexColon(l)
 	case r == ']':
 		return l.emit(RightBrack)
 	case r == '(':
@@ -322,6 +328,33 @@ func lexAny(l *Scanner) stateFn {
 		return l.emit(Char)
 	default:
 		return l.errorf("unrecognized character: %#U", r)
+	}
+}
+
+// lexColon scans a colon-introduced keyword.
+// The colon has been scanned.
+func lexColon(l *Scanner) stateFn {
+	for isAlphaNumeric(l.peek()) {
+		l.next()
+	}
+	switch l.input[l.start:l.pos] {
+	case ":":
+		return l.emit(Colon)
+	case ":if":
+		return l.emit(If)
+	case ":else":
+		return l.emit(Else)
+	case ":elif":
+		return l.emit(Elif)
+	case ":while":
+		return l.emit(While)
+	case ":end":
+		return l.emit(End)
+	case ":ret":
+		return l.emit(Ret)
+	default:
+		l.pos = l.start + 1
+		return l.emit(Colon)
 	}
 }
 

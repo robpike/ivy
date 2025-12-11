@@ -7,8 +7,8 @@
 // )help still works properly.
 
 /*
-Ivy is an interpreter for an APL-like language. It is a plaything and a work in
-progress.
+Ivy is an interpreter for an APL-like language. It is a plaything
+and a work in progress.
 
 Unlike APL, the input is ASCII and the results are exact (but see
 the next paragraph).  It uses exact rational arithmetic so it can
@@ -228,63 +228,58 @@ Type-converting operations
 
 # Pre-defined constants
 
-The constants e (base of natural logarithms) and pi (π) are pre-defined to high
-precision, about 3000 decimal digits truncated according to the floating point
-precision setting.
+The constants e (base of natural logarithms) and pi (π) are pre-defined
+to high precision, about 3000 decimal digits, truncated according
+to the floating point precision setting.
 
 # Character data
 
-Strings are vectors of "chars", which are Unicode code points (not bytes).
-Syntactically, string literals are very similar to those in Go, with back-quoted
-raw strings and double-quoted interpreted strings. Unlike Go, single-quoted strings
-are equivalent to double-quoted, a nod to APL syntax. A string with a single char
-is just a singleton char value; all others are vectors. Thus “, "", and ” are
-empty vectors, `a`, "a", and 'a' are equivalent representations of a single char,
-and `ab`, `a` `b`, "ab", "a" "b", 'ab', and 'a' 'b' are equivalent representations
-of a two-char vector.
+Strings are vectors of "chars", which are Unicode code points (not
+bytes).  Syntactically, string literals are very similar to those
+in Go, with back-quoted raw strings and double-quoted interpreted
+strings. Unlike Go, single-quoted strings are equivalent to
+double-quoted, a nod to APL syntax. A string with a single char is
+just a singleton char value; all others are vectors. Thus “, "",
+and ” are empty vectors, `a`, "a", and 'a' are equivalent representations
+of a single char, and `ab`, `a` `b`, "ab", "a" "b", 'ab', and 'a'
+'b' are equivalent representations of a two-char vector.
 
-Unlike in Go, a string in ivy comprises code points, not bytes; as such it can
-contain only valid Unicode values. Thus in ivy "\x80" is illegal, although it is
-a legal one-byte string in Go.
+Unlike in Go, a string in ivy comprises code points, not bytes; as
+such it can contain only valid Unicode values. Thus in ivy "\x80"
+is illegal, although it is a legal one-byte string in Go.
 
-Strings can be printed. If a vector contains only chars, it is printed without
-spaces between them.
+Strings can be printed. If a vector contains only chars, it is
+printed without spaces between them.
 
-Chars have restricted operations. Printing, comparison, indexing and so on are
-legal but arithmetic is not, and chars cannot be converted automatically into other
-singleton values (ints, floats, and so on). The unary operators char and code
-enable transcoding between integer and char values.
+Chars have restricted operations. Printing, comparison, indexing
+and so on are legal but arithmetic is not, and chars cannot be
+converted automatically into other singleton values (ints, floats,
+and so on). The unary operators char and code enable transcoding
+between integer and char values.
 
 # User-defined operators
 
-Users can define unary and binary operators, which then behave just like
-built-in operators. Both a unary and a binary operator may be defined for the
-same name.
+Users can define unary and binary operators, which then behave just
+like built-in operators. Both a unary and a binary operator may be
+defined for the same name.
 
-The syntax of a definition is the 'op' keyword, the operator and formal
-arguments, an equals sign, and then the body. The names of the operator and its
-arguments must be identifiers.  For unary operators, write "op name arg"; for
-binary write "op leftarg name rightarg". The final expression in the body is the
-return value. Operators may have recursive definitions; see the paragraph
-about conditional execution for an example.
+The syntax of a definition is the 'op' keyword, the operator and
+formal arguments, an equals sign, and then the body. The names of
+the operator and its arguments must be identifiers.  For unary
+operators, write "op name arg"; for binary write "op leftarg name
+rightarg". The final expression in the body is the return value.
+Operators may have recursive definitions; see the paragraph about
+conditional execution for an example.
 
-Each formal argument can be a single name or a parenthesized list of formal
-arguments, requiring a vector argument of that same length. Each actual argument
-is assigned to its corresponding formal argument at the start of function execution,
-creating new local variables.
+Each formal argument can be a single name or a parenthesized list
+of formal arguments, requiring a vector argument of that same length.
+Each actual argument is assigned to its corresponding formal argument
+at the start of function execution, creating new local variables.
 
-The body may be a single line (possibly containing semicolons) on the same line
-as the 'op', or it can be multiple lines. For a multiline entry, there is a
-newline after the '=' and the definition ends at the first blank line (ignoring
-spaces).
-
-Conditional execution is done with the ":" binary conditional return
-operator, which is valid only within the code for a user-defined
-operator. The left operand must be a scalar or one-element vector
-or matrix. If it is non-zero, the right operand is returned as the
-value of the function. Otherwise, execution continues normally. The
-":" operator has a lower precedence than any other operator; in
-effect it breaks the line into two separate expressions.
+The body may be a single line (possibly containing semicolons) on
+the same line as the 'op', or it can be multiple lines. For a
+multiline entry, there is a newline after the '=' and the definition
+ends at the first blank line (ignoring spaces).
 
 Example: average of a vector (unary):
 
@@ -313,6 +308,19 @@ Example: primes less than N (unary):
 	primes 50
 	result: 2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
 
+Although they are needed less often than in other languages, there
+are several constructs to control execution according to a condition.
+
+One form of conditional execution is the colon ':' binary conditional
+operator. The left operand must be a scalar or one-element vector
+or matrix. If it is non-zero, the value of the right operand is
+returned as the value of the containing block of code, such as the
+body of operator or of an if or while loop. Otherwise, execution
+continues normally without evaluating the right operand. The colon
+operator has a lower precedence than any other operator; in effect
+it breaks the line into two separate expressions and evaluates the
+left one first (and only conditionally the right one).
+
 Example: greatest common divisor (binary):
 
 	op a gcd b =
@@ -327,15 +335,61 @@ Example: modular exponentiation (unary, with a 3-element vector argument):
 
 	op modexp (b e m) =  # (b**e) mod m
 		e == 0: 1
-		e % 2: (b * modexp b (e-1) m) mod m
+		e mod 2: (b * modexp b (e-1) m) mod m
 		modexp ((b**2) mod m) (e>>1) m
 
-On mobile platforms only, due to I/O restrictions, user-defined operators
-must be presented on a single line. Use semicolons to separate expressions:
+A loop can be built using the ':while' keyword (colon followed by
+"while"), which executes a block of code, terminating in an ':end'
+keyword, as long as the condition remains true.
+
+Example: iterative factorial
+
+	op fac n =
+		f = n
+		:while 0 < n=n-1
+			f = f*n
+		:end
+
+	fac 6
+	result: 720
+
+An ':if' expression evaluates its ':end'-terminated body only when
+the condition after the keyword is true. If the condition is false
+and an ':else' is present, its body is evaluated. For an ':else'
+followed immediately by an ':if', use ':elif' to avoid the "dangling
+else" problem and unnecessary nesting.
+
+	op sign i =
+		:if i > 0
+			"positive"
+		:elif i == 0
+			"zero"
+		:else
+			"negative"
+		:end
+
+	sign@ -1 0 1
+	result: negative zero positive
+
+These constructs are all expressions whose value is that of the
+last expression within that they evaluate, other than the condition.
+If nothing is executed, the value is the empty vector.
+
+Example: while loop inside a vector
+
+	f = n = 6
+	"start" :while n = n-1; f = f*n :end "finish"
+
+	result: start 720 finish
+
+On mobile platforms only, due to I/O restrictions, user-defined
+operators must be presented on a single line. Use semicolons to
+separate expressions:
 
 	op a gcd b = a == b: a; a > b: b gcd a-b; a gcd b-a
 
-To declare an operator but not define it, omit the equals sign and what follows.
+To declare an operator but not define it, omit the equals sign and
+what follows.
 
 	op foo x
 	op bar x = foo x
@@ -346,9 +400,10 @@ To declare an operator but not define it, omit the equals sign and what follows.
 	bar 3
 	result: 1/3
 
-Within a user-defined operator body, identifiers are local to the invocation
-if they are assigned before being read, and global if read before being written.
-To write to a global without reading it first, insert an unused read.
+Within a user-defined operator body, identifiers are local to the
+invocation if they are assigned before being read, and global if
+read before being written.  To write to a global without reading
+it first, insert an unused read.
 
 	total = 0
 	last = 0
@@ -362,26 +417,30 @@ To write to a global without reading it first, insert an unused read.
 
 # Special commands
 
-Ivy accepts a number of special commands, introduced by a right paren
-at the beginning of the line. Most report the current value if a new value
-is not specified. For these commands, numbers are always read and printed
-base 10 and must be non-negative on input.
+Ivy accepts a number of special commands, introduced by a right
+parenthesis at the beginning of the line. Most report the current
+value if a new value is not specified. For these commands, numbers
+are always read and printed base 10 and must be non-negative on
+input.
 
 	) help
-		Describe the special commands. Run )help <topic> to learn more
-		about a topic, )help <op> to learn more about an operator.
+		Print documentation about a topic. Run ")help" for a list of topics.
+		Run ")help <topic>" to learn more about a topic, ")help <op>" to
+		learn more about a builtin operator, and ")help about <text>"
+		to search the documents for any lines that contains the text;
+		try ")help about gcd" or "help about loop".
 	) base 0
 		Set the number base for input and output. The commands ibase and
 		obase control setting of the base for input and output alone,
 		respectively.  Base 0 allows C-style input: decimal, with 037 being
-		octal and 0x10 being hexadecimal. Bases above 16 are disallowed.
-		To output large integers and rationals, base must be one of
-		0 2 8 10 16. Floats are always printed base 10.
+		octal, 0b10 being binary and 0x10 being hexadecimal. Bases above
+		16 are disallowed. To output large integers and rationals, base
+		must be one of 0 2 8 10 16. Floats are always printed base 10.
 	) clear name ...
 		Remove the definition of the named user-defined items, or all
 		such items if no name is provided. The scope may be limited to
 		one class of identifier by specifying as the first name one of the
-		special words unary, binary or var.
+		special words 'unary', 'binary' or 'var'.
 	) cpu
 		Print the duration of the last interactive calculation.
 	) debug name 0|1
@@ -405,7 +464,7 @@ base 10 and must be non-negative on input.
 	) maxbits 1e6
 		To avoid consuming too much memory, if an integer result would
 		require more than this many bits to store, abort the calculation.
-		If maxbits is 0, there is no limit; the default is 1e6.
+		If maxbits is 0, there is no limit.
 	) maxdigits 1e4
 		To avoid overwhelming amounts of output, if an integer has more
 		than this many digits, print it using the defined floating-point
@@ -419,7 +478,7 @@ base 10 and must be non-negative on input.
 		the user. Note that if settings such as the output base have
 		changed, the text might not reevaluate to the same definition.
 	) origin 1
-		Set the origin for indexing a vector or matrix. Must be non-negative.
+		Set the origin for indexing a vector or matrix.
 	) prec 256
 		Set the precision (mantissa length) for floating-point values.
 		The value is in bits. The exponent always has 32 bits.
@@ -437,6 +496,6 @@ base 10 and must be non-negative on input.
 	) var X
 		If X is absent, list all defined variables. Otherwise, show the
 		definition of the variable X in a form that can be evaluated
-		to recreate the value.
+		to recreate the value. The output is always in base 10.
 */
 package main

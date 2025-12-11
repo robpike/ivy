@@ -70,29 +70,103 @@ func (e ExprList) ProgString() string {
 }
 
 func (e ExprList) Eval(context Context) Value {
-	result := Value(empty)
-	for _, expr := range e {
-		result = expr.Eval(context)
+	v, _ := evalExpressionList(context, "expression list", empty, e)
+	return v
+}
+
+// ColonExpr is a conditional executor: expression ":" expression. It shortcuts
+// execution of an ExprList.
+type ColonExpr struct {
+	Cond  Expr
+	Value Expr
+}
+
+func (c *ColonExpr) ProgString() string { return c.Cond.ProgString() + " : " + c.Value.ProgString() }
+
+func (c *ColonExpr) Eval(context Context) Value {
+	v := Value(empty)
+	if isTrue(":", c.Cond.Eval(context)) {
+		if c.Value != nil {
+			v = c.Value.Eval(context)
+		}
 	}
-	return result
+	return unQuiet(v)
 }
 
-// CondExpr is a CondExpr executor: expression ":" expression
-type CondExpr struct {
-	Cond *BinaryExpr
+// WhileExpr is a loop expression: ":while" expression; expressionList; ":end"
+type WhileExpr struct {
+	Cond Expr
+	Body ExprList
 }
 
-func (c *CondExpr) ProgString() string         { return c.Cond.ProgString() }
-func (c *CondExpr) Eval(context Context) Value { return c.Cond.Eval(context) }
-
-var _ = Decomposable(&CondExpr{})
-
-func (c *CondExpr) Operator() string {
-	return ":"
+func (w *WhileExpr) ProgString() string {
+	s := ":while "
+	s += w.Cond.ProgString()
+	s += "; "
+	s += w.Body.ProgString()
+	s += ":end;"
+	return s
 }
 
-func (c *CondExpr) Operands() (left, right Expr) {
-	return c.Cond.Left, c.Cond.Right
+func (w *WhileExpr) Eval(context Context) Value {
+	v := Value(empty)
+	done := false
+	for !done && isTrue(":while", w.Cond.Eval(context)) {
+		if w.Body != nil {
+			v, done = evalExpressionList(context, ":while", empty, w.Body)
+		}
+	}
+	return unQuiet(v)
+}
+
+// IfExpr is a conditional expression: ":if" expression; expressionList [":else" expressionList] ":end"
+// If there is an ":elif", it has been parsed into a properly nested ":else" ":if".
+type IfExpr struct {
+	Cond     Expr
+	Body     ExprList
+	ElseBody ExprList
+}
+
+func (i *IfExpr) ProgString() string {
+	s := ":if "
+	s += i.Cond.ProgString()
+	s += "; "
+	s += i.Body.ProgString()
+	if i.ElseBody != nil {
+		s += ":else "
+		s += i.ElseBody.ProgString()
+		s += "; "
+
+	}
+	s += ":end;"
+	return s
+}
+
+func (i *IfExpr) Eval(context Context) Value {
+	v := Value(empty)
+	if isTrue(":if", i.Cond.Eval(context)) {
+		if i.Body != nil {
+			v = EvalBlock(context, ":if", i.Body)
+		}
+	} else if i.ElseBody != nil {
+		v = EvalBlock(context, ":if", i.ElseBody)
+	}
+	return unQuiet(v)
+}
+
+// RetExpr is an early return from a function. See EvalFunctionBody.
+type RetExpr struct {
+	Expr  Expr  // In the parse tree.
+	Value Value // After evaluation.
+}
+
+func (r *RetExpr) ProgString() string {
+	return ":ret " + r.Expr.ProgString()
+}
+
+func (r *RetExpr) Eval(context Context) Value {
+	r.Value = r.Expr.Eval(context)
+	panic(r) // Stop execution of innermost function; see EvalFunctionBody.
 }
 
 // VectorExpr holds a syntactic vector to be verified and evaluated.
