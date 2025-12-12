@@ -146,7 +146,8 @@ func printValues(conf *config.Config, writer io.Writer, values []value.Value) bo
 	}
 	printed := false
 	for _, v := range values {
-		if _, ok := v.(value.QuietValue); ok {
+		switch v.(type) {
+		case value.QuietValue, value.PrintValue:
 			continue
 		}
 		s := v.Sprint(conf)

@@ -511,7 +511,8 @@ func (p *Parser) runUntilError(name string) error {
 			if val == nil {
 				continue
 			}
-			if _, ok := val.(value.QuietValue); ok {
+			switch val.(type) {
+			case value.QuietValue, value.PrintValue:
 				continue
 			}
 			p.context.AssignGlobal("_", val)

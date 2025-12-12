@@ -105,3 +105,12 @@ op firstmod (a b l r) =
 firstmod 13 256 1 5; firstmod 14 256 1 1
 	20 0
 
+# Issue 250: Must split print from QuietValue to make sure the stripping
+# of QuietValue in execution returns does not cause a double print.
+op condprint x =
+  1: print x
+  1 / 0
+
+condprint 1
+	1
+

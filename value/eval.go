@@ -562,6 +562,8 @@ func eachValue(v Value, dim int) iter.Seq[Value] {
 		return eachOne(v)
 	case QuietValue:
 		return eachValue(v.Value, dim)
+	case PrintValue:
+		return eachValue(v.Value, dim)
 	case *Vector:
 		if dim != 1 {
 			panic("impossible eachValue")
@@ -866,6 +868,8 @@ func isTrue(fnName string, v Value) bool {
 	case Complex:
 		return !isZero(v)
 	case QuietValue:
+		return isTrue(fnName, i.Value)
+	case PrintValue:
 		return isTrue(fnName, i.Value)
 	case *Vector:
 		switch i.Len() {
