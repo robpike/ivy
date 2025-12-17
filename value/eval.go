@@ -562,8 +562,6 @@ func eachValue(v Value, dim int) iter.Seq[Value] {
 		return eachOne(v)
 	case QuietValue:
 		return eachValue(v.Value, dim)
-	case PrintValue:
-		return eachValue(v.Value, dim)
 	case *Vector:
 		if dim != 1 {
 			panic("impossible eachValue")
@@ -869,8 +867,6 @@ func isTrue(fnName string, v Value) bool {
 		return !isZero(v)
 	case QuietValue:
 		return isTrue(fnName, i.Value)
-	case PrintValue:
-		return isTrue(fnName, i.Value)
 	case *Vector:
 		switch i.Len() {
 		case 0:
@@ -1038,7 +1034,7 @@ func EvalFunctionBody(context Context, fnName string, body ExprList) (v Value) {
 		if !ok {
 			panic(err)
 		}
-		v = unQuiet(r.Value)
+		v = r.Value
 	}()
 	v, _ = evalExpressionList(context, fnName, nil, body)
 	return v
@@ -1060,22 +1056,13 @@ func evalExpressionList(context Context, fnName string, v Value, body ExprList) 
 		switch expr := e.(type) {
 		case *ColonExpr:
 			if isTrue(fnName, expr.Cond.Eval(context)) {
-				return unQuiet(expr.Value.Eval(context)), true // Early exit value for block.
+				return expr.Value.Eval(context), true // Early exit value for block.
 			}
 			continue
 		}
 		v = e.Eval(context)
 	}
 	return v, false
-}
-
-// unQuiet returns the value inside a QuietValue. Needed in control structure
-// expressions to guarantee any returned item is visibile.
-func unQuiet(v Value) Value {
-	if q, ok := v.(QuietValue); ok {
-		return q.Value
-	}
-	return v
 }
 
 // flatten returns a simple vector containing the scalar elements of v.

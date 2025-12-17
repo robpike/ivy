@@ -345,6 +345,7 @@ var helpLines = []string{
 	"\t\t:while 0 < n=n-1",
 	"\t\t\tf = f*n",
 	"\t\t:end",
+	"\t\tf",
 	"",
 	"\tfac 6",
 	"\tresult: 720",

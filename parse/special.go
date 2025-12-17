@@ -512,7 +512,7 @@ func (p *Parser) runUntilError(name string) error {
 				continue
 			}
 			switch val.(type) {
-			case value.QuietValue, value.PrintValue:
+			case value.QuietValue:
 				continue
 			}
 			p.context.AssignGlobal("_", val)

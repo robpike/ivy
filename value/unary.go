@@ -135,14 +135,9 @@ var IvyEval func(context Context, s string) Value
 
 var UnaryOps = make(map[string]UnaryOp)
 
-// PrintValue is like QuietValue but is not stripped by return from a block.
-type PrintValue struct {
-	Value
-}
-
 func printValue(c Context, v Value) Value {
 	fmt.Fprintln(c.Config().Output(), v.Sprint(c.Config()))
-	return PrintValue{v}
+	return QuietValue{v}
 }
 
 // bigFloatRand returns a uniformly distributed BigFloat in the range [0, f).

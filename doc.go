@@ -349,6 +349,7 @@ Example: iterative factorial
 		:while 0 < n=n-1
 			f = f*n
 		:end
+		f
 
 	fac 6
 	result: 720

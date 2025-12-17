@@ -331,6 +331,7 @@ keyword, as long as the condition remains true.
 	:while 0 &lt; n=n-1
 		f = f*n
 	:end
+	f
 
 fac 6
 result: 720

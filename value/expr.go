@@ -90,7 +90,7 @@ func (c *ColonExpr) Eval(context Context) Value {
 			v = c.Value.Eval(context)
 		}
 	}
-	return unQuiet(v)
+	return v
 }
 
 // WhileExpr is a loop expression: ":while" expression; expressionList; ":end"
@@ -116,7 +116,7 @@ func (w *WhileExpr) Eval(context Context) Value {
 			v, done = evalExpressionList(context, ":while", empty, w.Body)
 		}
 	}
-	return unQuiet(v)
+	return v
 }
 
 // IfExpr is a conditional expression: ":if" expression; expressionList [":else" expressionList] ":end"
@@ -151,7 +151,7 @@ func (i *IfExpr) Eval(context Context) Value {
 	} else if i.ElseBody != nil {
 		v = EvalBlock(context, ":if", i.ElseBody)
 	}
-	return unQuiet(v)
+	return v
 }
 
 // RetExpr is an early return from a function. See EvalFunctionBody.
