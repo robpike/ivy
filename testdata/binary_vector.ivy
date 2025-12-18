@@ -713,6 +713,10 @@ circle 10
 	0 1 0 1 0
 	1 0 1 0 1
 
+# Issue #253: encode violated a constraint by calling encodeTime with an empty lhs.
+(0 rho 10) encode 123
+	#
+
 # Encode non-integer values.
 
 0 24 60 60 encode 1234567

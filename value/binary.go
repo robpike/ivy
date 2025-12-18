@@ -1083,7 +1083,7 @@ func init() {
 					// of how modulo arithmetic works.
 					const op = "encode"
 					A, B := u.(*Vector), v.(*Vector)
-					if A.AllChars() {
+					if A.AllChars() && A.Len() > 0 {
 						// Special case for times.
 						return encodeTime(c, A, B)
 					}
