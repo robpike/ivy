@@ -1090,7 +1090,7 @@ func init() {
 					// Scalar.
 					if A.Len() == 1 && B.Len() == 1 {
 						_, rem := QuoRem(op, c, B.At(0), A.At(0))
-						return rem
+						return NewVector(rem) // encode always returns a vector.
 					}
 					// Vector.
 					if B.Len() == 1 {
