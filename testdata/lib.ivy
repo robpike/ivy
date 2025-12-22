@@ -1,0 +1,24 @@
+# Copyright 2025 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Simple test of library loading
+
+)lib _test
+echo 24
+3 add 7
+	24
+	10
+
+)lib doc _test
+	This
+	is
+	a
+	test.
+
+)lib ops _test
+	add echo
+
+)lib vars _test
+	x y z
+

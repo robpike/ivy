@@ -462,6 +462,10 @@ input.
 	) last 1
 		Print the last few lines of user input, default 1 line, ignoring
 		any trailing empty lines.
+	) lib name
+		Load the named library. If no name is given, list available libraries.
+		If the word doc, ops, or vars precedes the name, instead of loading
+		the library list its dcumentation, defined operators, or variables.
 	) maxbits 1e6
 		To avoid consuming too much memory, if an integer result would
 		require more than this many bits to store, abort the calculation.

@@ -15,6 +15,7 @@ import (
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
+	"robpike.io/ivy/lib"
 	"robpike.io/ivy/run"
 	"robpike.io/ivy/value"
 )
@@ -25,6 +26,7 @@ var testConf config.Config
 
 func init() {
 	value.MaxParallelismForTesting()
+	lib.Testing(true)
 }
 
 // Note: These tests share some infrastructure and cannot run in parallel.

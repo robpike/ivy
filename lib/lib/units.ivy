@@ -1,0 +1,319 @@
+# A library for manipulating physical values while maintaining their units
+# (meters, kilograms, and so on). Inspired by John McCarthy's facts.el file and
+# the Unix units(1) command.
+#
+# Values are shown as a value followed by a quoted list of units,
+# such as 2.9979245e+08 "ms⁻¹". Use the op called val to construct one.
+# The exponents may be written as "ms⁻¹" or "ms-1".
+#
+# Known base units are:
+#	length (m), mass (kg), charge (C), time (s), kelvin (K), mole (mol).
+# See the list of vars for derived units and interesting constants. For
+# arithmetic, use mul, div, per, and so on. For multipliers, use unary ops mega,
+# centi and so on.
+#
+# Examples to try:
+#	carat
+#	c div mph
+#	atm per gravity mul pound per square inch
+#	cubic mega parsec
+#	(mul/barn yard atmosphere) div joule
+
+# Internal values are a number followed by an ordered list of powers of units.
+# The order is distance (m), mass (kg), charge (C), time (s), kelvin (K), mole (mol).
+
+constantUnits = (0 0 0 0 0 0)
+numUnits = count constantUnits
+
+# For ease of human input, we also allow plain numbers, as in "s-2".
+superscript = '¹' '²' '³' '⁴' '⁵' '⁶' '⁷' '⁸' '⁹' '1' '2' '3' '4' '5' '6' '7' '8' '9'
+minusSigns = "⁻-"
+alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+# Units, implicitly MKS
+length = (1 0 0 0 0 0)
+mass = (0 1 0 0 0 0)
+charge = (0 0 1 0 0 0)
+interval = (0 0 0 1 0 0)
+temperature = (0 0 0 0 1 0)
+mole = (0 0 0 0 0 1)
+velocity = (1 0 0 -1 0 0)
+acceleration = (1 0 0 -2 0 0)
+energy = (2 1 0 -2 0 0)
+power = (2 1 0 -3 0 0)
+current = (0 0 1 -1 0 0)
+pressure = (-1 1 0 -2 0 0)
+
+# A value like '3 "m"' will not show the quotes when printed. Quote makes sure it does,
+# Allowing us to cut and pasted printed values to build expressions.
+# These two functions are meant for internal use only.
+# Users entering values should use 'val', defined below.
+op _quote x = x[1] ('q' text x[2])
+op _unquote x =
+	'"' == first x: 1 drop -1 drop x
+	x
+
+# MKS base and derived units
+m = _quote 1 "m"
+meter = m
+kg = _quote 1 "kg"
+s = _quote 1 "s"
+sec = s
+second = s
+J = _quote 1 "m²kgs⁻²"
+joule = J
+W = _quote 1 "m²kgs⁻³"
+watt = W
+C = _quote 1 "C"
+coulumb = C
+A = _quote 1 "Cs⁻¹"
+amp = A
+V = _quote 1 "m²kgC⁻¹s⁻²"
+volt = V
+N = _quote 1 "mkgs⁻²"
+newton = N
+K = _quote 1 "K"
+kelvin = K
+P = _quote 1 "m⁻¹kgs⁻²"
+pascal = P
+
+op exp _unit txt =
+	exp < 0: txt, '⁻', superscript[-exp]
+	exp == 0: ""
+	exp == 1: txt
+	txt, superscript[exp]
+
+op _unitToText u =
+	'"', (u[1] _unit 'm'), (u[2] _unit 'kg'), (u[3] _unit 'C'), (u[4] _unit 's'), (u[5] _unit 'K'), (u[6] _unit 'mol'), '"'
+
+# _unitOf is a helper for _extract. It returns the power of u inside
+# text, such as 4 for "kg⁴", and the remaining text after removal.
+# The unit is known to be present.
+op u _unitOf txt =
+	txt = (txt iota u)[count u] drop txt # Drop up to and including last letter of u.
+	c = first txt
+	c in minusSigns: (- first (superscript iota first 1 drop txt) mod 9) (2 drop txt)
+	0 == index = first (superscript iota c) mod 9: 1 txt
+	index (1 drop txt)
+
+# _extract removes the named unit and its exponent from txt
+# and returns the unit value and the remaining text.
+op (name units) _extract txt =
+	pos = (first rot txt iota name) - count name # Index before first char of name.
+	pos < 0: constantUnits txt # Not present.
+	left = pos take txt
+	exp right = name _unitOf pos drop txt
+	(units*exp) (left,right)
+
+# _textToUnit turns a textual representation of a unit set to the corresponding vector.
+# Example: "m⁴kg⁻⁴s" becomes (4 -4 1 0 0 0).
+op _textToUnit txt =
+	txt = _unquote txt
+	# Compound units.
+	A txt = 'A' current _extract txt
+	J txt = 'J' energy _extract txt
+	P txt = 'P' pressure _extract txt
+	W txt = 'W' power _extract txt
+	# Base units.
+	mol txt ='mol' mole _extract txt # Before 'm' to avoid ambiguiity.
+	m txt = 'm' length _extract txt
+	kg txt = 'kg' mass _extract txt
+	C txt = 'C' charge _extract txt
+	s txt = 's' interval _extract txt
+	K txt ='K' temperature _extract txt
+	+/ A J P W mol m kg C s K
+
+op operator _unitError (a b) =
+	print "unit error in: " (text a)  operator (text b)
+	1 / 0 # stop execution
+
+# _parseSingle parses a number or a textual unit.
+# If a number, it returns the number as a constant (zeroed-out units).
+# If a unit, it returns the units vector.
+op _parseSingle v =
+	v[1] in alphabet: _textToUnit v
+	(first v) constantUnits
+
+op _parse v =
+	1 == count v: _parseSingle _unquote flatten v
+	2 == count v: v[1] (_textToUnit v[2])
+	print "cannot parse " v
+	1.0 (_textToUnit v)
+
+# print human-friendly representation
+op pr v =
+	2 != count v: text v
+	v[1] (_unitToText v[2])
+
+# val canonicalizes a value, reducing to base units in the canonical order
+# and quoting the unit string.
+# The argument is a numerical value followed optionally by a unit string,
+# just a unit string such as "Js", which assumes a numerical value of 1.
+# For example, val 1"A-2" returns 1 "C⁻²s²".
+# It also handles units without an explicit value, such as "J".
+op val v =
+	(first v) in alphabet: pr _parse 1 v
+	pr _parse v
+
+op x add y =
+	a = _parse x
+	b = _parse y
+	a[2] === b[2]: pr (a[1]+b[1]) (a[2])
+	'add' _unitError x y
+
+op x sub y =
+	a = _parse x
+	b = _parse y
+	a[2] === b[2]: pr (a[1]-b[1]) (a[2])
+	'sub' _unitError x y
+
+op neg x =
+	(-x[1]) (x[2])
+
+op x mul y =
+	a = _parse x
+	b = _parse y
+	(1==count a) and (2==count b) : pr (a*b[1]) (b[2])
+	(2==count a) and (1==count b) : pr (a[1]*b) (a[2])
+	(2==count a) and (2==count b) : pr (a[1]*b[1]) (a[2]+(b[2]))
+	'mul' _unitError x y
+
+op x div y =
+	a = _parse x
+	b = _parse y
+	(2==count a) and (2==count b) : pr (a[1]/b[1]) (a[2]-(b[2]))
+	(1==count a) and (2==count b) : pr (a/b[1]) (b[2])
+	(2==count a) and (1==count b) : pr (a[1]/b) (a[2])
+	'div' _unitError x y
+
+# A synonym so we can say "mile per hour".
+op x per y = x div y
+
+# Helpers
+
+# Helpers. Try: cubic mega parsec
+op square x = x mul x
+op cubic x = x mul x mul x
+op hecto x = 1e2 mul x
+op kilo x = 1e3 mul x
+op mega x = 1e6 mul x
+op giga x = 1e9 mul x
+op tera x = 1e12 mul x
+op peta x = 1e15 mul x
+op centi x = 1e-2 mul x
+op milli x = 1e-3 mul x
+op micro x = 1e-6 mul x
+op nano x = 1e-9 mul x
+
+# Handy units
+minute = _quote 60 "s"
+hour = 60 mul minute
+day = 24 mul hour
+year = 365.2425 mul day
+erg = _quote 1.0e-7 mul J
+calorie = 4.184 mul J
+kWh = 3.6e6 mul J
+eV = 1.6021773349e-19 mul J
+ohm = V div A
+farad = (square C) div J
+liter = _quote 0.001 "m³"
+angstrom = _quote 1e-10 "m"
+micron = _quote 1e-6 "m"
+barn = 1e-24 mul square centi meter
+gram = _quote 1/1000 "kg"
+grain = 0.0647989 mul gram
+bar = 1e5 mul pascal
+atm = 1013.25 mul milli bar
+atmosphere = atm
+mmhg = 0.0013158 mul atm # millimeter of mercury
+dyn = 1e-5 mul N
+
+# Imperial units
+
+# Imperial units
+inch = _quote 0.0254 "m"
+foot = 12 mul inch
+yard = 3 mul foot
+pound = _quote 0.45359237 "kg"
+uspound = _quote 0.45359243 "kg" # Who knew?
+troypound = 5760 mul grain
+carat = 0.2 mul gram
+slug = _quote 14.594 "kg"
+ounce = 1/16 mul pound
+ton = 2240 mul pound
+metricton = 1e6 mul gram
+mile = 5280 mul foot
+mph = mile per hour
+knot = 6080 mul foot
+acre = 43560 mul square foot
+fluidounce = 28.413 mul cubic centi meter
+usfluidounce = 29.574 mul cubic centi meter
+btu = _quote 1055 "J"
+footpound = 1.35582e7 mul erg
+tntkiloton = 4.184e19 mul erg
+horsepower = 746.7 mul W
+hp = horsepower
+
+# Physical units
+
+# Physical constants taken from Allen's Astrophysical Quantities, 4th edition
+c = _quote 2.99792458e8 "ms⁻¹" # Speed of light.
+G = _quote 6.6725985e-11 "m³kg⁻¹s⁻²" # Gravitation constant.
+k = _quote 1.38065812e-23 "m²kgs⁻²K⁻¹" # Boltzmann's constant.
+RH = _quote 10967758.30613 "m⁻¹" # Gas constant for ¹H, ¹²C scale.
+gravity = _quote 9.80665 "ms⁻²" # Standard Earth gravity.
+avogadro = _quote 6.022136736e23 "mol⁻¹"
+h = _quote 6.626075540e-34 "Js" # Planck's constant.
+hbar = h div 2*pi
+emass = _quote 9.109389754e-31 "kg" # Electron mass.
+pmass = _quote 1.672623110e-27 "kg" # Proton mass.
+nmass = _quote 1.674928610e-27 "kg" # Neutron mass.
+echarge = _quote 1.602176634e-19 "C"   # Elementary charge, exact. Negative electron charge.
+faraday = echarge mul avogadro
+permeability = (4*pi*1e-7) mul newton div square amp  # μ₀, magnetic permeability of free space
+permittivity = 1 div (square c) mul permeability # 𝛆₀, electric permittivity of free space
+𝛂 = (square echarge) div 2 mul permittivity mul h mul c # Fine structure constant. 1/𝛂 = 137.035989561
+alpha = 𝛂
+u = _quote 1.660540210e-27 "kg" # Atomic unit of mass; ¹²C = 12.
+lightyear = c mul year
+au = _quote 1.4959787066e11 "m"
+parsec = 206264.806 "" mul au
+
+# Planets - TODO make this a table?
+
+# Planets
+solarmass = _quote 1.981e30 "kg"
+solarradius = _quote 6.95508e8 "m"
+solarradiation = 3.8458e33 mul erg per sec
+earthmass = _quote 5.9742e24 "kg"
+earthradius = 6378.136 mul kilo meter
+mercurymass = 0.055274 mul earthmass
+venusmass = 0.81500 mul earthmass
+marsmass = 0.10744 mul earthmass
+jupitermass = 317.82 mul earthmass
+saturnmass = 95.161 mul earthmass
+uranusmass = 14.371 mul earthmass
+neptunemass = 17.147 mul earthmass
+plutomass = 0.0022 mul earthmass
+mercuryradius = 0.3852 mul earthradius # At the equator
+venusradius = 0.9488 mul earthradius
+marsradius = 0.5326 mul earthradius
+jupiterradius = 11.209 mul earthradius
+saturnradius = 9.449 mul earthradius
+uranusradius = 4.007 mul earthradius
+neptuneradius = 3.883 mul earthradius
+plutoradius = 0.180 mul earthradius
+mercurygravity = _quote 3.70 "ms⁻²" # Surface gravity
+venusgravity = _quote 8.87 "ms⁻²"
+earthgravity = gravity
+marsgravity = _quote 3.71 "ms⁻²"
+jupitergravity = _quote 23.12 "ms⁻²"
+saturngravity = _quote 8.96 "ms⁻²"
+uranusgravity = _quote 8.69 "ms⁻²"
+neptunegravity = _quote 11.00 "ms⁻²"
+plutogravity = _quote 0.81 "ms⁻²"
+
+# Check that we have it all working.
+op a _check b = :if ("%.8g" text a) !== ("%.8g" text val b); "failed check" a b; :end
+
+(c div 1 "ms⁻¹") _check 2.99792458e8 ""

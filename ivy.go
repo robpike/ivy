@@ -15,6 +15,7 @@ import (
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
+	"robpike.io/ivy/lib"
 	"robpike.io/ivy/parse"
 	"robpike.io/ivy/run"
 	"robpike.io/ivy/scan"
@@ -25,6 +26,7 @@ var (
 	execute         = flag.String("e", "", "execute `argument` and quit")
 	executeContinue = flag.String("i", "", "execute `argument` and continue")
 	file            = flag.String("f", "", "execute `file` before input")
+	library         = flag.String("lib", "", "comma-separated list of `names` of libraries to load")
 	format          = flag.String("format", "", "use `fmt` as format for printing numbers; empty sets default format")
 	gformat         = flag.Bool("g", false, `shorthand for -format="%.12g"`)
 	maxbits         = flag.Uint("maxbits", 1e9, "maximum size of an integer, in bits; 0 means no limit")
@@ -76,7 +78,7 @@ func main() {
 	conf.SetOrigin(*origin)
 	conf.SetPrompt(*prompt)
 
-	if len(*debugFlag) > 0 {
+	if *debugFlag != "" {
 		for _, debug := range strings.Split(*debugFlag, ",") {
 			if !conf.SetDebug(debug, 1) {
 				fmt.Fprintf(os.Stderr, "ivy: unknown debug flag %q\n", debug)
@@ -90,6 +92,19 @@ func main() {
 	if *file != "" {
 		if !runFile(context, *file) {
 			os.Exit(1)
+		}
+	}
+
+	if *library != "" {
+		for _, name := range strings.Split(*library, ",") {
+			entry := lib.Lookup(name)
+			if entry == nil {
+				fmt.Fprintf(os.Stderr, "ivy: unknown library %q\n", name)
+				os.Exit(1)
+			}
+			if !runString(context, entry.Source) {
+				os.Exit(1)
+			}
 		}
 	}
 

@@ -174,8 +174,8 @@ func (p *Parser) source(start, end int) string {
 	return src.String()
 }
 
-// Line reads a line of input and returns the values it evaluates.
-// A nil returned slice means there were no values.
+// Line reads a line of input and returns the expressions it evaluates.
+// A nil returned slice means there were no expressions.
 // The boolean reports whether the line is valid.
 //
 // Line

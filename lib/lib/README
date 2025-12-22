@@ -1,0 +1,20 @@
+This directory contains source code for loadable ivy libraries. Run
+"go generate" in the parent directory to embed them in the ivy
+binary.
+
+Each file should start with a comment that introduces the library.
+The text of that comment will be shown by the ivy special command,
+
+	)lib doc <library-name>
+
+The code in the library will not be executed until the user says,
+
+	)lib <library-name>
+
+Within the library, commands such as
+
+	)prec 1024
+
+will affect execution of all code after the library is loaded.
+
+Ops and variables beginning with _ are ignored in the documentation.

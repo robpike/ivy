@@ -18,6 +18,7 @@ import (
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/demo"
 	"robpike.io/ivy/exec"
+	"robpike.io/ivy/lib"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
 )
@@ -279,6 +280,41 @@ Switch:
 		start = max(0, start)
 		end = max(start, end)
 		p.Print(p.source(start, end))
+	case "lib":
+		name := p.getFile(")lib", "<list>")
+		words := strings.Fields(name)
+		switch len(words) {
+		case 1:
+			if name == "<list>" {
+				for _, entry := range lib.Directory {
+					p.Printf("%s\n", entry.Name)
+				}
+				break Switch
+			}
+		case 2:
+			name = words[1]
+		default:
+			p.errorf("usage: )lib [doc|ops|vars] library")
+
+		}
+		entry := lib.Lookup(name)
+		if entry == nil {
+			p.errorf("library %q not found", name)
+		}
+		if len(words) == 2 {
+			switch words[0] {
+			case "doc", "docs":
+				p.Print(entry.Doc)
+			case "op", "ops":
+				p.Print(entry.Ops)
+			case "var", "vars":
+				p.Print(entry.Vars)
+			default:
+				p.errorf("usage: )lib [doc|ops|vars] library")
+			}
+			break Switch
+		}
+		p.runFromReader(p.context, name, strings.NewReader(entry.Source), true)
 	case "maxbits":
 		if p.peek().Type == scan.EOF {
 			p.Printf("%d\n", conf.MaxBits())
@@ -438,7 +474,7 @@ func (p *Parser) getFile(prefix, def string) string {
 		return value.ParseString(tok.Text)
 	default:
 		// Just grab the rest of the text on the line.
-		// Must drain the scanner first as we aere cheating it.
+		// Must drain the scanner first as we are cheating it.
 		for p.peek().Type != scan.EOF {
 			p.next()
 		}

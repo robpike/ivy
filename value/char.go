@@ -78,8 +78,8 @@ func ParseString(s string) string {
 	return str
 }
 
-// unquote is a simplified strconv.Unquote that treats ' and " equally.
-// Raw quotes are Go-like and bounded by ``.
+// unquote is a simplified strconv.Unquote that treats single and double quotes equally.
+// Raw quotes are Go-like and bounded by back quotes.
 // The return value is the string and a boolean rather than error, which
 // was almost always the same anyway.
 func unquote(s string) (t string, ok bool) {

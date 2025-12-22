@@ -1,0 +1,11 @@
+# This
+# is
+# a
+# test.
+
+op echo z = z
+
+op a add b =
+	a + b
+
+x y z = 1 2 3

@@ -156,6 +156,7 @@ func (p *Parser) functionDefn(start int) {
 }
 
 // function argument
+//
 //	name | '(' args ')'
 func (p *Parser) funcArg() value.Expr {
 	tok := p.next()
