@@ -13,7 +13,6 @@ import (
 	"os"
 	"sort"
 
-	"robpike.io/ivy/config"
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/value"
 )
@@ -61,7 +60,7 @@ func save(c *exec.Context, file string) {
 	if file != "<conf.out>" {
 		fd, err := os.Create(file)
 		if err != nil {
-			value.Errorf("%s", err)
+			c.Errorf("%s", err)
 		}
 		defer fd.Close()
 		buf := bufio.NewWriter(fd)
@@ -125,7 +124,7 @@ func save(c *exec.Context, file string) {
 		sorted := sortSyms(syms)
 		for _, sym := range sorted {
 			fmt.Fprintf(out, "%s = ", sym.name)
-			put(conf, out, sym.val.Value(), false)
+			put(c, out, sym.val.Value(), false)
 			fmt.Fprint(out, "\n")
 		}
 	}
@@ -155,7 +154,7 @@ func sortSyms(syms map[string]*value.Var) []saveSym {
 }
 
 // put writes to out a version of the value that will recreate it when parsed.
-func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
+func put(c value.Context, out io.Writer, val value.Value, withParens bool) {
 	if withParens {
 		fmt.Fprint(out, "(")
 	}
@@ -163,11 +162,11 @@ func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
 	case value.Char:
 		fmt.Fprintf(out, "%q", rune(val))
 	case value.Int:
-		fmt.Fprintf(out, "%s", val.Sprint(conf))
+		fmt.Fprintf(out, "%s", val.Sprint(c))
 	case value.BigInt:
-		fmt.Fprintf(out, "%s", val.Sprint(conf))
+		fmt.Fprintf(out, "%s", val.Sprint(c))
 	case value.BigRat:
-		fmt.Fprintf(out, "%s", val.Sprint(conf))
+		fmt.Fprintf(out, "%s", val.Sprint(c))
 	case value.BigFloat:
 		if val.Sign() == 0 || val.IsInf() {
 			// These have prec 0 and are easy.
@@ -182,26 +181,26 @@ func put(conf *config.Config, out io.Writer, val value.Value, withParens bool) {
 		fmt.Fprintf(out, "%.*g", digits+1, val.Float)       // Add another digit to be sure.
 	case value.Complex:
 		real, imag := val.Components()
-		put(conf, out, real, false)
+		put(c, out, real, false)
 		fmt.Fprintf(out, "j")
-		put(conf, out, imag, false)
+		put(c, out, imag, false)
 	case *value.Vector:
 		if val.AllChars() {
-			fmt.Fprintf(out, "%q", val.Sprint(conf))
+			fmt.Fprintf(out, "%q", val.Sprint(c))
 			break
 		}
 		for i, v := range val.All() {
 			if i > 0 {
 				fmt.Fprint(out, " ")
 			}
-			put(conf, out, v, !value.IsScalarType(v))
+			put(c, out, v, !value.IsScalarType(v))
 		}
 	case *value.Matrix:
-		put(conf, out, value.NewIntVector(val.Shape()...), false)
+		put(c, out, value.NewIntVector(val.Shape()...), false)
 		fmt.Fprint(out, " rho ")
-		put(conf, out, val.Data(), false)
+		put(c, out, val.Data(), false)
 	default:
-		value.Errorf("internal error: can't save type %T", val)
+		c.Errorf("internal error: can't save type %T", val)
 	}
 	if withParens {
 		fmt.Fprint(out, ")")

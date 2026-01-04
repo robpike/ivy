@@ -16,7 +16,7 @@ func power(c Context, u, v Value) Value {
 		return complexPower(c, u.(Complex), v.(Complex)).shrink()
 	}
 	if sgn(c, u) < 0 {
-		return complexPower(c, NewComplex(u, zero), NewComplex(v, zero)).shrink()
+		return complexPower(c, NewComplex(c, u, zero), NewComplex(c, v, zero)).shrink()
 	}
 	return floatPower(c, floatSelf(c, u), floatSelf(c, v)).shrink()
 }
@@ -28,7 +28,7 @@ func exp(c Context, v Value) Value {
 		}
 		v = u.real
 	}
-	z := exponential(newFloat(c), floatSelf(c, v).Float)
+	z := exponential(c, newFloat(c), floatSelf(c, v).Float)
 	return BigFloat{z}.shrink()
 }
 
@@ -39,10 +39,10 @@ func expComplex(c Context, v Complex) Value {
 	// First turn v into (a + bi) where a and b are big.Floats.
 	x := floatSelf(c, v.real).Float
 	y := floatSelf(c, v.imag).Float
-	eToX := exponential(newFloat(c), x)
+	eToX := exponential(c, newFloat(c), x)
 	cosY := floatCos(c, y)
 	sinY := floatSin(c, y)
-	return NewComplex(BigFloat{cosY.Mul(cosY, eToX)}, BigFloat{sinY.Mul(sinY, eToX)})
+	return NewComplex(c, BigFloat{cosY.Mul(cosY, eToX)}, BigFloat{sinY.Mul(sinY, eToX)})
 }
 
 // floatPower computes bx to the power of bexp.
@@ -50,16 +50,15 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 	x := bx.Float
 	fexp := newFloat(c).Set(bexp.Float)
 	positive := true
-	conf := c.Config()
 	switch fexp.Sign() {
 	case 0:
 		return BigFloat{newFloat(c).SetInt64(1)}
 	case -1:
 		if x.Sign() == 0 {
-			Errorf("negative exponent of zero")
+			c.Errorf("negative exponent of zero")
 		}
 		positive = false
-		fexp = c.EvalUnary("-", bexp).toType("**", conf, bigFloatType).(BigFloat).Float
+		fexp = c.EvalUnary("-", bexp).toType("**", c, bigFloatType).(BigFloat).Float
 	}
 	// Easy cases.
 	switch {
@@ -67,7 +66,7 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 		return bx
 	case fexp.Cmp(floatHalf) == 0:
 		if sgn(c, bx) < 0 {
-			return complexSqrt(c, NewComplex(bx, zero))
+			return complexSqrt(c, NewComplex(c, bx, zero))
 		}
 		z := floatSqrt(c, x)
 		if !positive {
@@ -88,7 +87,7 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 		// x**frac is e**(frac*log x)
 		logx := floatLog(c, x)
 		frac.Mul(frac, logx)
-		z.Mul(z, exponential(newFloat(c), frac))
+		z.Mul(z, exponential(c, newFloat(c), frac))
 	}
 	if !positive {
 		z.Quo(floatOne, z)
@@ -102,7 +101,7 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 // Rounding is performed according to z's precision and rounding mode.
 //
 // The operation uses the Taylor series e^x = ∑(x^n/n!) for n ≥ 0.
-func exponential(z *big.Float, x *big.Float) *big.Float {
+func exponential(c Context, z *big.Float, x *big.Float) *big.Float {
 	// exp(x) is finite if 0.5 × 2^big.MinExp ≤ exp(x) < 1 × 2^big.MaxExp
 	//   ⇒ log(2) × (big.MinExp-1) ≤ x < log(2) × big.MaxExp
 	// While this function properly handles values of x outside of this range,
@@ -113,7 +112,7 @@ func exponential(z *big.Float, x *big.Float) *big.Float {
 		if x.Sign() < 0 {
 			return floatZero
 		}
-		Errorf("exponential overflow")
+		c.Errorf("exponential overflow")
 	}
 
 	// The following is based on R. P. Brent, P. Zimmermann, Modern Computer
@@ -189,7 +188,7 @@ func exponential(z *big.Float, x *big.Float) *big.Float {
 		return z.Quo(n.SetUint64(1), sum)
 	}
 	if sum.IsInf() {
-		Errorf("exponential overflow")
+		c.Errorf("exponential overflow")
 	}
 	return z.Set(sum)
 }
@@ -212,8 +211,8 @@ func integerPower(c Context, x *big.Float, exp int64) *big.Float {
 
 // complexIntegerPower returns x**exp where exp is an int64 of size <= intBits.
 func complexIntegerPower(c Context, v Complex, exp int64) Complex {
-	z := NewComplex(one, zero)
-	y := NewComplex(v.real, v.imag)
+	z := NewComplex(c, one, zero)
+	y := NewComplex(c, v.real, v.imag)
 	// For each loop, we compute xⁿ where n is a power of two.
 	for exp > 0 {
 		if exp&1 == 1 {

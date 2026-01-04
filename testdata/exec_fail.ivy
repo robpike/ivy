@@ -65,23 +65,44 @@ sys 'abc'
 
 # Expect: argument name "f" is function name
 op f (f x) = x
+	#
 
 # Expect: multiple arguments named "x"
 op f (x y x) = x
+	#
 
 # Expect: multiple arguments named "x"
 op x f x = x
+	#
 
 # Expect: multiple arguments named "x"
 op (x y) f (z x) = x
+	#
 
 # Issue 199: no check for reduce first of degenerate matrix. Reduce had the check.
 # Expect: shape for matrix is degenerate: (0 3 0)
 +/ () o.== 1 2 3 o.== 0 rho 0
+	#
 
 # Expect: shape for matrix is degenerate: (0 3)
 +/% () o.== 1 2 3
+	#
 
-# iota argument must be a small integer: (buggy)
+# Expect: iota argument must be a small integer: (buggy)
 iota box 'buggy'
+	#
+
+# Expect: stack truncated: 100 calls total; showing innermost
+# Expect: •> a (37)
+# Expect: •> (37 38) b (37)
+# ...
+# Expect: •> (48 49) b (48)
+# Expect: •> a (49)
+# Expect: stack overflow calling "b"
+)maxstack 100
+op x b y
+op a x = (x (x+1)) b x
+op (x y) b z = a x+y-z
+1 2 b 3
+	#
 

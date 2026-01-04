@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-
-	"robpike.io/ivy/config"
 )
 
 type BigRat struct {
@@ -19,12 +17,12 @@ type BigRat struct {
 
 // The input is known to be in floating-point syntax.
 // If there's a slash, the parsing is done in Parse().
-func setBigRatFromFloatString(s string) (br BigRat, err error) {
+func setBigRatFromFloatString(c Context, s string) (br BigRat, err error) {
 	// Be safe: Verify that it is floating-point, because otherwise
 	// we need to honor ibase.
 	if !strings.ContainsAny(s, ".eEpP") {
 		// Most likely a number like "08".
-		Errorf("bad number syntax: %s", s)
+		c.Errorf("bad number syntax: %s", s)
 	}
 	var ok bool
 	r, ok := big.NewRat(0, 1).SetString(s)
@@ -35,32 +33,33 @@ func setBigRatFromFloatString(s string) (br BigRat, err error) {
 }
 
 func (r BigRat) String() string {
-	return "(" + r.Sprint(debugConf) + ")"
+	return "(" + r.Sprint(debugContext) + ")"
 }
 
 func (r BigRat) Rank() int {
 	return 0
 }
 
-func (r BigRat) Sprint(conf *config.Config) string {
+func (r BigRat) Sprint(c Context) string {
+	conf := c.Config()
 	format := conf.Format()
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
 		if ok {
-			return r.floatString(verb, prec)
+			return r.floatString(c, verb, prec)
 		}
 		return fmt.Sprintf(conf.RatFormat(), r.Num(), r.Denom())
 	}
 	num := BigInt{r.Num()}
 	den := BigInt{r.Denom()}
-	return fmt.Sprintf("%s/%s", num.Sprint(conf), den.Sprint(conf))
+	return fmt.Sprintf("%s/%s", num.Sprint(c), den.Sprint(c))
 }
 
 func (r BigRat) ProgString() string {
 	return fmt.Sprintf("%s/%s", r.Num(), r.Denom())
 }
 
-func (r BigRat) floatString(verb byte, prec int) string {
+func (r BigRat) floatString(c Context, verb byte, prec int) string {
 	switch verb {
 	case 'f', 'F':
 		return r.Rat.FloatString(prec)
@@ -93,13 +92,13 @@ func (r BigRat) floatString(verb byte, prec int) string {
 		if exp < -4 || prec <= exp {
 			// Use e format.
 			verb -= 2 // g becomes e.
-			return trimEZeros(verb, r.floatString(verb, prec-1))
+			return trimEZeros(verb, r.floatString(c, verb, prec-1))
 		}
 		// Use f format.
 		// If it's got zeros right of the decimal, they count as digits in the precision.
 		// If it's got digits left of the decimal, they count as digits in the precision.
 		// Both are handled by adjusting prec by exp.
-		str := r.floatString(verb-1, prec-exp-1) // -1 for the one digit left of the decimal.
+		str := r.floatString(c, verb-1, prec-exp-1) // -1 for the one digit left of the decimal.
 		// Trim trailing decimals.
 		point := strings.IndexByte(str, '.')
 		if point > 0 {
@@ -114,7 +113,7 @@ func (r BigRat) floatString(verb byte, prec int) string {
 		}
 		return str
 	default:
-		Errorf("can't handle verb %c for rational", verb)
+		c.Errorf("can't handle verb %c for rational", verb)
 	}
 	return ""
 }
@@ -164,9 +163,9 @@ func ratScale(x *big.Rat, exp int) {
 }
 
 // inverse returns 1/r
-func (r BigRat) inverse() Value {
+func (r BigRat) inverse(c Context) Value {
 	if r.Sign() == 0 {
-		Errorf("inverse of zero")
+		c.Errorf("inverse of zero")
 	}
 	return BigRat{
 		Rat: big.NewRat(0, 1).SetFrac(r.Denom(), r.Num()),
@@ -181,21 +180,21 @@ func (r BigRat) Inner() Value {
 	return r
 }
 
-func (r BigRat) toType(op string, conf *config.Config, which valueType) Value {
+func (r BigRat) toType(op string, c Context, which valueType) Value {
 	switch which {
 	case bigRatType:
 		return r
 	case bigFloatType:
-		f := new(big.Float).SetPrec(conf.FloatPrec()).SetRat(r.Rat)
+		f := new(big.Float).SetPrec(c.Config().FloatPrec()).SetRat(r.Rat)
 		return BigFloat{f}
 	case complexType:
-		return NewComplex(r, zero)
+		return NewComplex(c, r, zero)
 	case vectorType:
 		return oneElemVector(r)
 	case matrixType:
-		return NewMatrix([]int{1, 1}, NewVector(r))
+		return NewMatrix(c, []int{1, 1}, NewVector(r))
 	}
-	Errorf("%s: cannot convert rational to %s", op, which)
+	c.Errorf("%s: cannot convert rational to %s", op, which)
 	return nil
 }
 

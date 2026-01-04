@@ -6,12 +6,11 @@ package value
 
 import (
 	"math/big"
-
-	"robpike.io/ivy/config"
 )
 
 type loop struct {
-	name          string     // The name of the function we are evaluating.
+	name          string // The name of the function we are evaluating.
+	context       Context
 	i             uint64     // Loop count.
 	maxIterations uint64     // When to give up.
 	arg           *big.Float // original argument to function; only used for diagnostic.
@@ -24,9 +23,11 @@ type loop struct {
 // the maximum number of iterations to perform before giving up.
 // The last number in terms of iterations per bit, so the caller can
 // ignore the precision setting.
-func newLoop(conf *config.Config, name string, x *big.Float, itersPerBit uint) *loop {
+func newLoop(c Context, name string, x *big.Float, itersPerBit uint) *loop {
+	conf := c.Config()
 	return &loop{
 		name:          name,
+		context:       c,
 		arg:           newF(conf).Set(x),
 		maxIterations: 10 + uint64(itersPerBit*conf.FloatPrec()),
 		prevZ:         newF(conf),
@@ -59,7 +60,7 @@ func (l *loop) done(z *big.Float) bool {
 	if l.i == l.maxIterations {
 		// Users should never see this, but they sometimes do.
 		// TODO: Find a better termination condition.
-		Errorf("%s %s: did not converge after %d iterations; prev,last result %s,%s delta %s", l.name, BigFloat{l.arg}, l.maxIterations, BigFloat{z}, BigFloat{l.prevZ}, BigFloat{l.delta})
+		l.context.Errorf("%s %s: did not converge after %d iterations; prev,last result %s,%s delta %s", l.name, BigFloat{l.arg}, l.maxIterations, BigFloat{z}, BigFloat{l.prevZ}, BigFloat{l.delta})
 	}
 	l.prevZ.Set(z)
 	return false

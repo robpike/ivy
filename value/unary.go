@@ -30,9 +30,9 @@ func bigIntWrap(op func(*big.Int, *big.Int) *big.Int) func(Context, *big.Int, *b
 }
 
 // unaryBigRatOp applies the op to a BigRat.
-func unaryBigRatOp(op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
+func unaryBigRatOp(c Context, op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
 	i := v.(BigRat)
-	z := bigRatInt64(0)
+	z := bigRatInt64(c, 0)
 	op(z.Rat, i.Rat)
 	return z.shrink()
 }
@@ -86,9 +86,9 @@ func realPhase(c Context, v Value) Value {
 func vectorSelf(c Context, v Value) Value {
 	switch v.(type) {
 	case *Vector:
-		Errorf("internal error: vectorSelf of vector")
+		c.Errorf("internal error: vectorSelf of vector")
 	case *Matrix:
-		Errorf("internal error: vectorSelf of matrix")
+		c.Errorf("internal error: vectorSelf of matrix")
 	}
 	return oneElemVector(v)
 }
@@ -100,25 +100,24 @@ func floatValueSelf(c Context, v Value) Value {
 
 // floatSelf promotes v to type BigFloat.
 func floatSelf(c Context, v Value) BigFloat {
-	conf := c.Config()
 	switch v := v.(type) {
 	case Int:
-		return v.toType("float", conf, bigFloatType).(BigFloat)
+		return v.toType("float", c, bigFloatType).(BigFloat)
 	case BigInt:
-		return v.toType("float", conf, bigFloatType).(BigFloat)
+		return v.toType("float", c, bigFloatType).(BigFloat)
 	case BigRat:
-		return v.toType("float", conf, bigFloatType).(BigFloat)
+		return v.toType("float", c, bigFloatType).(BigFloat)
 	case BigFloat:
 		return v
 	}
-	Errorf("internal error: floatSelf of non-number")
+	c.Errorf("internal error: floatSelf of non-number")
 	panic("unreached")
 }
 
 // text returns a vector of Chars holding the string representation
 // of the value.
 func text(c Context, v Value) Value {
-	return newCharVector(v.Sprint(c.Config()))
+	return newCharVector(v.Sprint(c))
 }
 
 // newCharVector takes a string and returns its representation as a Vector of Chars.
@@ -136,7 +135,7 @@ var IvyEval func(context Context, s string) Value
 var UnaryOps = make(map[string]UnaryOp)
 
 func printValue(c Context, v Value) Value {
-	fmt.Fprintln(c.Config().Output(), v.Sprint(c.Config()))
+	fmt.Fprintln(c.Config().Output(), v.Sprint(c))
 	return QuietValue{v}
 }
 
@@ -145,7 +144,7 @@ func printValue(c Context, v Value) Value {
 // A test of a million values yielded 0.500161824174 0.288777488704.
 func bigFloatRand(c Context, f *big.Float) Value {
 	if f.Sign() < 0 {
-		Errorf("rand of negative number")
+		c.Errorf("rand of negative number")
 	}
 	// We want two integers FloatPrec bits long.
 	config := c.Config()
@@ -172,7 +171,7 @@ func init() {
 				intType: func(c Context, v Value) Value {
 					i := int64(v.(Int))
 					if i <= 0 {
-						Errorf("illegal roll value %v", v)
+						c.Errorf("illegal roll value %v", v)
 					}
 					c.Config().LockRandom()
 					res := Int(c.Config().Random().Int64N(int64(i)))
@@ -181,7 +180,7 @@ func init() {
 				},
 				bigIntType: func(c Context, v Value) Value {
 					if v.(BigInt).Sign() <= 0 {
-						Errorf("illegal roll value %v", v)
+						c.Errorf("illegal roll value %v", v)
 					}
 					return unaryBigIntOp(c, bigIntRand, v)
 				},
@@ -218,21 +217,21 @@ func init() {
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return NewComplex(zero, v).shrink()
+					return NewComplex(c, zero, v).shrink()
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return NewComplex(zero, v).shrink()
+					return NewComplex(c, zero, v).shrink()
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return NewComplex(zero, v).shrink()
+					return NewComplex(c, zero, v).shrink()
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return NewComplex(zero, v).shrink()
+					return NewComplex(c, zero, v).shrink()
 				},
 				complexType: func(c Context, v Value) Value {
 					// Multiply by i.
 					u := v.(Complex)
-					return NewComplex(c.EvalUnary("-", u.imag), u.real).shrink()
+					return NewComplex(c, c.EvalUnary("-", u.imag), u.real).shrink()
 				},
 			},
 		},
@@ -247,7 +246,7 @@ func init() {
 				complexType:  self,
 				// TODO: Vector?
 				matrixType: func(c Context, v Value) Value {
-					return v.(*Matrix).split()
+					return v.(*Matrix).split(c)
 				},
 			},
 		},
@@ -262,7 +261,7 @@ func init() {
 				complexType:  self,
 				vectorType: func(c Context, v Value) Value {
 					vv := v.(*Vector)
-					return NewMatrix([]int{vv.Len()}, vv).mix(c).shrink()
+					return NewMatrix(c, []int{vv.Len()}, vv).mix(c).shrink()
 
 				},
 				matrixType: func(c Context, v Value) Value {
@@ -295,7 +294,7 @@ func init() {
 					return unaryBigIntOp(c, bigIntWrap((*big.Int).Neg), v)
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return unaryBigRatOp((*big.Rat).Neg, v)
+					return unaryBigRatOp(c, (*big.Rat).Neg, v)
 				},
 				bigFloatType: func(c Context, v Value) Value {
 					return unaryBigFloatOp(c, bigFloatWrap((*big.Float).Neg), v)
@@ -311,16 +310,16 @@ func init() {
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return v.(Int).inverse()
+					return v.(Int).inverse(c)
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return v.(BigInt).inverse()
+					return v.(BigInt).inverse(c)
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return v.(BigRat).inverse()
+					return v.(BigRat).inverse(c)
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return v.(BigFloat).inverse()
+					return v.(BigFloat).inverse(c)
 				},
 				complexType: func(c Context, v Value) Value {
 					return v.(Complex).inverse(c).shrink()
@@ -333,16 +332,16 @@ func init() {
 			elementwise: false,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return v.(Int).inverse()
+					return v.(Int).inverse(c)
 				},
 				bigIntType: func(c Context, v Value) Value {
-					return v.(BigInt).inverse()
+					return v.(BigInt).inverse(c)
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return v.(BigRat).inverse()
+					return v.(BigRat).inverse(c)
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return v.(BigFloat).inverse()
+					return v.(BigFloat).inverse(c)
 				},
 				complexType: func(c Context, v Value) Value {
 					return v.(Complex).inverse(c).shrink()
@@ -394,7 +393,7 @@ func init() {
 				bigFloatType: self,
 				complexType: func(c Context, v Value) Value {
 					u := v.(Complex)
-					return NewComplex(u.real, c.EvalUnary("-", u.imag)).shrink().shrink()
+					return NewComplex(c, u.real, c.EvalUnary("-", u.imag)).shrink().shrink()
 				},
 			},
 		},
@@ -404,7 +403,7 @@ func init() {
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return BigInt{factorial(int64(v.(Int)))}.shrink()
+					return BigInt{factorial(c, int64(v.(Int)))}.shrink()
 				},
 			},
 		},
@@ -475,7 +474,7 @@ func init() {
 					return unaryBigIntOp(c, bigIntWrap((*big.Int).Abs), v)
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return unaryBigRatOp((*big.Rat).Abs, v)
+					return unaryBigRatOp(c, (*big.Rat).Abs, v)
 				},
 				bigFloatType: func(c Context, v Value) Value {
 					return unaryBigFloatOp(c, bigFloatWrap((*big.Float).Abs), v)
@@ -542,7 +541,7 @@ func init() {
 					}
 					positive := i.Sign() >= 0
 					if !positive {
-						j := bigRatInt64(0)
+						j := bigRatInt64(c, 0)
 						j.Abs(i.Rat)
 						i = j
 					}
@@ -557,7 +556,7 @@ func init() {
 				bigFloatType: func(c Context, v Value) Value {
 					f := v.(BigFloat)
 					if f.Float.IsInf() {
-						Errorf("floor of %s", v.Sprint(c.Config()))
+						c.Errorf("floor of %s", v.Sprint(c))
 					}
 					i, acc := f.Int(nil)
 					switch acc {
@@ -588,7 +587,7 @@ func init() {
 					}
 					positive := i.Sign() >= 0
 					if !positive {
-						j := bigRatInt64(0)
+						j := bigRatInt64(c, 0)
 						j.Abs(i.Rat)
 						i = j
 					}
@@ -604,7 +603,7 @@ func init() {
 				bigFloatType: func(c Context, v Value) Value {
 					f := v.(BigFloat)
 					if f.Float.IsInf() {
-						Errorf("ceil of %s", v.Sprint(c.Config()))
+						c.Errorf("ceil of %s", v.Sprint(c))
 					}
 					i, acc := f.Int(nil)
 					switch acc {
@@ -625,7 +624,7 @@ func init() {
 			name: "iota",
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
-					return newIota(c.Config().Origin(), int(v.(Int)))
+					return newIota(c, c.Config().Origin(), int(v.(Int)))
 				},
 				vectorType: func(c Context, v Value) Value {
 					// Produce a matrix of coordinates.
@@ -634,19 +633,19 @@ func init() {
 						return empty
 					}
 					if vv.Len() == 1 {
-						return newIota(c.Config().Origin(), vv.intAt(0, "iota argument"))
+						return newIota(c, c.Config().Origin(), vv.intAt(c, 0, "iota argument"))
 					}
 					nElems := 1
 					shape := make([]int, vv.Len())
 					for i, coord := range vv.All() {
-						c, ok := coord.(Int)
-						if !ok || c < 0 || maxInt < c {
-							Errorf("bad coordinate in iota %s", coord)
+						co, ok := coord.(Int)
+						if !ok || co < 0 || maxInt < co {
+							c.Errorf("bad coordinate in iota %s", coord)
 						}
-						shape[i] = int(c)
-						nElems *= int(c)
+						shape[i] = int(co)
+						nElems *= int(co)
 						if nElems > maxInt {
-							Errorf("shape too large in iota %s", vv)
+							c.Errorf("shape too large in iota %s", vv)
 						}
 					}
 					origin := c.Config().Origin()
@@ -665,7 +664,7 @@ func init() {
 							counter[axis] = origin
 						}
 					}
-					return NewMatrix(shape, elems.Publish())
+					return NewMatrix(c, shape, elems.Publish())
 				},
 			},
 		},
@@ -760,7 +759,7 @@ func init() {
 					result := newVectorEditor(0, nil)
 					origin := c.Config().Origin()
 					for i := range vec.Len() {
-						e := vec.uintAt(i, "where argument")
+						e := vec.uintAt(c, i, "where argument")
 						for range e {
 							result.Append(Int(origin + i))
 						}
@@ -776,7 +775,7 @@ func init() {
 					// Loop over the data in the matrix while odometer-counting
 					// the coordinates.
 					for i := range vec.Len() {
-						e := vec.uintAt(i, "where argument")
+						e := vec.uintAt(c, i, "where argument")
 						for range e {
 							c := newVectorEditor(len(shape), nil)
 							for i, x := range coords {
@@ -906,9 +905,9 @@ func init() {
 						return m
 					}
 					if m.Rank() == 1 {
-						Errorf("rot: matrix is vector")
+						c.Errorf("rot: matrix is vector")
 					}
-					size := int(m.Size())
+					size := int(m.Size(c))
 					ncols := m.shape[m.Rank()-1]
 					x := m.data.edit()
 					for index := 0; index <= size-ncols; index += ncols {
@@ -941,10 +940,10 @@ func init() {
 						return m
 					}
 					if m.Rank() == 1 {
-						Errorf("flip: matrix is vector")
+						c.Errorf("flip: matrix is vector")
 					}
-					elemSize := int(m.ElemSize())
-					size := int(m.Size())
+					elemSize := int(m.ElemSize(c))
+					size := int(m.Size(c))
 					x := m.data.edit()
 					lo := 0
 					hi := size - elemSize
@@ -975,7 +974,7 @@ func init() {
 				matrixType: func(c Context, v Value) Value {
 					m := v.(*Matrix)
 					if m.Rank() == 1 {
-						Errorf("transp: matrix is vector")
+						c.Errorf("transp: matrix is vector")
 					}
 					return m.transpose(c)
 				},
@@ -1166,7 +1165,7 @@ func init() {
 			name:        "char",
 			elementwise: true,
 			fn: [numType]unaryFn{
-				intType: func(c Context, v Value) Value { return Char(v.(Int)).validate() },
+				intType: func(c Context, v Value) Value { return Char(v.(Int)).validate(c) },
 			},
 		},
 
@@ -1202,9 +1201,9 @@ func init() {
 				vectorType: func(c Context, v Value) Value {
 					text := v.(*Vector)
 					if !text.AllChars() {
-						Errorf("ivy: value is not a vector of char")
+						c.Errorf("ivy: value is not a vector of char")
 					}
-					return IvyEval(c, text.Sprint(c.Config()))
+					return IvyEval(c, text.Sprint(c))
 				},
 			},
 		},
@@ -1219,7 +1218,7 @@ func init() {
 				bigFloatType: floatValueSelf,
 				complexType: func(c Context, v Value) Value {
 					u := v.(Complex)
-					return NewComplex(floatValueSelf(c, u.real), floatValueSelf(c, u.imag))
+					return NewComplex(c, floatValueSelf(c, u.real), floatValueSelf(c, u.imag))
 				},
 			},
 		},

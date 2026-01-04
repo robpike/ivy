@@ -93,7 +93,7 @@ func (p *Parser) functionDefn(start int) {
 				fixed = p.context.RestoreOp(prevIndex, prevDefn)
 			}
 			if !fixed {
-				value.Errorf(`internal error: redefinition failure for %q`, fn.Name)
+				value.Errorf("internal error: redefinition failure for %q", fn.Name)
 			}
 		}
 	}()

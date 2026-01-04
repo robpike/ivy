@@ -12,7 +12,6 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"robpike.io/ivy/config"
 	"robpike.io/ivy/value/persist"
 )
 
@@ -33,7 +32,7 @@ func (v *Vector) All() iter.Seq2[int, Value] { return v.s.All() }
 func (v *Vector) Slice(i, j int) iter.Seq2[int, Value] { return v.s.Slice(i, j) }
 
 func (v *Vector) String() string {
-	return "(" + v.Sprint(debugConf) + ")"
+	return "(" + v.Sprint(debugContext) + ")"
 }
 
 // edit returns a vectorEditor for creating a modified copy of v.
@@ -119,26 +118,26 @@ func (v *Vector) ProgString() string {
 }
 
 // Sprint returns the formatting of v according to conf.
-func (v *Vector) Sprint(conf *config.Config) string {
-	return strings.Join(v.sprint(conf), "\n")
+func (v *Vector) Sprint(c Context) string {
+	return strings.Join(v.sprint(c), "\n")
 }
 
-func (v *Vector) sprint(conf *config.Config) []string {
+func (v *Vector) sprint(c Context) []string {
 	if v.AllChars() {
 		b := strings.Builder{}
-		for _, c := range v.All() {
-			b.WriteRune(rune(c.Inner().(Char)))
+		for _, i := range v.All() {
+			b.WriteRune(rune(i.Inner().(Char)))
 		}
 		return strings.Split(b.String(), "\n")
 	}
-	cells, width := v.cells(conf, v.Len())
+	cells, width := v.cells(c, v.Len())
 	width.max = 1e9
 	return formatRow(cells, width)
 }
 
 // cells returns the content of each element in v
 // as a cell, which is a []string giving the lines of output.
-func (v *Vector) cells(conf *config.Config, ncol int) ([][]string, *widths) {
+func (v *Vector) cells(c Context, ncol int) ([][]string, *widths) {
 	var w widths
 	var out [][]string
 	for i, elem := range v.All() {
@@ -147,14 +146,14 @@ func (v *Vector) cells(conf *config.Config, ncol int) ([][]string, *widths) {
 		case *Vector:
 			if elem.AllChars() && elem.Len() > 0 {
 				// TODO what about newlines
-				cell = elem.sprint(conf)
+				cell = elem.sprint(c)
 			} else {
-				cell = drawBox(elem.sprint(conf), vectorCorners)
+				cell = drawBox(elem.sprint(c), vectorCorners)
 			}
 		case *Matrix:
-			cell = drawBox(elem.sprint(conf), matrixCorners)
+			cell = drawBox(elem.sprint(c), matrixCorners)
 		default:
-			cell = strings.Split(elem.Sprint(conf), "\n")
+			cell = strings.Split(elem.Sprint(c), "\n")
 		}
 		for _, line := range cell {
 			w.addColumn(i%ncol, utf8.RuneCountInString(line))
@@ -305,7 +304,7 @@ func blanks(n int) string {
 }
 
 // fillValue returns a zero or a space as the appropriate fill type for the data
-func fillValue(v *Vector) Value {
+func fillValue(c Context, v *Vector) Value {
 	if v.Len() == 0 {
 		return zero
 	}
@@ -325,14 +324,14 @@ func fillValue(v *Vector) Value {
 		}
 		return newVectorEditor(v.Len(), fill).Publish()
 	case *Matrix:
-		return NewMatrix(v.shape, newVectorEditor(v.data.Len(), fill).Publish())
+		return NewMatrix(c, v.shape, newVectorEditor(v.data.Len(), fill).Publish())
 	}
 	return zero
 }
 
 // fillValue returns a zero or a space as the appropriate fill type for the vector
-func (v *Vector) fillValue() Value {
-	return fillValue(v)
+func (v *Vector) fillValue(c Context) Value {
+	return fillValue(c, v)
 }
 
 // AllChars reports whether the vector contains only Chars.
@@ -391,20 +390,20 @@ func (v *Vector) Inner() Value {
 	return v
 }
 
-func (v *Vector) toType(op string, conf *config.Config, which valueType) Value {
+func (v *Vector) toType(op string, c Context, which valueType) Value {
 	switch which {
 	case vectorType:
 		return v
 	case matrixType:
-		return NewMatrix([]int{v.Len()}, v)
+		return NewMatrix(c, []int{v.Len()}, v)
 	}
-	Errorf("%s: cannot convert vector to %s", op, which)
+	c.Errorf("%s: cannot convert vector to %s", op, which)
 	return nil
 }
 
-func (v *Vector) sameLength(x *Vector) {
+func (v *Vector) sameLength(c Context, x *Vector) {
 	if v.Len() != x.Len() {
-		Errorf("length mismatch: %d %d", v.Len(), x.Len())
+		c.Errorf("length mismatch: %d %d", v.Len(), x.Len())
 	}
 }
 
@@ -429,13 +428,13 @@ func (v *Vector) rotate(n int) Value {
 // integer or a vector of the same length as v. elemCount is the number of elements
 // we are to duplicate; this will be number of columns for a matrix's data.
 // If the count is negative, we replicate zeros of the appropriate shape.
-func (v *Vector) sel(n *Vector, elemCount int) *Vector {
+func (v *Vector) sel(c Context, n *Vector, elemCount int) *Vector {
 	if n.Len() != 1 && n.Len() != elemCount {
-		Errorf("sel length mismatch")
+		c.Errorf("sel length mismatch")
 	}
 	result := newVectorEditor(0, nil)
 	for i := range v.Len() {
-		count := n.intAt(i%n.Len(), "sel count")
+		count := n.intAt(c, i%n.Len(), "sel count")
 		val := v.At(i)
 		if count < 0 { // Thanks, APL.
 			count = -count
@@ -475,20 +474,20 @@ func doRotate(dst *vectorEditor, i, n int, src *Vector, j, off int) {
 // uintAt returns the ith element of v, erroring out if it is not a
 // non-negative integer. It's called uintAt but returns an int.
 // The vector is known to be long enough.
-func (v *Vector) uintAt(i int, msg string) int {
+func (v *Vector) uintAt(c Context, i int, msg string) int {
 	n, ok := v.At(i).(Int)
 	if !ok || n < 0 {
-		Errorf("%s must be a non-negative integer: %s", msg, v.At(i))
+		c.Errorf("%s must be a non-negative integer: %s", msg, v.At(i))
 	}
 	return int(n)
 }
 
 // intAt returns the ith element of v, which must be an Int.
 // The vector is known to be long enough.
-func (v *Vector) intAt(i int, msg string) int {
+func (v *Vector) intAt(c Context, i int, msg string) int {
 	n, ok := v.At(i).(Int)
 	if !ok {
-		Errorf("%s must be a small integer: %s", msg, v.At(i))
+		c.Errorf("%s must be a small integer: %s", msg, v.At(i))
 	}
 	return int(n)
 }
@@ -497,11 +496,11 @@ func (v *Vector) intAt(i int, msg string) int {
 // by the values in score. Elements with score 0 are ignored.
 // Elements with non-zero score are included, grouped with boundaries
 // at every point where the score exceeds the previous score.
-func (v *Vector) partition(score *Vector) Value {
+func (v *Vector) partition(c Context, score *Vector) Value {
 	if score.Len() != v.Len() {
-		Errorf("part: length mismatch")
+		c.Errorf("part: length mismatch")
 	}
-	res, _ := v.doPartition(score)
+	res, _ := v.doPartition(c, score)
 	return res
 }
 
@@ -509,13 +508,13 @@ func (v *Vector) partition(score *Vector) Value {
 // vector and matrix partitioning code, which use different length checks. The
 // integer returned is the width (last dimension) to use when partitioning a
 // matrix.
-func (v *Vector) doPartition(score *Vector) (*Vector, int) {
+func (v *Vector) doPartition(c Context, score *Vector) (*Vector, int) {
 	accum := newVectorEditor(0, nil)
 	result := newVectorEditor(0, nil)
 	dim := -1
 	for i, sc, prev := 0, 0, 0; i < v.Len(); i, prev = i+1, sc {
 		j := i % score.Len()
-		sc = score.uintAt(j, "part: score")
+		sc = score.uintAt(c, j, "part: score")
 		if sc != 0 { // Ignore elements with zero score.
 			if i > 0 && (sc > prev || j == 0) && accum.Len() > 0 { // Add current subvector, start new one.
 				result.Append(accum.Publish())
@@ -563,7 +562,7 @@ func (v *Vector) reverse() *Vector {
 // inverse returns the inverse of a vector, defined to be (conj v) / v +.* conj v
 func (v *Vector) inverse(c Context) Value {
 	if v.Len() == 0 {
-		Errorf("inverse of empty vector")
+		c.Errorf("inverse of empty vector")
 	}
 	if v.Len() == 1 {
 		return inverse(c, v)
@@ -572,10 +571,10 @@ func (v *Vector) inverse(c Context) Value {
 	conj := v.edit()
 	for i, x := range conj.All() {
 		if !IsScalarType(x) {
-			Errorf("inverse of vector with non-scalar element")
+			c.Errorf("inverse of vector with non-scalar element")
 		}
 		if cmplx, ok := x.(Complex); ok {
-			conj.Set(i, NewComplex(cmplx.real, c.EvalUnary("-", cmplx.imag)).shrink())
+			conj.Set(i, NewComplex(c, cmplx.real, c.EvalUnary("-", cmplx.imag)).shrink())
 		}
 	}
 	mag := Value(zero)
@@ -583,7 +582,7 @@ func (v *Vector) inverse(c Context) Value {
 		mag = c.EvalBinary(mag, "+", c.EvalBinary(x, "*", conj.At(i)))
 	}
 	if isZero(mag) {
-		Errorf("inverse of zero vector")
+		c.Errorf("inverse of zero vector")
 	}
 	for i, x := range conj.All() {
 		conj.Set(i, c.EvalBinary(x, "/", mag))

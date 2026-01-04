@@ -31,15 +31,16 @@ func setIntString(conf *config.Config, s string) (Int, error) {
 }
 
 func (i Int) String() string {
-	return "(" + i.Sprint(debugConf) + ")"
+	return "(" + i.Sprint(debugContext) + ")"
 }
 
-func (i Int) Sprint(conf *config.Config) string {
+func (i Int) Sprint(c Context) string {
+	conf := c.Config()
 	format := conf.Format()
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
 		if ok {
-			return i.floatString(verb, prec)
+			return i.floatString(c, verb, prec)
 		}
 		return fmt.Sprintf(format, int64(i))
 	}
@@ -62,7 +63,7 @@ func (i Int) shrink() Value {
 	return i
 }
 
-func (i Int) floatString(verb byte, prec int) string {
+func (i Int) floatString(c Context, verb byte, prec int) string {
 	switch verb {
 	case 'f', 'F':
 		str := strconv.FormatInt(int64(i), 10)
@@ -81,12 +82,12 @@ func (i Int) floatString(verb byte, prec int) string {
 		// Exponent is always positive so it's easy.
 		if i.eExponent() >= prec {
 			// Use e format.
-			return i.floatString(verb-2, prec-1)
+			return i.floatString(c, verb-2, prec-1)
 		}
 		// Use f format, but this is just an integer.
 		return fmt.Sprintf("%d", int64(i))
 	default:
-		Errorf("can't handle verb %c for int", verb)
+		c.Errorf("can't handle verb %c for int", verb)
 	}
 	return ""
 }
@@ -107,10 +108,10 @@ func (i Int) eExponent() int {
 }
 
 // inverse returns 1/i
-func (i Int) inverse() Value {
+func (i Int) inverse(c Context) Value {
 	v := int64(i)
 	if i == 0 {
-		Errorf("inverse of zero")
+		c.Errorf("inverse of zero")
 	}
 	return BigRat{
 		Rat: big.NewRat(0, 1).SetFrac64(1, v),
@@ -152,24 +153,24 @@ func (i Int) Inner() Value {
 	return i
 }
 
-func (i Int) toType(op string, conf *config.Config, which valueType) Value {
+func (i Int) toType(op string, c Context, which valueType) Value {
 	switch which {
 	case intType:
 		return i
 	case bigIntType:
 		return bigInt64(int64(i))
 	case bigRatType:
-		return bigRatInt64(int64(i))
+		return bigRatInt64(c, int64(i))
 	case bigFloatType:
-		return bigFloatInt64(conf, int64(i))
+		return bigFloatInt64(c.Config(), int64(i))
 	case complexType:
-		return NewComplex(i, zero)
+		return NewComplex(c, i, zero)
 	case vectorType:
 		return oneElemVector(i)
 	case matrixType:
-		return NewMatrix([]int{1}, NewVector(i))
+		return NewMatrix(c, []int{1}, NewVector(i))
 	}
-	Errorf("%s: cannot convert int to %s", op, which)
+	c.Errorf("%s: cannot convert int to %s", op, which)
 	return nil
 }
 

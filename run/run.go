@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"robpike.io/ivy/config"
 	"robpike.io/ivy/parse"
 	"robpike.io/ivy/scan"
 	"robpike.io/ivy/value"
@@ -84,7 +83,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 			user2, sys2 := cpuTime()
 			conf.SetCPUTime(time.Since(start), user2-user, sys2-sys)
 		}
-		if printValues(conf, writer, values) {
+		if printValues(context, writer, values) {
 			context.AssignGlobal("_", values[len(values)-1])
 		}
 		if !ok {
@@ -120,10 +119,10 @@ func eval(p *parse.Parser, context value.Context) value.Value {
 			if len(prevValues) == 0 {
 				return nil
 			}
-			printValues(conf, writer, prevValues[:len(prevValues)-1])
+			printValues(context, writer, prevValues[:len(prevValues)-1])
 			return prevValues[len(prevValues)-1]
 		}
-		printValues(conf, writer, prevValues)
+		printValues(context, writer, prevValues)
 		prevValues = values
 	}
 }
@@ -131,11 +130,11 @@ func eval(p *parse.Parser, context value.Context) value.Value {
 // printValues neatly prints the values returned from execution, followed by a newline.
 // It also handles the ')debug types' output.
 // The return value reports whether it printed anything.
-func printValues(conf *config.Config, writer io.Writer, values []value.Value) bool {
+func printValues(c value.Context, writer io.Writer, values []value.Value) bool {
 	if len(values) == 0 {
 		return false
 	}
-	if conf.Debug("types") > 0 {
+	if c.Config().Debug("types") > 0 {
 		for i, v := range values {
 			if i > 0 {
 				fmt.Fprint(writer, ",")
@@ -150,7 +149,7 @@ func printValues(conf *config.Config, writer io.Writer, values []value.Value) bo
 		case value.QuietValue:
 			continue
 		}
-		s := v.Sprint(conf)
+		s := v.Sprint(c)
 		if printed && len(s) > 0 && s[len(s)-1] != '\n' {
 			fmt.Fprint(writer, " ")
 		}

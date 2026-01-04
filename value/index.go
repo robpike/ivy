@@ -51,7 +51,7 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 		x := index[i].Eval(context).Inner()
 		switch x := x.(type) {
 		default:
-			Errorf("invalid index %s (type %s) in %s", index[i].ProgString(), whichType(x), top.ProgString())
+			context.Errorf("invalid index %s (type %s) in %s", index[i].ProgString(), whichType(x), top.ProgString())
 		case Int:
 			ix.indexes[i] = NewVector(x)
 		case *Vector:
@@ -84,7 +84,7 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 		} else {
 			lvar = context.Global(lvarx.Name)
 			if lvar == nil {
-				Errorf("undefined global variable %q", lvarx.Name)
+				context.Errorf("undefined global variable %q", lvarx.Name)
 			}
 		}
 		ix.lhs = lvar.value
@@ -93,7 +93,7 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 	}
 	switch lhs := ix.lhs.(type) {
 	default:
-		Errorf("cannot index %s (%v)", left.ProgString(), whichType(lhs))
+		context.Errorf("cannot index %s (%v)", left.ProgString(), whichType(lhs))
 	case *Matrix:
 		ix.vector = lhs.data
 		if lvar != nil {
@@ -109,33 +109,33 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 	}
 
 	origin := Int(context.Config().Origin())
-	if ix.initVectorIndex(origin) {
+	if ix.initVectorIndex(context, origin) {
 		return
 	}
 
 	// Finish the result shape.
 	if len(ix.indexes) > len(ix.shape) {
-		Errorf("too many dimensions in %s indexing shape %v", top.ProgString(), NewIntVector(ix.shape...))
+		context.Errorf("too many dimensions in %s indexing shape %v", top.ProgString(), NewIntVector(ix.shape...))
 	}
 	// Replace nil index entries, created above, with iota(dimension).
 	j := 0
 	for i := range ix.indexes {
 		if missing[i] {
-			x := newIota(int(origin), ix.shape[i])
+			x := newIota(context, int(origin), ix.shape[i])
 			ix.indexes[i] = x
 			ix.outShape[outShapeToUpdate[j]] = x.Len()
 			j++
 		}
 	}
 	ix.outShape = append(ix.outShape, ix.shape[len(index):]...)
-	ix.outSize = size(ix.outShape)
+	ix.outSize = size(context, ix.outShape)
 	ix.indexDim = len(index)
 
 	// Check indexes are all valid.
 	for i, v := range ix.indexes {
 		for _, vj := range v.All() {
 			if _, ok := vj.(Int); !ok {
-				Errorf("invalid index %s (type %s) in %s", vj, whichType(vj), top.ProgString())
+				context.Errorf("invalid index %s (type %s) in %s", vj, whichType(vj), top.ProgString())
 			}
 		}
 		for j := range v.All() {
@@ -153,13 +153,13 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 					}
 				}
 				s += "]"
-				Errorf("index %s out of range for shape %v", s, NewIntVector(ix.shape...))
+				context.Errorf("index %s out of range for shape %v", s, NewIntVector(ix.shape...))
 			}
 		}
 	}
 }
 
-func (ix *indexState) initVectorIndex(origin Int) bool {
+func (ix *indexState) initVectorIndex(c Context, origin Int) bool {
 	// Check for single index, vector of vectors,
 	// all of which have the same length <= rank of lhs.
 	if len(ix.indexes) != 1 || ix.indexes[0] == nil || ix.indexes[0].Len() == 0 {
@@ -171,25 +171,25 @@ func (ix *indexState) initVectorIndex(origin Int) bool {
 		return false
 	}
 	if v.Len() > len(ix.shape) {
-		Errorf("index vector (%v) too long for shape %v", v, NewIntVector(ix.shape...))
+		c.Errorf("index vector (%v) too long for shape %v", v, NewIntVector(ix.shape...))
 	}
 	n := v.Len()
 	for _, x := range data.All() {
 		v, ok := x.(*Vector)
 		if !ok {
-			Errorf("mixed vector and non-vector indices %v and %v", data.At(0), x)
+			c.Errorf("mixed vector and non-vector indices %v and %v", data.At(0), x)
 		}
 		if v.Len() != n {
-			Errorf("index vectors of mixed lengths %v and %v", data.At(0), v)
+			c.Errorf("index vectors of mixed lengths %v and %v", data.At(0), v)
 		}
 		// Check vector content against shape.
 		for j, vj := range v.All() {
 			k, ok := vj.(Int)
 			if !ok {
-				Errorf("index vector %v contains invalid index %v (type %s)", v, vj, whichType(vj))
+				c.Errorf("index vector %v contains invalid index %v (type %s)", v, vj, whichType(vj))
 			}
 			if k < origin || k-origin >= Int(ix.shape[j]) {
-				Errorf("index vector %v out of range for shape %v", v, NewIntVector(ix.shape...))
+				c.Errorf("index vector %v out of range for shape %v", v, NewIntVector(ix.shape...))
 			}
 		}
 	}
@@ -197,7 +197,7 @@ func (ix *indexState) initVectorIndex(origin Int) bool {
 	ix.indexVector = data
 	ix.indexDim = n
 	ix.outShape = append(ix.outShape, ix.shape[n:]...)
-	ix.outSize = size(ix.outShape)
+	ix.outSize = size(c, ix.outShape)
 	return true
 }
 
@@ -222,7 +222,7 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 	}
 
 	data := newVectorEditor(ix.outSize, nil)
-	copySize := int(size(ix.shape[ix.indexDim:]))
+	copySize := int(size(context, ix.shape[ix.indexDim:]))
 	n := data.Len() / copySize
 
 	if ix.indexVector != nil {
@@ -269,7 +269,7 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 	if len(ix.outShape) == 1 {
 		return data.Publish()
 	}
-	return NewMatrix(ix.outShape, data.Publish())
+	return NewMatrix(context, ix.outShape, data.Publish())
 }
 
 // IndexAssign handles general assignment to indexed expressions on the LHS.
@@ -295,7 +295,7 @@ func IndexAssign(context Context, top, left Expr, lvarx *VarExpr, index []Expr, 
 			} else {
 				where = top.ProgString() + " = " + right.ProgString()
 			}
-			Errorf("shape mismatch %v != %v in assignment %v",
+			context.Errorf("shape mismatch %v != %v in assignment %v",
 				NewIntVector(ix.outShape...), NewIntVector(rshape...),
 				where)
 		}
@@ -330,7 +330,7 @@ func IndexAssign(context Context, top, left Expr, lvarx *VarExpr, index []Expr, 
 		return
 	}
 
-	copySize := int(size(ix.shape[ix.indexDim:]))
+	copySize := int(size(context, ix.shape[ix.indexDim:]))
 	n := ix.outSize / copySize
 	pfor(true, copySize, n, func(lo, hi int) {
 		if ix.indexVector != nil {
@@ -419,9 +419,9 @@ func constIota(origin, n int) []Value {
 }
 
 // newIota returns the result of 'iota n' as a new Vector.
-func newIota(origin, n int) *Vector {
+func newIota(c Context, origin, n int) *Vector {
 	if n < 0 || maxInt < n {
-		Errorf("bad iota %d", n)
+		c.Errorf("bad iota %d", n)
 	}
 	return NewVector(constIota(origin, int(n))...)
 }

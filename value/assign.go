@@ -22,38 +22,38 @@ func assign(context Context, b *BinaryExpr) Value {
 	return QuietValue{Value: rhs}
 }
 
-func Assign(context Context, left, right Expr, rhs Value) {
+func Assign(c Context, left, right Expr, rhs Value) {
 	// We know the left is a variableExpr or index expression.
 	// Special handling as we must not evaluate the left - it is an l-value.
 	// But we need to process the indexing, if it is an index expression.
 	switch lhs := left.(type) {
 	case *VarExpr:
 		if lhs.Local >= 1 {
-			context.Local(lhs.Local).Assign(rhs)
+			c.Local(lhs.Local).Assign(rhs)
 		} else {
-			context.AssignGlobal(lhs.Name, rhs)
+			c.AssignGlobal(lhs.Name, rhs)
 		}
 		return
 	case *IndexExpr:
 		switch lv := lhs.Left.(type) {
 		case *VarExpr:
-			IndexAssign(context, lhs, lhs.Left, lv, lhs.Right, right, rhs)
+			IndexAssign(c, lhs, lhs.Left, lv, lhs.Right, right, rhs)
 			return
 		}
 	case VectorExpr:
 		// Simultaneous assignment requires evaluation of RHS before assignment.
 		rhs, ok := rhs.(*Vector)
 		if !ok {
-			Errorf("rhs of assignment to (%s) not a vector", lhs.ProgString())
+			c.Errorf("rhs of assignment to (%s) not a vector", lhs.ProgString())
 		}
 		if len(lhs) != rhs.Len() {
-			Errorf("length mismatch in assignment to (%s)", lhs.ProgString())
+			c.Errorf("length mismatch in assignment to (%s)", lhs.ProgString())
 		}
 		for i := rhs.Len() - 1; i >= 0; i-- {
-			Assign(context, lhs[i], nil, rhs.At(i))
+			Assign(c, lhs[i], nil, rhs.At(i))
 		}
 		return
 	}
 	// unexpected: parser should have caught this
-	Errorf("internal error: cannot assign to %s", left.ProgString())
+	c.Errorf("internal error: cannot assign to %s", left.ProgString())
 }

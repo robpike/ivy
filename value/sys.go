@@ -61,9 +61,9 @@ func sys(c Context, v Value) Value {
 			return fn(conf)
 		}
 		if fn, ok := sysN[verb]; ok {
-			return fn(conf, []Value{})
+			return fn(c, []Value{})
 		}
-		Errorf("sys %q not defined", verb)
+		c.Errorf("sys %q not defined", verb)
 	}
 
 	if v1, ok := vv.At(0).(*Vector); ok && v1.AllChars() { // multiple arguments, verb first
@@ -73,15 +73,15 @@ func sys(c Context, v Value) Value {
 			for _, v := range vv.Slice(1, vv.Len()) {
 				args = append(args, v)
 			}
-			return fn(conf, args)
+			return fn(c, args)
 		}
 		if _, ok := sys1[verb]; ok {
-			Errorf("sys %q takes no arguments", verb)
+			c.Errorf("sys %q takes no arguments", verb)
 		}
-		Errorf("sys %q not defined", verb)
+		c.Errorf("sys %q not defined", verb)
 	}
 
-	Errorf("sys requires string argument")
+	c.Errorf("sys requires string argument")
 	panic("unreachable")
 }
 
@@ -141,13 +141,13 @@ var sys1 = map[string]func(conf *config.Config) Value{
 	},
 }
 
-var sysN = map[string]func(*config.Config, []Value) Value{
+var sysN = map[string]func(Context, []Value) Value{
 	"read": sysRead,
 }
 
-func sysRead(conf *config.Config, args []Value) Value {
+func sysRead(c Context, args []Value) Value {
 	usage := func() {
-		Errorf(`usage: sys "read" "filename"`)
+		c.Errorf(`usage: sys "read" "filename"`)
 	}
 
 	if len(args) != 1 {
@@ -161,7 +161,7 @@ func sysRead(conf *config.Config, args []Value) Value {
 
 	f, err := os.Open(file)
 	if err != nil {
-		Errorf("%v", err)
+		c.Errorf("%v", err)
 	}
 	defer f.Close()
 
@@ -172,7 +172,7 @@ func sysRead(conf *config.Config, args []Value) Value {
 		edit.Append(newCharVector(s.Text()))
 	}
 	if err := s.Err(); err != nil {
-		Errorf("%v", err)
+		c.Errorf("%v", err)
 	}
 	return edit.Publish()
 }
@@ -182,7 +182,7 @@ func sysRead(conf *config.Config, args []Value) Value {
 func encodeTime(c Context, u, v *Vector) Value {
 	r := rune(u.At(0).(Char))
 	if r != 't' && r != 'T' {
-		Errorf("illegal left operand %s for encode", u)
+		c.Errorf("illegal left operand %s for encode", u)
 	}
 	// TODO: more than one value
 	return timeVec(timeFromValue(c, v.At(0)))
@@ -206,7 +206,7 @@ func timeVec(date time.Time) *Vector {
 func decodeTime(c Context, u, v *Vector) Value {
 	r := rune(u.At(0).(Char))
 	if r != 't' && r != 'T' {
-		Errorf("illegal left operand %s for decode", u)
+		c.Errorf("illegal left operand %s for decode", u)
 	}
 	year, month, day, hour, min := 0, 1, 1, 0, 0
 	sec, nsec := int64(0), int64(0)
@@ -219,13 +219,13 @@ func decodeTime(c Context, u, v *Vector) Value {
 		}
 		b, ok := v.(BigInt)
 		if !ok || !b.IsInt64() {
-			Errorf("illegal right operand %s in decode", v)
+			c.Errorf("illegal right operand %s in decode", v)
 		}
 		return int(b.Int64())
 	}
 	switch v.Len() {
 	default:
-		Errorf("invalid time vector %s", v)
+		c.Errorf("invalid time vector %s", v)
 	case 7:
 		offset := toInt(v.At(6))
 		_, nowOffset := now.Zone()
@@ -238,12 +238,12 @@ func decodeTime(c Context, u, v *Vector) Value {
 	case 6:
 		switch s := v.At(5).(type) {
 		default:
-			Errorf("illegal right operand %s in decode", v)
+			c.Errorf("illegal right operand %s in decode", v)
 		case Int:
 			sec = int64(s)
 		case BigInt:
 			if !s.IsInt64() {
-				Errorf("illegal right operand %s in decode", v)
+				c.Errorf("illegal right operand %s in decode", v)
 			}
 			sec = s.Int64()
 		case BigRat:
@@ -297,7 +297,7 @@ func secNsec(fs *big.Float) (sec, nsec int64) {
 func timeFromValue(c Context, v Value) time.Time {
 	conf := c.Config()
 	var fs big.Float
-	fs.Set(v.toType("encode", conf, bigFloatType).(BigFloat).Float)
+	fs.Set(v.toType("encode", c, bigFloatType).(BigFloat).Float)
 	t := time.Unix(secNsec(&fs))
 	t = t.In(conf.LocationAt(t))
 	return t

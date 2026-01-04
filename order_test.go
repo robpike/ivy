@@ -18,6 +18,12 @@ type orderTest struct {
 	sgn  int
 }
 
+var tc value.Context
+
+func init() {
+	tc = exec.NewContext(&testConf)
+}
+
 var (
 	int0 = value.Int(0)
 	int1 = value.Int(1)
@@ -47,19 +53,19 @@ var (
 	bigFloat2p5 = value.BigFloat{Float: big.NewFloat(2.5)}
 	bigFloat3p5 = value.BigFloat{Float: big.NewFloat(3.5)}
 
-	complex1j0 = value.NewComplex(int1, int0)
-	complex1j1 = value.NewComplex(int1, int1)
-	complex1j2 = value.NewComplex(int1, int2) // Same real, bigger imaginary.
-	complex2j1 = value.NewComplex(int2, int1) // Bigger real, lesser imaginary
-	complex2j2 = value.NewComplex(int2, int2) // Same real, bigger imaginary
+	complex1j0 = value.NewComplex(tc, int1, int0)
+	complex1j1 = value.NewComplex(tc, int1, int1)
+	complex1j2 = value.NewComplex(tc, int1, int2) // Same real, bigger imaginary.
+	complex2j1 = value.NewComplex(tc, int2, int1) // Bigger real, lesser imaginary
+	complex2j2 = value.NewComplex(tc, int2, int2) // Same real, bigger imaginary
 
 	vector0000 = value.NewIntVector(0, 0, 0, 0)
 	vector012  = value.NewIntVector(0, 1, 2)
 	vector022  = value.NewIntVector(0, 2, 2)
 
-	matrix000_000 = value.NewMatrix([]int{2, 3}, newMatrixData(0, 0, 0, 0, 0, 0))
-	matrix12_34   = value.NewMatrix([]int{2, 2}, newMatrixData(1, 2, 3, 4))
-	matrix12_44   = value.NewMatrix([]int{2, 2}, newMatrixData(1, 2, 4, 4))
+	matrix000_000 = value.NewMatrix(tc, []int{2, 3}, newMatrixData(0, 0, 0, 0, 0, 0))
+	matrix12_34   = value.NewMatrix(tc, []int{2, 2}, newMatrixData(1, 2, 3, 4))
+	matrix12_44   = value.NewMatrix(tc, []int{2, 2}, newMatrixData(1, 2, 4, 4))
 )
 
 func newMatrixData(data ...int) *value.Vector {

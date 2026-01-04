@@ -11,8 +11,6 @@ import (
 	"math/big"
 	"strings"
 	"time"
-
-	"robpike.io/ivy/config"
 )
 
 // fmtText returns a vector of Chars holding the string representation
@@ -25,10 +23,9 @@ import (
 // for instance to print a floating point number as a decimal
 // integer with '%d'.
 func fmtText(c Context, u, v Value) Value {
-	config := c.Config()
-	format, verb := formatString(config, u)
+	format, verb := formatString(c, u)
 	if format == "" {
-		Errorf("illegal format %q", u.Sprint(config))
+		c.Errorf("illegal format %q", u.Sprint(c))
 	}
 	var b bytes.Buffer
 	switch val := v.(type) {
@@ -43,26 +40,26 @@ func fmtText(c Context, u, v Value) Value {
 	case *Matrix:
 		val.fprintf(c, &b, format)
 	default:
-		Errorf("cannot format '%s'", val.Sprint(config))
+		c.Errorf("cannot format '%s'", val.Sprint(c))
 	}
 	return newCharVector(b.String())
 }
 
 // formatString returns the format string given u, the lhs of a binary text invocation.
-func formatString(c *config.Config, u Value) (string, byte) {
+func formatString(c Context, u Value) (string, byte) {
 	switch val := u.(type) {
 	case Int:
 		return fmt.Sprintf("%%.%df", val), 'f'
 	case Char:
 		s := fmt.Sprintf("%%%c", val)
-		return s, verbOf(s) // Error check is in there.
+		return s, verbOf(c, s) // Error check is in there.
 	case *Vector:
 		if val.AllChars() {
 			s := val.Sprint(c)
 			if !strings.ContainsRune(s, '%') {
 				s = "%" + s
 			}
-			verb := verbOf(s)
+			verb := verbOf(c, s)
 			return s, verb
 		}
 		char := Char('f')
@@ -100,16 +97,16 @@ func formatString(c *config.Config, u Value) (string, byte) {
 // verbOf returns the first formatting verb, after an obligatory percent, in the string,
 // skipping %% of course. It returns 0 if no verb is found. It does some rudimentary
 // validation.
-func verbOf(format string) byte {
-	return format[verbIndex(format)]
+func verbOf(c Context, format string) byte {
+	return format[verbIndex(c, format)]
 }
 
 // verbIndex returns the index of the first formatting verb, after an obligatory percent, in the string,
 // skipping %% of course.
-func verbIndex(format string) int {
+func verbIndex(ctx Context, format string) int {
 	percent := strings.IndexByte(format, '%')
 	if percent < 0 {
-		Errorf("invalid format %q", format)
+		ctx.Errorf("invalid format %q", format)
 	}
 	s := format[percent+1:]
 Loop:
@@ -123,14 +120,14 @@ Loop:
 			continue
 		// Special case for %%: go on to next verb.
 		case '%':
-			return verbIndex(s[i+1:])
+			return verbIndex(ctx, s[i+1:])
 		case 'b', 'c', 'd', 'e', 'E', 'f', 'F', 'g', 'G', 'o', 'O', 'q', 's', 't', 'T', 'U', 'v', 'x', 'X':
 			return percent + 1 + i
 		default:
 			break Loop
 		}
 	}
-	Errorf("invalid format %q", format)
+	ctx.Errorf("invalid format %q", format)
 	panic("not reached")
 }
 
@@ -144,7 +141,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		// TODO: Should we fix that?
 		if vec.AllChars() && strings.ContainsRune("boOqsvxX", rune(verb)) {
 			// Print the string as a unit.
-			fmt.Fprintf(w, format, vec.Sprint(debugConf))
+			fmt.Fprintf(w, format, vec.Sprint(debugContext))
 			return
 		}
 		for i, v := range vec.All() {
@@ -159,12 +156,12 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 	case 'T': // Time.
 		// Maintain flags etc. but turn T into s.
 		f := []byte(format)
-		f[verbIndex(format)] = 's'
+		f[verbIndex(c, format)] = 's'
 		fmt.Fprintf(w, string(f), timeFromValue(c, v).Format(time.UnixDate))
 	case 't': // Boolean. TODO: Should be 0 or 1, but that's messy. Odd case anyway.
-		fmt.Fprintf(w, format, toBool(v))
+		fmt.Fprintf(w, format, toBool(c, v))
 	case 'v':
-		fmt.Fprintf(w, format, v.Sprint(debugConf)) // Cleanest output.
+		fmt.Fprintf(w, format, v.Sprint(debugContext)) // Cleanest output.
 	case 'c', 'U':
 		// Dig inside the values to find or form a char.
 		switch val := v.(type) {
@@ -173,7 +170,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		case Char:
 			fmt.Fprintf(w, format, uint32(val))
 		case BigInt:
-			Errorf("value too large for %%%c: %v", verb, v)
+			c.Errorf("value too large for %%%c: %v", verb, v)
 		case BigRat:
 			i, _ := val.Float64()
 			fmt.Fprintf(w, format, int64(i))
@@ -181,7 +178,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 			i, _ := val.Int64()
 			fmt.Fprintf(w, format, i)
 		case Complex:
-			Errorf("%%%c not implemented for complex: %v", verb, val)
+			c.Errorf("%%%c not implemented for complex: %v", verb, val)
 		}
 		return
 	case 's', 'q':
@@ -192,7 +189,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		case Char:
 			fmt.Fprintf(w, format, string(int32(val)))
 		case BigInt:
-			Errorf("value too large for %%%c: %v", verb, v)
+			c.Errorf("value too large for %%%c: %v", verb, v)
 		case BigRat:
 			i, _ := val.Float64()
 			fmt.Fprintf(w, format, string(int32(i)))
@@ -200,7 +197,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 			i, _ := val.Int64()
 			fmt.Fprintf(w, format, string(int32(i)))
 		case Complex:
-			Errorf("%%%c not implemented for complex: %v", verb, val)
+			c.Errorf("%%%c not implemented for complex: %v", verb, val)
 		}
 		return
 	case 'b', 'd', 'o', 'O', 'x', 'X':
@@ -225,7 +222,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 				fmt.Fprintf(w, format, val.Float)
 				return
 			case 'X':
-				Errorf("%%X not implemented for float: %v", val)
+				c.Errorf("%%X not implemented for float: %v", val)
 			}
 			i, _ := val.Int(big.NewInt(0)) // TODO: Truncates towards zero. Do rounding?
 			fmt.Fprintf(w, format, i)

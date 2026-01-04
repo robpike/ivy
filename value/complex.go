@@ -6,8 +6,6 @@ package value
 
 import (
 	"fmt"
-
-	"robpike.io/ivy/config"
 )
 
 type Complex struct {
@@ -15,9 +13,9 @@ type Complex struct {
 	imag Value
 }
 
-func NewComplex(u, v Value) Complex {
+func NewComplex(c Context, u, v Value) Complex {
 	if !simpleNumber(u) || !simpleNumber(v) {
-		Errorf("bad complex construction: %v %v", u, v)
+		c.Errorf("bad complex construction: %v %v", u, v)
 	}
 	return Complex{u, v}
 }
@@ -35,15 +33,15 @@ func simpleNumber(v Value) bool {
 }
 
 func (c Complex) String() string {
-	return "(" + c.Sprint(debugConf) + ")"
+	return "(" + c.Sprint(debugContext) + ")"
 }
 
 func (c Complex) Rank() int {
 	return 0
 }
 
-func (c Complex) Sprint(conf *config.Config) string {
-	return fmt.Sprintf("%sj%s", c.real.Sprint(conf), c.imag.Sprint(conf))
+func (c Complex) Sprint(ctx Context) string {
+	return fmt.Sprintf("%sj%s", c.real.Sprint(ctx), c.imag.Sprint(ctx))
 }
 
 func (c Complex) ProgString() string {
@@ -66,19 +64,19 @@ func (c Complex) Signum(ctx Context) Complex {
 	if isZero(c) {
 		return c
 	}
-	return c.div(ctx, NewComplex(c.abs(ctx), zero))
+	return c.div(ctx, NewComplex(ctx, c.abs(ctx), zero))
 }
 
-func (c Complex) toType(op string, conf *config.Config, which valueType) Value {
+func (c Complex) toType(op string, ctx Context, which valueType) Value {
 	switch which {
 	case complexType:
 		return c
 	case vectorType:
 		return oneElemVector(c)
 	case matrixType:
-		return NewMatrix([]int{1, 1}, NewVector(c))
+		return NewMatrix(ctx, []int{1, 1}, NewVector(c))
 	}
-	Errorf("%s: cannot convert complex to %s", op, which)
+	ctx.Errorf("%s: cannot convert complex to %s", op, which)
 	return nil
 }
 
@@ -102,17 +100,17 @@ func (c Complex) shrink() Value {
 // Arithmetic.
 
 func (c Complex) neg(ctx Context) Complex {
-	return NewComplex(ctx.EvalUnary("-", c.real), ctx.EvalUnary("-", c.imag))
+	return NewComplex(ctx, ctx.EvalUnary("-", c.real), ctx.EvalUnary("-", c.imag))
 }
 
 func (c Complex) inverse(ctx Context) Complex {
 	if isZero(c.real) && isZero(c.imag) {
-		Errorf("complex inverse of zero")
+		ctx.Errorf("complex inverse of zero")
 	}
 	denom := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", c.real), "+", ctx.EvalBinary(c.imag, "*", c.imag))
 	r := ctx.EvalBinary(c.real, "/", denom)
 	i := ctx.EvalUnary("-", ctx.EvalBinary(c.imag, "/", denom))
-	return NewComplex(r, i)
+	return NewComplex(ctx, r, i)
 }
 
 func (c Complex) abs(ctx Context) Value {
@@ -152,22 +150,22 @@ func (c Complex) phase(ctx Context) Value {
 }
 
 func (c Complex) add(ctx Context, d Complex) Complex {
-	return NewComplex(ctx.EvalBinary(c.real, "+", d.real), ctx.EvalBinary(c.imag, "+", d.imag))
+	return NewComplex(ctx, ctx.EvalBinary(c.real, "+", d.real), ctx.EvalBinary(c.imag, "+", d.imag))
 }
 
 func (c Complex) sub(ctx Context, d Complex) Complex {
-	return NewComplex(ctx.EvalBinary(c.real, "-", d.real), ctx.EvalBinary(c.imag, "-", d.imag))
+	return NewComplex(ctx, ctx.EvalBinary(c.real, "-", d.real), ctx.EvalBinary(c.imag, "-", d.imag))
 }
 
 func (c Complex) mul(ctx Context, d Complex) Complex {
 	r := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", d.real), "-", ctx.EvalBinary(c.imag, "*", d.imag))
 	i := ctx.EvalBinary(ctx.EvalBinary(d.imag, "*", c.real), "+", ctx.EvalBinary(d.real, "*", c.imag))
-	return NewComplex(r, i)
+	return NewComplex(ctx, r, i)
 }
 
 func (c Complex) div(ctx Context, d Complex) Complex {
 	if isZero(d.real) && isZero(d.imag) {
-		Errorf("complex division by zero")
+		ctx.Errorf("complex division by zero")
 	}
 	if d.isReal() { // A common case, like dividing by 2.
 		denom := ctx.EvalBinary(d.real, "*", d.real)
@@ -175,14 +173,14 @@ func (c Complex) div(ctx Context, d Complex) Complex {
 		r = ctx.EvalBinary(r, "/", denom)
 		i := ctx.EvalBinary(c.imag, "*", d.real)
 		i = ctx.EvalBinary(i, "/", denom)
-		return NewComplex(r, i)
+		return NewComplex(ctx, r, i)
 	}
 	denom := ctx.EvalBinary(ctx.EvalBinary(d.real, "*", d.real), "+", ctx.EvalBinary(d.imag, "*", d.imag))
 	r := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", d.real), "+", ctx.EvalBinary(c.imag, "*", d.imag))
 	r = ctx.EvalBinary(r, "/", denom)
 	i := ctx.EvalBinary(ctx.EvalBinary(c.imag, "*", d.real), "-", ctx.EvalBinary(c.real, "*", d.imag))
 	i = ctx.EvalBinary(i, "/", denom)
-	return NewComplex(r, i)
+	return NewComplex(ctx, r, i)
 }
 
 // floor returns the complex floor, as defined by
@@ -193,16 +191,16 @@ func (c Complex) div(ctx Context, d Complex) Complex {
 func (c Complex) floor(ctx Context) Complex {
 	r := c.real
 	i := c.imag
-	b := NewComplex(ctx.EvalUnary("floor", r), ctx.EvalUnary("floor", i))
+	b := NewComplex(ctx, ctx.EvalUnary("floor", r), ctx.EvalUnary("floor", i))
 	x := ctx.EvalBinary(r, "mod", one)
 	y := ctx.EvalBinary(i, "mod", one)
-	if isTrue("floor", ctx.EvalBinary(one, ">", ctx.EvalBinary(x, "+", y))) {
+	if isTrue(ctx, "floor", ctx.EvalBinary(one, ">", ctx.EvalBinary(x, "+", y))) {
 		return b
 	}
-	if isTrue("floor", ctx.EvalBinary(x, ">=", y)) {
+	if isTrue(ctx, "floor", ctx.EvalBinary(x, ">=", y)) {
 		return b.add(ctx, complexOne)
 	}
-	return b.add(ctx, NewComplex(zero, one))
+	return b.add(ctx, NewComplex(ctx, zero, one))
 }
 
 // ceil returns the complex ceiling, defined as:

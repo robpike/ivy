@@ -38,27 +38,28 @@ func setBigIntString(conf *config.Config, s string) (BigInt, error) {
 }
 
 func (i BigInt) String() string {
-	return "(" + i.Sprint(debugConf) + ")"
+	return "(" + i.Sprint(debugContext) + ")"
 }
 
-func (i BigInt) Sprint(conf *config.Config) string {
+func (i BigInt) Sprint(c Context) string {
+	conf := c.Config()
 	bitLen := i.BitLen()
 	format := conf.Format()
 	var maxBits = (uint64(conf.MaxDigits()) * 33222) / 10000 // log 10 / log 2 is 3.32192809489
 	if uint64(bitLen) > maxBits && maxBits != 0 {
 		// Print in floating point.
-		return BigFloat{newF(conf).SetInt(i.Int)}.Sprint(conf)
+		return BigFloat{newF(conf).SetInt(i.Int)}.Sprint(c)
 	}
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()
 		if ok {
-			return i.floatString(verb, prec)
+			return i.floatString(c, verb, prec)
 		}
 		return fmt.Sprintf(format, i.Int)
 	}
 	// Is this from a rational and we could use an int?
 	if i.BitLen() < intBits {
-		return Int(i.Int64()).Sprint(conf)
+		return Int(i.Int64()).Sprint(c)
 	}
 	switch conf.OutputBase() {
 	case 0, 10:
@@ -70,7 +71,7 @@ func (i BigInt) Sprint(conf *config.Config) string {
 	case 16:
 		return fmt.Sprintf("%x", i.Int)
 	}
-	Errorf("can't print number in base %d (yet)", conf.OutputBase())
+	c.Errorf("can't print number in base %d (yet)", conf.OutputBase())
 	return ""
 }
 
@@ -78,7 +79,7 @@ func (i BigInt) ProgString() string {
 	return fmt.Sprintf("%d", i.Int)
 }
 
-func (i BigInt) floatString(verb byte, prec int) string {
+func (i BigInt) floatString(c Context, verb byte, prec int) string {
 	switch verb {
 	case 'f', 'F':
 		str := fmt.Sprintf("%d", i.Int)
@@ -103,12 +104,12 @@ func (i BigInt) floatString(verb byte, prec int) string {
 		if eExponent(&x) >= prec {
 			// Use e format.
 			verb -= 2 // g becomes e.
-			return trimEZeros(verb, i.floatString(verb, prec-1))
+			return trimEZeros(verb, i.floatString(c, verb, prec-1))
 		}
 		// Use f format, but this is just an integer.
 		return fmt.Sprintf("%d", i.Int)
 	default:
-		Errorf("can't handle verb %c for big int", verb)
+		c.Errorf("can't handle verb %c for big int", verb)
 	}
 	return ""
 }
@@ -131,9 +132,9 @@ func eExponent(x *big.Int) int {
 }
 
 // inverse returns 1/i
-func (i BigInt) inverse() Value {
+func (i BigInt) inverse(c Context) Value {
 	if i.Sign() == 0 {
-		Errorf("inverse of zero")
+		c.Errorf("inverse of zero")
 	}
 	return BigRat{
 		Rat: big.NewRat(0, 1).SetFrac(bigIntOne.Int, i.Int),
@@ -148,7 +149,7 @@ func (i BigInt) Inner() Value {
 	return i
 }
 
-func (i BigInt) toType(op string, conf *config.Config, which valueType) Value {
+func (i BigInt) toType(op string, c Context, which valueType) Value {
 	switch which {
 	case bigIntType:
 		return i
@@ -156,16 +157,16 @@ func (i BigInt) toType(op string, conf *config.Config, which valueType) Value {
 		r := big.NewRat(0, 1).SetInt(i.Int)
 		return BigRat{r}
 	case bigFloatType:
-		f := new(big.Float).SetPrec(conf.FloatPrec()).SetInt(i.Int)
+		f := new(big.Float).SetPrec(c.Config().FloatPrec()).SetInt(i.Int)
 		return BigFloat{f}
 	case complexType:
-		return NewComplex(i, zero)
+		return NewComplex(c, i, zero)
 	case vectorType:
 		return oneElemVector(i)
 	case matrixType:
-		return NewMatrix([]int{1}, NewVector(i))
+		return NewMatrix(c, []int{1}, NewVector(i))
 	}
-	Errorf("%s: cannot convert big int to %s", op, which)
+	c.Errorf("%s: cannot convert big int to %s", op, which)
 	return nil
 }
 
@@ -199,9 +200,9 @@ func (i BigInt) BitLen() int64 {
 }
 
 // mustFit errors out if n is larger than the maximum number of bits allowed.
-func mustFit(conf *config.Config, n int64) {
-	max := conf.MaxBits()
+func mustFit(c Context, n int64) {
+	max := c.Config().MaxBits()
 	if max != 0 && n > int64(max) {
-		Errorf("result too large (%d bits, max %d)", n, conf.MaxBits())
+		c.Errorf("result too large (%d bits, max %d)", n, max)
 	}
 }

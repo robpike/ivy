@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"strconv"
 	"unicode/utf8"
-
-	"robpike.io/ivy/config"
 )
 
 type Char rune
@@ -26,7 +24,7 @@ func (c Char) shrink() Value {
 	return c
 }
 
-func (c Char) Sprint(conf *config.Config) string {
+func (c Char) Sprint(Context) string {
 	// We ignore the format - chars are always textual.
 	// TODO: What about escapes?
 	return string(c)
@@ -44,22 +42,22 @@ func (c Char) Inner() Value {
 	return c
 }
 
-func (c Char) toType(op string, conf *config.Config, which valueType) Value {
+func (c Char) toType(op string, ctx Context, which valueType) Value {
 	switch which {
 	case charType:
 		return c
 	case vectorType:
 		return oneElemVector(c)
 	case matrixType:
-		return NewMatrix([]int{1}, NewVector(c))
+		return NewMatrix(ctx, []int{1}, NewVector(c))
 	}
-	Errorf("%s: cannot convert char to %s", op, which)
+	ctx.Errorf("%s: cannot convert char to %s", op, which)
 	return nil
 }
 
-func (c Char) validate() Char {
+func (c Char) validate(ctx Context) Char {
 	if !utf8.ValidRune(rune(c)) {
-		Errorf("invalid char value %U\n", c)
+		ctx.Errorf("invalid char value %U\n", c)
 	}
 	return c
 }
@@ -67,13 +65,13 @@ func (c Char) validate() Char {
 // ParseString parses a string. Single quotes and
 // double quotes are both allowed (but must be consistent.)
 // The result must contain only valid Unicode code points.
-func ParseString(s string) string {
+func ParseString(c Context, s string) string {
 	str, ok := unquote(s)
 	if !ok {
-		Errorf("invalid string syntax")
+		c.Errorf("invalid string syntax")
 	}
 	if !utf8.ValidString(str) {
-		Errorf("invalid code points in string")
+		c.Errorf("invalid code points in string")
 	}
 	return str
 }

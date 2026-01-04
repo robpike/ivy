@@ -16,7 +16,7 @@ func sqrt(c Context, v Value) Value {
 		v = u.real
 	}
 	if isNegative(v) {
-		return NewComplex(zero, evalFloatFunc(c, c.EvalUnary("-", v), floatSqrt))
+		return NewComplex(c, zero, evalFloatFunc(c, c.EvalUnary("-", v), floatSqrt))
 	}
 	return evalFloatFunc(c, v, floatSqrt)
 }
@@ -40,7 +40,7 @@ func complexSqrt(c Context, v Complex) Complex {
 		i.Neg(i)
 	}
 	// As with normal square roots, we only return the positive root.
-	return NewComplex(BigFloat{r}.shrink(), BigFloat{i}.shrink())
+	return NewComplex(c, BigFloat{r}.shrink(), BigFloat{i}.shrink())
 }
 
 func evalFloatFunc(c Context, v Value, fn func(Context, *big.Float) *big.Float) Value {
@@ -52,7 +52,7 @@ func evalFloatFunc(c Context, v Value, fn func(Context, *big.Float) *big.Float) 
 func floatSqrt(c Context, x *big.Float) *big.Float {
 	switch x.Sign() {
 	case -1:
-		Errorf("square root of negative number") // Should never happen but be safe.
+		c.Errorf("square root of negative number") // Should never happen but be safe.
 	case 0:
 		return newFloat(c)
 	}
@@ -74,7 +74,7 @@ func floatSqrt(c Context, x *big.Float) *big.Float {
 	num := newFloat(c)
 	den := newFloat(c)
 
-	for loop := newLoop(c.Config(), "sqrt", x, 1); ; {
+	for loop := newLoop(c, "sqrt", x, 1); ; {
 		zSquared.Mul(z, z)
 		num.Sub(zSquared, x)
 		den.Mul(floatTwo, z)

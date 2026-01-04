@@ -11,8 +11,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-
-	"robpike.io/ivy/config"
 )
 
 /*
@@ -103,7 +101,7 @@ func (m *Matrix) fprintf(c Context, w io.Writer, format string) {
 		return
 	}
 	counters := make([]int, len(m.shape))
-	verb := verbOf(format)
+	verb := verbOf(c, format)
 	printSpace := false
 	for i, v := range m.data.All() {
 		if printSpace {
@@ -130,20 +128,20 @@ func (m *Matrix) fprintf(c Context, w io.Writer, format string) {
 }
 
 func (m *Matrix) String() string {
-	return "(" + m.Sprint(debugConf) + ")"
+	return "(" + m.Sprint(debugContext) + ")"
 }
 
-func (m *Matrix) Sprint(conf *config.Config) string {
-	return strings.Join(m.sprint(conf), "\n")
+func (m *Matrix) Sprint(c Context) string {
+	return strings.Join(m.sprint(c), "\n")
 }
 
-func (m *Matrix) sprint(conf *config.Config) []string {
+func (m *Matrix) sprint(c Context) []string {
 	switch m.Rank() {
 	case 0:
-		Errorf("matrix is rank 0") // Can this ever happen?
+		c.Errorf("matrix is rank 0") // Can this ever happen?
 		return nil
 	case 1:
-		return m.data.sprint(conf)
+		return m.data.sprint(c)
 	case 2:
 		ncols := m.shape[1]
 		nrows := m.shape[0]
@@ -155,11 +153,11 @@ func (m *Matrix) sprint(conf *config.Config) []string {
 			var lines []string
 			for i := 0; i < nrows; i++ {
 				// TODO what about embedded newlines?
-				lines = append(lines, NewVectorSeq(m.data.Slice(i*ncols, (i+1)*ncols)).Sprint(conf))
+				lines = append(lines, NewVectorSeq(m.data.Slice(i*ncols, (i+1)*ncols)).Sprint(c))
 			}
 			return lines
 		}
-		cells, width := m.data.cells(conf, ncols)
+		cells, width := m.data.cells(c, ncols)
 		return m.write2d(cells, ncols, width)
 	case 3:
 		// As for 2d: print the vector elements, compute the
@@ -167,7 +165,7 @@ func (m *Matrix) sprint(conf *config.Config) []string {
 		n2d := m.shape[0] // number of 2d submatrices.
 		nrows := m.shape[1]
 		ncols := m.shape[2]
-		size := m.ElemSize() // number of elems in each submatrix.
+		size := m.ElemSize(c) // number of elems in each submatrix.
 
 		// If it's all chars, print it without padding or quotes.
 		if m.data.AllChars() {
@@ -178,14 +176,14 @@ func (m *Matrix) sprint(conf *config.Config) []string {
 					lines = append(lines, "")
 				}
 				for range nrows {
-					lines = append(lines, NewVectorSeq(m.data.Slice(start, start+ncols)).sprint(conf)...)
+					lines = append(lines, NewVectorSeq(m.data.Slice(start, start+ncols)).sprint(c)...)
 					start += ncols
 				}
 			}
 			return lines
 		}
 
-		cells, width := m.data.cells(conf, ncols)
+		cells, width := m.data.cells(c, ncols)
 		var lines []string
 		for i := range n2d {
 			if i > 0 {
@@ -199,7 +197,7 @@ func (m *Matrix) sprint(conf *config.Config) []string {
 		}
 		return lines
 	default:
-		return m.higherDim(conf, "[", 0)
+		return m.higherDim(c, "[", 0)
 	}
 }
 
@@ -208,9 +206,10 @@ func (m *Matrix) ProgString() string {
 	panic("matrix.ProgString - cannot happen")
 }
 
-func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) []string {
+func (m *Matrix) higherDim(c Context, prefix string, indentation int) []string {
+	conf := c.Config()
 	if m.Rank() <= 3 {
-		return indent(indentation, m.sprint(conf))
+		return indent(indentation, m.sprint(c))
 	}
 	dim := m.shape[0]
 	rest := strings.Repeat(" *", m.Rank()-1)[1:]
@@ -218,14 +217,14 @@ func (m *Matrix) higherDim(conf *config.Config, prefix string, indentation int) 
 	for i := 0; i < dim; i++ {
 		inner := Matrix{
 			shape: m.shape[1:],
-			data:  NewVectorSeq(m.data.Slice(i*m.ElemSize(), m.data.Len())),
+			data:  NewVectorSeq(m.data.Slice(i*m.ElemSize(c), m.data.Len())),
 		}
 		if i > 0 {
 			lines = append(lines, "")
 		}
 		innerPrefix := fmt.Sprintf("%s%d ", prefix, i+conf.Origin())
 		lines = append(lines, fmt.Sprintf("%s%s]:", innerPrefix, rest))
-		lines = append(lines, inner.higherDim(conf, innerPrefix, indentation+1)...)
+		lines = append(lines, inner.higherDim(c, innerPrefix, indentation+1)...)
 	}
 	return lines
 }
@@ -250,22 +249,22 @@ func spaces(n int) string {
 
 // Size returns number of elements of the matrix.
 // Given shape [a, b, c, ...] it is a*b*c*....
-func (m *Matrix) Size() int {
-	return size(m.shape)
+func (m *Matrix) Size(c Context) int {
+	return size(c, m.shape)
 }
 
 // ElemSize returns the size of each top-level element of the matrix.
 // Given shape [a, b, c, ...] it is b*c*....
-func (m *Matrix) ElemSize() int {
-	return size(m.shape[1:])
+func (m *Matrix) ElemSize(c Context) int {
+	return size(c, m.shape[1:])
 }
 
-func size(shape []int) int {
+func size(c Context, shape []int) int {
 	size := 1
 	for _, i := range shape {
 		hi, lo := bits.Mul(uint(size), uint(i))
 		if int(lo) < 0 || hi != 0 {
-			Errorf("matrix too large")
+			c.Errorf("matrix too large")
 		}
 		size = int(lo)
 	}
@@ -273,7 +272,7 @@ func size(shape []int) int {
 }
 
 // NewMatrix makes a new matrix. The number of elements must fit in an Int.
-func NewMatrix(shape []int, data *Vector) *Matrix {
+func NewMatrix(c Context, shape []int, data *Vector) *Matrix {
 	// Check consistency and sanity.
 	nelems := 0
 	if len(shape) > 0 {
@@ -282,13 +281,13 @@ func NewMatrix(shape []int, data *Vector) *Matrix {
 		for i := 1; i < len(shape); i++ {
 			n *= int64(shape[i])
 			if n > maxInt {
-				Errorf("matrix too large")
+				c.Errorf("matrix too large")
 			}
 		}
 		nelems = int(n)
 	}
 	if nelems != data.Len() {
-		Errorf("inconsistent shape (%d) and data size (%d) for new matrix", shape, data.Len())
+		c.Errorf("inconsistent shape (%d) and data size (%d) for new matrix", shape, data.Len())
 	}
 	return &Matrix{
 		shape: shape,
@@ -304,18 +303,18 @@ func (m *Matrix) Inner() Value {
 	return m
 }
 
-func (m *Matrix) toType(op string, conf *config.Config, which valueType) Value {
+func (m *Matrix) toType(op string, c Context, which valueType) Value {
 	switch which {
 	case matrixType:
 		return m
 	}
-	Errorf("%s: cannot convert matrix to %s", op, which)
+	c.Errorf("%s: cannot convert matrix to %s", op, which)
 	return nil
 }
 
-func (x *Matrix) sameShape(y *Matrix) {
+func (x *Matrix) sameShape(c Context, y *Matrix) {
 	if !sameShape(x.shape, y.shape) {
-		Errorf("shape mismatch: %s != %s", NewIntVector(x.shape...), NewIntVector(y.shape...))
+		c.Errorf("shape mismatch: %s != %s", NewIntVector(x.shape...), NewIntVector(y.shape...))
 	}
 }
 
@@ -333,7 +332,7 @@ func sameShape(x, y []int) bool {
 
 // reshape implements binary rho
 // A⍴B: Array of shape A with data B
-func reshape(A, B *Vector) Value {
+func reshape(c Context, A, B *Vector) Value {
 	if B.Len() == 0 {
 		// Peculiar APL definition of reshape of empty vector: Use fill values.
 		B = NewIntVector(0)
@@ -346,11 +345,11 @@ func reshape(A, B *Vector) Value {
 	for i := range A.All() {
 		n, ok := A.At(i).Inner().(Int)
 		if !ok || n < 0 || maxInt < n {
-			Errorf("bad shape for rho: %s is not a small integer", A.At(i))
+			c.Errorf("bad shape for rho: %s is not a small integer", A.At(i))
 		}
 		nelems *= n
 		if nelems > maxInt {
-			Errorf("rho has too many elements")
+			c.Errorf("rho has too many elements")
 		}
 		shape[i] = int(n)
 	}
@@ -367,12 +366,12 @@ func reshape(A, B *Vector) Value {
 	if A.Len() == 1 {
 		return v
 	}
-	return NewMatrix(shape, v)
+	return NewMatrix(c, shape, v)
 }
 
 // rotate returns a copy of v with elements rotated left by n.
 // Rotation occurs on the rightmost axis.
-func (m *Matrix) rotate(n int) Value {
+func (m *Matrix) rotate(c Context, n int) Value {
 	if m.Rank() == 0 {
 		return &Matrix{}
 	}
@@ -388,12 +387,12 @@ func (m *Matrix) rotate(n int) Value {
 			doRotate(elems, j, dim, m.data, j, n)
 		}
 	})
-	return NewMatrix(m.shape, elems.Publish())
+	return NewMatrix(c, m.shape, elems.Publish())
 }
 
 // vrotate returns a copy of v with elements rotated down by n.
 // Rotation occurs on the leftmost axis.
-func (m *Matrix) vrotate(n int) Value {
+func (m *Matrix) vrotate(c Context, n int) Value {
 	if m.Rank() == 0 {
 		return &Matrix{}
 	}
@@ -420,7 +419,7 @@ func (m *Matrix) vrotate(n int) Value {
 		}
 	})
 
-	return NewMatrix(m.shape, elems.Publish())
+	return NewMatrix(c, m.shape, elems.Publish())
 }
 
 // transpose returns (as a new matrix) the transposition of the argument.
@@ -441,7 +440,7 @@ func (m *Matrix) transpose(c Context) *Matrix {
 				}
 			}
 		})
-		return NewMatrix([]int{ydim, xdim}, data.Publish())
+		return NewMatrix(c, []int{ydim, xdim}, data.Publish())
 	}
 	nShape := newVectorEditor(len(m.shape), nil)
 	origin := c.Config().Origin()
@@ -457,16 +456,16 @@ func (m *Matrix) transpose(c Context) *Matrix {
 func (m *Matrix) binaryTranspose(c Context, v *Vector) *Matrix {
 	origin := c.Config().Origin()
 	if v.Len() != m.Rank() {
-		Errorf("transp: vector length %d != matrix rank %d", v.Len(), m.Rank())
+		c.Errorf("transp: vector length %d != matrix rank %d", v.Len(), m.Rank())
 	}
 
 	// Extract old-to-new index mapping and determine rank.
 	oldToNew := make([]int, v.Len())
 	rank := -1
 	for i := range v.All() {
-		vi := v.intAt(i, "transp index")
+		vi := v.intAt(c, i, "transp index")
 		if vi < origin || vi >= origin+m.Rank() {
-			Errorf("transp: out-of-range index %v", vi)
+			c.Errorf("transp: out-of-range index %v", vi)
 		}
 		vi -= origin
 		oldToNew[i] = vi
@@ -490,7 +489,7 @@ func (m *Matrix) binaryTranspose(c Context, v *Vector) *Matrix {
 	sz := 1
 	for i, dim := range shape {
 		if dim == -1 {
-			Errorf("transp: partial index: missing %v", i+origin)
+			c.Errorf("transp: partial index: missing %v", i+origin)
 		}
 		sz *= dim
 	}
@@ -526,7 +525,7 @@ func (m *Matrix) binaryTranspose(c Context, v *Vector) *Matrix {
 		}
 	})
 
-	return NewMatrix(shape, data.Publish())
+	return NewMatrix(c, shape, data.Publish())
 }
 
 // catenate returns the catenation x, y, along the last axis.
@@ -537,9 +536,9 @@ func (m *Matrix) binaryTranspose(c Context, v *Vector) *Matrix {
 //	(n ...), (m ...) -> (n+m ...)  # list, list
 //	(1), (n ...) -> (n+1 ...)  # scalar (extended), list
 //	(n ...), (1) -> (n+1 ...)  # list, scalar (extended)
-func (x *Matrix) catenate(y *Matrix) *Matrix {
+func (x *Matrix) catenate(c Context, y *Matrix) *Matrix {
 	if x.Rank() == 0 || y.Rank() == 0 {
-		Errorf("rank 0 matrix for ,")
+		c.Errorf("rank 0 matrix for ,")
 	}
 	var shape []int
 	data := newVectorEditor(0, nil)
@@ -547,7 +546,7 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 	setShape := func(m *Matrix, extra int) {
 		shape = slices.Clone(m.shape)
 		shape[len(shape)-1] += extra
-		nrows = size(shape[:len(shape)-1])
+		nrows = size(c, shape[:len(shape)-1])
 	}
 	copyElems := func(nLeft, advLeft, nRight, advRight int) {
 		di, li, ri := 0, 0, 0
@@ -566,7 +565,7 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 	}
 	switch {
 	default:
-		Errorf("catenate shape mismatch: %v, %v", NewIntVector(x.shape...), NewIntVector(y.shape...))
+		c.Errorf("catenate shape mismatch: %v, %v", NewIntVector(x.shape...), NewIntVector(y.shape...))
 
 	case x.Rank() == y.Rank() && sameShape(x.shape[:len(x.shape)-1], y.shape[:len(y.shape)-1]):
 		// list, list
@@ -580,14 +579,14 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 		setShape(x, 1)
 		data.Resize(x.data.Len() + y.data.Len())
 		xsize := x.shape[len(x.shape)-1]
-		ysize := y.Size() / nrows
+		ysize := y.Size(c) / nrows
 		copyElems(xsize, xsize, ysize, ysize)
 
 	case x.Rank()+1 == y.Rank() && sameShape(x.shape, y.shape[:len(y.shape)-1]):
 		// elem, list
 		setShape(y, 1)
 		data.Resize(y.data.Len() + x.data.Len())
-		xsize := x.Size() / nrows
+		xsize := x.Size(c) / nrows
 		ysize := y.shape[len(y.shape)-1]
 		copyElems(xsize, xsize, ysize, ysize)
 
@@ -605,19 +604,19 @@ func (x *Matrix) catenate(y *Matrix) *Matrix {
 		xsize := x.shape[len(x.shape)-1]
 		copyElems(xsize, xsize, 1, 0)
 	}
-	return NewMatrix(shape, data.Publish())
+	return NewMatrix(c, shape, data.Publish())
 }
 
 // catenateFirst returns the catenation x, y, along the first axis.
-func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
+func (x *Matrix) catenateFirst(c Context, y *Matrix) *Matrix {
 	if x.Rank() == 0 || y.Rank() == 0 {
-		Errorf("rank 0 matrix for ,%%")
+		c.Errorf("rank 0 matrix for ,%%")
 	}
 	var shape []int
 	var data *vectorEditor
 	switch {
 	default:
-		Errorf("catenateFirst shape mismatch: %v, %v", NewIntVector(x.shape...), NewIntVector(y.shape...))
+		c.Errorf("catenateFirst shape mismatch: %v, %v", NewIntVector(x.shape...), NewIntVector(y.shape...))
 
 	case x.Rank() == y.Rank() && sameShape(x.shape[1:], y.shape[1:]):
 		// list, list
@@ -640,7 +639,7 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 		shape[0]++
 		a := x.data.At(0)
 		data = newVectorEditor(0, nil)
-		elem := y.ElemSize()
+		elem := y.ElemSize(c)
 		for range elem {
 			data.Append(a)
 		}
@@ -652,7 +651,7 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 		// list, scalar extension
 		shape = slices.Clone(x.shape)
 		shape[0]++
-		elem := x.ElemSize()
+		elem := x.ElemSize(c)
 		b := y.data.At(0)
 		data = x.data.edit()
 		for range elem {
@@ -665,7 +664,7 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 			data.Append(e)
 		}
 	}
-	return NewMatrix(shape, data.Publish())
+	return NewMatrix(c, shape, data.Publish())
 }
 
 // sel returns the selection of m according to v.
@@ -673,7 +672,7 @@ func (x *Matrix) catenateFirst(y *Matrix) *Matrix {
 func (m *Matrix) sel(c Context, v *Vector) *Matrix {
 	// All lhs values must be small integers.
 	if !v.AllInts() {
-		Errorf("sel: left operand must be small integers")
+		c.Errorf("sel: left operand must be small integers")
 	}
 
 	var count int64
@@ -686,7 +685,7 @@ func (m *Matrix) sel(c Context, v *Vector) *Matrix {
 		}
 	}
 	if v.Len() != 1 && v.Len() != m.shape[len(m.shape)-1] {
-		Errorf("sel: bad length %d for shape %s", v.Len(), NewIntVector(m.shape...))
+		c.Errorf("sel: bad length %d for shape %s", v.Len(), NewIntVector(m.shape...))
 	}
 	if v.Len() == 1 {
 		count *= int64(m.shape[len(m.shape)-1])
@@ -699,7 +698,7 @@ func (m *Matrix) sel(c Context, v *Vector) *Matrix {
 		count *= int64(dim)
 	}
 	if count > 1e8 {
-		Errorf("sel: result too large: %d elements", count)
+		c.Errorf("sel: result too large: %d elements", count)
 	}
 
 	result := newVectorEditor(0, nil)
@@ -714,26 +713,26 @@ func (m *Matrix) sel(c Context, v *Vector) *Matrix {
 		}
 	}
 
-	return NewMatrix(shape, result.Publish())
+	return NewMatrix(c, shape, result.Publish())
 }
 
 // take returns v take m.
 func (m *Matrix) take(c Context, v *Vector) *Matrix {
 	if !v.AllInts() {
-		Errorf("take: left operand must be small integers")
+		c.Errorf("take: left operand must be small integers")
 	}
 	// Extend short vector to full rank using shape.
 	if v.Len() > m.Rank() {
 		// Rank mismatch, but if m is of unit size, we can just raise its rank.
-		if m.Size() != 1 {
-			Errorf("take: bad rank %d for shape %s", m.Rank(), v)
+		if m.Size(c) != 1 {
+			c.Errorf("take: bad rank %d for shape %s", m.Rank(), v)
 		}
 		// Create a 1x1x1... matrix and use that as the argument.
 		shape := make([]int, v.Len())
 		for i := range shape {
 			shape[i] = 1
 		}
-		m = NewMatrix(shape, m.data)
+		m = NewMatrix(c, shape, m.data)
 	}
 	if v.Len() < m.Rank() {
 		ext := v.edit()
@@ -773,11 +772,11 @@ func (m *Matrix) take(c Context, v *Vector) *Matrix {
 		origin[i] = o
 	}
 	if count > maxInt { // Do this before allocating!
-		Errorf("take: result matrix too large")
+		c.Errorf("take: result matrix too large")
 	}
 
 	// TODO Is there a faster way?
-	fill := fillValue(m.data)
+	fill := fillValue(c, m.data)
 	rCoords := make([]int, len(shape)) // Matrix coordinates in result.
 	result := newVectorEditor(int(count), nil)
 	for i := range result.Len() {
@@ -808,22 +807,22 @@ func (m *Matrix) take(c Context, v *Vector) *Matrix {
 			rCoords[k] = 0
 		}
 	}
-	return NewMatrix(shape, result.Publish())
+	return NewMatrix(c, shape, result.Publish())
 }
 
 // partition returns a vector of the subblocks of m, selected and grouped
 // by the values in score. Subblocks with score 0 are ignored.
 // Subblocks with non-zero score are included, grouped with boundaries
 // at every point where the score exceeds the previous score.
-func (m *Matrix) partition(scoreM *Matrix) Value {
+func (m *Matrix) partition(c Context, scoreM *Matrix) Value {
 	if len(scoreM.shape) != 1 {
-		Errorf("part: left argument must be scalar or vector")
+		c.Errorf("part: left argument must be scalar or vector")
 	}
 	score := scoreM.data
 	lastDim := m.shape[len(m.shape)-1]
 	if scoreM.shape[0] == 1 {
 		// Make a new score the width of the matrix.
-		n := score.uintAt(0, "part: score")
+		n := score.uintAt(c, 0, "part: score")
 		x := make([]Value, lastDim)
 		for i := range x {
 			x[i] = Int(n)
@@ -831,22 +830,22 @@ func (m *Matrix) partition(scoreM *Matrix) Value {
 		score = NewVector(x...)
 	}
 	if score.Len() != lastDim {
-		Errorf("part: length mismatch")
+		c.Errorf("part: length mismatch")
 	}
-	res, dim := m.data.doPartition(score)
+	res, dim := m.data.doPartition(c, score)
 	newShape := append([]int{}, m.shape...)
 	newShape[len(newShape)-1] = dim
-	return NewMatrix(newShape, res)
+	return NewMatrix(c, newShape, res)
 }
 
 // drop returns v drop m.
 func (m *Matrix) drop(c Context, v *Vector) *Matrix {
 	// Extend short vector to full rank using zeros.
 	if v.Len() > m.Rank() {
-		Errorf("take: argument %v too large for matrix with shape %s", v, NewIntVector(m.shape...))
+		c.Errorf("take: argument %v too large for matrix with shape %s", v, NewIntVector(m.shape...))
 	}
 	if !v.AllInts() {
-		Errorf("drop: left operand must be small integers")
+		c.Errorf("drop: left operand must be small integers")
 	}
 	if v.Len() < m.Rank() {
 		ext := v.edit()
@@ -877,18 +876,18 @@ func (m *Matrix) drop(c Context, v *Vector) *Matrix {
 }
 
 // split reduces the matrix by one dimension.
-func (m *Matrix) split() Value {
+func (m *Matrix) split(c Context) Value {
 	if len(m.shape) < 2 {
 		// TODO?
-		Errorf("cannot split rank %d matrix", len(m.shape))
+		c.Errorf("cannot split rank %d matrix", len(m.shape))
 	}
 	// Matrix of vectors.
 	shape, n := m.shape[:len(m.shape)-1], m.shape[len(m.shape)-1]
-	mData := newVectorEditor(size(shape), nil)
+	mData := newVectorEditor(size(c, shape), nil)
 	for i := range mData.Len() {
 		mData.Set(i, NewVectorSeq(m.data.Slice(i*n, (i+1)*n)))
 	}
-	return NewMatrix(shape, mData.Publish()).shrink()
+	return NewMatrix(c, shape, mData.Publish()).shrink()
 }
 
 // mix builds a matrix from the elements of the nested matrix.
@@ -929,10 +928,10 @@ func (m *Matrix) mix(c Context) Value {
 		}
 		switch e := e.(type) {
 		default:
-			nm = NewMatrix(takeShape, NewVector(e)).take(c, vshape)
+			nm = NewMatrix(c, takeShape, NewVector(e)).take(c, vshape)
 		case *Vector:
 			takeShape[len(takeShape)-1] = e.Len()
-			nm = NewMatrix(takeShape, e).take(c, vshape)
+			nm = NewMatrix(c, takeShape, e).take(c, vshape)
 		case *Matrix:
 			offset := vshape.Len() - len(e.shape)
 			same := offset == 0
@@ -944,14 +943,14 @@ func (m *Matrix) mix(c Context) Value {
 			}
 			nm = e
 			if !same {
-				nm = NewMatrix(takeShape, e.data).take(c, vshape)
+				nm = NewMatrix(c, takeShape, e.data).take(c, vshape)
 			}
 		}
 		for _, elem := range nm.data.All() {
 			data.Append(elem)
 		}
 	}
-	return NewMatrix(append(m.shape, shape...), data.Publish())
+	return NewMatrix(c, append(m.shape, shape...), data.Publish())
 }
 
 // grade returns as a Vector the indexes that sort the rows of m
@@ -1004,17 +1003,17 @@ func (m *Matrix) inverse(c Context) Value {
 	)
 	switch len(m.shape) {
 	case 0:
-		Errorf("inverse of empty matrix")
+		c.Errorf("inverse of empty matrix")
 	case 1:
-		return NewMatrix(m.shape, m.data.inverse(c).(*Vector))
+		return NewMatrix(c, m.shape, m.data.inverse(c).(*Vector))
 	case 2:
 		// OK
 	case 3:
-		Errorf("cannot compute inverse of matrix with dimension > 2")
+		c.Errorf("cannot compute inverse of matrix with dimension > 2")
 	}
 	dim := m.shape[0]
 	if m.shape[1] != dim {
-		Errorf("inverse of non-square matrix")
+		c.Errorf("inverse of non-square matrix")
 	}
 
 	// Gaussian elimination.
@@ -1043,11 +1042,11 @@ func (m *Matrix) inverse(c Context) Value {
 			thisRow := t[y]
 			val := thisRow[x]
 			if !IsScalarType(val) {
-				Errorf(nonScalar)
+				c.Errorf(nonScalar)
 			}
 			if y == x {
 				if isZero(val) {
-					Errorf(nonInvertible)
+					c.Errorf(nonInvertible)
 				}
 				// This is the diagonal. We want a one here.
 				scale := c.EvalUnary("/", val) // Invert so we can multiply in loop.
@@ -1074,7 +1073,7 @@ func (m *Matrix) inverse(c Context) Value {
 				}
 			}
 			if target < 0 {
-				Errorf(nonInvertible)
+				c.Errorf(nonInvertible)
 			}
 			// Subtract scaled target row to get a zero.
 			row := t[target]
@@ -1093,5 +1092,5 @@ func (m *Matrix) inverse(c Context) Value {
 	for _, row := range t {
 		data.Append(row[dim:]...)
 	}
-	return NewMatrix(m.shape, data.Publish())
+	return NewMatrix(c, m.shape, data.Publish())
 }

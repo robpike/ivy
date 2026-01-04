@@ -37,7 +37,7 @@ func tan(c Context, v Value) Value {
 	}
 	x := floatSelf(c, v).Float
 	if x.IsInf() {
-		Errorf("tangent of infinity")
+		c.Errorf("tangent of infinity")
 	}
 	negate := false
 	if x.Sign() < 0 {
@@ -48,7 +48,7 @@ func tan(c Context, v Value) Value {
 	num := floatSin(c, x)
 	den := floatCos(c, x)
 	if den.Sign() == 0 {
-		Errorf("tangent is infinite")
+		c.Errorf("tangent is infinite")
 	}
 	num.Quo(num, den)
 	if negate {
@@ -60,7 +60,7 @@ func tan(c Context, v Value) Value {
 // floatSin computes sin(x) using argument reduction and a Taylor series.
 func floatSin(c Context, x *big.Float) *big.Float {
 	if x.IsInf() {
-		Errorf("sine of infinity")
+		c.Errorf("sine of infinity")
 	}
 	negate := false
 	if x.Sign() < 0 {
@@ -85,7 +85,7 @@ func floatSin(c Context, x *big.Float) *big.Float {
 // floatCos computes cos(x) using argument reduction and a Taylor series.
 func floatCos(c Context, x *big.Float) *big.Float {
 	if x.IsInf() {
-		Errorf("cosine of infinity")
+		c.Errorf("cosine of infinity")
 	}
 	twoPiReduce(c, x)
 
@@ -106,7 +106,7 @@ func sincos(name string, c Context, index int, x *big.Float, z *big.Float, exp u
 	x2 := newFloat(c).Mul(x, x)
 	n := newFloat(c)
 
-	for loop := newLoop(c.Config(), name, x, 4); ; {
+	for loop := newLoop(c, name, x, 4); ; {
 		// Invariant: factorial holds -1ⁿ*exponent!.
 		factorial.Neg(factorial)
 		term.Quo(term, factorial)
@@ -166,7 +166,7 @@ func complexSin(c Context, v Complex) Value {
 	sinhY := floatSinh(c, y)
 	lhs := sinX.Mul(sinX, coshY)
 	rhs := cosX.Mul(cosX, sinhY)
-	return NewComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
+	return NewComplex(c, BigFloat{lhs}, BigFloat{rhs}).shrink()
 }
 
 func complexCos(c Context, v Complex) Value {
@@ -179,7 +179,7 @@ func complexCos(c Context, v Complex) Value {
 	sinhY := floatSinh(c, y)
 	lhs := cosX.Mul(cosX, coshY)
 	rhs := sinX.Mul(sinX, sinhY)
-	return NewComplex(BigFloat{lhs}, BigFloat{rhs.Neg(rhs)}).shrink()
+	return NewComplex(c, BigFloat{lhs}, BigFloat{rhs.Neg(rhs)}).shrink()
 }
 
 func complexTan(c Context, v Complex) Value {
@@ -195,7 +195,7 @@ func complexTan(c Context, v Complex) Value {
 	cosh2Y := floatCosh(c, y)
 	den := cos2X.Add(cos2X, cosh2Y)
 	if den.Sign() == 0 {
-		Errorf("tangent is infinite")
+		c.Errorf("tangent is infinite")
 	}
-	return NewComplex(BigFloat{sin2X.Quo(sin2X, den)}, BigFloat{sinh2Y.Quo(sinh2Y, den)}).shrink()
+	return NewComplex(c, BigFloat{sin2X.Quo(sin2X, den)}, BigFloat{sinh2Y.Quo(sinh2Y, den)}).shrink()
 }

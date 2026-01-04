@@ -78,6 +78,9 @@ func main() {
 	conf.SetOrigin(*origin)
 	conf.SetPrompt(*prompt)
 
+	var debugConf config.Config
+	value.SetDebugContext(exec.NewContext(&debugConf))
+
 	if *debugFlag != "" {
 		for _, debug := range strings.Split(*debugFlag, ",") {
 			if !conf.SetDebug(debug, 1) {

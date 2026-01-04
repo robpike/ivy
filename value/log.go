@@ -12,7 +12,7 @@ func logn(c Context, v Value) Value {
 	negative := isNegative(v)
 	if negative {
 		// Promote to complex. The Complex type is never negative.
-		v = NewComplex(v, zero)
+		v = NewComplex(c, v, zero)
 	}
 	if u, ok := v.(Complex); ok {
 		if isNegative(u.real) {
@@ -92,7 +92,7 @@ func bigIntLog(b, v BigInt) (log Int, exact bool) {
 // floatLog computes natural log(x) using the Maclaurin series for log(1-x).
 func floatLog(c Context, x *big.Float) *big.Float {
 	if x.Sign() <= 0 {
-		Errorf("log of non-positive value")
+		c.Errorf("log of non-positive value")
 	}
 	// Convergence is imperfect at 1, so get it right.
 	if x.Cmp(floatOne) == 0 {
@@ -132,7 +132,7 @@ func floatLog(c Context, x *big.Float) *big.Float {
 	// This is the slowest-converging series, so we add a factor of ten to the cutoff.
 	// Only necessary when FloatPrec is at or beyond constPrecisionInBits.
 
-	for loop := newLoop(c.Config(), "log", x, 40); ; {
+	for loop := newLoop(c, "log", x, 40); ; {
 		term.Quo(yN, n.SetUint64(loop.i+1))
 		z.Sub(z, term)
 		if loop.done(z) {
@@ -156,5 +156,5 @@ func floatLog(c Context, x *big.Float) *big.Float {
 func complexLog(c Context, v Complex) Complex {
 	abs := v.abs(c)
 	phase := v.phase(c)
-	return NewComplex(logn(c, abs), phase)
+	return NewComplex(c, logn(c, abs), phase)
 }

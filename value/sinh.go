@@ -49,7 +49,7 @@ func floatSinh(c Context, x *big.Float) *big.Float {
 	nFactorial := newF(conf).SetUint64(1)
 	z := newF(conf).SetInt64(0)
 
-	for loop := newLoop(conf, "sinh", x, 10); ; { // Big exponentials converge slowly.
+	for loop := newLoop(c, "sinh", x, 10); ; { // Big exponentials converge slowly.
 		term.Set(xN)
 		term.Quo(term, nFactorial)
 		z.Add(z, term)
@@ -80,7 +80,7 @@ func floatCosh(c Context, x *big.Float) *big.Float {
 	nFactorial := newF(conf).SetUint64(2)
 	z := newF(conf).SetInt64(1)
 
-	for loop := newLoop(conf, "cosh", x, 10); ; { // Big exponentials converge slowly.
+	for loop := newLoop(c, "cosh", x, 10); ; { // Big exponentials converge slowly.
 		term.Set(xN)
 		term.Quo(term, nFactorial)
 		z.Add(z, term)
@@ -102,11 +102,11 @@ func floatCosh(c Context, x *big.Float) *big.Float {
 // floatTanh computes tanh(x) = sinh(x)/cosh(x)
 func floatTanh(c Context, x *big.Float) *big.Float {
 	if x.IsInf() {
-		Errorf("tanh of infinity")
+		c.Errorf("tanh of infinity")
 	}
 	denom := floatCosh(c, x)
 	if denom.Cmp(floatZero) == 0 {
-		Errorf("tanh is infinite")
+		c.Errorf("tanh is infinite")
 	}
 	num := floatSinh(c, x)
 	return num.Quo(num, denom)
@@ -123,7 +123,7 @@ func complexSinh(c Context, v Complex) Value {
 	sinY := floatSin(c, y)
 	lhs := sinhX.Mul(sinhX, cosY)
 	rhs := coshX.Mul(coshX, sinY)
-	return NewComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
+	return NewComplex(c, BigFloat{lhs}, BigFloat{rhs}).shrink()
 }
 
 func complexCosh(c Context, v Complex) Value {
@@ -137,7 +137,7 @@ func complexCosh(c Context, v Complex) Value {
 	sinY := floatSin(c, y)
 	lhs := coshX.Mul(coshX, cosY)
 	rhs := sinhX.Mul(sinhX, sinY)
-	return NewComplex(BigFloat{lhs}, BigFloat{rhs}).shrink()
+	return NewComplex(c, BigFloat{lhs}, BigFloat{rhs}).shrink()
 }
 
 func complexTanh(c Context, v Complex) Value {
@@ -154,7 +154,7 @@ func complexTanh(c Context, v Complex) Value {
 	cos2Y := floatCos(c, y)
 	den := cosh2X.Add(cosh2X, cos2Y)
 	if den.Sign() == 0 {
-		Errorf("tangent is infinite")
+		c.Errorf("tangent is infinite")
 	}
-	return NewComplex(BigFloat{sinh2X.Quo(sinh2X, den)}, BigFloat{sin2Y.Quo(sin2Y, den)}).shrink()
+	return NewComplex(c, BigFloat{sinh2X.Quo(sinh2X, den)}, BigFloat{sin2Y.Quo(sin2Y, den)}).shrink()
 }

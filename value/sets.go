@@ -22,7 +22,7 @@ func union(c Context, u, v Value) Value {
 	}
 	// Neither can be a matrix.
 	if uType == matrixType || vType == matrixType {
-		Errorf("binary union not implemented on type matrix")
+		c.Errorf("binary union not implemented on type matrix")
 	}
 	// At least one is a Vector.
 	switch {
@@ -72,7 +72,7 @@ func intersect(c Context, u, v Value) Value {
 	}
 	// Neither can be a matrix. Yet. TODO
 	if uType == matrixType || vType == matrixType {
-		Errorf("binary intersect not implemented on type matrix")
+		c.Errorf("binary intersect not implemented on type matrix")
 	}
 	// At least one is a Vector.
 	elems := newVectorEditor(0, nil)
@@ -111,7 +111,7 @@ func unique(c Context, v Value) Value {
 		return v
 	}
 	if vType == matrixType {
-		Errorf("unary unique not implemented on type matrix")
+		c.Errorf("unary unique not implemented on type matrix")
 	}
 	vv := v.(*Vector)
 	if vv.Len() == 0 {
@@ -284,7 +284,7 @@ func OrderedCompare(c Context, u, v Value) int {
 		}
 		return 0
 	}
-	Errorf("internal error: unknown type %T in OrderedCompare", u)
+	c.Errorf("internal error: unknown type %T in OrderedCompare", u)
 	return -1
 
 }

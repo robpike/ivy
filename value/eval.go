@@ -66,7 +66,7 @@ func (op *unaryOp) EvalUnary(c Context, v Value) Value {
 				return unaryMatrixOp(c, op.name, v)
 			}
 		}
-		Errorf("unary %s not implemented on type %s", op.name, which)
+		c.Errorf("unary %s not implemented on type %s", op.name, which)
 	}
 	if c.Config().Tracing(2) {
 		fmt.Printf("\t%s> %s %s\n", c.TraceIndent(), op.name, v)
@@ -102,15 +102,15 @@ func whichType(v Value) valueType {
 	case *Matrix:
 		return matrixType
 	}
-	Errorf("unknown type %T in whichType", v)
+	Errorf("internal error: unknown type %T in whichType", v)
 	panic("which type")
 }
 
 func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 	whichU, whichV := op.whichType(whichType(u), whichType(v))
 	conf := c.Config()
-	u = u.toType(op.name, conf, whichU)
-	v = v.toType(op.name, conf, whichV)
+	u = u.toType(op.name, c, whichU)
+	v = v.toType(op.name, c, whichV)
 	fn := op.fn[whichV]
 	if fn == nil {
 		if op.elementwise {
@@ -121,7 +121,7 @@ func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 				return binaryMatrixOp(c, u, op.name, v)
 			}
 		}
-		Errorf("binary %s not implemented on type %s", op.name, whichV)
+		c.Errorf("binary %s not implemented on type %s", op.name, whichV)
 	}
 	if conf.Tracing(2) {
 		fmt.Printf("\t%s> %s %s %s\n", c.TraceIndent(), u, op.name, v)
@@ -157,8 +157,8 @@ func Product(c Context, u Value, op string, v Value) Value {
 	left := op[:dot]
 	right := op[dot+1:]
 	which, _ := atLeastVectorType(whichType(u), whichType(v))
-	u = u.toType(op, c.Config(), which)
-	v = v.toType(op, c.Config(), which)
+	u = u.toType(op, c, which)
+	v = v.toType(op, c, which)
 	if left == "o" {
 		return outerProduct(c, u, right, v)
 	}
@@ -244,10 +244,10 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 	switch u := u.(type) {
 	case *Vector:
 		v := v.(*Vector)
-		u.sameLength(v)
+		u.sameLength(c, v)
 		n := u.Len()
 		if n == 0 {
-			Errorf("empty inner product")
+			c.Errorf("empty inner product")
 		}
 		x := c.EvalBinary(u.At(n-1), right, v.At(n-1))
 		for k := n - 2; k >= 0; k-- {
@@ -261,7 +261,7 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		// The result has shape (-1 drop rho u), (1 drop rho v)
 		v := v.(*Matrix)
 		if u.Rank() < 1 || v.Rank() < 1 || u.shape[len(u.shape)-1] != v.shape[0] {
-			Errorf("inner product: mismatched shapes %s and %s", NewIntVector(u.shape...), NewIntVector(v.shape...))
+			c.Errorf("inner product: mismatched shapes %s and %s", NewIntVector(u.shape...), NewIntVector(v.shape...))
 		}
 		n := v.shape[0]
 		vstride := v.data.Len() / n
@@ -284,9 +284,9 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		shape := make([]int, rank)
 		copy(shape, u.shape[:len(u.shape)-1])
 		copy(shape[len(u.shape)-1:], v.shape[1:])
-		return NewMatrix(shape, data.Publish())
+		return NewMatrix(c, shape, data.Publish())
 	}
-	Errorf("can't do inner product on %s", whichType(u))
+	c.Errorf("can't do inner product on %s", whichType(u))
 	panic("not reached")
 }
 
@@ -302,7 +302,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 				data.Set(x, c.EvalBinary(u.At(x/v.Len()), op, v.At(x%v.Len())))
 			}
 		})
-		return NewMatrix([]int{u.Len(), v.Len()}, data.Publish())
+		return NewMatrix(c, []int{u.Len(), v.Len()}, data.Publish())
 	case *Matrix:
 		v := v.(*Matrix)
 		udata := u.Data()
@@ -313,9 +313,9 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 				data.Set(x, c.EvalBinary(udata.At(x/vdata.Len()), op, vdata.At(x%vdata.Len())))
 			}
 		})
-		return NewMatrix(append(u.Shape(), v.Shape()...), data.Publish())
+		return NewMatrix(c, append(u.Shape(), v.Shape()...), data.Publish())
 	}
-	Errorf("can't do outer product on %s", whichType(u))
+	c.Errorf("can't do outer product on %s", whichType(u))
 	panic("not reached")
 }
 
@@ -337,14 +337,14 @@ func Reduce(c Context, op string, v Value) Value {
 		return acc
 	case *Matrix:
 		if v.Rank() < 2 {
-			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
+			c.Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		stride := v.shape[v.Rank()-1]
 		if stride == 0 {
-			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
+			c.Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		shape := v.shape[:v.Rank()-1]
-		data := newVectorEditor(size(shape), nil)
+		data := newVectorEditor(size(c, shape), nil)
 		pfor(safeBinary(op), stride, data.Len(), func(lo, hi int) {
 			for i := lo; i < hi; i++ {
 				index := stride * i
@@ -361,9 +361,9 @@ func Reduce(c Context, op string, v Value) Value {
 		if len(shape) == 1 {
 			return data.Publish()
 		}
-		return NewMatrix(shape, data.Publish())
+		return NewMatrix(c, shape, data.Publish())
 	}
-	Errorf("can't do reduce on %s", whichType(v))
+	c.Errorf("can't do reduce on %s", whichType(v))
 	panic("not reached")
 }
 
@@ -378,17 +378,17 @@ func ReduceFirst(c Context, op string, v Value) Value {
 		return Reduce(c, op, v)
 	}
 	if v.Rank() < 2 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	if m.shape[0] == 0 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
-	stride := size(m.shape[1:m.Rank()])
+	stride := size(c, m.shape[1:m.Rank()])
 	if stride == 0 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	shape := m.shape[1:m.Rank()]
-	data := newVectorEditor(size(shape), nil)
+	data := newVectorEditor(size(c, shape), nil)
 	pfor(safeBinary(op), stride, data.Len(), func(lo, hi int) {
 		for i := lo; i < hi; i++ {
 			pos := i + m.data.Len() - stride
@@ -402,7 +402,7 @@ func ReduceFirst(c Context, op string, v Value) Value {
 	if len(shape) == 1 { // TODO: Matrix.shrink()?
 		return data.Publish()
 	}
-	return NewMatrix(shape, data.Publish())
+	return NewMatrix(c, shape, data.Publish())
 }
 
 // Scan computes a scan of the op; the \ has been removed.
@@ -432,14 +432,14 @@ func Scan(c Context, op string, v Value) Value {
 		return values.Publish()
 	case *Matrix:
 		if v.Rank() < 2 {
-			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
+			c.Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		stride := v.shape[v.Rank()-1]
 		if stride == 0 {
-			Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
+			c.Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
 		}
 		data := newVectorEditor(v.data.Len(), nil)
-		nrows := size(v.shape[:len(v.shape)-1])
+		nrows := size(c, v.shape[:len(v.shape)-1])
 		pfor(safeBinary(op), stride, nrows, func(lo, hi int) {
 			for i := lo; i < hi; i++ {
 				index := i * stride
@@ -457,9 +457,9 @@ func Scan(c Context, op string, v Value) Value {
 				}
 			}
 		})
-		return NewMatrix(v.shape, data.Publish())
+		return NewMatrix(c, v.shape, data.Publish())
 	}
-	Errorf("can't do scan on %s", whichType(v))
+	c.Errorf("can't do scan on %s", whichType(v))
 	panic("not reached")
 }
 
@@ -474,11 +474,11 @@ func ScanFirst(c Context, op string, v Value) Value {
 		return Scan(c, op, v)
 	}
 	if m.Rank() < 2 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	stride := m.shape[len(m.shape)-1]
 	if stride == 0 {
-		Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
 	}
 	// Simple but effective algorithm: Transpose twice. Better than one might
 	// think because transposition is O(size of matrix) and it also lines up
@@ -525,7 +525,7 @@ func eachVector(v *Vector) iter.Seq[Value] {
 // If dim == len(m.shape)-1, the iterator yields each innermost row of m.
 // Otherwise the iterator yields each submatrix obtained by indexing
 // the first dim dimensions of m.
-func eachMatrix(m *Matrix, dim int) iter.Seq[Value] {
+func eachMatrix(c Context, m *Matrix, dim int) iter.Seq[Value] {
 	if dim == len(m.shape) {
 		return eachVector(m.data)
 	}
@@ -541,7 +541,7 @@ func eachMatrix(m *Matrix, dim int) iter.Seq[Value] {
 			if dim == len(m.shape)-1 {
 				v = NewVectorSeq(m.data.Slice(i, i+size))
 			} else {
-				v = NewMatrix(m.shape[dim:], NewVectorSeq(m.data.Slice(i, i+size)))
+				v = NewMatrix(c, m.shape[dim:], NewVectorSeq(m.data.Slice(i, i+size)))
 			}
 			if !yield(v) {
 				break
@@ -553,7 +553,7 @@ func eachMatrix(m *Matrix, dim int) iter.Seq[Value] {
 // eachAny returns an iterator that yields subparts of v
 // iterating over the first dim dimensions of v.
 // The caller has checked that dim is in range for v.
-func eachValue(v Value, dim int) iter.Seq[Value] {
+func eachValue(c Context, v Value, dim int) iter.Seq[Value] {
 	if dim == 0 {
 		return eachOne(v)
 	}
@@ -561,7 +561,7 @@ func eachValue(v Value, dim int) iter.Seq[Value] {
 	default:
 		return eachOne(v)
 	case QuietValue:
-		return eachValue(v.Value, dim)
+		return eachValue(c, v.Value, dim)
 	case *Vector:
 		if dim != 1 {
 			panic("impossible eachValue")
@@ -571,7 +571,7 @@ func eachValue(v Value, dim int) iter.Seq[Value] {
 		if dim > len(v.shape) {
 			panic("impossible eachValue")
 		}
-		return eachMatrix(v, dim)
+		return eachMatrix(c, v, dim)
 	}
 }
 
@@ -582,30 +582,30 @@ func BinaryEach(c Context, lv Value, op string, rv Value) Value {
 	// Count as many @s as possible for the left side.
 	// Must strip at least one if present, but don't have to strip all,
 	// in case we are doing @ of vector of vectors.
-	l := lv.toType(op, c.Config(), matrixType).(*Matrix)
+	l := lv.toType(op, c, matrixType).(*Matrix)
 	lmax := len(l.shape)
 	ld := 0
 	for ld < len(op) && ld < lmax && op[ld] == '@' {
 		ld++
 	}
 	if ld == 0 && op[0] == '@' {
-		Errorf("%s: left side is scalar", op)
+		c.Errorf("%s: left side is scalar", op)
 	}
-	lhs := eachValue(lv, ld)
+	lhs := eachValue(c, lv, ld)
 
 	// Count as many @s as possible for the right side.
 	// Must strip at least one if present, but don't have to strip all,
 	// in case we are doing @ of vector of vectors.
-	r := rv.toType(op, c.Config(), matrixType).(*Matrix)
+	r := rv.toType(op, c, matrixType).(*Matrix)
 	rmax := len(r.shape)
 	rd := 0
 	for rd < len(op) && rd < rmax && op[len(op)-1-rd] == '@' {
 		rd++
 	}
 	if rd == 0 && op[len(op)-1] == '@' {
-		Errorf("%s: right side is scalar", op)
+		c.Errorf("%s: right side is scalar", op)
 	}
-	rhs := eachValue(rv, rd)
+	rhs := eachValue(c, rv, rd)
 
 	innerOp := op[ld : len(op)-rd]
 	data := newVectorEditor(0, nil)
@@ -620,31 +620,31 @@ func BinaryEach(c Context, lv Value, op string, rv Value) Value {
 		return data.Publish()
 	}
 	shape := append(append([]int{}, l.shape[:ld]...), r.shape[:rd]...)
-	return NewMatrix(shape, data.Publish())
+	return NewMatrix(c, shape, data.Publish())
 }
 
 // Each computes the result of running op on each element of v.
 // The trailing @ has been removed.
 func Each(c Context, op string, v Value) Value {
-	m := v.toType(op, c.Config(), matrixType).(*Matrix)
+	m := v.toType(op, c, matrixType).(*Matrix)
 	max := len(m.shape)
 	d := 0
 	for d < len(op) && d < max && op[len(op)-1-d] == '@' {
 		d++
 	}
 	if d == 0 {
-		Errorf("%s: arg is scalar", op)
+		c.Errorf("%s: arg is scalar", op)
 	}
 
 	data := newVectorEditor(0, nil)
-	for x := range eachValue(v, d) {
+	for x := range eachValue(c, v, d) {
 		data.Append(c.EvalUnary(op[:len(op)-d], x))
 	}
 
 	if d == 1 {
 		return data.Publish()
 	}
-	return NewMatrix(m.shape[:d], data.Publish())
+	return NewMatrix(c, m.shape[:d], data.Publish())
 }
 
 // unaryVectorOp applies op elementwise to i.
@@ -668,7 +668,7 @@ func unaryMatrixOp(c Context, op string, i Value) Value {
 			n.Set(k, c.EvalUnary(op, u.data.At(k)))
 		}
 	})
-	return NewMatrix(u.shape, n.Publish())
+	return NewMatrix(c, u.shape, n.Publish())
 }
 
 // binaryVectorOp applies op elementwise to i and j.
@@ -692,7 +692,7 @@ func binaryVectorOp(c Context, i Value, op string, j Value) Value {
 		})
 		return n.Publish()
 	}
-	u.sameLength(v)
+	u.sameLength(c, v)
 	n := newVectorEditor(u.Len(), nil)
 	pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 		for k := lo; k < hi; k++ {
@@ -748,7 +748,7 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 		})
 	default:
 		// Matrix op Matrix.
-		u.sameShape(v)
+		u.sameShape(c, v)
 		n = newVectorEditor(u.data.Len(), nil)
 		pfor(safeBinary(op), 1, n.Len(), func(lo, hi int) {
 			for k := lo; k < hi; k++ {
@@ -756,7 +756,7 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 			}
 		})
 	}
-	return NewMatrix(shape, n.Publish())
+	return NewMatrix(c, shape, n.Publish())
 }
 
 // IsScalarType reports whether u is an actual scalar, an int or float etc.
@@ -851,7 +851,7 @@ func compare(v Value, i int) int {
 
 // isTrue reports whether v represents boolean truth. If v is not
 // ultimately a scalar or empty, an error results.
-func isTrue(fnName string, v Value) bool {
+func isTrue(c Context, fnName string, v Value) bool {
 	switch i := v.(type) {
 	case Char:
 		return i != '\x00'
@@ -866,23 +866,23 @@ func isTrue(fnName string, v Value) bool {
 	case Complex:
 		return !isZero(v)
 	case QuietValue:
-		return isTrue(fnName, i.Value)
+		return isTrue(c, fnName, i.Value)
 	case *Vector:
 		switch i.Len() {
 		case 0:
 			return false
 		case 1:
-			return isTrue(fnName, i.At(0))
+			return isTrue(c, fnName, i.At(0))
 		}
 	case *Matrix:
 		switch i.data.Len() {
 		case 0:
 			return false
 		case 1:
-			return isTrue(fnName, i.data.At(0))
+			return isTrue(c, fnName, i.data.At(0))
 		}
 	}
-	Errorf("invalid expression %s for conditional inside %q", v, fnName)
+	c.Errorf("invalid expression %s for conditional inside %q", v, fnName)
 	return false
 }
 
@@ -895,17 +895,17 @@ func sgn(c Context, v Value) int {
 func inverse(c Context, v Value) Value {
 	switch v := v.(type) {
 	case Int:
-		return v.inverse()
+		return v.inverse(c)
 	case BigInt:
-		return v.inverse()
+		return v.inverse(c)
 	case BigRat:
-		return v.inverse()
+		return v.inverse(c)
 	case BigFloat:
-		return v.inverse()
+		return v.inverse(c)
 	case Complex:
 		return v.inverse(c)
 	}
-	Errorf("inverse of non-scalar %s", v)
+	c.Errorf("inverse of non-scalar %s", v)
 	return zero
 }
 
@@ -955,16 +955,16 @@ func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
 		}
 		return Int(quo), Int(rem)
 	case bigIntType:
-		x := a.toType(op, c.Config(), bigIntType).(BigInt)
-		y := b.toType(op, c.Config(), bigIntType).(BigInt)
+		x := a.toType(op, c, bigIntType).(BigInt)
+		y := b.toType(op, c, bigIntType).(BigInt)
 		rem := big.NewInt(0)
 		quo := big.NewInt(0)
 		// This is the one case we don't need to work hard.
 		quo.DivMod(x.Int, y.Int, rem)
 		return BigInt{quo}.shrink(), BigInt{rem}.shrink()
 	case bigRatType:
-		x := a.toType(op, c.Config(), bigRatType).(BigRat).Rat
-		y := b.toType(op, c.Config(), bigRatType).(BigRat).Rat
+		x := a.toType(op, c, bigRatType).(BigRat).Rat
+		y := b.toType(op, c, bigRatType).(BigRat).Rat
 		if x.Sign() < 0 {
 			x = x.Set(x) // Copy x.
 			x.Neg(x)
@@ -990,8 +990,8 @@ func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
 		}
 		return BigInt{iquo}.shrink(), BigRat{rem}.shrink()
 	case bigFloatType:
-		x := a.toType(op, c.Config(), bigFloatType).(BigFloat).Float
-		y := b.toType(op, c.Config(), bigFloatType).(BigFloat).Float
+		x := a.toType(op, c, bigFloatType).(BigFloat).Float
+		y := b.toType(op, c, bigFloatType).(BigFloat).Float
 		if x.Sign() < 0 {
 			x = x.Copy(x)
 			x.Neg(x)
@@ -1016,7 +1016,7 @@ func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
 		}
 		return BigInt{iquo}.shrink(), BigFloat{rem}.shrink()
 	default:
-		Errorf("%s undefined for type %s", op, typ)
+		c.Errorf("%s undefined for type %s", op, typ)
 	}
 	return zero, a
 }
@@ -1055,7 +1055,7 @@ func evalExpressionList(context Context, fnName string, v Value, body ExprList) 
 	for _, e := range body {
 		switch expr := e.(type) {
 		case *ColonExpr:
-			if isTrue(fnName, expr.Cond.Eval(context)) {
+			if isTrue(context, fnName, expr.Cond.Eval(context)) {
 				return expr.Value.Eval(context), true // Early exit value for block.
 			}
 			continue

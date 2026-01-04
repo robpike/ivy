@@ -61,7 +61,7 @@ func (p *Parser) nextDecimalNumber64() int64 {
 	ibase, obase := conf.Base()
 	defer conf.SetBase(ibase, obase)
 	conf.SetBase(10, obase)
-	v, err := value.Parse(conf, p.need(scan.Number).Text)
+	v, err := value.Parse(p.context, p.need(scan.Number).Text)
 	if err != nil {
 		p.errorf("%s", err)
 	}
@@ -444,7 +444,7 @@ Switch:
 			p.errorf("undefined global variable %q", name)
 		}
 		fmt.Printf("%s = ", name)
-		put(conf, conf.Output(), value.Value(), false)
+		put(p.context, conf.Output(), value.Value(), false)
 		fmt.Print("\n")
 	default:
 		p.errorf(")%s: not recognized", text)
@@ -459,7 +459,7 @@ Switch:
 
 // getString returns the value of the string that must be next in the input.
 func (p *Parser) getString() string {
-	return value.ParseString(p.need(scan.String).Text)
+	return value.ParseString(p.context, p.need(scan.String).Text)
 }
 
 // getFile returns the file name on this input line.
@@ -471,7 +471,7 @@ func (p *Parser) getFile(prefix, def string) string {
 	case scan.EOF:
 		return def
 	case scan.String:
-		return value.ParseString(tok.Text)
+		return value.ParseString(p.context, tok.Text)
 	default:
 		// Just grab the rest of the text on the line.
 		// Must drain the scanner first as we are cheating it.
@@ -552,7 +552,7 @@ func (p *Parser) runUntilError(name string) error {
 				continue
 			}
 			p.context.AssignGlobal("_", val)
-			p.Println(val.Sprint(p.context.Config()))
+			p.Println(val.Sprint(p.context))
 		}
 		if !ok {
 			return io.EOF

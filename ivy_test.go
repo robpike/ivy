@@ -38,6 +38,10 @@ func TestAll(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	var debugConf config.Config
+	value.SetDebugContext(exec.NewContext(&debugConf))
+
 	dir, err := os.Open("testdata")
 	check()
 	names, err := dir.Readdirnames(0)
@@ -91,16 +95,15 @@ func runTest(t *testing.T, name string, lineNum int, shouldFail bool, input, out
 		if stderr.Len() == 0 {
 			t.Fatalf("\nexpected execution failure at %s:%d:\n%s", name, lineNum, in)
 		}
-		expect := ""
-		for _, s := range input {
-			if strings.HasPrefix(s, "# Expect: ") {
-				expect = s[len("# Expect: "):]
+		for _, line := range input {
+			if strings.HasPrefix(line, "# Expect: ") {
+				expect := line[len("# Expect: "):]
+				if expect != "" && !strings.Contains(stderr.String(), expect) {
+					t.Errorf("\nmissing execution failure message at %s:%d:\n%s", name, lineNum, in)
+					t.Errorf("got:\n\t%s", stderr)
+					t.Fatalf("expected:\n\t%s\n", expect)
+				}
 			}
-		}
-		if expect != "" && !strings.Contains(stderr.String(), expect) {
-			t.Errorf("\nunexpected execution failure message at %s:%d:\n%s", name, lineNum, in)
-			t.Errorf("got:\n\t%s", stderr)
-			t.Fatalf("expected:\n\t%s\n", expect)
 		}
 		return true
 	}

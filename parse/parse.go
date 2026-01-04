@@ -161,7 +161,7 @@ func (p *Parser) Loc() string {
 
 func (p *Parser) errorf(format string, args ...interface{}) {
 	p.tokens = p.tokenBuf[:0]
-	value.Errorf(format, args...)
+	p.context.Errorf(format, args...)
 }
 
 // source returns the source code spanning the start and end lines.
@@ -327,7 +327,7 @@ func (p *Parser) checkAssign(e value.Expr) {
 			}
 			slices.Reverse(list)
 			fixed := &value.IndexExpr{Left: last, Right: list}
-			value.Errorf("cannot assign to %s; use %s", e.ProgString(), fixed.ProgString())
+			p.errorf("cannot assign to %s; use %s", e.ProgString(), fixed.ProgString())
 		}
 	case value.VectorExpr:
 		for _, elem := range e {
@@ -439,9 +439,9 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 	case scan.Identifier:
 		expr = p.varExpr(text)
 	case scan.String:
-		str = value.ParseString(text)
+		str = value.ParseString(p.context, text)
 	case scan.Number, scan.Rational, scan.Complex:
-		expr, err = value.Parse(p.context.Config(), text)
+		expr, err = value.Parse(p.context, text)
 	case scan.If:
 		expr = p.ifExpr(tok)
 	case scan.While:

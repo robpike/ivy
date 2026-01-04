@@ -5,14 +5,12 @@
 package exec // import "robpike.io/ivy/exec"
 
 import (
+	"fmt"
 	"strings"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/value"
 )
-
-// Symtab is a symbol table, a map of names to variables.
-type Symtab map[string]*value.Var
 
 // Context holds execution context, specifically the binding of names to values and operators.
 // It is the only implementation of ../value/Context, but since it references the value
@@ -25,7 +23,9 @@ type Context struct {
 	frameSizes []int // size of each stack frame on the call stack
 	stack      []*value.Var
 
-	Globals Symtab
+	Stack []*value.Frame
+
+	Globals value.Symtab
 
 	//  UnaryFn maps the names of unary functions (ops) to their implementations.
 	UnaryFn map[string]*Function
@@ -36,6 +36,9 @@ type Context struct {
 	Defs []OpDef
 	// Names of variables declared in the currently-being-parsed function.
 	variables []string
+
+	// Already in a traceback.
+	tracing bool
 }
 
 // NewContext returns a new execution context: the stack and variables,
@@ -43,7 +46,8 @@ type Context struct {
 func NewContext(conf *config.Config) value.Context {
 	c := &Context{
 		config:   conf,
-		Globals:  make(Symtab),
+		Globals:  make(value.Symtab),
+		Stack:    []*value.Frame{},
 		UnaryFn:  make(map[string]*Function),
 		BinaryFn: make(map[string]*Function),
 	}
@@ -88,6 +92,15 @@ func (c *Context) Local(i int) *value.Var {
 	return v
 }
 
+func (c *Context) initStack() {
+	c.stack = c.stack[:0]
+	c.Stack = c.Stack[:0]
+}
+
+func (c *Context) TopOfStack() *value.Frame {
+	return c.Stack[len(c.Stack)-1]
+}
+
 // push pushes a new local frame onto the context stack.
 func (c *Context) push(fn *Function) {
 	n := len(c.stack)
@@ -96,6 +109,7 @@ func (c *Context) push(fn *Function) {
 	}
 	c.frameSizes = append(c.frameSizes, len(fn.Locals))
 	c.stack = c.stack[:n+len(fn.Locals)]
+	c.Stack = append(c.Stack, fn.newFrame())
 }
 
 // pop pops the top frame from the stack.
@@ -103,13 +117,80 @@ func (c *Context) pop() {
 	n := c.frameSizes[len(c.frameSizes)-1]
 	c.frameSizes = c.frameSizes[:len(c.frameSizes)-1]
 	c.stack = c.stack[:len(c.stack)-n]
+	c.Stack = c.Stack[:len(c.Stack)-1]
+}
+
+// Errorf panics with the formatted string, with type Error.
+func (c *Context) Errorf(format string, args ...interface{}) {
+	if c.tracing {
+		return
+	}
+	c.tracing = true // In case we panic again trying to print the trace.
+	defer func() { c.tracing = false }()
+	err := value.Error(fmt.Sprintf(format, args...))
+	c.StackTrace()
+	c.initStack()
+	panic(err)
+}
+
+// StackTrace prints the execution stack, and wipes it.
+// There may be conditions under which it will cause trouble
+// by printing invalid values, but it tries to be safe.
+// TODO: Should be able to do this without wiping the stack.
+func (c *Context) StackTrace() {
+	const max = 25
+	n := len(c.Stack)
+	if n > max {
+		fmt.Fprintf(c.Config().ErrOutput(), "\t•> stack truncated: %d calls total; showing innermost\n", n)
+		n = max
+	}
+	// We need to print the innermost, then pop it and go around.
+	// But we want the output to be innermost last, so save and reverse.
+	lines := []string{}
+	for range n {
+		if len(c.Stack) == 0 {
+			break
+		}
+		f := c.TopOfStack()
+		if !f.Inited {
+			continue
+		}
+		left := c.ArgPrint(f.Left)
+		if left != "" {
+			left += " "
+		}
+		right := c.ArgPrint(f.Right)
+		lines = append(lines, fmt.Sprintf("\t•> %s%s %s\n", left, f.Name, right))
+		c.pop()
+	}
+	for i := len(lines) - 1; i >= 0; i-- {
+		fmt.Fprint(c.Config().ErrOutput(), lines[i])
+	}
+}
+
+func (c *Context) ArgPrint(arg value.Expr) string {
+	s := ""
+	switch a := arg.(type) {
+	case nil:
+		return "" // No parens.
+	default:
+		s = fmt.Sprintf("%T %s", a, a.ProgString())
+	case *value.VarExpr:
+		s = a.Eval(c).Sprint(c)
+	case value.VectorExpr:
+		s = a.Eval(c).Sprint(c)
+	}
+	if len(s) > 50 {
+		s = s[:50] + "..."
+	}
+	return "(" + s + ")"
 }
 
 var indent = "| "
 
 // TraceIndent returns an indentation marker showing the depth of the stack.
 func (c *Context) TraceIndent() string {
-	n := 2 * len(c.frameSizes)
+	n := 2 * len(c.Stack)
 	if len(indent) < n {
 		indent = strings.Repeat("| ", n+10)
 	}
@@ -156,7 +237,7 @@ func (c *Context) EvalUnary(op string, right value.Value) value.Value {
 	}
 	fn, userDefined := c.unary(op)
 	if fn == nil {
-		value.Errorf("unary %q not implemented", op)
+		c.Errorf("unary %q not implemented", op)
 	}
 	if userDefined {
 		value.TraceUnary(c, 1, op, right)
@@ -204,7 +285,7 @@ func (c *Context) EvalBinary(left value.Value, op string, right value.Value) val
 	}
 	fn, userDefined := c.binary(op)
 	if fn == nil {
-		value.Errorf("binary %q not implemented", op)
+		c.Errorf("binary %q not implemented", op)
 	}
 	if userDefined {
 		value.TraceBinary(c, 1, left, op, right)
@@ -268,7 +349,7 @@ func (c *Context) UndefineAll(unary, binary, vars bool) {
 		}
 	}
 	if vars {
-		c.Globals = make(Symtab)
+		c.Globals = make(value.Symtab)
 	}
 }
 
@@ -342,7 +423,7 @@ func (c *Context) noVar(name string) {
 		delete(c.Globals, name)
 		return
 	}
-	value.Errorf("cannot define op %s; it is a variable (%[1]s=0 to clear)", name)
+	value.Errorf("cannot define op %s; it is a variable; use ')clear %[1]s' to clear)", name)
 }
 
 // noOp is the dual of noVar. It also checks for assignment to builtins.

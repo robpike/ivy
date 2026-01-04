@@ -69,41 +69,52 @@ func (fn *Function) String() string {
 	return b.String()
 }
 
-func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Value {
-	if fn.Body == nil {
-		value.Errorf("unary %q undefined", fn.Name)
+func (fn *Function) newFrame() *value.Frame {
+	return &value.Frame{
+		Name:   fn.Name,
+		Left:   fn.Left,
+		Right:  fn.Right,
+		Inited: false,
 	}
+}
+
+func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Value {
 	// It's known to be an exec.Context.
 	c := context.(*Context)
+	if fn.Body == nil {
+		c.Errorf("unary %q undefined", fn.Name)
+	}
 	if uint(len(c.frameSizes)) >= c.config.MaxStack() {
-		value.Errorf("stack overflow calling %q", fn.Name)
+		c.Errorf("stack overflow calling %q", fn.Name)
 	}
 	c.push(fn)
-	defer c.pop()
 	value.Assign(context, fn.Right, right, right)
+	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
 	if v == nil {
-		value.Errorf("no value returned by %q", fn.Name)
+		c.Errorf("no value returned by %q", fn.Name)
 	}
+	c.pop() // Don't defer, so if we get an error we can print the stack.
 	return v
 }
 
 func (fn *Function) EvalBinary(context value.Context, left, right value.Value) value.Value {
 	if fn.Body == nil {
-		value.Errorf("binary %q undefined", fn.Name)
+		context.Errorf("binary %q undefined", fn.Name)
 	}
 	// It's known to be an exec.Context.
 	c := context.(*Context)
 	if uint(len(c.frameSizes)) >= c.config.MaxStack() {
-		value.Errorf("stack overflow calling %q", fn.Name)
+		context.Errorf("stack overflow calling %q", fn.Name)
 	}
 	c.push(fn)
-	defer c.pop()
 	value.Assign(context, fn.Left, left, left)
 	value.Assign(context, fn.Right, right, right)
+	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
 	if v == nil {
-		value.Errorf("no value returned by %q", fn.Name)
+		context.Errorf("no value returned by %q", fn.Name)
 	}
+	c.pop() // Don't defer, so if we get an error we can print the stack.
 	return v
 }

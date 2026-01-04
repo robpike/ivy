@@ -85,7 +85,7 @@ func (c *ColonExpr) ProgString() string { return c.Cond.ProgString() + " : " + c
 
 func (c *ColonExpr) Eval(context Context) Value {
 	v := Value(empty)
-	if isTrue(":", c.Cond.Eval(context)) {
+	if isTrue(context, ":", c.Cond.Eval(context)) {
 		if c.Value != nil {
 			v = c.Value.Eval(context)
 		}
@@ -111,7 +111,7 @@ func (w *WhileExpr) ProgString() string {
 func (w *WhileExpr) Eval(context Context) Value {
 	v := Value(empty)
 	done := false
-	for !done && isTrue(":while", w.Cond.Eval(context)) {
+	for !done && isTrue(context, ":while", w.Cond.Eval(context)) {
 		if w.Body != nil {
 			v, done = evalExpressionList(context, ":while", empty, w.Body)
 		}
@@ -144,7 +144,7 @@ func (i *IfExpr) ProgString() string {
 
 func (i *IfExpr) Eval(context Context) Value {
 	v := Value(empty)
-	if isTrue(":if", i.Cond.Eval(context)) {
+	if isTrue(context, ":if", i.Cond.Eval(context)) {
 		if i.Body != nil {
 			v = EvalBlock(context, ":if", i.Body)
 		}
@@ -286,12 +286,12 @@ func NewVarExpr(name string) *VarExpr {
 	return &VarExpr{Name: name}
 }
 
-func (e *VarExpr) Eval(context Context) Value {
+func (e *VarExpr) Eval(c Context) Value {
 	var v Value
 	if e.Local >= 1 {
-		v = context.Local(e.Local).Value()
+		v = c.Local(e.Local).Value()
 	} else {
-		if g := context.Global(e.Name); g != nil {
+		if g := c.Global(e.Name); g != nil {
 			v = g.Value()
 		}
 	}
@@ -300,7 +300,7 @@ func (e *VarExpr) Eval(context Context) Value {
 		if e.Local >= 1 {
 			kind = "local"
 		}
-		Errorf("undefined %s variable %q", kind, e.Name)
+		c.Errorf("undefined %s variable %q", kind, e.Name)
 	}
 	return v
 }

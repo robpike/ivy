@@ -108,6 +108,13 @@ type Context interface {
 	// UserDefined reports whether the specified op is user-defined.
 	UserDefined(op string, isBinary bool) bool
 
+	// Errorf reports an execution error and halts execution
+	// by panicking with type Error.
+	Errorf(format string, args ...interface{})
+
 	// TraceIndent returns an indentation marker showing the depth of the stack.
 	TraceIndent() string
+
+	// StackTrace prints the execution stack.
+	StackTrace()
 }

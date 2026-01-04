@@ -51,8 +51,8 @@ var (
 	bigRatTen      = big.NewRat(10, 1)
 	bigRatBillion  = big.NewRat(1e9, 1)
 
-	complexOne       = NewComplex(one, zero)
-	complexHalf      = NewComplex(BigRat{big.NewRat(1, 2)}, zero)
+	complexOne       = NewComplex(debugContext, one, zero)
+	complexHalf      = NewComplex(debugContext, BigRat{big.NewRat(1, 2)}, zero)
 	minusOneOverTwoI Complex
 
 	// set to constPrecision
@@ -138,13 +138,13 @@ func Consts(c Context) (e, pi BigFloat) {
 
 // -1/2i is remarkably hard to build.
 func init() {
-	num, err := setBigRatFromFloatString("0.0")
+	num, err := setBigRatFromFloatString(debugContext, "0.0")
 	if err != nil {
 		panic(err)
 	}
-	den, err := setBigRatFromFloatString("-0.5")
+	den, err := setBigRatFromFloatString(debugContext, "-0.5")
 	if err != nil {
 		panic(err)
 	}
-	minusOneOverTwoI = NewComplex(num, den)
+	minusOneOverTwoI = NewComplex(debugContext, num, den)
 }

@@ -7,8 +7,6 @@ package value
 import (
 	"fmt"
 	"math/big"
-
-	"robpike.io/ivy/config"
 )
 
 type BigFloat struct {
@@ -30,10 +28,11 @@ func (f BigFloat) Rank() int {
 const fastFloatPrint = true
 
 func (f BigFloat) String() string {
-	return "(" + f.Sprint(debugConf) + ")"
+	return "(" + f.Sprint(debugContext) + ")"
 }
 
-func (f BigFloat) Sprint(conf *config.Config) string {
+func (f BigFloat) Sprint(c Context) string {
+	conf := c.Config()
 	var mant big.Float
 	exp := f.Float.MantExp(&mant)
 	positive := 1
@@ -79,7 +78,7 @@ func (f BigFloat) Sprint(conf *config.Config) string {
 		// Now compute 10**(fractional part).
 		// Fraction is in base 10. Move it to base e.
 		fraction.Mul(fraction, floatLog10)
-		scale := exponential(&big.Float{}, fraction)
+		scale := exponential(c, &big.Float{}, fraction)
 		sign := ""
 		if mant.Sign() < 0 {
 			sign = "-"
@@ -114,9 +113,9 @@ func (f BigFloat) Sprint(conf *config.Config) string {
 }
 
 // inverse returns 1/f
-func (f BigFloat) inverse() Value {
+func (f BigFloat) inverse(c Context) Value {
 	if f.Sign() == 0 {
-		Errorf("inverse of zero")
+		c.Errorf("inverse of zero")
 	}
 	var one big.Float
 	one.Set(floatOne) // Avoid big.Float.Copy, which appears to have a sharing bug.
@@ -139,18 +138,18 @@ func (f BigFloat) Inner() Value {
 	return f
 }
 
-func (f BigFloat) toType(op string, conf *config.Config, which valueType) Value {
+func (f BigFloat) toType(op string, c Context, which valueType) Value {
 	switch which {
 	case bigFloatType:
 		return f
 	case complexType:
-		return NewComplex(f, zero)
+		return NewComplex(c, f, zero)
 	case vectorType:
 		return oneElemVector(f)
 	case matrixType:
-		return NewMatrix([]int{1}, NewVector(f))
+		return NewMatrix(c, []int{1}, NewVector(f))
 	}
-	Errorf("%s: cannot convert float to %s", op, which)
+	c.Errorf("%s: cannot convert float to %s", op, which)
 	return nil
 }
 
