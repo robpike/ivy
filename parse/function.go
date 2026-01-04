@@ -228,6 +228,8 @@ func funcVars(fn *exec.Function) {
 	}
 	f := func(expr value.Expr, assign bool) {
 		switch e := expr.(type) {
+		case *value.RetExpr:
+			fn.HasRet = true
 		case *value.VarExpr:
 			x, ok := known[e.Name]
 			if !ok {

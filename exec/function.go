@@ -21,6 +21,7 @@ type Function struct {
 	Locals   []string
 	Globals  []string
 	Source   string
+	HasRet   bool
 	// At time of definition; needed to parse saved source correctly.
 	Ibase int
 }
@@ -90,7 +91,7 @@ func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Va
 	c.push(fn)
 	value.Assign(context, fn.Right, right, right)
 	c.TopOfStack().Inited = true
-	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
+	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
 		c.Errorf("no value returned by %q", fn.Name)
 	}
@@ -111,7 +112,7 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	value.Assign(context, fn.Left, left, left)
 	value.Assign(context, fn.Right, right, right)
 	c.TopOfStack().Inited = true
-	v := value.EvalFunctionBody(c, fn.Name, fn.Body)
+	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
 		context.Errorf("no value returned by %q", fn.Name)
 	}

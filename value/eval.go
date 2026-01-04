@@ -1023,19 +1023,22 @@ func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
 
 // EvalFunctionBody evaluates the list of expressions inside a function,
 // with no default value.
-func EvalFunctionBody(context Context, fnName string, body ExprList) (v Value) {
-	defer func() {
-		// Catch any early returns.
-		err := recover()
-		if err == nil {
-			return
-		}
-		r, ok := err.(*RetExpr)
-		if !ok {
-			panic(err)
-		}
-		v = r.Value
-	}()
+func EvalFunctionBody(context Context, fnName string, body ExprList, hasRet bool) (v Value) {
+	if hasRet {
+		// The runtime has n^2 behavior handling repanics. Avoid that if possible.
+		defer func() {
+			// Catch any early returns.
+			err := recover()
+			if err == nil {
+				return
+			}
+			r, ok := err.(*RetExpr)
+			if !ok {
+				panic(err)
+			}
+			v = r.Value
+		}()
+	}
 	v, _ = evalExpressionList(context, fnName, nil, body)
 	return v
 }
