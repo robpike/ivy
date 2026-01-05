@@ -73,10 +73,27 @@ func short(s string) string {
 	return s
 }
 
+func parens(s string, t bool) string {
+	if t {
+		return "(" + s + ")"
+	}
+	return s
+}
+
+func needParens(v value.Value) bool {
+	if value.IsScalarType(v) {
+		return false
+	}
+	if x, ok := v.(*value.Vector); ok && x.AllChars() {
+		return false
+	}
+	return true
+}
+
 // tracePrint prints the value in a manner that is likely useful for reuse. Strings
-// are quoted, matrices are printed in rho form, and so on. It could do a perfect
-// job by parenthesizing everything and making sure floats are printed as floats
-// with all bits, but that seems excessive.
+// are quoted, matrices are printed in rho form, and so on. It is imperfect: for
+// example, it truncates values and doesn't guarantee floats show as floats,
+// let alone have all their bits, but it's good enough.
 func (c *Context) tracePrint(val value.Value) string {
 	s := ""
 	switch v := val.(type) {
@@ -85,7 +102,7 @@ func (c *Context) tracePrint(val value.Value) string {
 	default:
 		s = fmt.Sprintf("%T %s", v, v.Sprint(c))
 	case value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Complex:
-		s = v.Sprint(c)
+		s = short(v.Sprint(c))
 	case value.Char:
 		s = fmt.Sprintf("%q", v.Sprint(c))
 	case *value.Vector:
@@ -93,16 +110,13 @@ func (c *Context) tracePrint(val value.Value) string {
 		case v.Len() == 0:
 			s = "()"
 		case v.AllChars():
-			s = fmt.Sprintf("%q", v.Sprint(c))
+			s = fmt.Sprintf("%q", short(v.Sprint(c)))
 		default:
 			for i, elem := range v.All() {
-				if len(s) > maxArgSize {
-					break
-				}
 				if i > 0 {
 					s += " "
 				}
-				s += c.tracePrint(elem)
+				s += parens(short(c.tracePrint(elem)), needParens(elem))
 			}
 		}
 	case *value.Matrix:
@@ -111,10 +125,7 @@ func (c *Context) tracePrint(val value.Value) string {
 		s += " rho "
 		s += c.tracePrint(v.Data())
 	}
-	if len(s) > maxArgSize {
-		s = s[:maxArgSize] + "..."
-	}
-	return short(s)
+	return s
 }
 
 // ArgPrint prints the value of an argument.
@@ -130,7 +141,7 @@ func (c *Context) ArgPrint(arg value.Expr) string {
 			s = c.tracePrint(v)
 		}
 	}
-	return "(" + short(s) + ")"
+	return parens(s, true)
 }
 
 // LocalPrint prints the value of a local variable.
