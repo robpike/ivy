@@ -108,3 +108,9 @@ op (x y) b z = a x+y-z
 1 2 b 3
 	#
 
+# Check nice printing of arguments.
+# Expect: •> ("abc" "x" 1j2 1.41421356237 1/2 3000000000) b (7 7 rho 1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6 7 8 9 10 1 2 3 4 ...)
+# Expect: division by zero
+op a b x = 1 / 0
+("abc" 'x' 1j2 (sqrt 2) 1/2 3e9)b 7 7 rho iota 10
+	#

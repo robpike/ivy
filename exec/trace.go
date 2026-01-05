@@ -63,12 +63,58 @@ func (c *Context) StackTrace() {
 	}
 }
 
+const maxArgSize = 100
+
 // short returns its argument, truncating if it's too long.
 func short(s string) string {
-	if len(s) > 50 {
-		s = s[:50] + "..."
+	if len(s) > maxArgSize {
+		s = s[:maxArgSize] + "..."
 	}
 	return s
+}
+
+// tracePrint prints the value in a manner that is likely useful for reuse. Strings
+// are quoted, matrices are printed in rho form, and so on. It could do a perfect
+// job by parenthesizing everything and making sure floats are printed as floats
+// with all bits, but that seems excessive.
+func (c *Context) tracePrint(val value.Value) string {
+	s := ""
+	switch v := val.(type) {
+	case nil:
+		return "" // No parens.
+	default:
+		s = fmt.Sprintf("%T %s", v, v.Sprint(c))
+	case value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Complex:
+		s = v.Sprint(c)
+	case value.Char:
+		s = fmt.Sprintf("%q", v.Sprint(c))
+	case *value.Vector:
+		switch {
+		case v.Len() == 0:
+			s = "()"
+		case v.AllChars():
+			s = fmt.Sprintf("%q", v.Sprint(c))
+		default:
+			for i, elem := range v.All() {
+				if len(s) > maxArgSize {
+					break
+				}
+				if i > 0 {
+					s += " "
+				}
+				s += c.tracePrint(elem)
+			}
+		}
+	case *value.Matrix:
+		s += fmt.Sprint(v.Shape())
+		s = s[1 : len(s)-1]
+		s += " rho "
+		s += c.tracePrint(v.Data())
+	}
+	if len(s) > maxArgSize {
+		s = s[:maxArgSize] + "..."
+	}
+	return short(s)
 }
 
 // ArgPrint prints the value of an argument.
@@ -81,7 +127,7 @@ func (c *Context) ArgPrint(arg value.Expr) string {
 		s = fmt.Sprintf("%T %s", a, a.ProgString())
 	case *value.VarExpr, value.VectorExpr:
 		if v := a.Eval(c); v != nil {
-			s = v.Sprint(c)
+			s = c.tracePrint(v)
 		}
 	}
 	return "(" + short(s) + ")"
@@ -97,7 +143,7 @@ func (c *Context) LocalPrint(name string) string {
 	if v == nil {
 		return ""
 	}
-	return fmt.Sprintf("\t\t%s = %s\n", name, short(v.Sprint(c)))
+	return fmt.Sprintf("\t\t%s = %s\n", name, c.tracePrint(v))
 }
 
 // argNames returns all the argument names for the function.
