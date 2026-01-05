@@ -72,10 +72,12 @@ func (fn *Function) String() string {
 
 func (fn *Function) newFrame() *value.Frame {
 	return &value.Frame{
-		Name:   fn.Name,
-		Left:   fn.Left,
-		Right:  fn.Right,
-		Inited: false,
+		Op:       fn.Name,
+		IsBinary: fn.IsBinary,
+		Left:     fn.Left,
+		Right:    fn.Right,
+		Inited:   false,
+		Vars:     make(value.Symtab),
 	}
 }
 
@@ -85,12 +87,12 @@ func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Va
 	if fn.Body == nil {
 		c.Errorf("unary %q undefined", fn.Name)
 	}
-	if uint(len(c.frameSizes)) >= c.config.MaxStack() {
+	if uint(len(c.Stack)) >= c.config.MaxStack() {
 		c.Errorf("stack overflow calling %q", fn.Name)
 	}
 	c.push(fn)
 	value.Assign(context, fn.Right, right, right)
-	c.TopOfStack().Inited = true
+	c.topOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
 		c.Errorf("no value returned by %q", fn.Name)
@@ -105,13 +107,13 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	}
 	// It's known to be an exec.Context.
 	c := context.(*Context)
-	if uint(len(c.frameSizes)) >= c.config.MaxStack() {
+	if uint(len(c.Stack)) >= c.config.MaxStack() {
 		context.Errorf("stack overflow calling %q", fn.Name)
 	}
 	c.push(fn)
 	value.Assign(context, fn.Left, left, left)
 	value.Assign(context, fn.Right, right, right)
-	c.TopOfStack().Inited = true
+	c.topOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
 		context.Errorf("no value returned by %q", fn.Name)

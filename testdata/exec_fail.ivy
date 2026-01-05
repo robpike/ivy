@@ -94,14 +94,16 @@ iota box 'buggy'
 
 # Expect: stack truncated: 100 calls total; showing innermost
 # Expect: •> a (37)
+# Expect local = 36
 # Expect: •> (37 38) b (37)
 # ...
 # Expect: •> (48 49) b (48)
 # Expect: •> a (49)
+# Expect local = 48
 # Expect: stack overflow calling "b"
 )maxstack 100
 op x b y
-op a x = (x (x+1)) b x
+op a x = local = x-1; (x (x+1)) b x
 op (x y) b z = a x+y-z
 1 2 b 3
 	#

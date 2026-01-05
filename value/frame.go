@@ -8,10 +8,12 @@ package value
 // Used to print helpful error tracebacks. May one day hold the
 // local variables themselves.
 type Frame struct {
-	Name   string
-	Left   Expr
-	Right  Expr
-	Inited bool // Until set, tracebacks will not attempt to evaluate this frame.
+	Op       string
+	IsBinary bool
+	Left     Expr
+	Right    Expr
+	Inited   bool // Until set, tracebacks will not attempt to evaluate this frame.
+	Vars     Symtab
 }
 
 // Symtab is a symbol table, a map of names to variables.

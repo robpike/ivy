@@ -79,8 +79,8 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 	// (must wait until indexes have been evaluated, R-to-L).
 	var lvar *Var
 	if lvarx != nil {
-		if lvarx.Local >= 1 {
-			lvar = context.Local(lvarx.Local)
+		if lvarx.Local {
+			lvar = context.Local(lvarx.Name)
 		} else {
 			lvar = context.Global(lvarx.Name)
 			if lvar == nil {

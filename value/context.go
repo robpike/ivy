@@ -85,8 +85,8 @@ type Context interface {
 	// Config returns the configuration state for evaluation.
 	Config() *config.Config
 
-	// Local returns the i'th local variable.
-	Local(i int) *Var
+	// Local returns the named local variable.
+	Local(name string) *Var
 
 	// Global returns the named global variable.
 	// It returns nil if there is no such variable.

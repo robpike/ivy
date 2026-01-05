@@ -221,10 +221,10 @@ func addReference(refs *[]exec.OpDef, name string, isBinary bool) {
 //	_ = x # global x
 //	x = 1
 func funcVars(fn *exec.Function) {
-	known := make(map[string]int)
+	known := make(map[string]bool)
 	addLocal := func(e *value.VarExpr) {
 		fn.Locals = append(fn.Locals, e.Name)
-		known[e.Name] = len(fn.Locals)
+		known[e.Name] = true
 	}
 	f := func(expr value.Expr, assign bool) {
 		switch e := expr.(type) {
@@ -236,7 +236,7 @@ func funcVars(fn *exec.Function) {
 				if assign {
 					addLocal(e)
 				} else {
-					known[e.Name] = 0
+					known[e.Name] = false
 				}
 				x = known[e.Name]
 			}

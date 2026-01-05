@@ -28,8 +28,8 @@ func Assign(c Context, left, right Expr, rhs Value) {
 	// But we need to process the indexing, if it is an index expression.
 	switch lhs := left.(type) {
 	case *VarExpr:
-		if lhs.Local >= 1 {
-			c.Local(lhs.Local).Assign(rhs)
+		if lhs.Local {
+			c.Local(lhs.Name).Assign(rhs)
 		} else {
 			c.AssignGlobal(lhs.Name, rhs)
 		}

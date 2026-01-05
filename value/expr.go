@@ -279,7 +279,7 @@ func (x *IndexExpr) Eval(context Context) Value {
 // VarExpr identifies a variable to be looked up and evaluated.
 type VarExpr struct {
 	Name  string
-	Local int // local index, or 0 for global
+	Local bool // local, not global
 }
 
 func NewVarExpr(name string) *VarExpr {
@@ -288,8 +288,8 @@ func NewVarExpr(name string) *VarExpr {
 
 func (e *VarExpr) Eval(c Context) Value {
 	var v Value
-	if e.Local >= 1 {
-		v = c.Local(e.Local).Value()
+	if e.Local {
+		v = c.Local(e.Name).Value()
 	} else {
 		if g := c.Global(e.Name); g != nil {
 			v = g.Value()
@@ -297,7 +297,7 @@ func (e *VarExpr) Eval(c Context) Value {
 	}
 	if v == nil {
 		kind := "global"
-		if e.Local >= 1 {
+		if e.Local {
 			kind = "local"
 		}
 		c.Errorf("undefined %s variable %q", kind, e.Name)

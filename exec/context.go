@@ -20,9 +20,6 @@ type Context struct {
 	// Accessed through the value.Context Config method.
 	config *config.Config
 
-	frameSizes []int // size of each stack frame on the call stack
-	stack      []*value.Var
-
 	Stack []*value.Frame
 
 	Globals value.Symtab
@@ -82,41 +79,32 @@ func (c *Context) AssignGlobal(name string, val value.Value) {
 	}
 }
 
-// Local returns the value of the local variable with index i.
-func (c *Context) Local(i int) *value.Var {
-	v := c.stack[len(c.stack)-i]
+// Local returns the value of the named local variable.
+func (c *Context) Local(name string) *value.Var {
+	vars := c.Stack[len(c.Stack)-1].Vars
+	v := vars[name]
 	if v == nil {
 		v = value.NewVar("", nil)
-		c.stack[len(c.stack)-i] = v
+		vars[name] = v
 	}
 	return v
 }
 
 func (c *Context) initStack() {
-	c.stack = c.stack[:0]
 	c.Stack = c.Stack[:0]
 }
 
-func (c *Context) TopOfStack() *value.Frame {
+func (c *Context) topOfStack() *value.Frame {
 	return c.Stack[len(c.Stack)-1]
 }
 
 // push pushes a new local frame onto the context stack.
 func (c *Context) push(fn *Function) {
-	n := len(c.stack)
-	for cap(c.stack) < n+len(fn.Locals) {
-		c.stack = append(c.stack[:cap(c.stack)], nil)
-	}
-	c.frameSizes = append(c.frameSizes, len(fn.Locals))
-	c.stack = c.stack[:n+len(fn.Locals)]
 	c.Stack = append(c.Stack, fn.newFrame())
 }
 
 // pop pops the top frame from the stack.
 func (c *Context) pop() {
-	n := c.frameSizes[len(c.frameSizes)-1]
-	c.frameSizes = c.frameSizes[:len(c.frameSizes)-1]
-	c.stack = c.stack[:len(c.stack)-n]
 	c.Stack = c.Stack[:len(c.Stack)-1]
 }
 
@@ -131,70 +119,6 @@ func (c *Context) Errorf(format string, args ...interface{}) {
 	c.StackTrace()
 	c.initStack()
 	panic(err)
-}
-
-// StackTrace prints the execution stack, and wipes it.
-// There may be conditions under which it will cause trouble
-// by printing invalid values, but it tries to be safe.
-// TODO: Should be able to do this without wiping the stack.
-func (c *Context) StackTrace() {
-	const max = 25
-	n := len(c.Stack)
-	if n > max {
-		fmt.Fprintf(c.Config().ErrOutput(), "\t•> stack truncated: %d calls total; showing innermost\n", n)
-		n = max
-	}
-	// We need to print the innermost, then pop it and go around.
-	// But we want the output to be innermost last, so save and reverse.
-	lines := []string{}
-	for range n {
-		if len(c.Stack) == 0 {
-			break
-		}
-		f := c.TopOfStack()
-		if !f.Inited {
-			continue
-		}
-		left := c.ArgPrint(f.Left)
-		if left != "" {
-			left += " "
-		}
-		right := c.ArgPrint(f.Right)
-		lines = append(lines, fmt.Sprintf("\t•> %s%s %s\n", left, f.Name, right))
-		c.pop()
-	}
-	for i := len(lines) - 1; i >= 0; i-- {
-		fmt.Fprint(c.Config().ErrOutput(), lines[i])
-	}
-}
-
-func (c *Context) ArgPrint(arg value.Expr) string {
-	s := "nil"
-	switch a := arg.(type) {
-	case nil:
-		return "" // No parens.
-	default:
-		s = fmt.Sprintf("%T %s", a, a.ProgString())
-	case *value.VarExpr, value.VectorExpr:
-		if v := a.Eval(c); v != nil {
-			s = v.Sprint(c)
-		}
-	}
-	if len(s) > 50 {
-		s = s[:50] + "..."
-	}
-	return "(" + s + ")"
-}
-
-var indent = "| "
-
-// TraceIndent returns an indentation marker showing the depth of the stack.
-func (c *Context) TraceIndent() string {
-	n := 2 * len(c.Stack)
-	if len(indent) < n {
-		indent = strings.Repeat("| ", n+10)
-	}
-	return indent[:n]
 }
 
 // Eval evaluates a list of expressions.
