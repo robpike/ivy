@@ -169,16 +169,16 @@ func (c *Context) StackTrace() {
 }
 
 func (c *Context) ArgPrint(arg value.Expr) string {
-	s := ""
+	s := "nil"
 	switch a := arg.(type) {
 	case nil:
 		return "" // No parens.
 	default:
 		s = fmt.Sprintf("%T %s", a, a.ProgString())
-	case *value.VarExpr:
-		s = a.Eval(c).Sprint(c)
-	case value.VectorExpr:
-		s = a.Eval(c).Sprint(c)
+	case *value.VarExpr, value.VectorExpr:
+		if v := a.Eval(c); v != nil {
+			s = v.Sprint(c)
+		}
 	}
 	if len(s) > 50 {
 		s = s[:50] + "..."
