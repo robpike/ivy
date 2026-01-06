@@ -361,7 +361,7 @@ func (p *Parser) operand(tok scan.Token) value.Expr {
 			break
 		}
 		fallthrough
-	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.LeftParen, scan.If, scan.While, scan.Ret:
+	case scan.Number, scan.String, scan.LeftParen, scan.If, scan.While, scan.Ret:
 		expr = p.numberOrVector(tok)
 	default:
 		p.errorf("unexpected %s", tok)
@@ -440,7 +440,7 @@ func (p *Parser) number(tok scan.Token) (expr value.Expr, str string) {
 		expr = p.varExpr(text)
 	case scan.String:
 		str = value.ParseString(p.context, text)
-	case scan.Number, scan.Rational, scan.Complex:
+	case scan.Number:
 		expr, err = value.Parse(p.context, text)
 	case scan.If:
 		expr = p.ifExpr(tok)
@@ -478,7 +478,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 	expr, str := p.number(tok)
 	done := true
 	switch p.peek().Type {
-	case scan.Number, scan.Rational, scan.Complex, scan.String, scan.If, scan.While, scan.Ret, scan.Identifier, scan.LeftParen, scan.LeftBrack:
+	case scan.Number, scan.String, scan.If, scan.While, scan.Ret, scan.Identifier, scan.LeftParen, scan.LeftBrack:
 		// Further work follows.
 		done = false
 	}
@@ -501,7 +501,7 @@ func (p *Parser) numberOrVector(tok scan.Token) value.Expr {
 					break Loop
 				}
 				fallthrough
-			case scan.Number, scan.Rational, scan.Complex, scan.String, scan.If, scan.While, scan.Ret:
+			case scan.Number, scan.String, scan.If, scan.While, scan.Ret:
 				expr, str = p.number(p.next())
 				if expr == nil {
 					// Must be a string.

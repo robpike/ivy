@@ -37,7 +37,7 @@ const (
 	Identifier // alphanumeric identifier
 	LeftBrack  // '['
 	LeftParen  // '('
-	Number     // simple number
+	Number     // number
 	Operator   // known operator
 	Op         // "op", operator definition keyword
 	If         // ":if", loop definition keyword
@@ -46,8 +46,6 @@ const (
 	While      // ":while", loop definition keyword
 	End        // ":end", 'block' end keyword
 	Ret        // ":ret", function return keyword
-	Rational   // rational number like 2/3
-	Complex    // complex number like 3j2
 	RightBrack // ']'
 	RightParen // ')'
 	Semicolon  // ';'
