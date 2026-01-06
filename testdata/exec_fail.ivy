@@ -114,3 +114,15 @@ op (x y) b z = a x+y-z
 op a b x = 1 / 0
 ("abc\n" (1 2 3) () 'x' 1j2 (sqrt 2) 1/2 3e9 (!100))b  (7 7 rho iota 10) (2 2 rho 1)
 	#
+
+# Because the stack trace goes to stderr, this test must be in the
+# failure test suite. To test execution continues safely after
+# the trace, we trigger a zero divide then.
+# Expect: •> a (10)
+# Expect: •> b (10)
+# Expect: division by zero
+op b x = x / 0
+op a x = sys "trace" "hello" ; b x
+a 10
+	hello
+

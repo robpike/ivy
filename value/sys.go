@@ -16,27 +16,28 @@ import (
 )
 
 const sysHelp = `
-"help":      print this text and return iota 0
-"base":      the input and output base settings as a vector of two integers
-"cpu":       the processor timing for the last evaluation
-             as a vector in units of seconds:
-               real user(cpu) system(cpu)
-"date":      the current time in Unix date format
-               year month day hour minute second
-"format":    the output format setting
-"ibase":     the input base (ibase) setting
-"maxbits":   the maxbits setting
-"maxdigits": the maxdigits setting
-"maxstack":  the maxstack setting
-"obase":     the output base (obase) setting
-"origin":    the index origin setting
-"prompt":    the prompt setting
-"read" file: read the named file and return a vector of lines, with line termination stripped
-"sec":       the time in seconds since
-               Jan 1 00:00:00 1970 UTC
-"time":      the current time in the configured time zone as a vector; the last
-             element is the time zone in which the other values apply:
-               year month day hour minute second seconds-east-of-UTC
+"help":       print this text and return iota 0
+"base":       the input and output base settings as a vector of two integers
+"cpu":        the processor timing for the last evaluation
+              as a vector in units of seconds:
+                real user(cpu) system(cpu)
+"date":       the current time in Unix date format
+                year month day hour minute second
+"format":     the output format setting
+"ibase":      the input base (ibase) setting
+"maxbits":    the maxbits setting
+"maxdigits":  the maxdigits setting
+"maxstack":   the maxstack setting
+"obase":      the output base (obase) setting
+"origin":     the index origin setting
+"prompt":     the prompt setting
+"read" file:  read the named file and return a vector of lines, with line termination stripped
+"sec":        the time in seconds since
+                Jan 1 00:00:00 1970 UTC
+"time":       the current time in the configured time zone as a vector; the last
+              element is the time zone in which the other values apply:
+                year month day hour minute second seconds-east-of-UTC
+"trace" args: print a stack trace followed by the arguments
 
 To convert seconds to a time vector:
   'T' encode sys 'sec'
@@ -142,7 +143,8 @@ var sys1 = map[string]func(conf *config.Config) Value{
 }
 
 var sysN = map[string]func(Context, []Value) Value{
-	"read": sysRead,
+	"read":  sysRead,
+	"trace": sysTrace,
 }
 
 func sysRead(c Context, args []Value) Value {
@@ -175,6 +177,14 @@ func sysRead(c Context, args []Value) Value {
 		c.Errorf("%v", err)
 	}
 	return edit.Publish()
+}
+
+func sysTrace(c Context, args []Value) Value {
+	c.StackTrace()
+	if len(args) == 1 {
+		return printValue(c, args[0])
+	}
+	return printValue(c, NewVector(args...))
 }
 
 // encodeTime returns a sys "time" vector given a seconds value.

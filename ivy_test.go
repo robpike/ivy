@@ -105,14 +105,16 @@ func runTest(t *testing.T, name string, lineNum int, shouldFail bool, input, out
 				}
 			}
 		}
-		return true
-	}
-	if stderr.Len() != 0 {
+		// Tricky corner case: Failed tests with no output have a blank line.
+		if len(output) == 1 && output[0] == "" {
+			output = nil
+		}
+	} else if stderr.Len() != 0 {
 		t.Fatalf("\nexecution failure (%s) at %s:%d:\n%s", stderr, name, lineNum, in)
 	}
 	result := strings.Split(stdout.String(), "\n")
 	if !equal(result, output) {
-		t.Errorf("\n%s:%d:\n\t%s\ngot:\n\t%s\nwant:\n\t%s",
+		t.Errorf("\n%s:%d:\n\t%s\ngot:\n\t%q\nwant:\n\t%q",
 			name, lineNum,
 			strings.Join(input, "\n\t"),
 			strings.Join(result, "\n\t"),

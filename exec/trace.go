@@ -12,12 +12,18 @@ import (
 	"robpike.io/ivy/value"
 )
 
-// StackTrace prints the execution stack, then wipes it.
+// StackTrace prints the execution stack.
 // There may be conditions under which it will cause trouble
 // by printing invalid values, but it tries to be safe.
-// TODO: Should be able to do this without wiping the stack.
 func (c *Context) StackTrace() {
 	const max = 25
+	// We need to pop the stack to print the values, but we don't want to
+	// necessarily wipe the stack. Also there is possibly other pfor code
+	// running even at failure. So use a copy of the context for now.
+	//TODO: Can we guarantee pfor is done before we get here?
+	nc := &Context{}
+	*nc = *c
+	c = nc
 	n := len(c.Stack)
 	if n > max {
 		fmt.Fprintf(c.Config().ErrOutput(), "\t•> stack truncated: %d calls total; showing innermost\n", n)
