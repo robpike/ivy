@@ -6,6 +6,7 @@ package main // import "robpike.io/ivy"
 
 import (
 	"bufio"
+	_ "embed"
 	"flag"
 	"fmt"
 	"io"
@@ -22,6 +23,9 @@ import (
 	"robpike.io/ivy/value"
 )
 
+//go:embed version.txt
+var version string
+
 var (
 	execute         = flag.String("e", "", "execute `argument` and quit")
 	executeContinue = flag.String("i", "", "execute `argument` and continue")
@@ -36,6 +40,7 @@ var (
 	prompt          = flag.String("prompt", "", "command `prompt`")
 	profile         = flag.String("profile", "", "write profile to `file`")
 	debugFlag       = flag.String("debug", "", "comma-separated `names` of debug settings to enable")
+	versionFlag     = flag.Bool("version", false, "print version and exit")
 )
 
 var (
@@ -46,6 +51,11 @@ var (
 func main() {
 	flag.Usage = usage
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Print(version)
+		return
+	}
 
 	if *profile != "" {
 		f, err := os.Create(*profile)
