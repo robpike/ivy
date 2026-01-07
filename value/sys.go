@@ -71,6 +71,20 @@ func sysInt(c Context, arg Value, op string) int {
 	return int(v)
 }
 
+// for setting base.
+func sys2Ints(c Context, arg Value, op string) (int, int, bool) {
+	vv := arg.(*Vector) // We know it's a 2-vector.
+	if vv.Len() != 2 {
+		return 0, 0, false
+	}
+	v1, ok1 := vv.At(0).(Int)
+	v2, ok2 := vv.At(1).(Int)
+	if !ok1 || !ok2 {
+		c.Errorf("left argument (%s) for sys %q must be integers", vv, op)
+	}
+	return int(v1), int(v2), true
+}
+
 func sysUint(c Context, arg Value, op string) uint {
 	u := sysInt(c, arg, op)
 	if u < 0 {
@@ -195,8 +209,13 @@ var sys1 = map[string]func(conf *config.Config) Value{
 // These are the binary ones that set the value. It's a smaller group.
 var sys2 = map[string]func(c Context, v Value){
 	"base": func(c Context, v Value) {
-		b := sysInt(c, v, "base")
-		c.Config().SetBase(b, b)
+		// Since it comes back as a pair, allow a pair here.
+		ib, ob, ok := sys2Ints(c, v, "base")
+		if !ok {
+			ib = sysInt(c, v, "base")
+			ob = ib
+		}
+		c.Config().SetBase(ib, ob)
 	},
 	"format": func(c Context, v Value) {
 		vv := v.(*Vector)
