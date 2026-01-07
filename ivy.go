@@ -20,6 +20,7 @@ import (
 	"robpike.io/ivy/parse"
 	"robpike.io/ivy/run"
 	"robpike.io/ivy/scan"
+	"robpike.io/ivy/state"
 	"robpike.io/ivy/value"
 )
 
@@ -143,7 +144,7 @@ func main() {
 		return
 	}
 
-	scanner := scan.New(context, "<stdin>", bufio.NewReader(os.Stdin))
+	scanner := scan.New(state.New(context), "<stdin>", bufio.NewReader(os.Stdin))
 	parser := parse.NewParser("<stdin>", scanner, context)
 	for !run.Run(parser, context, true) {
 	}
@@ -165,14 +166,14 @@ func runFile(context value.Context, file string) bool {
 		fmt.Fprintf(os.Stderr, "ivy: %s\n", err)
 		os.Exit(1)
 	}
-	scanner := scan.New(context, file, bufio.NewReader(fd))
+	scanner := scan.New(state.New(context), file, bufio.NewReader(fd))
 	parser := parse.NewParser(file, scanner, context)
 	return run.Run(parser, context, interactive)
 }
 
 // runString executes the string, typically a command-line argument, as an ivy program.
 func runString(context value.Context, str string) bool {
-	scanner := scan.New(context, "<args>", strings.NewReader(str))
+	scanner := scan.New(state.New(context), "<args>", strings.NewReader(str))
 	parser := parse.NewParser("<args>", scanner, context)
 	return run.Run(parser, context, false)
 }

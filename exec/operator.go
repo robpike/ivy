@@ -6,17 +6,15 @@ package exec
 
 import "robpike.io/ivy/value"
 
-// Predefined reports whether the operator is predefined, a built-in.
-func Predefined(op string) bool {
-	return value.BinaryOps[op] != nil || value.UnaryOps[op] != nil
-}
-
 // DefinedOp reports whether the operator is known.
 func (c *Context) DefinedOp(op string) bool {
 	if c.isVariable(op) {
 		return false
 	}
-	return Predefined(op) || c.BinaryFn[op] != nil || c.UnaryFn[op] != nil
+	if value.BinaryOps[op] != nil || value.UnaryOps[op] != nil {
+		return true
+	}
+	return c.BinaryFn[op] != nil || c.UnaryFn[op] != nil
 }
 
 // DefinedBinary reports whether the operator is a known binary.

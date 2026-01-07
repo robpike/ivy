@@ -17,6 +17,25 @@ import (
 	"time"
 )
 
+// State captures the parts of the interpreter interface needed during scanning. It
+// acts as a separator so that the scanner can avoid dependency on key packages
+// such as exec and value, allowing it to be a leaf package (except for this one,
+// which is itself a true leaf used by everyone), which in turn allows scan tokens
+// to be used by those packages if needed.
+type State interface {
+	// These just echo the methods of Config.
+	IsBinaryOp(op string) bool
+	InputBase() int
+	Debug(string) int
+	Output() io.Writer
+	// Predefined queries the tables of predefined operators in the value
+	// package, reporting whether there is an op with the specified arity.
+	Predefined(op string, isUnary, isBinary bool) bool
+	// UserDefined echoes context.UserDefined, reporting whether there is a
+	// user-defined op with this name.
+	UserDefined(word string, isBinary bool) bool
+}
+
 // Order here determines order in the Config.debug array.
 var DebugFlags = [...]string{
 	"cpu",

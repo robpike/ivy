@@ -17,6 +17,7 @@ import (
 
 	"robpike.io/ivy/parse"
 	"robpike.io/ivy/scan"
+	"robpike.io/ivy/state"
 	"robpike.io/ivy/value"
 )
 
@@ -27,7 +28,7 @@ func init() {
 // IvyEval is the function called by value/unaryIvy to implement the ivy (eval) operation.
 // It is exported but is not intended to be used outside of ivy.
 func IvyEval(context value.Context, str string) value.Value {
-	scanner := scan.New(context, "<ivy>", strings.NewReader(str))
+	scanner := scan.New(state.New(context), "<ivy>", strings.NewReader(str))
 	parser := parse.NewParser("<ivy>", scanner, context)
 	v := eval(parser, context)
 	if v == nil {
@@ -173,7 +174,7 @@ func Ivy(context value.Context, expr string, stdout, stderr *bytes.Buffer) {
 	}
 	reader := strings.NewReader(expr)
 
-	scanner := scan.New(context, " ", reader)
+	scanner := scan.New(state.New(context), " ", reader)
 	parser := parse.NewParser(" ", scanner, context)
 
 	conf := context.Config()

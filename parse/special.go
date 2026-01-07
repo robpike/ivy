@@ -20,6 +20,7 @@ import (
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/lib"
 	"robpike.io/ivy/scan"
+	"robpike.io/ivy/state"
 	"robpike.io/ivy/value"
 )
 
@@ -514,7 +515,7 @@ func (p *Parser) runFromReader(context value.Context, name string, reader io.Rea
 		}
 		panic(err)
 	}()
-	scanner := scan.New(context, name, bufio.NewReader(reader))
+	scanner := scan.New(state.New(context), name, bufio.NewReader(reader))
 	parser := NewParser(name, scanner, p.context)
 	for parser.runUntilError(name) != io.EOF {
 		if stopOnError {

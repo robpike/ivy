@@ -362,7 +362,7 @@ func (c *Context) noOp(name string) {
 	value.Errorf("cannot define variable %s; it is an op", name)
 }
 
-// Declare makes the name a variable while parsing the next function.
+// Declare makes the name a variable while parsing a function.
 func (c *Context) Declare(name string) {
 	c.variables = append(c.variables, name)
 }

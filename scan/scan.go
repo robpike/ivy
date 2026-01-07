@@ -13,8 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"robpike.io/ivy/exec"
-	"robpike.io/ivy/value"
+	"robpike.io/ivy/config"
 )
 
 // Token represents a token or text string returned from the scanner.
@@ -72,7 +71,7 @@ type stateFn func(*Scanner) stateFn
 
 // Scanner holds the state of the scanner.
 type Scanner struct {
-	context   value.Context
+	conf      config.State
 	r         io.ByteReader
 	done      bool
 	name      string // the name of the input; used only for error reports
@@ -186,9 +185,8 @@ func (l *Scanner) emit(t Type) stateFn {
 		l.line++
 	}
 	text := l.input[l.start:l.pos]
-	config := l.context.Config()
-	if config.Debug("tokens") > 0 {
-		fmt.Fprintf(config.Output(), "%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, text})
+	if l.conf.Debug("tokens") > 0 {
+		fmt.Fprintf(l.conf.Output(), "%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, text})
 	}
 	l.token = Token{t, l.line, text}
 	l.start = l.pos
@@ -221,12 +219,12 @@ func (l *Scanner) errorf(format string, args ...interface{}) stateFn {
 }
 
 // New creates and returns a new scanner.
-func New(context value.Context, name string, r io.ByteReader) *Scanner {
+func New(conf config.State, name string, r io.ByteReader) *Scanner {
 	l := &Scanner{
-		r:       r,
-		name:    name,
-		line:    1,
-		context: context,
+		r:    r,
+		name: name,
+		line: 1,
+		conf: conf,
 	}
 	return l
 }
@@ -398,12 +396,12 @@ func lexIdentifier(l *Scanner) stateFn {
 		return lexOperator
 	case word == "" || eachLeft > 0:
 		return l.errorf("invalid operator %q", l.input[l.start:l.pos])
-	case isAllDigits(word, l.context.Config().InputBase()):
+	case isAllDigits(word, l.conf.InputBase()):
 		// Mistake: back up and scan it as a number.
 		l.pos = l.start
 		return lexComplex
 	}
-	if !l.context.UserDefined(word, false) {
+	if !l.conf.UserDefined(word, false) {
 		// Lexed word@ but word is not a unary operator; leave @ for next time.
 		l.pos -= eachRight
 	}
@@ -421,7 +419,7 @@ func lexOperator(l *Scanner) stateFn {
 	// It might be an inner product or reduction, but only if it is a binary operator.
 	word := l.input[l.start:l.pos]
 	w := strings.Trim(word, "@")
-	if word == "o" || value.BinaryOps[w] != nil || l.context.UserDefined(w, true) {
+	if word == "o" || l.conf.Predefined(w, false, true) || l.conf.UserDefined(w, true) {
 		switch l.peek() {
 		case '/', '\\':
 			// Reduction or scan.
@@ -550,7 +548,7 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 }
 
 func (l *Scanner) scanNumber(followingSlashOK, followingJOK bool) bool {
-	base := l.context.Config().InputBase()
+	base := l.conf.InputBase()
 	digits := digitsForBase(base)
 	// If base 0, accept octal for 0 or hex for 0x or 0X.
 	if base == 0 {
@@ -705,7 +703,7 @@ func (l *Scanner) isNumeral(r rune) bool {
 	if '0' <= r && r <= '9' {
 		return true
 	}
-	base := l.context.Config().InputBase()
+	base := l.conf.InputBase()
 	if base < 10 {
 		return false
 	}
@@ -797,7 +795,7 @@ func (l *Scanner) isOperatorToken(r rune) bool {
 	return true
 }
 
-// defined reports whether the argument has been defined as a variable or operator.
+// defined reports whether the argument has been defined as an operator.
 func (l *Scanner) defined(word string) bool {
-	return exec.Predefined(word) || l.context.UserDefined(word, true)
+	return l.conf.Predefined(word, true, true) || l.conf.UserDefined(word, true)
 }
