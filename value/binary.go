@@ -59,6 +59,11 @@ func vectorAndMatrixType(t1, t2 valueType) (valueType, valueType) {
 	return vectorType, matrixType
 }
 
+// onlyVectorType
+func onlyVectorType(t1, t2 valueType) (valueType, valueType) {
+	return vectorType, vectorType
+}
+
 // vectorAndAtLeastVectorType promotes the left arg to vector
 // and the right arg to at least vector.
 func vectorAndAtLeastVectorType(t1, t2 valueType) (valueType, valueType) {
@@ -1590,6 +1595,14 @@ func init() {
 					}
 					return m
 				},
+			},
+		},
+
+		{
+			name:      "sys",
+			whichType: onlyVectorType,
+			fn: [numType]binaryFn{
+				vectorType: binarySys,
 			},
 		},
 

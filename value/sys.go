@@ -30,6 +30,7 @@ const sysHelp = `
 "maxstack":   the maxstack setting
 "obase":      the output base (obase) setting
 "origin":     the index origin setting
+"prec":       the bit length of the mantissa of float values
 "prompt":     the prompt setting
 "read" file:  read the named file and return a vector of lines, with line termination stripped
 "sec":        the time in seconds since
@@ -38,6 +39,13 @@ const sysHelp = `
               element is the time zone in which the other values apply:
                 year month day hour minute second seconds-east-of-UTC
 "trace" args: print a stack trace followed by the arguments
+
+The following commands also have a binary form that sets the value
+to the left argument and returns the previous value:
+
+	"base"     "format" "ibase"  "maxbits" "maxdigits"
+	"maxstack" "obase"  "origin" "prec" "prompt"
+
 
 To convert seconds to a time vector:
   'T' encode sys 'sec'
@@ -49,6 +57,26 @@ To print seconds in Unix date format:
 func vecText(v *Vector) string {
 	s := fmt.Sprint(v) // will print as "(text)"
 	return s[1 : len(s)-1]
+}
+
+func sysInt(c Context, arg Value, op string) int {
+	vv := arg.(*Vector) // We know it's a vector from unary.go.
+	if vv.Len() != 1 {
+		c.Errorf("left argument (%s) for sys %q must be integer", arg, op)
+	}
+	v, ok := vv.At(0).(Int)
+	if !ok {
+		c.Errorf("left argument (%s) for sys %q must be integer", v, op)
+	}
+	return int(v)
+}
+
+func sysUint(c Context, arg Value, op string) uint {
+	u := sysInt(c, arg, op)
+	if u < 0 {
+		c.Errorf("left argument (%s) for sys %q must be non-negative integer", u, op)
+	}
+	return uint(u)
 }
 
 // sys implements the variegated "sys" unary operator.
@@ -83,6 +111,25 @@ func sys(c Context, v Value) Value {
 	}
 
 	c.Errorf("sys requires string argument")
+	panic("unreachable")
+}
+
+// binarySys implements the "sys" binary operator, which sets the value and returns
+// the previous value
+func binarySys(c Context, u, v Value) Value {
+	// Remember the old value.
+	ret := sys(c, v)
+
+	vv := v.(*Vector)
+	if !vv.AllChars() { // single argument
+		c.Errorf("sys requires string argument")
+	}
+	verb := vecText(vv)
+	if fn, ok := sys2[verb]; ok {
+		fn(c, u)
+		return ret
+	}
+	c.Errorf("binary sys %q not defined", verb)
 	panic("unreachable")
 }
 
@@ -131,6 +178,9 @@ var sys1 = map[string]func(conf *config.Config) Value{
 	"origin": func(conf *config.Config) Value {
 		return Int(conf.Origin())
 	},
+	"prec": func(conf *config.Config) Value {
+		return Int(conf.FloatPrec())
+	},
 	"prompt": func(conf *config.Config) Value {
 		return newCharVector(fmt.Sprintf("%q", conf.Prompt()))
 	},
@@ -139,6 +189,49 @@ var sys1 = map[string]func(conf *config.Config) Value{
 	},
 	"time": func(conf *config.Config) Value {
 		return timeVec(time.Now().In(conf.Location()))
+	},
+}
+
+// These are the binary ones that set the value. It's a smaller group.
+var sys2 = map[string]func(c Context, v Value){
+	"base": func(c Context, v Value) {
+		b := sysInt(c, v, "base")
+		c.Config().SetBase(b, b)
+	},
+	"format": func(c Context, v Value) {
+		vv := v.(*Vector)
+		if !vv.AllChars() {
+			c.Errorf("left argument of binary sys 'format' must be string")
+		}
+		c.Config().SetFormat(vecText(vv))
+	},
+	"ibase": func(c Context, v Value) {
+		c.Config().SetBase(sysInt(c, v, "ibase"), c.Config().OutputBase())
+	},
+	"maxbits": func(c Context, v Value) {
+		c.Config().SetMaxBits(sysUint(c, v, "maxbits"))
+	},
+	"maxdigits": func(c Context, v Value) {
+		c.Config().SetMaxDigits(sysUint(c, v, "maxdigits"))
+	},
+	"maxstack": func(c Context, v Value) {
+		c.Config().SetMaxStack(sysUint(c, v, "maxstack"))
+	},
+	"obase": func(c Context, v Value) {
+		c.Config().SetBase(c.Config().InputBase(), sysInt(c, v, "obase"))
+	},
+	"origin": func(c Context, v Value) {
+		c.Config().SetOrigin(sysInt(c, v, "origin"))
+	},
+	"prec": func(c Context, v Value) {
+		c.Config().SetFloatPrec(sysUint(c, v, "prec"))
+	},
+	"prompt": func(c Context, v Value) {
+		vv := v.(*Vector)
+		if !vv.AllChars() {
+			c.Errorf("left argument of binary sys 'prompt' must be string")
+		}
+		c.Config().SetPrompt(vecText(vv))
 	},
 }
 

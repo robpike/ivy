@@ -206,6 +206,7 @@ Bitwise xor                 ^         Bitwise A exclusive or B (integer only)
 Left shift                  &lt;&lt;        A shifted left B bits (integer only)
 Right Shift                 &gt;&gt;        A shifted right B bits (integer only)
 Complex construction        j         The complex number A+Bi
+System functions      ⎕     sys       Like unary sys but sets value to A, returns previous
 </pre>
 <p>Operators and axis indicator
 <pre>Name                APL  Ivy  APL Example  Ivy Example  Meaning (of example)

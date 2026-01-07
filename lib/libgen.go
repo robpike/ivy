@@ -25,6 +25,7 @@ import (
 	"robpike.io/ivy/exec"
 	"robpike.io/ivy/parse"
 	"robpike.io/ivy/scan"
+	"robpike.io/ivy/state"
 	"robpike.io/ivy/value"
 )
 
@@ -141,7 +142,7 @@ func vars(path string, data []byte) string {
 	var conf config.Config
 	conf.SetPrompt("") // Sufficient to initialize.
 	context := exec.NewContext(&conf)
-	scanner := scan.New(context, path, bytes.NewReader(data))
+	scanner := scan.New(state.New(context), path, bytes.NewReader(data))
 	parser := parse.NewParser(path, scanner, context)
 	vars := []string{}
 	for {

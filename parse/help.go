@@ -196,6 +196,7 @@ var helpLines = []string{
 	"\tLeft shift                  <<        A shifted left B bits (integer only)",
 	"\tRight Shift                 >>        A shifted right B bits (integer only)",
 	"\tComplex construction        j         The complex number A+Bi",
+	"\tSystem functions      ⎕     sys       Like unary sys but sets value to A, returns previous",
 	"",
 	"Operators and axis indicator",
 	"",
@@ -558,9 +559,9 @@ var helpUnary = map[string]helpIndexPair{
 	"conj":    {115, 115},
 	"sys":     {116, 116},
 	"print":   {117, 117},
-	"code":    {213, 213},
-	"char":    {214, 214},
-	"float":   {215, 217},
+	"code":    {214, 214},
+	"char":    {215, 215},
+	"float":   {216, 218},
 }
 
 var helpBinary = map[string]helpIndexPair{
@@ -613,15 +614,16 @@ var helpBinary = map[string]helpIndexPair{
 	"<<":        {190, 190},
 	">>":        {191, 191},
 	"j":         {192, 192},
+	"sys":       {193, 193},
 }
 
 var helpAxis = map[string]helpIndexPair{
-	"/":   {197, 197},
-	"/%":  {198, 198},
-	"\\":  {199, 199},
-	"\\%": {200, 200},
-	".":   {201, 201},
-	"o.":  {202, 202},
-	"@f":  {205, 205},
-	"f@":  {207, 207},
+	"/":   {198, 198},
+	"/%":  {199, 199},
+	"\\":  {200, 200},
+	"\\%": {201, 201},
+	".":   {202, 202},
+	"o.":  {203, 203},
+	"@f":  {206, 206},
+	"f@":  {208, 208},
 }

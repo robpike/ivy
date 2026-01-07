@@ -200,6 +200,7 @@ Binary operators
 	Left shift                  <<        A shifted left B bits (integer only)
 	Right Shift                 >>        A shifted right B bits (integer only)
 	Complex construction        j         The complex number A+Bi
+	System functions      ⎕     sys       Like unary sys but sets value to A, returns previous
 
 Operators and axis indicator
 
