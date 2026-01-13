@@ -16,13 +16,13 @@ import (
 // themselves, we use an init function to initialize the ops.
 
 // noPromoteType leaves the types as they are.
-func noPromoteType(t1, t2 valueType) (valueType, valueType) {
+func noPromoteType(c Context, t1, t2 valueType) (valueType, valueType) {
 	return t1, t2
 }
 
 // binaryArithType returns the maximum of the two types,
 // so the smaller value is appropriately up-converted.
-func binaryArithType(t1, t2 valueType) (valueType, valueType) {
+func binaryArithType(c Context, t1, t2 valueType) (valueType, valueType) {
 	if t1 > t2 {
 		return t1, t1
 	}
@@ -31,23 +31,23 @@ func binaryArithType(t1, t2 valueType) (valueType, valueType) {
 
 // divType is like binaryArithType but never returns smaller than BigInt,
 // because the only implementation of exponentiation we have is in big.Int.
-func divType(t1, t2 valueType) (valueType, valueType) {
+func divType(c Context, t1, t2 valueType) (valueType, valueType) {
 	if t1 == intType {
 		t1 = bigIntType
 	}
-	return binaryArithType(t1, t2)
+	return binaryArithType(c, t1, t2)
 }
 
 // rationalType promotes scalars to rationals so we can do rational division.
-func rationalType(t1, t2 valueType) (valueType, valueType) {
+func rationalType(c Context, t1, t2 valueType) (valueType, valueType) {
 	if t1 < bigRatType {
 		t1 = bigRatType
 	}
-	return binaryArithType(t1, t2)
+	return binaryArithType(c, t1, t2)
 }
 
 // atLeastVectorType promotes both arguments to at least vectors.
-func atLeastVectorType(t1, t2 valueType) (valueType, valueType) {
+func atLeastVectorType(c Context, t1, t2 valueType) (valueType, valueType) {
 	if t1 < matrixType && t2 < matrixType {
 		return vectorType, vectorType
 	}
@@ -55,18 +55,18 @@ func atLeastVectorType(t1, t2 valueType) (valueType, valueType) {
 }
 
 // vectorAndMatrixType promotes the left arg to vector and the right arg to matrix.
-func vectorAndMatrixType(t1, t2 valueType) (valueType, valueType) {
+func vectorAndMatrixType(c Context, t1, t2 valueType) (valueType, valueType) {
 	return vectorType, matrixType
 }
 
 // onlyVectorType
-func onlyVectorType(t1, t2 valueType) (valueType, valueType) {
+func onlyVectorType(c Context, t1, t2 valueType) (valueType, valueType) {
 	return vectorType, vectorType
 }
 
 // vectorAndAtLeastVectorType promotes the left arg to vector
 // and the right arg to at least vector.
-func vectorAndAtLeastVectorType(t1, t2 valueType) (valueType, valueType) {
+func vectorAndAtLeastVectorType(c Context, t1, t2 valueType) (valueType, valueType) {
 	if t2 < vectorType {
 		t2 = vectorType
 	}
@@ -391,7 +391,7 @@ func init() {
 						c.Errorf("mismatched lengths %d, %d in vector mdiv", uu.Len(), vv.Len())
 					}
 					for i := range uu.All() {
-						if whichType(uu.At(i)) >= complexType || whichType(vv.At(i)) >= complexType {
+						if whichType(c, uu.At(i)) >= complexType || whichType(c, vv.At(i)) >= complexType {
 							c.Errorf("non-real element in vector mdiv")
 						}
 					}

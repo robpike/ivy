@@ -60,14 +60,14 @@ const widthThreshold = 5 // All widths below this -> regular grid.
 
 // addColumn records the width for column i, either updating that
 // column or adding a new one. i is never more than len(w.wid).
-func (w *widths) addColumn(i, wid int) {
+func (w *widths) addColumn(c Context, i, wid int) {
 	switch {
 	case i < len(w.wid):
 		w.wid[i] = max(wid, w.wid[i])
 	case i == len(w.wid):
 		w.wid = append(w.wid, wid)
 	default:
-		Errorf("cannot happen: out of range in addColumn")
+		c.Errorf("cannot happen: out of range in addColumn")
 	}
 	w.max = max(w.max, wid)
 }
@@ -203,6 +203,7 @@ func (m *Matrix) sprint(c Context) []string {
 
 func (m *Matrix) ProgString() string {
 	// There is no such thing as a matrix in program listings.
+	// Update and use DebugProgString if this panic happens.
 	panic("matrix.ProgString - cannot happen")
 }
 
@@ -893,7 +894,7 @@ func (m *Matrix) split(c Context) Value {
 // mix builds a matrix from the elements of the nested matrix.
 func (m *Matrix) mix(c Context) Value {
 	// If it's all scalar, nothing to do.
-	if m.data.allScalars() {
+	if m.data.allScalars(c) {
 		return m
 	}
 	shape := []int{0}
@@ -1041,7 +1042,7 @@ func (m *Matrix) inverse(c Context) Value {
 		for y := 0; y < dim; y++ {
 			thisRow := t[y]
 			val := thisRow[x]
-			if !IsScalarType(val) {
+			if !IsScalarType(c, val) {
 				c.Errorf(nonScalar)
 			}
 			if y == x {

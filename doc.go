@@ -390,19 +390,14 @@ separate expressions:
 
 	op a gcd b = a == b: a; a > b: b gcd a-b; a gcd b-a
 
-To declare an operator but not define it, omit the equals sign and
-what follows.
+Binding is lazy so an operator may be mentioned before definition.
 
-	op foo x
 	op bar x = foo x
 	op foo x = -x
 	bar 3
 	result: -3
-	op foo x = /x
-	bar 3
-	result: 1/3
 
-Within a user-defined operator body, identifiers are local to the
+Within a user-defined operator body, variables are local to the
 invocation if they are assigned before being read, and global if
 read before being written.  To write to a global without reading
 it first, insert an unused read.

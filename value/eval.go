@@ -55,7 +55,7 @@ func TraceBinary(c Context, level int, u Value, op string, v Value) {
 }
 
 func (op *unaryOp) EvalUnary(c Context, v Value) Value {
-	which := whichType(v)
+	which := whichType(c, v)
 	fn := op.fn[which]
 	if fn == nil {
 		if op.elementwise {
@@ -79,11 +79,11 @@ type binaryFn func(Context, Value, Value) Value
 type binaryOp struct {
 	name        string
 	elementwise bool // whether the operation applies elementwise to vectors and matrices
-	whichType   func(a, b valueType) (valueType, valueType)
+	whichType   func(c Context, a, b valueType) (valueType, valueType)
 	fn          [numType]binaryFn
 }
 
-func whichType(v Value) valueType {
+func whichType(c Context, v Value) valueType {
 	switch v.Inner().(type) {
 	case Int:
 		return intType
@@ -102,12 +102,12 @@ func whichType(v Value) valueType {
 	case *Matrix:
 		return matrixType
 	}
-	Errorf("internal error: unknown type %T in whichType", v)
+	c.Errorf("internal error: unknown type %T in whichType", v)
 	panic("which type")
 }
 
 func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
-	whichU, whichV := op.whichType(whichType(u), whichType(v))
+	whichU, whichV := op.whichType(c, whichType(c, u), whichType(c, v))
 	conf := c.Config()
 	u = u.toType(op.name, c, whichU)
 	v = v.toType(op.name, c, whichV)
@@ -134,8 +134,8 @@ func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
 // The logic of type promotion in EvalBinary otherwise interferes with comparison
 // because it tries to force scalar types to be the same, and char doesn't convert to
 // any other type.
-func EvalCharEqual(u Value, isEqualOp bool, v Value) (Value, bool) {
-	uType, vType := whichType(u), whichType(v)
+func EvalCharEqual(c Context, u Value, isEqualOp bool, v Value) (Value, bool) {
+	uType, vType := whichType(c, u), whichType(c, v)
 	if uType != vType && uType < vectorType && vType < vectorType {
 		// Two different scalar types. If either is char, we know the answer now.
 		if uType == charType || vType == charType {
@@ -156,7 +156,7 @@ func Product(c Context, u Value, op string, v Value) Value {
 	dot := strings.IndexByte(op, '.')
 	left := op[:dot]
 	right := op[dot+1:]
-	which, _ := atLeastVectorType(whichType(u), whichType(v))
+	which, _ := atLeastVectorType(c, whichType(c, u), whichType(c, v))
 	u = u.toType(op, c, which)
 	v = v.toType(op, c, which)
 	if left == "o" {
@@ -286,7 +286,7 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		copy(shape[len(u.shape)-1:], v.shape[1:])
 		return NewMatrix(c, shape, data.Publish())
 	}
-	c.Errorf("can't do inner product on %s", whichType(u))
+	c.Errorf("can't do inner product on %s", whichType(c, u))
 	panic("not reached")
 }
 
@@ -315,7 +315,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 		})
 		return NewMatrix(c, append(u.Shape(), v.Shape()...), data.Publish())
 	}
-	c.Errorf("can't do outer product on %s", whichType(u))
+	c.Errorf("can't do outer product on %s", whichType(c, u))
 	panic("not reached")
 }
 
@@ -363,7 +363,7 @@ func Reduce(c Context, op string, v Value) Value {
 		}
 		return NewMatrix(c, shape, data.Publish())
 	}
-	c.Errorf("can't do reduce on %s", whichType(v))
+	c.Errorf("can't do reduce on %s", whichType(c, v))
 	panic("not reached")
 }
 
@@ -459,7 +459,7 @@ func Scan(c Context, op string, v Value) Value {
 		})
 		return NewMatrix(c, v.shape, data.Publish())
 	}
-	c.Errorf("can't do scan on %s", whichType(v))
+	c.Errorf("can't do scan on %s", whichType(c, v))
 	panic("not reached")
 }
 
@@ -760,8 +760,8 @@ func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
 }
 
 // IsScalarType reports whether u is an actual scalar, an int or float etc.
-func IsScalarType(v Value) bool {
-	return whichType(v) < vectorType
+func IsScalarType(c Context, v Value) bool {
+	return whichType(c, v) < vectorType
 }
 
 // isScalar reports whether u is a 1x1x1x... item, that is, a scalar promoted to matrix.
@@ -927,12 +927,12 @@ func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
 	if z, ok := b.shrink().(Int); ok && z == 0 { // If zero, it must be shrinkable to Int.
 		return zero, a
 	}
-	aT := whichType(a)
-	bT := whichType(b)
+	aT := whichType(c, a)
+	bT := whichType(c, b)
 	negX, negY := false, false
 	// The calculations all do the division on the absolute values,
 	// then restore sign and adjust if necessary afterwards.
-	switch typ, _ := binaryArithType(aT, bT); typ {
+	switch typ, _ := binaryArithType(c, aT, bT); typ {
 	case intType:
 		x := int(a.(Int))
 		y := int(b.(Int))
@@ -1023,7 +1023,7 @@ func QuoRem(op string, c Context, a, b Value) (div, rem Value) {
 
 // EvalFunctionBody evaluates the list of expressions inside a function,
 // with no default value.
-func EvalFunctionBody(context Context, fnName string, body ExprList, hasRet bool) (v Value) {
+func EvalFunctionBody(context Context, fnName string, body StatementList, hasRet bool) (v Value) {
 	if hasRet {
 		// The runtime has n^2 behavior handling repanics. Avoid that if possible.
 		defer func() {
@@ -1039,23 +1039,26 @@ func EvalFunctionBody(context Context, fnName string, body ExprList, hasRet bool
 			v = r.Value
 		}()
 	}
-	v, _ = evalExpressionList(context, fnName, nil, body)
+	v, _ = evalStatementList(context, fnName, nil, body)
 	return v
 }
 
 // EvalBlock evaluates the list of expressions inside a block, with
 // the empty expression as the default value.
-func EvalBlock(context Context, fnName string, body ExprList) Value {
-	v, _ := evalExpressionList(context, fnName, empty, body)
+func EvalBlock(context Context, fnName string, body StatementList) Value {
+	v, _ := evalStatementList(context, fnName, empty, body)
 	return v
 }
 
-// evalExpressionList evaluates an expression list with a specified
+// evalStatementList evaluates an expression list with a specified
 // default value. A colon expression will give an early return value,
 // signaled by earlyExit. RetExpr is handled in EvalFunctionBody
 // as it must step to the top level of the function.
-func evalExpressionList(context Context, fnName string, v Value, body ExprList) (val Value, earlyExit bool) {
+func evalStatementList(context Context, fnName string, v Value, body StatementList) (val Value, earlyExit bool) {
 	for _, e := range body {
+		if stmt, ok := e.(*Statement); ok {
+			e = stmt.Parse(context)
+		}
 		switch expr := e.(type) {
 		case *ColonExpr:
 			if isTrue(context, fnName, expr.Cond.Eval(context)) {

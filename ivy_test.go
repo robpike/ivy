@@ -75,8 +75,9 @@ func TestAll(t *testing.T) {
 			}
 			if !runTest(t, path, lineNum, shouldFail, input, output) {
 				errCount++
-				if errCount > 100 {
+				if errCount > 5 { // TODO
 					t.Fatal("too many errors")
+					return
 				}
 			}
 			lines = lines[length:]
@@ -99,7 +100,10 @@ func runTest(t *testing.T, name string, lineNum int, shouldFail bool, input, out
 			if strings.HasPrefix(line, "# Expect: ") {
 				expect := line[len("# Expect: "):]
 				if expect != "" && !strings.Contains(stderr.String(), expect) {
-					t.Errorf("\nmissing execution failure message at %s:%d:\n%s", name, lineNum, in)
+					t.Errorf("\n%s:%d: missing execution failure message (%s) running\n\t%s\n",
+						name, lineNum,
+						expect,
+						input)
 					t.Errorf("got:\n\t%s", stderr)
 					t.Fatalf("expected:\n\t%s\n", expect)
 				}
@@ -110,11 +114,14 @@ func runTest(t *testing.T, name string, lineNum int, shouldFail bool, input, out
 			output = nil
 		}
 	} else if stderr.Len() != 0 {
-		t.Fatalf("\nexecution failure (%s) at %s:%d:\n%s", stderr, name, lineNum, in)
+		t.Fatalf("\n%s:%d: execution failure (%s) running\n\t%s\n",
+			name, lineNum,
+			strings.TrimSpace(stderr.String()), // For final newline.
+			input)
 	}
 	result := strings.Split(stdout.String(), "\n")
 	if !equal(result, output) {
-		t.Errorf("\n%s:%d:\n\t%s\ngot:\n\t%q\nwant:\n\t%q",
+		t.Errorf("\n%s:%d:\n\t%s\ngot:\n\t%s\nwant:\n\t%s",
 			name, lineNum,
 			strings.Join(input, "\n\t"),
 			strings.Join(result, "\n\t"),

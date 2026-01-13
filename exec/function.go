@@ -13,72 +13,49 @@ import (
 
 // Function represents a unary or binary user-defined operator.
 type Function struct {
-	IsBinary bool
-	Name     string
-	Left     value.Expr
-	Right    value.Expr
-	Body     value.ExprList
-	Locals   []string
-	Globals  []string
-	Source   string
-	HasRet   bool
+	IsBinary  bool
+	Name      string
+	Left      value.Expr
+	Right     value.Expr
+	Body      value.StatementList
+	Variables []string // Names mentioned in the body that could be vars.
+	Source    string
+	HasRet    bool
 	// At time of definition; needed to parse saved source correctly.
 	Ibase int
 }
 
-// argProgString builds a string representation of arg, to be used in printing the
-// source to an op. If the argument is a vector, it needs special handling to get
-// parentheses and nesting.
-func argProgString(b *strings.Builder, arg value.Expr) {
-	switch expr := arg.(type) {
-	case *value.VarExpr:
-		b.WriteString(expr.ProgString())
-		return
-	case value.VectorExpr:
-		b.WriteRune('(')
-		for i, elem := range expr {
-			if i > 0 {
-				b.WriteRune(' ')
-			}
-			argProgString(b, elem)
-		}
-		b.WriteRune(')')
-	default:
-		b.WriteString(fmt.Sprintf("<unknown type in op print: %T>", arg))
-	}
-}
-
+// Used for debugging. The output is not valid Ivy syntax.
 func (fn *Function) String() string {
 	var b strings.Builder
 	b.WriteString("op ")
 	if fn.IsBinary {
-		argProgString(&b, fn.Left)
+		b.WriteString(value.DebugProgString(fn.Left))
 		b.WriteRune(' ')
 	}
 	b.WriteString(fn.Name)
 	b.WriteRune(' ')
-	argProgString(&b, fn.Right)
-	b.WriteString(" = ")
-	if len(fn.Body) == 1 {
-		b.WriteString(fn.Body[0].ProgString())
-	} else {
-		for _, stmt := range fn.Body {
-			b.WriteString("\n\t")
-			b.WriteString(stmt.ProgString())
-		}
-	}
+	b.WriteString(value.DebugProgString(fn.Right))
+	b.WriteString(" = {")
+	b.WriteString(fn.Source)
+	fmt.Fprintf(&b, "} {Variables: %s} ", fn.Variables)
 	return b.String()
 }
 
 func (fn *Function) newFrame() *value.Frame {
-	return &value.Frame{
+	frame := &value.Frame{
 		Op:       fn.Name,
 		IsBinary: fn.IsBinary,
 		Left:     fn.Left,
 		Right:    fn.Right,
 		Inited:   false,
-		Vars:     make(value.Symtab),
+		Vars:     value.Symtab{},
 	}
+	frame.Vars = make([]*value.Var, len(fn.Variables))
+	for i, id := range fn.Variables {
+		frame.Vars[i] = value.NewVar(id, nil, value.Unknown)
+	}
+	return frame
 }
 
 func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Value {
@@ -92,7 +69,7 @@ func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Va
 	}
 	c.push(fn)
 	value.Assign(context, fn.Right, right, right)
-	c.topOfStack().Inited = true
+	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
 		c.Errorf("no value returned by %q", fn.Name)
@@ -113,7 +90,7 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	c.push(fn)
 	value.Assign(context, fn.Left, left, left)
 	value.Assign(context, fn.Right, right, right)
-	c.topOfStack().Inited = true
+	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
 		context.Errorf("no value returned by %q", fn.Name)

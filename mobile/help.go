@@ -368,18 +368,13 @@ operators must be presented on a single line. Use semicolons to
 separate expressions:
 <pre>op a gcd b = a == b: a; a &gt; b: b gcd a-b; a gcd b-a
 </pre>
-<p>To declare an operator but not define it, omit the equals sign and
-what follows.
-<pre>op foo x
-op bar x = foo x
+<p>Binding is lazy so an operator may be mentioned before definition.
+<pre>op bar x = foo x
 op foo x = -x
 bar 3
 result: -3
-op foo x = /x
-bar 3
-result: 1/3
 </pre>
-<p>Within a user-defined operator body, identifiers are local to the
+<p>Within a user-defined operator body, variables are local to the
 invocation if they are assigned before being read, and global if
 read before being written.  To write to a global without reading
 it first, insert an unused read.

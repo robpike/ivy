@@ -73,7 +73,7 @@ var demoOut = escaper.Replace(`23
 1 2 3 4 5 6 7 8 9 10
 `)
 
-const demoErr = " :1: zero denominator in rational\n"
+const demoErr = " :1:1: zero denominator in rational\n"
 
 func TestDemo(t *testing.T) {
 	demo := NewDemo(demoText)

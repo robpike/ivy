@@ -15,17 +15,17 @@ import (
 
 // function [un]definition
 //
-//	"op" name arg <eol>
-//	"op" name arg '=' statements <eol>
-//	"op" arg name arg '=' statements <eol>
+//	"op" name arg '=' body <eol>
+//	"op" arg name arg '=' body <eol>
 //
-// statements:
+// body:
+//	statementList
+//	'\n' (statementList '\n')+ '\n' # For multiline definition, ending with blank line.
 //
-//	expressionList
-//	'\n' (expressionList '\n')+ '\n' # For multiline definition, ending with blank line.
 func (p *Parser) functionDefn(start int) {
-	p.InOperator(true)
-	defer p.InOperator(false)
+	p.context.SetPos(p.fileName, p.lineNum, p.offset)
+	p.inOperator = true
+	defer func() { p.inOperator = false }()
 	tok := p.need(scan.Op)
 	fn := new(exec.Function)
 	// Two identifiers means: op arg.
@@ -43,11 +43,11 @@ func (p *Parser) functionDefn(start int) {
 	if x, ok := nameArg.(*value.VarExpr); ok {
 		fn.Name = x.Name
 	} else {
-		p.errorf("invalid function name: %v", nameArg.ProgString())
+		p.errorf("invalid function name: %v", value.DebugProgString(nameArg))
 	}
 
 	// Prepare to declare arguments.
-	argNames := make(map[string]bool)
+	varNames := make(map[string]bool)
 	declare := func(x *value.VarExpr) {
 		if x.Name == fn.Name {
 			p.errorf("argument name %q is function name", fn.Name)
@@ -55,14 +55,12 @@ func (p *Parser) functionDefn(start int) {
 		if x.Name == "_" {
 			return
 		}
-		if argNames[x.Name] {
+		if varNames[x.Name] {
 			p.errorf("multiple arguments named %q", x.Name)
 		}
-		argNames[x.Name] = true
-		p.context.Declare(x.Name)
+		varNames[x.Name] = true
 	}
 
-	// Install the function in the symbol table so recursive ops work. (As if.)
 	var installMap map[string]*exec.Function
 	if len(args) == 3 {
 		if fn.Name == "o" { // Poor choice due to outer product syntax.
@@ -79,24 +77,6 @@ func (p *Parser) functionDefn(start int) {
 		walkVars(fn.Right, declare)
 		installMap = p.context.UnaryFn
 	}
-
-	// Define it, but prepare to undefine if there's trouble.
-	prevIndex, _ := p.context.LookupFn(fn.Name, fn.IsBinary)
-	prevDefn := installMap[fn.Name]
-	p.context.Define(fn) // Source will come at the end.
-	defer p.context.ForgetAll()
-	succeeded := false
-	defer func() {
-		if !succeeded {
-			fixed := p.context.UndefineOp(fn.Name, fn.IsBinary)
-			if fixed && prevDefn != nil {
-				fixed = p.context.RestoreOp(prevIndex, prevDefn)
-			}
-			if !fixed {
-				value.Errorf("internal error: redefinition failure for %q", fn.Name)
-			}
-		}
-	}()
 
 	tok = p.next()
 	switch tok.Type {
@@ -115,7 +95,8 @@ func (p *Parser) functionDefn(start int) {
 				p.errorf("invalid function definition")
 			}
 			for p.peek().Type != scan.EOF {
-				fn.Body = append(fn.Body, p.expressionList()...)
+				p.context.SetPos(p.fileName, p.lineNum, p.offset)
+				fn.Body = append(fn.Body, p.statementList()...)
 				if !p.readTokensToNewline() {
 					p.errorf("invalid function definition")
 				}
@@ -123,14 +104,13 @@ func (p *Parser) functionDefn(start int) {
 			p.next() // Consume final newline.
 		} else {
 			// Single line.
-			fn.Body = p.expressionList()
+			fn.Body = p.statementList()
 		}
 		if len(fn.Body) == 0 {
 			p.errorf("missing function body")
 		}
-	case scan.EOF:
 	default:
-		p.errorf("expected newline after function declaration, found %s", tok)
+		p.errorf("expected definition after function declaration, found %s", tok)
 	}
 	// Was there a leading comment? If so, bind it to the saved textual definition
 	history := p.scanner.History()
@@ -143,15 +123,19 @@ func (p *Parser) functionDefn(start int) {
 	fn.Source = p.source(start, len(history))
 	// Remember the base so we can parse the source text again after a save.
 	fn.Ibase, _ = p.context.Config().Base()
-	funcVars(fn)
-	succeeded = true
+	funcVars(p.context, varNames, fn)
+	// Have we added a new operator? If so, must flush saved parses because they
+	// may now parse differently.
+	if installMap[fn.Name] == nil {
+		p.context.FlushSavedParses()
+	}
 	p.context.Define(fn)
 	if p.context.Config().Debug("parse") > 0 {
 		left := ""
 		if fn.Left != nil {
 			left = fn.Left.ProgString()
 		}
-		p.Printf("op %s %s %s = %s\n", left, fn.Name, fn.Right.ProgString(), tree(fn.Body))
+		p.Printf("op %s %s %s = %s\n", left, fn.Name, fn.Right.ProgString(), tree(p.context, fn.Body))
 	}
 }
 
@@ -174,139 +158,32 @@ func (p *Parser) funcArg() value.Expr {
 	return v
 }
 
-// references returns a list, in appearance order, of the user-defined ops
-// referenced by this function body. Only the first appearance creates an
-// entry in the list.
-func references(c *exec.Context, body []value.Expr) []exec.OpDef {
-	var refs []exec.OpDef
-	for _, expr := range body {
-		walk(expr, false, func(expr value.Expr, _ bool) {
-			switch e := expr.(type) {
-			case *value.UnaryExpr:
-				if c.UnaryFn[e.Op] != nil {
-					addReference(&refs, e.Op, false)
-				}
-			case *value.BinaryExpr:
-				if c.BinaryFn[e.Op] != nil {
-					addReference(&refs, e.Op, true)
-				}
-			}
-		})
-	}
-	return refs
-}
-
-func addReference(refs *[]exec.OpDef, name string, isBinary bool) {
-	// If it's already there, ignore. This is n^2 but n is tiny.
-	for _, ref := range *refs {
-		if ref.Name == name && ref.IsBinary == isBinary {
-			return
-		}
-	}
-	def := exec.OpDef{
-		Name:     name,
-		IsBinary: isBinary,
-	}
-	*refs = append(*refs, def)
-}
-
-// funcVars sets fn.Locals and fn.Globals
-// to the lists of variables that are local versus global.
-// A variable assigned to before any read is a local.
-// A variable read before any assignment to is a global.
-//
-// A function that wants to assign blindly to a global
-// can first do a throwaway read, as in
+// funcVars collects the list of identifiers in the body. We don't now yet whether
+// they are variables, or whether they are local or global; that happens at
+// execution. See value.VarState, value.Assign and value.VarExpr.Eval for details.
+// A function that wants to guarantee a variable is global can do a throwaway read,
+// as in
 //
 //	_ = x # global x
 //	x = 1
-func funcVars(fn *exec.Function) {
-	known := make(map[string]bool)
-	addLocal := func(e *value.VarExpr) {
-		fn.Locals = append(fn.Locals, e.Name)
-		known[e.Name] = true
-	}
-	f := func(expr value.Expr, assign bool) {
-		switch e := expr.(type) {
-		case *value.RetExpr:
+//
+// It also marks whether we have a :ret (see value.EvalFunctionBody).
+func funcVars(c value.Context, varNames map[string]bool, fn *exec.Function) {
+	// We know the body is an StatementList of Statements.
+	for _, s := range fn.Body {
+		s := s.(*value.Statement)
+		vars, hasRet := s.VarsAndRet()
+		if hasRet {
 			fn.HasRet = true
-		case *value.VarExpr:
-			x, ok := known[e.Name]
-			if !ok {
-				if assign {
-					addLocal(e)
-				} else {
-					known[e.Name] = false
-				}
-				x = known[e.Name]
-			}
-			e.Local = x
+		}
+		for _, name := range vars {
+			varNames[name] = true
 		}
 	}
-	if fn.Left != nil {
-		walk(fn.Left, true, f)
-	}
-	if fn.Right != nil {
-		walk(fn.Right, true, f)
-	}
-	for _, e := range fn.Body {
-		walk(e, false, f)
+	for name := range varNames {
+		fn.Variables = append(fn.Variables, name)
 	}
 	return
-}
-
-// walk traverses expr in right-to-left order,
-// calling f on all children, with the boolean argument
-// specifying whether the expression is being assigned to,
-// after which it calls f(expr, assign).
-func walk(expr value.Expr, assign bool, f func(value.Expr, bool)) {
-	switch e := expr.(type) {
-	case *value.UnaryExpr:
-		walk(e.Right, false, f)
-	case value.ExprList:
-		for _, v := range e {
-			walk(v, false, f)
-		}
-	case *value.ColonExpr:
-		walk(e.Cond, false, f)
-		walk(e.Value, false, f)
-	case *value.IfExpr:
-		walk(e.Cond, false, f)
-		walk(e.Body, false, f)
-		walk(e.ElseBody, false, f)
-	case *value.WhileExpr:
-		walk(e.Cond, false, f)
-		walk(e.Body, false, f)
-	case *value.RetExpr:
-		walk(e.Expr, false, f)
-	case *value.BinaryExpr:
-		walk(e.Right, false, f)
-		walk(e.Left, e.Op == "=", f)
-	case *value.IndexExpr:
-		for i := len(e.Right) - 1; i >= 0; i-- {
-			x := e.Right[i]
-			if x != nil { // Not a placeholder index.
-				walk(e.Right[i], false, f)
-			}
-		}
-		walk(e.Left, false, f)
-	case *value.VarExpr:
-	case value.VectorExpr:
-		for i := len(e) - 1; i >= 0; i-- {
-			walk(e[i], assign, f)
-		}
-	case value.Char:
-	case value.Int:
-	case value.BigInt:
-	case value.BigRat:
-	case value.BigFloat:
-	case value.Complex:
-	case *value.Vector:
-	case *value.Matrix:
-	default:
-		fmt.Printf("unknown %T in walk\n", e)
-	}
-	f(expr, assign)
 }
 
 func walkVars(expr value.Expr, f func(*value.VarExpr)) {

@@ -36,7 +36,7 @@ func (c *Context) StackTrace() {
 		if len(c.Stack) == 0 {
 			break
 		}
-		f := c.topOfStack()
+		f := c.TopOfStack()
 		if !f.Inited {
 			continue
 		}
@@ -55,9 +55,9 @@ func (c *Context) StackTrace() {
 		}
 		if fn != nil {
 			args := argNames(fn)
-			for _, l := range fn.Locals {
-				if !slices.Contains(args, l) {
-					frame += c.LocalPrint(l)
+			for _, v := range f.Vars {
+				if !slices.Contains(args, v.Name()) {
+					frame += c.LocalPrint(v.Name())
 				}
 			}
 		}
@@ -86,8 +86,8 @@ func parens(s string, t bool) string {
 	return s
 }
 
-func needParens(v value.Value) bool {
-	if value.IsScalarType(v) {
+func needParens(c *Context, v value.Value) bool {
+	if value.IsScalarType(c, v) {
 		return false
 	}
 	if x, ok := v.(*value.Vector); ok && x.AllChars() {
@@ -122,7 +122,7 @@ func (c *Context) tracePrint(val value.Value) string {
 				if i > 0 {
 					s += " "
 				}
-				s += parens(short(c.tracePrint(elem)), needParens(elem))
+				s += parens(short(c.tracePrint(elem)), needParens(c, elem))
 			}
 		}
 	case *value.Matrix:
@@ -141,7 +141,7 @@ func (c *Context) ArgPrint(arg value.Expr) string {
 	case nil:
 		return "" // No parens.
 	default:
-		s = fmt.Sprintf("%T %s", a, a.ProgString())
+		s = fmt.Sprintf("%T %s", a, value.DebugProgString(a))
 	case *value.VarExpr, value.VectorExpr:
 		if v := a.Eval(c); v != nil {
 			s = c.tracePrint(v)

@@ -8,4 +8,7 @@ op echo z = z
 op a add b =
 	a + b
 
+op (a b c) sub (d e f) =
+	a b c - d e f
+
 x y z = 1 2 3

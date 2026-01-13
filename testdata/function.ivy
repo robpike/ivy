@@ -64,15 +64,13 @@ g 42
 	99
 	99
 
-# Declare unary before use
-op foo x
+# Mention unary before use
 op bar x = foo x
 op foo x = -x
 bar 3
 		-3
 
-# Declare binary before use
-op x foo y
+# Mention binary before use
 op x bar y = -x foo y
 op x foo y = x + y
 3 bar 4
@@ -615,3 +613,46 @@ f@ 1 2
 op f x = -x
 f@ x=1 2
 	-1 -2
+
+# Issue 211: Allow identifiers to mean a variable or operator according to context.
+op f x =
+    min = x-min/ 3 1 4 # operator and variable in same expression!
+    x min x
+
+f 2
+max=40000
+max/10
+max / 10
+	2 1 2
+	4000
+	4000
+
+# Issue 211 cont'd: Decorators on undeclared ops.
+op A x = 3 @add@ x
+op B x = add/ x
+op C x = add\ x
+op D x = 3 o.add x
+op E x = 3 add.sub x
+op F x = 3 add.- x
+op G x = 3 +.sub x
+op left add right = left + right
+op left sub right = left - right
+A 3
+B 3
+C 3
+D 3
+E 3
+F 3
+G 3
+	6
+	3
+	3
+	6
+	0
+	0
+	0
+
+# Issue 211 cont'd: Can now use j as a variable
+j = 1
+j
+	1

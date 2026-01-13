@@ -31,7 +31,7 @@ type indexState struct {
 // while top is only for its ProgString method.
 // If lvarx is not nil, then it is the variable expression
 // corresponding to left, to be used for assignments.
-func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, index []Expr) {
+func (ix *indexState) init(c Context, top, left Expr, lvarx *VarExpr, index []Expr) {
 	// Evaluate indexes, make sure all are Vector of Int.
 	// Compute shape of result as we go.
 	// Scalar indexes drop a dimension,
@@ -48,10 +48,10 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 			ix.outShape = append(ix.outShape, 0) // Fixed below, after we have evaluated left.
 			continue
 		}
-		x := index[i].Eval(context).Inner()
+		x := index[i].Eval(c).Inner()
 		switch x := x.(type) {
 		default:
-			context.Errorf("invalid index %s (type %s) in %s", index[i].ProgString(), whichType(x), top.ProgString())
+			c.Errorf("invalid index %s (type %s) in %s", DebugProgString(index[i]), whichType(c, x), DebugProgString(top))
 		case Int:
 			ix.indexes[i] = NewVector(x)
 		case *Vector:
@@ -79,21 +79,21 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 	// (must wait until indexes have been evaluated, R-to-L).
 	var lvar *Var
 	if lvarx != nil {
-		if lvarx.Local {
-			lvar = context.Local(lvarx.Name)
+		if c.IsLocal(lvarx.Name) {
+			lvar = c.Local(lvarx.Name)
 		} else {
-			lvar = context.Global(lvarx.Name)
+			lvar = c.Global(lvarx.Name)
 			if lvar == nil {
-				context.Errorf("undefined global variable %q", lvarx.Name)
+				c.Errorf("undefined global variable %q", lvarx.Name)
 			}
 		}
 		ix.lhs = lvar.value
 	} else {
-		ix.lhs = left.Eval(context)
+		ix.lhs = left.Eval(c)
 	}
 	switch lhs := ix.lhs.(type) {
 	default:
-		context.Errorf("cannot index %s (%v)", left.ProgString(), whichType(lhs))
+		c.Errorf("cannot index %s (%v)", DebugProgString(left), whichType(c, lhs))
 	case *Matrix:
 		ix.vector = lhs.data
 		if lvar != nil {
@@ -108,52 +108,52 @@ func (ix *indexState) init(context Context, top, left Expr, lvarx *VarExpr, inde
 		ix.shape = []int{lhs.Len()}
 	}
 
-	origin := Int(context.Config().Origin())
-	if ix.initVectorIndex(context, origin) {
+	origin := Int(c.Config().Origin())
+	if ix.initVectorIndex(c, origin) {
 		return
 	}
 
 	// Finish the result shape.
 	if len(ix.indexes) > len(ix.shape) {
-		context.Errorf("too many dimensions in %s indexing shape %v", top.ProgString(), NewIntVector(ix.shape...))
+		c.Errorf("too many dimensions in %s indexing shape %v", DebugProgString(top), NewIntVector(ix.shape...))
 	}
 	// Replace nil index entries, created above, with iota(dimension).
 	j := 0
 	for i := range ix.indexes {
 		if missing[i] {
-			x := newIota(context, int(origin), ix.shape[i])
+			x := newIota(c, int(origin), ix.shape[i])
 			ix.indexes[i] = x
 			ix.outShape[outShapeToUpdate[j]] = x.Len()
 			j++
 		}
 	}
 	ix.outShape = append(ix.outShape, ix.shape[len(index):]...)
-	ix.outSize = size(context, ix.outShape)
+	ix.outSize = size(c, ix.outShape)
 	ix.indexDim = len(index)
 
 	// Check indexes are all valid.
 	for i, v := range ix.indexes {
 		for _, vj := range v.All() {
 			if _, ok := vj.(Int); !ok {
-				context.Errorf("invalid index %s (type %s) in %s", vj, whichType(vj), top.ProgString())
+				c.Errorf("invalid index %s (type %s) in %s", vj, whichType(c, vj), DebugProgString(top))
 			}
 		}
 		for j := range v.All() {
 			vj := v.At(j).(Int)
 			if vj < origin || vj-origin >= Int(ix.shape[i]) {
-				s := left.ProgString() + "["
+				s := "["
 				for k := range ix.indexes {
 					if k > 0 {
 						s += "; "
 					}
 					if k == i {
-						s += vj.String()
+						s += vj.Sprint(c)
 					} else {
 						s += "_"
 					}
 				}
 				s += "]"
-				context.Errorf("index %s out of range for shape %v", s, NewIntVector(ix.shape...))
+				c.Errorf("index %s out of range for shape %v of %s", s, NewIntVector(ix.shape...), DebugProgString(left))
 			}
 		}
 	}
@@ -186,7 +186,7 @@ func (ix *indexState) initVectorIndex(c Context, origin Int) bool {
 		for j, vj := range v.All() {
 			k, ok := vj.(Int)
 			if !ok {
-				c.Errorf("index vector %v contains invalid index %v (type %s)", v, vj, whichType(vj))
+				c.Errorf("index vector %v contains invalid index %v (type %s)", v, vj, whichType(c, vj))
 			}
 			if k < origin || k-origin >= Int(ix.shape[j]) {
 				c.Errorf("index vector %v out of range for shape %v", v, NewIntVector(ix.shape...))
@@ -203,7 +203,7 @@ func (ix *indexState) initVectorIndex(c Context, origin Int) bool {
 
 // Index returns left[index].
 // Left and index will be evaluated (right to left),
-// while top is only for its ProgString method.
+// while top is only for DebugProgString.
 func Index(context Context, top, left Expr, index []Expr) Value {
 	var ix indexState
 	ix.init(context, top, left, nil, index)
@@ -274,7 +274,7 @@ func Index(context Context, top, left Expr, index []Expr) Value {
 
 // IndexAssign handles general assignment to indexed expressions on the LHS.
 // Left and index will be evaluated (right to left),
-// while top is only for its ProgString method.
+// while top is only for DebugProgString.
 // The caller must check that left is a variable expression
 // and pass lvar, the variable corresponding to left.
 func IndexAssign(context Context, top, left Expr, lvarx *VarExpr, index []Expr, right Expr, rhs Value) {
@@ -291,9 +291,9 @@ func IndexAssign(context Context, top, left Expr, lvarx *VarExpr, index []Expr, 
 		badShape := func(rshape ...int) {
 			var where string
 			if right == nil {
-				where = "to " + top.ProgString()
+				where = "to " + DebugProgString(top)
 			} else {
-				where = top.ProgString() + " = " + right.ProgString()
+				where = DebugProgString(top) + " = " + DebugProgString(right)
 			}
 			context.Errorf("shape mismatch %v != %v in assignment %v",
 				NewIntVector(ix.outShape...), NewIntVector(rshape...),

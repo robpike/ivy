@@ -22,17 +22,17 @@ type Context struct {
 
 	Stack []*value.Frame
 
-	Globals value.Symtab
+	Globals map[string]*value.Var
 
 	//  UnaryFn maps the names of unary functions (ops) to their implementations.
 	UnaryFn map[string]*Function
 	//  BinaryFn maps the names of binary functions (ops) to their implementations.
 	BinaryFn map[string]*Function
-	// Defs is a list of defined ops, in time order.  It is used when saving the
-	// Context to a file.
+	// Defs is a list of defined ops in order of creation.
 	Defs []OpDef
-	// Names of variables declared in the currently-being-parsed function.
-	variables []string
+
+	// pos records the source position.
+	pos value.Pos
 
 	// Already in a traceback.
 	tracing bool
@@ -43,7 +43,7 @@ type Context struct {
 func NewContext(conf *config.Config) value.Context {
 	c := &Context{
 		config:   conf,
-		Globals:  make(value.Symtab),
+		Globals:  map[string]*value.Var{},
 		Stack:    []*value.Frame{},
 		UnaryFn:  make(map[string]*Function),
 		BinaryFn: make(map[string]*Function),
@@ -73,28 +73,44 @@ func (c *Context) Global(name string) *value.Var {
 func (c *Context) AssignGlobal(name string, val value.Value) {
 	v := c.Globals[name]
 	if v == nil {
-		c.Globals[name] = value.NewVar(name, val)
+		c.Globals[name] = value.NewVar(name, val, value.GlobalVar)
 	} else {
 		v.Assign(val)
 	}
 }
 
-// Local returns the value of the named local variable.
-func (c *Context) Local(name string) *value.Var {
-	vars := c.Stack[len(c.Stack)-1].Vars
-	v := vars[name]
-	if v == nil {
-		v = value.NewVar("", nil)
-		vars[name] = v
+// IsLocal reports whether the identifier names a defined local variable.
+func (c *Context) IsLocal(name string) bool {
+	if len(c.Stack) == 0 {
+		return false
 	}
-	return v
+	for _, v := range c.TopOfStack().Vars {
+		if v.Name() == name {
+			return v.State() != value.Unknown
+		}
+	}
+	return false
+}
+
+// Local returns the Var descriptor for the named local variable,
+// or nil if it is not present.
+func (c *Context) Local(name string) *value.Var {
+	for _, variable := range c.TopOfStack().Vars { // Usually a short list.
+		if variable.Name() == name {
+			return variable
+		}
+	}
+	return nil
 }
 
 func (c *Context) initStack() {
 	c.Stack = c.Stack[:0]
 }
 
-func (c *Context) topOfStack() *value.Frame {
+func (c *Context) TopOfStack() *value.Frame {
+	if len(c.Stack) == 0 {
+		return nil
+	}
 	return c.Stack[len(c.Stack)-1]
 }
 
@@ -108,6 +124,18 @@ func (c *Context) pop() {
 	c.Stack = c.Stack[:len(c.Stack)-1]
 }
 
+func (c *Context) Pos() value.Pos {
+	return c.pos
+}
+
+func (c *Context) SetPos(file string, line, offset int) {
+	c.pos = value.Pos{
+		File:   file,
+		Line:   line,
+		Offset: offset,
+	}
+}
+
 // Errorf panics with the formatted string, with type Error.
 func (c *Context) Errorf(format string, args ...interface{}) {
 	if c.tracing {
@@ -115,7 +143,10 @@ func (c *Context) Errorf(format string, args ...interface{}) {
 	}
 	c.tracing = true // In case we panic again trying to print the trace.
 	defer func() { c.tracing = false }()
-	err := value.Error(fmt.Sprintf(format, args...))
+	err := value.Error{
+		Pos: c.pos,
+		Err: fmt.Sprintf(format, args...),
+	}
 	c.StackTrace()
 	c.initStack()
 	panic(err)
@@ -193,7 +224,7 @@ func (c *Context) EvalBinary(left value.Value, op string, right value.Value) val
 	// Special handling for the equal and non-equal operators, which must avoid
 	// type conversions involving Char.
 	if op == "==" || op == "!=" {
-		v, ok := value.EvalCharEqual(left, op == "==", right)
+		v, ok := value.EvalCharEqual(c, left, op == "==", right)
 		if ok {
 			value.TraceBinary(c, 2, left, op, right) // Only trace if we've done it.
 			return v
@@ -229,9 +260,7 @@ func (c *Context) binary(op string) (fn value.BinaryOp, userDefined bool) {
 	return nil, false
 }
 
-// Define defines the function and installs it. It also performs
-// some error checking and adds the function to the sequencing
-// information used by the save method.
+// Define installs the function in the Context after a little more error checking.
 func (c *Context) Define(fn *Function) {
 	c.noVar(fn.Name)
 	if fn.IsBinary {
@@ -239,7 +268,7 @@ func (c *Context) Define(fn *Function) {
 	} else {
 		c.UnaryFn[fn.Name] = fn
 	}
-	// Update the sequence of definitions.
+	// Update the OpDefs list.
 	// First, if it's last (a very common case) there's nothing to do.
 	if len(c.Defs) > 0 {
 		last := c.Defs[len(c.Defs)-1]
@@ -247,13 +276,14 @@ func (c *Context) Define(fn *Function) {
 			return
 		}
 	}
-	// Is it already defined?
+	// Is it already defined? If so we can just replace the old definition.
+	def := OpDef{fn.Name, fn.IsBinary}
 	i, ok := c.LookupFn(fn.Name, fn.IsBinary)
 	if ok {
-		c.Defs = append(c.Defs[:i], c.Defs[i+1:]...)
+		c.Defs[i] = def
+	} else {
+		c.Defs = append(c.Defs, def)
 	}
-	// It is now the most recent definition.
-	c.Defs = append(c.Defs, OpDef{fn.Name, fn.IsBinary})
 }
 
 // UndefineAll deletes all user-defined names of the types
@@ -273,7 +303,7 @@ func (c *Context) UndefineAll(unary, binary, vars bool) {
 		}
 	}
 	if vars {
-		c.Globals = make(value.Symtab)
+		c.Globals = make(map[string]*value.Var)
 	}
 }
 
@@ -330,14 +360,13 @@ func (c *Context) LookupFn(name string, isBinary bool) (int, bool) {
 }
 
 // noVar guarantees that there is no global variable with that name,
-// preventing an op from being defined with the same name as a variable,
-// which could cause problems. A variable with value zero is considered to
+// preventing an op from being defined with the same name as a variable by accident.
+// A variable with value zero is considered to
 // be OK, so one can clear a variable before defining a symbol. A cleared
 // variable is removed from the global symbol table.
-// noVar also prevents defining builtin variables as ops.
 func (c *Context) noVar(name string) {
 	if name == "_" || name == "pi" || name == "e" { // Cannot redefine these.
-		value.Errorf(`cannot define op with name %q`, name)
+		c.Errorf(`cannot define op with name %q`, name)
 	}
 	sym := c.Globals[name]
 	if sym == nil {
@@ -347,36 +376,27 @@ func (c *Context) noVar(name string) {
 		delete(c.Globals, name)
 		return
 	}
-	value.Errorf("cannot define op %s; it is a variable; use ')clear %[1]s' to clear)", name)
+	c.Errorf("cannot define op %s; it is a variable; use ')clear %[1]s' to clear)", name)
 }
 
 // noOp is the dual of noVar. It also checks for assignment to builtins.
 // It just errors out if there is a conflict.
 func (c *Context) noOp(name string) {
 	if name == "pi" || name == "e" { // Cannot redefine these.
-		value.Errorf("cannot reassign %q", name)
+		c.Errorf("cannot reassign %q", name)
 	}
 	if c.UnaryFn[name] == nil && c.BinaryFn[name] == nil {
 		return
 	}
-	value.Errorf("cannot define variable %s; it is an op", name)
+	c.Errorf("cannot define variable %s; it is an op", name)
 }
 
-// Declare makes the name a variable while parsing a function.
-func (c *Context) Declare(name string) {
-	c.variables = append(c.variables, name)
-}
-
-// ForgetAll forgets the declared variables.
-func (c *Context) ForgetAll() {
-	c.variables = nil
-}
-
-func (c *Context) isVariable(op string) bool {
-	for _, s := range c.variables {
-		if op == s {
-			return true
-		}
+// FlushSavedParses clears all saved parses of ops in this context.
+func (c *Context) FlushSavedParses() {
+	for _, fn := range c.BinaryFn {
+		value.FlushState(fn.Body)
 	}
-	return false
+	for _, fn := range c.UnaryFn {
+		value.FlushState(fn.Body)
+	}
 }

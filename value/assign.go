@@ -28,11 +28,33 @@ func Assign(c Context, left, right Expr, rhs Value) {
 	// But we need to process the indexing, if it is an index expression.
 	switch lhs := left.(type) {
 	case *VarExpr:
-		if lhs.Local {
-			c.Local(lhs.Name).Assign(rhs)
-		} else {
+		frame := c.TopOfStack()
+		if frame == nil {
 			c.AssignGlobal(lhs.Name, rhs)
+			return
 		}
+		for _, variable := range frame.Vars {
+			name := variable.Name()
+			if name == lhs.Name {
+				switch variable.state {
+				case Unknown:
+					c.Local(name).Assign(rhs)
+					variable.state = LocalVar
+					return
+				case LocalVar:
+					c.Local(name).Assign(rhs)
+					variable.state = LocalVar
+					return
+				case GlobalVar:
+					c.AssignGlobal(name, rhs)
+					variable.state = GlobalVar // We could delete it but it's fine to leave it.
+					return
+				}
+				c.Errorf("internal error: unknown local state %d for %s in assign", variable.state, variable.name)
+			}
+		}
+		// A global not mentioned in the current function.
+		c.AssignGlobal(lhs.Name, rhs)
 		return
 	case *IndexExpr:
 		switch lv := lhs.Left.(type) {
@@ -44,16 +66,15 @@ func Assign(c Context, left, right Expr, rhs Value) {
 		// Simultaneous assignment requires evaluation of RHS before assignment.
 		rhs, ok := rhs.(*Vector)
 		if !ok {
-			c.Errorf("rhs of assignment to (%s) not a vector", lhs.ProgString())
+			c.Errorf("rhs of assignment to (%s) not a vector", DebugProgString(lhs))
 		}
 		if len(lhs) != rhs.Len() {
-			c.Errorf("length mismatch in assignment to (%s)", lhs.ProgString())
+			c.Errorf("length mismatch in assignment to (%s)", DebugProgString(lhs))
 		}
 		for i := rhs.Len() - 1; i >= 0; i-- {
 			Assign(c, lhs[i], nil, rhs.At(i))
 		}
 		return
 	}
-	// unexpected: parser should have caught this
-	c.Errorf("internal error: cannot assign to %s", left.ProgString())
+	c.Errorf("cannot assign to %s", DebugProgString(left))
 }

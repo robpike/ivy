@@ -130,3 +130,63 @@ mix ivy@ sys 'read' 'testdata/matrix.txt'
 
 rho sys 'read' 'testdata/empty.txt'
 	0
+
+# Test setting some values.
+12 sys "base"
+) base
+	0 0
+	ibase	12
+	obase	12
+
+12 14 sys "base"
+) base
+	0 0
+	ibase	12
+	obase	14
+
+"%g" sys "format"
+)format
+	""
+	"%g"
+
+12 sys "ibase"
+)ibase
+	0
+	ibase	12
+	obase	0
+
+1000 sys "maxbits"
+)maxbits
+	1000000000
+	1000
+
+20000 sys "maxdigits"
+)maxdigits
+	10000
+	20000
+
+1000 sys "maxstack"
+)maxstack
+	100000
+	1000
+
+12 sys "obase"
+)obase
+	0
+	ibase	0
+	obase	12
+
+0 sys "origin"
+)origin
+	1
+	0
+
+1000 sys "prec"
+)prec
+	256
+	1000
+
+">> " sys "prompt"
+)prompt
+	""
+	">> "

@@ -75,7 +75,7 @@ func floatPower(c Context, bx, bexp BigFloat) Value {
 		return BigFloat{z}
 	}
 	isInt := true
-	exp, acc := fexp.Int64() // No point in doing *big.Ints now. TODO?
+	exp, acc := fexp.Int64() // No point in doing *big.Ints.
 	if acc != big.Exact {
 		isInt = false
 	}
@@ -171,7 +171,7 @@ func exponential(c Context, z *big.Float, x *big.Float) *big.Float {
 		// term < 1 ulp of sum         ⇒ term < 0.5 × 2^(sum.exp-sum.prec+1)
 		// 0 ≤ term < 1 × 2^term.exp   ⇒ 2^term.exp ≤ 2^(sum.exp-sum.prec)
 		// Because of argument reduction, 1 ≤ sum < 1+2^(-k+1) ⇒ sum.exp == 1
-		if term.Sign() == 0 || term.MantExp(nil) <= sum.MantExp(nil) /* ==1 */ -int(sum.Prec()) {
+		if term.Sign() == 0 || term.MantExp(nil) <= sum.MantExp(nil)-int(sum.Prec()) {
 			break
 		}
 	}

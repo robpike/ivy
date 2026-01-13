@@ -158,7 +158,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		f := []byte(format)
 		f[verbIndex(c, format)] = 's'
 		fmt.Fprintf(w, string(f), timeFromValue(c, v).Format(time.UnixDate))
-	case 't': // Boolean. TODO: Should be 0 or 1, but that's messy. Odd case anyway.
+	case 't':
 		fmt.Fprintf(w, format, toBool(c, v))
 	case 'v':
 		fmt.Fprintf(w, format, v.Sprint(debugContext)) // Cleanest output.

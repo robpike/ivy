@@ -20,6 +20,11 @@
 3e10 o.* 5e10
 	1500000000000000000000
 
+# Make sure the special 'j' operator parses right as an outer product.
+3 4 o.j 5 6
+	3j5 3j6
+	4j5 4j6
+
 # Vectors
 
 2 3 o.+ 10 11 12

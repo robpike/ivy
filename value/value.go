@@ -49,15 +49,13 @@ type Value interface {
 }
 
 // Error is the type we recognize as a recoverable run-time error.
-type Error string
-
-func (err Error) Error() string {
-	return string(err)
+type Error struct {
+	Pos Pos
+	Err string
 }
 
-// Errorf panics with the formatted string, with type Error.
-func Errorf(format string, args ...interface{}) {
-	panic(Error(fmt.Sprintf(format, args...)))
+func (err Error) Error() string {
+	return string(err.Err)
 }
 
 func parseTwo(c Context, s string) (Value, Value, string, error) {
@@ -102,13 +100,17 @@ func Parse(c Context, s string) (Value, error) {
 	case "/":
 		// A rational. It's tricky.
 		// Common simple case.
-		if whichType(v1) == intType && whichType(v2) == intType {
-			return bigRatTwoInt64s(c, int64(v1.(Int)), int64(v2.(Int))).shrink(), nil
+		if whichType(c, v1) == intType && whichType(c, v2) == intType {
+			denom := int64(v2.(Int))
+			if denom == 0 {
+				return zero, fmt.Errorf("zero denominator in rational")
+			}
+			return bigRatTwoInt64s(c, int64(v1.(Int)), denom).shrink(), nil
 		}
 		// General mix-em-up.
 		rden := v2.toType("rat", c, bigRatType)
 		if rden.(BigRat).Sign() == 0 {
-			c.Errorf("zero denominator in rational")
+			return zero, fmt.Errorf("zero denominator in rational")
 		}
 		return binaryBigRatOp(c, v1.toType("rat", c, bigRatType), (*big.Rat).Quo, rden), nil
 	}

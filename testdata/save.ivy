@@ -75,7 +75,6 @@ op roll x = x?100
 	pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862
 
 # Mutual recursion.
-op m1 n
 op m2 n = iota m1 n
 op m1 n = n
 )save "<conf.out>"
@@ -87,7 +86,6 @@ op m1 n = n
 	)prompt ""
 	)format ""
 	)obase 0
-	op m1 _
 	op m2 n = iota m1 n
 	#
 	op m1 n = n
@@ -110,7 +108,6 @@ op x gcd y =
 	)prompt ""
 	)format ""
 	)obase 0
-	op _ gcd _
 	op x gcd y =
 	  not x*y: x+y
 	  x > y: (x mod y) gcd y

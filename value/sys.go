@@ -302,11 +302,13 @@ func sysTrace(c Context, args []Value) Value {
 // encodeTime returns a sys "time" vector given a seconds value.
 // We know the first argument is all chars and not empty.
 func encodeTime(c Context, u, v *Vector) Value {
+	if v.Len() != 1 {
+		c.Errorf("'T' encode takes a single right hand argument; got %s", v)
+	}
 	r := rune(u.At(0).(Char))
 	if r != 't' && r != 'T' {
 		c.Errorf("illegal left operand %s for encode", u)
 	}
-	// TODO: more than one value
 	return timeVec(timeFromValue(c, v.At(0)))
 }
 

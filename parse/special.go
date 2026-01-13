@@ -211,6 +211,10 @@ Switch:
 				found = p.context.UndefineOp(name, false) || found
 				found = p.context.UndefineOp(name, true) || found
 			}
+			if found {
+				// Global names have changed, must reparse.
+				p.context.FlushSavedParses()
+			}
 			if !found {
 				p.Printf("%q not defined\n", name)
 			}
@@ -396,19 +400,19 @@ Switch:
 		}
 		prec := p.nextDecimalNumber()
 		if prec == 0 || prec > 1e6 {
-			p.errorf("illegal prec %d", prec) // TODO: make 0 be disable?
+			p.errorf("illegal prec %d", prec)
 		}
 		conf.SetFloatPrec(uint(prec))
 	case "prompt":
 		if p.peek().Type == scan.EOF {
-			p.Printf("%q\n", conf.Format())
+			p.Printf("%q\n", conf.Prompt())
 			break Switch
 		}
 		conf.SetPrompt(p.getString())
 	case "save":
 		// Must restore ibase, obase for save.
 		conf.SetBase(ibase, obase)
-		save(p.context, p.getFile(")save", defaultFile))
+		exec.Save(p.context, p.getFile(")save", defaultFile))
 	case "seed":
 		if p.peek().Type == scan.EOF {
 			p.Println(conf.RandomSeed())
@@ -445,7 +449,7 @@ Switch:
 			p.errorf("undefined global variable %q", name)
 		}
 		fmt.Printf("%s = ", name)
-		put(p.context, conf.Output(), value.Value(), false)
+		exec.Put(p.context, conf.Output(), value.Value(), false)
 		fmt.Print("\n")
 	default:
 		p.errorf(")%s: not recognized", text)
@@ -510,7 +514,7 @@ func (p *Parser) runFromReader(context value.Context, name string, reader io.Rea
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			fmt.Fprintf(p.context.Config().ErrOutput(), "%s%s\n", p.Loc(), err)
+			fmt.Fprintf(p.context.Config().ErrOutput(), "%s\n", err)
 			return
 		}
 		panic(err)
@@ -536,7 +540,7 @@ func (p *Parser) runUntilError(name string) error {
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			fmt.Fprintf(p.context.Config().ErrOutput(), "%s%s\n", p.Loc(), err)
+			fmt.Fprintf(p.context.Config().ErrOutput(), "%s\n", err)
 			return
 		}
 		panic(err)

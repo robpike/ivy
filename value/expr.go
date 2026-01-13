@@ -22,8 +22,11 @@ type Expr interface {
 }
 
 type UnaryExpr struct {
-	Op    string
-	Right Expr
+	file   string // TODO?
+	line   int
+	offset int
+	Op     string
+	Right  Expr
 }
 
 func (u *UnaryExpr) ProgString() string {
@@ -31,13 +34,17 @@ func (u *UnaryExpr) ProgString() string {
 }
 
 func (u *UnaryExpr) Eval(context Context) Value {
+	context.SetPos(u.file, u.line, u.offset)
 	return context.EvalUnary(u.Op, u.Right.Eval(context).Inner())
 }
 
 type BinaryExpr struct {
-	Op    string
-	Left  Expr
-	Right Expr
+	file   string // TODO?
+	line   int
+	offset int
+	Op     string
+	Left   Expr
+	Right  Expr
 }
 
 func (b *BinaryExpr) ProgString() string {
@@ -51,6 +58,7 @@ func (b *BinaryExpr) ProgString() string {
 }
 
 func (b *BinaryExpr) Eval(context Context) Value {
+	context.SetPos(b.file, b.line, b.offset)
 	if b.Op == "=" {
 		return assign(context, b)
 	}
@@ -59,23 +67,23 @@ func (b *BinaryExpr) Eval(context Context) Value {
 	return context.EvalBinary(lhs, b.Op, rhs)
 }
 
-type ExprList []Expr
+type StatementList []Expr
 
-func (e ExprList) ProgString() string {
+func (s StatementList) ProgString() string {
 	var b strings.Builder
-	for _, expr := range e {
+	for _, expr := range s {
 		fmt.Fprintln(&b, expr.ProgString())
 	}
 	return b.String()
 }
 
-func (e ExprList) Eval(context Context) Value {
-	v, _ := evalExpressionList(context, "expression list", empty, e)
+func (s StatementList) Eval(context Context) Value {
+	v, _ := evalStatementList(context, "expression list", empty, s)
 	return v
 }
 
 // ColonExpr is a conditional executor: expression ":" expression. It shortcuts
-// execution of an ExprList.
+// execution of an StatementList.
 type ColonExpr struct {
 	Cond  Expr
 	Value Expr
@@ -93,10 +101,10 @@ func (c *ColonExpr) Eval(context Context) Value {
 	return v
 }
 
-// WhileExpr is a loop expression: ":while" expression; expressionList; ":end"
+// WhileExpr is a loop expression: ":while" expression; statementList; ":end"
 type WhileExpr struct {
 	Cond Expr
-	Body ExprList
+	Body StatementList
 }
 
 func (w *WhileExpr) ProgString() string {
@@ -113,18 +121,18 @@ func (w *WhileExpr) Eval(context Context) Value {
 	done := false
 	for !done && isTrue(context, ":while", w.Cond.Eval(context)) {
 		if w.Body != nil {
-			v, done = evalExpressionList(context, ":while", empty, w.Body)
+			v, done = evalStatementList(context, ":while", empty, w.Body)
 		}
 	}
 	return v
 }
 
-// IfExpr is a conditional expression: ":if" expression; expressionList [":else" expressionList] ":end"
+// IfExpr is a conditional expression: ":if" expression; statementList [":else" statementList] ":end"
 // If there is an ":elif", it has been parsed into a properly nested ":else" ":if".
 type IfExpr struct {
 	Cond     Expr
-	Body     ExprList
-	ElseBody ExprList
+	Body     StatementList
+	ElseBody StatementList
 }
 
 func (i *IfExpr) ProgString() string {
@@ -278,8 +286,7 @@ func (x *IndexExpr) Eval(context Context) Value {
 
 // VarExpr identifies a variable to be looked up and evaluated.
 type VarExpr struct {
-	Name  string
-	Local bool // local, not global
+	Name string
 }
 
 func NewVarExpr(name string) *VarExpr {
@@ -288,19 +295,32 @@ func NewVarExpr(name string) *VarExpr {
 
 func (e *VarExpr) Eval(c Context) Value {
 	var v Value
-	if e.Local {
-		v = c.Local(e.Name).Value()
-	} else {
+	status := "global"
+	frame := c.TopOfStack()
+	if frame == nil {
 		if g := c.Global(e.Name); g != nil {
 			v = g.Value()
 		}
+	} else {
+		for _, variable := range frame.Vars {
+			if variable.Name() == e.Name {
+				switch variable.state {
+				case Unknown, GlobalVar:
+					// Reading first, must be a global
+					variable.state = GlobalVar
+					if g := c.Global(e.Name); g != nil {
+						v = g.Value()
+					}
+				case LocalVar:
+					status = "local"
+					v = c.Local(e.Name).Value()
+				}
+				break
+			}
+		}
 	}
 	if v == nil {
-		kind := "global"
-		if e.Local {
-			kind = "local"
-		}
-		c.Errorf("undefined %s variable %q", kind, e.Name)
+		c.Errorf("undefined %s variable %q", status, e.Name)
 	}
 	return v
 }
@@ -323,5 +343,127 @@ func IsCompound(x interface{}) bool {
 		return IsCompound(x.Left)
 	default:
 		return true
+	}
+}
+
+type progStringer interface {
+	ProgString() string
+}
+
+// DebugProgString builds a string representation of p, to be used in debugging and
+// error messages. If the argument is a vector or matrix expression, it needs
+// special handling to get parentheses and nesting; otherwise we could just call
+// ProgString.
+func DebugProgString(p progStringer) string {
+	var b strings.Builder
+	debugProgString(&b, p)
+	return b.String()
+}
+
+// debugProgString is the core of DebugProgString.
+func debugProgString(b *strings.Builder, e progStringer) {
+	switch expr := e.(type) {
+	case Int, Char, BigInt, BigFloat, BigRat, Complex:
+		b.WriteString(expr.ProgString())
+	case *VarExpr:
+		b.WriteString(expr.ProgString())
+	case *UnaryExpr:
+		b.WriteString(expr.Op)
+		b.WriteRune(' ')
+		debugProgString(b, expr.Right)
+	case *BinaryExpr:
+		debugProgString(b, expr.Left)
+		b.WriteRune(' ')
+		b.WriteString(expr.Op)
+		b.WriteRune(' ')
+		debugProgString(b, expr.Right)
+	case *IndexExpr:
+		debugProgString(b, expr.Left)
+		b.WriteRune('[')
+		for i, e := range expr.Right {
+			if i > 0 {
+				b.WriteRune(';')
+			}
+			if e != nil {
+				debugProgString(b, e)
+			}
+		}
+		b.WriteRune(']')
+	case *Vector:
+		if expr.AllChars() {
+			fmt.Fprintf(b, "%q", expr.Sprint(debugContext))
+		} else {
+			b.WriteString(expr.Sprint(debugContext))
+		}
+	case VectorExpr:
+		if len(expr) == 1 {
+			debugProgString(b, expr[0])
+			return
+		}
+		b.WriteRune('(')
+		for i, elem := range expr {
+			if i > 0 {
+				b.WriteRune(' ')
+			}
+			debugProgString(b, elem)
+		}
+		b.WriteRune(')')
+	default:
+		b.WriteString(fmt.Sprintf("<unknown type in DebugProgString: %T>", e))
+	}
+}
+
+// FlushState flushes saved Statement parse information in the expression tree.
+func FlushState(expr Expr) {
+	switch e := expr.(type) {
+	case *Statement:
+		if e.parsed != nil {
+			FlushState(e.parsed)
+			e.parsed = nil
+		}
+	case StatementList:
+		for _, v := range e {
+			FlushState(v)
+		}
+	case *UnaryExpr:
+		FlushState(e.Right)
+	case *ColonExpr:
+		FlushState(e.Cond)
+		FlushState(e.Value)
+	case *IfExpr:
+		FlushState(e.Cond)
+		FlushState(e.Body)
+		FlushState(e.ElseBody)
+	case *WhileExpr:
+		FlushState(e.Cond)
+		FlushState(e.Body)
+	case *RetExpr:
+		FlushState(e.Expr)
+	case *BinaryExpr:
+		FlushState(e.Right)
+		FlushState(e.Left)
+	case *IndexExpr:
+		for i := len(e.Right) - 1; i >= 0; i-- {
+			x := e.Right[i]
+			if x != nil { // Not a placeholder index.
+				FlushState(e.Right[i])
+			}
+		}
+		FlushState(e.Left)
+	case *VarExpr:
+	case VectorExpr:
+		for i := len(e) - 1; i >= 0; i-- {
+			FlushState(e[i])
+		}
+	case Char:
+	case Int:
+	case BigInt:
+	case BigRat:
+	case BigFloat:
+	case Complex:
+	case *Vector:
+	case *Matrix:
+	default:
+		fmt.Printf("unknown %T in FlushState", e)
 	}
 }

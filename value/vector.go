@@ -114,6 +114,7 @@ func (v *Vector) Rank() int {
 func (v *Vector) ProgString() string {
 	// There is no such thing as a vector in program listings; they
 	// are represented as a VectorExpr.
+	// Use DebugProgString if this panic happens.
 	panic("vector.ProgString - cannot happen")
 }
 
@@ -156,7 +157,7 @@ func (v *Vector) cells(c Context, ncol int) ([][]string, *widths) {
 			cell = strings.Split(elem.Sprint(c), "\n")
 		}
 		for _, line := range cell {
-			w.addColumn(i%ncol, utf8.RuneCountInString(line))
+			w.addColumn(c, i%ncol, utf8.RuneCountInString(line))
 		}
 		out = append(out, cell)
 	}
@@ -313,7 +314,7 @@ func fillValue(c Context, v *Vector) Value {
 		fill = Char(' ')
 	}
 	first := v.At(0)
-	if IsScalarType(first) {
+	if IsScalarType(c, first) {
 		return fill
 	}
 	switch v := first.(type) {
@@ -345,9 +346,9 @@ func (v *Vector) AllChars() bool {
 }
 
 // allScalars reports whether all the elements are scalar.
-func (v *Vector) allScalars() bool {
+func (v *Vector) allScalars(c Context) bool {
 	for _, x := range v.All() {
-		if !IsScalarType(x) {
+		if !IsScalarType(c, x) {
 			return false
 		}
 	}
@@ -570,7 +571,7 @@ func (v *Vector) inverse(c Context) Value {
 	// We could do this evaluation using "conj" and "+.*" but avoid the overhead.
 	conj := v.edit()
 	for i, x := range conj.All() {
-		if !IsScalarType(x) {
+		if !IsScalarType(c, x) {
 			c.Errorf("inverse of vector with non-scalar element")
 		}
 		if cmplx, ok := x.(Complex); ok {

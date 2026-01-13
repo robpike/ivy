@@ -10,6 +10,17 @@ import (
 	"robpike.io/ivy/config"
 )
 
+// Pos records a location in the input. It is used by Context.Errorf.
+type Pos struct {
+	File   string
+	Line   int
+	Offset int
+}
+
+func (p Pos) String() string {
+	return fmt.Sprintf("%s:%d:%d", p.File, p.Line, p.Offset)
+}
+
 // UnaryOp is the interface implemented by a simple unary operator.
 type UnaryOp interface {
 	EvalUnary(c Context, right Value) Value
@@ -20,16 +31,48 @@ type BinaryOp interface {
 	EvalBinary(c Context, right, left Value) Value
 }
 
+// A Variable is a name mentioned in a function and records
+// the first action done to the associated variable.
+type Variable struct {
+	Name  string
+	State VarState
+}
+
+// VarState holds the dynamic state of a variable, which is
+// determined by the first action taken with it.
+// Assuming we are in a user-defined op:
+//
+//	Unknown: Nothing has happened yet.
+//	LocalVar: The first action was an assignment.
+//	GlobalVar: The first action was a read (evaluation).
+//
+// Within an op, a Var identifying a global variable holds
+// only this state. The data itself is in the globals table.
+// Implemented by the Assign and VarExpr.Eval functions.
+type VarState int
+
+const (
+	Unknown VarState = iota
+	LocalVar
+	GlobalVar
+)
+
 // A Var is a named variable in an Ivy execution.
 type Var struct {
 	name  string
 	value Value
 	edit  *vectorEditor
+	state VarState
 }
 
 // Name returns v's name.
 func (v *Var) Name() string {
 	return v.name
+}
+
+// State returns v's state.
+func (v *Var) State() VarState {
+	return v.state
 }
 
 // Value returns v's current value.
@@ -73,8 +116,8 @@ func (v *Var) editor() *vectorEditor {
 }
 
 // NewVar returns a new Var with the given name and value.
-func NewVar(name string, value Value) *Var {
-	return &Var{name: name, value: value}
+func NewVar(name string, value Value, state VarState) *Var {
+	return &Var{name: name, value: value, state: state}
 }
 
 // Context is the execution context for evaluation.
@@ -87,6 +130,9 @@ type Context interface {
 
 	// Local returns the named local variable.
 	Local(name string) *Var
+
+	// IsLocal reports whether the local variable is already defined.
+	IsLocal(name string) bool
 
 	// Global returns the named global variable.
 	// It returns nil if there is no such variable.
@@ -115,6 +161,13 @@ type Context interface {
 	// TraceIndent returns an indentation marker showing the depth of the stack.
 	TraceIndent() string
 
+	// TopOfStack returns the top frame on the stack, or nil if there is no stack.
+	TopOfStack() *Frame
+
 	// StackTrace prints the execution stack.
 	StackTrace()
+
+	// Pos and SetPos handle recording of source position for error reports.
+	Pos() Pos
+	SetPos(file string, line, offset int)
 }

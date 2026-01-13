@@ -57,19 +57,23 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		if err == nil {
 			return
 		}
-		_, ok := err.(value.Error)
-		if !ok {
+		msg := ""
+		e, ok := err.(value.Error)
+		if ok {
+			msg = fmt.Sprintf("%s: %s\n", e.Pos, e.Err)
+		} else {
+			msg = fmt.Sprint(err)
 			_, ok = err.(big.ErrNaN) // Floating point error from math/big.
 		}
 		if ok {
-			fmt.Fprintf(conf.ErrOutput(), "%s%s\n", p.Loc(), err)
+			fmt.Fprint(conf.ErrOutput(), msg)
 			if interactive {
 				fmt.Fprintln(writer)
 			}
 			success = false
 			return
 		}
-		panic(err)
+		panic(err) // Unexpected type.
 	}()
 	for {
 		if interactive {

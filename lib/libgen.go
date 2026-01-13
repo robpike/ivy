@@ -56,11 +56,12 @@ func printf(format string, args ...interface{}) {
 }
 
 func main() {
-	fd, err := os.Create("libdefs.go")
+	fd, err := os.Create("_libdefs.tmp")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer fd.Close()
+	defer os.Remove("_libdefs.tmp")
 
 	out = bufio.NewWriter(fd)
 	defer out.Flush()
@@ -106,6 +107,7 @@ func main() {
 		fmt.Fprintf(out, "\tVars:   %q,\n", testEntry.vars)
 		fmt.Fprintln(out, "}")
 	}
+	os.Rename("_libdefs.tmp", "libdefs.go")
 }
 
 func embed(path string, d fs.DirEntry, err error) error {
@@ -152,6 +154,9 @@ func vars(path string, data []byte) string {
 		}
 		// Variables are defined by top-level BinaryExprs with op "=".
 		for _, expr := range exprs {
+			if s, ok := expr.(*value.Statement); ok {
+				expr = s.Parse(context)
+			}
 			if assign, ok := expr.(*value.BinaryExpr); ok && assign.Op == "=" {
 				vars = append(vars, varsOf(assign.Left)...)
 			}
@@ -207,8 +212,10 @@ func ops(lines []string) string {
 			continue
 		}
 		line = line[:strings.Index(line, "=")]
-		// TODO Vector arguments.
-		words := strings.Fields(line)
+		words := declFields(line)
+		if words == nil {
+			log.Fatal("cannot handle declaration: ", line)
+		}
 		name := ""
 		switch len(words) {
 		case 3:
@@ -216,6 +223,7 @@ func ops(lines []string) string {
 		case 4:
 			name = words[2]
 		default:
+			log.Fatal("cannot handle declaration: ", line)
 			continue
 		}
 		if !strings.HasPrefix(name, "_") {
@@ -246,4 +254,43 @@ func unique(words []string) []string {
 		}
 	}
 	return out
+}
+
+func isAlphaNum(r byte) bool {
+	return r == '_' || 'a' <= r && r <= 'z' || 'A' <= r && r <= 'Z' || '0' <= r && r <= '9'
+}
+
+func declFields(line string) []string {
+	words := []string{}
+	word := []byte{}
+	addWord := func() {
+		words = append(words, string(word))
+		word = word[:0]
+	}
+	for i := 0; i < len(line); i++ {
+		r := line[i]
+		switch {
+		case r == '#':
+			return words
+		case r == ' ', r == '\t':
+			if len(word) != 0 {
+				addWord()
+			}
+		case isAlphaNum(r):
+			word = append(word, r)
+		case r == '(':
+			for ; i < len(line); i++ {
+				r = line[i]
+				word = append(word, r)
+				if r == ')' {
+					addWord()
+					break
+				}
+			}
+		}
+	}
+	if len(word) != 0 {
+		words = append(words, string(word))
+	}
+	return words
 }

@@ -8,9 +8,6 @@ import "robpike.io/ivy/value"
 
 // DefinedOp reports whether the operator is known.
 func (c *Context) DefinedOp(op string) bool {
-	if c.isVariable(op) {
-		return false
-	}
 	if value.BinaryOps[op] != nil || value.UnaryOps[op] != nil {
 		return true
 	}
@@ -19,16 +16,10 @@ func (c *Context) DefinedOp(op string) bool {
 
 // DefinedBinary reports whether the operator is a known binary.
 func (c *Context) DefinedBinary(op string) bool {
-	if c.isVariable(op) {
-		return false
-	}
 	return c.BinaryFn[op] != nil || value.BinaryOps[op] != nil
 }
 
 // DefinedUnary reports whether the operator is a known unary.
 func (c *Context) DefinedUnary(op string) bool {
-	if c.isVariable(op) {
-		return false
-	}
 	return c.UnaryFn[op] != nil || value.UnaryOps[op] != nil
 }

@@ -7,8 +7,10 @@
 )lib _test
 echo 24
 3 add 7
+1 2 3 sub 3 2 1
 	24
 	10
+	-2 0 2
 
 )lib doc _test
 	This
@@ -17,7 +19,7 @@ echo 24
 	test.
 
 )lib ops _test
-	add echo
+	add echo sub
 
 )lib vars _test
 	x y z

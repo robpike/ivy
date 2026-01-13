@@ -23,7 +23,7 @@ var directory = []*Library{
 var testLibrary = &Library{
 	Name:   "_test",
 	Doc:    "This\nis\na\ntest.\n",
-	Ops:    "add echo",
+	Ops:    "add echo sub",
 	Source: _test,
 	Vars:   "x y z",
 }

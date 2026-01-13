@@ -1,5 +1,4 @@
 x = iota 7
-op _ gcd _
 op x gcd y =
 	not x*y: x+y
 	x > y: (x mod y) gcd y

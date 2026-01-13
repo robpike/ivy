@@ -25,7 +25,7 @@ x
 (log 2)[1]
 	#
 
-# Expect: invalid index (2) (type float) in ((1 2)[1 2 (float 2)])
+# Expect: invalid index (2) (type float) in (1 2)[(1 2 float 2)]
 1 2[1 2 (float 2)]
 	#
 
@@ -41,14 +41,8 @@ x
 1 / 2 2 rho 0
 	#
 
-# Expect: shape mismatch (4) != (2) in assignment (x[1]) = 1 2
+# Expect: hape mismatch (4) != (2) in assignment x[1] = (1 2)
 x = 3 4 rho iota 12; x[1]=1 2
-	#
-
-# Expect: unexpected EOF
-op inc b =
- b + 1
- |
 	#
 
 # Expect: usage: sys "read" "filename"

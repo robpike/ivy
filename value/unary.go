@@ -109,6 +109,9 @@ func floatSelf(c Context, v Value) BigFloat {
 		return v.toType("float", c, bigFloatType).(BigFloat)
 	case BigFloat:
 		return v
+	case Complex:
+		// Shouldn't happen and will error, but avoid the scarier failure below.
+		return v.toType("float", c, bigFloatType).(BigFloat)
 	}
 	c.Errorf("internal error: floatSelf of non-number")
 	panic("unreached")
@@ -244,7 +247,7 @@ func init() {
 				bigRatType:   self,
 				bigFloatType: self,
 				complexType:  self,
-				// TODO: Vector?
+				vectorType:   self,
 				matrixType: func(c Context, v Value) Value {
 					return v.(*Matrix).split(c)
 				},

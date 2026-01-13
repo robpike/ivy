@@ -11,8 +11,8 @@ import "sort"
 // definition of sets. APL's like that.
 
 func union(c Context, u, v Value) Value {
-	uType := whichType(u)
-	vType := whichType(v)
+	uType := whichType(c, u)
+	vType := whichType(c, v)
 	if uType < vectorType && vType < vectorType {
 		// Scalars
 		if scalarEqual(c, u, v) {
@@ -61,8 +61,8 @@ func union(c Context, u, v Value) Value {
 }
 
 func intersect(c Context, u, v Value) Value {
-	uType := whichType(u)
-	vType := whichType(v)
+	uType := whichType(c, u)
+	vType := whichType(c, v)
 	if uType < vectorType && vType < vectorType {
 		// Scalars
 		if scalarEqual(c, u, v) {
@@ -105,7 +105,7 @@ func intersect(c Context, u, v Value) Value {
 }
 
 func unique(c Context, v Value) Value {
-	vType := whichType(v)
+	vType := whichType(c, v)
 	if vType < vectorType {
 		// Scalar
 		return v
@@ -129,12 +129,12 @@ func unique(c Context, v Value) Value {
 	}
 	// Sort based on the values, preserving index information.
 	sort.Slice(sorted, func(i, j int) bool {
-		c := OrderedCompare(c, sorted[i].v, sorted[j].v)
-		if c == 0 {
+		cmp := OrderedCompare(c, sorted[i].v, sorted[j].v)
+		if cmp == 0 {
 			// Choose lower type. You need to choose one, so pick lowest.
-			return whichType(sorted[i].v) < whichType(sorted[j].v)
+			return whichType(c, sorted[i].v) < whichType(c, sorted[j].v)
 		}
-		return c < 0
+		return cmp < 0
 	})
 	// Remove duplicates to make a unique list.
 	prev := sorted[0]
@@ -196,8 +196,8 @@ func notEqual(c Context, u, v Value) Value {
 // sufficient for set membership. // Exported for testing, which is done by the
 // parent directory to avoid a dependency cycle.
 func OrderedCompare(c Context, u, v Value) int {
-	uType := whichType(u)
-	vType := whichType(v)
+	uType := whichType(c, u)
+	vType := whichType(c, v)
 	if uType != vType {
 		// If either is a Char, that orders below all others.
 		if uType == charType {
