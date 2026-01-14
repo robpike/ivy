@@ -33,7 +33,7 @@ func tree(c value.Context, e interface{}) string {
 			if i > 0 {
 				s += " "
 			}
-			s += x.ProgString()
+			s += value.DebugProgString(x)
 		}
 		s += ">"
 		return s
@@ -43,7 +43,7 @@ func tree(c value.Context, e interface{}) string {
 			if i > 0 {
 				s += " "
 			}
-			s += x.ProgString()
+			s += value.DebugProgString(x)
 		}
 		s += ">"
 		return s

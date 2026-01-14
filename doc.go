@@ -179,6 +179,7 @@ Binary operators
 	                                      1 gives decimal count, 2 gives width and decimal count,
 	                                      3 gives width, decimal count, and style ('d', 'e', 'f', etc.).
 	                                      'T' text B formats seconds value B as a Unix date
+	                                      'ivy' text B formats B as ivy source code to recreate B.
 	General transpose     A⍉B   transp    The axes of B are ordered by A
 	Combinations          A!B   !         Number of combinations of B taken A at a time
 	Less than             A<B   <         Comparison (elementwise): 1 if true, 0 if false

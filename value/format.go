@@ -28,19 +28,23 @@ func fmtText(c Context, u, v Value) Value {
 		c.Errorf("illegal format %q", u.Sprint(c))
 	}
 	var b bytes.Buffer
-	switch val := v.(type) {
-	case Int, BigInt, BigRat, BigFloat, Char:
-		formatOne(c, &b, format, verb, val)
-	case Complex:
-		formatOne(c, &b, format, verb, val.real)
-		b.WriteByte('j')
-		formatOne(c, &b, format, verb, val.imag)
-	case *Vector:
-		formatOne(c, &b, format, verb, val)
-	case *Matrix:
-		val.fprintf(c, &b, format)
-	default:
-		c.Errorf("cannot format '%s'", val.Sprint(c))
+	if format == "ivy" {
+		IvyPrint(c, &b, v, false)
+	} else {
+		switch val := v.(type) {
+		case Int, BigInt, BigRat, BigFloat, Char:
+			formatOne(c, &b, format, verb, val)
+		case Complex:
+			formatOne(c, &b, format, verb, val.real)
+			b.WriteByte('j')
+			formatOne(c, &b, format, verb, val.imag)
+		case *Vector:
+			formatOne(c, &b, format, verb, val)
+		case *Matrix:
+			val.fprintf(c, &b, format)
+		default:
+			c.Errorf("cannot format '%s'", val.Sprint(c))
+		}
 	}
 	return newCharVector(b.String())
 }
@@ -56,6 +60,9 @@ func formatString(c Context, u Value) (string, byte) {
 	case *Vector:
 		if val.AllChars() {
 			s := val.Sprint(c)
+			if s == "ivy" { // Special case
+				return s, 0
+			}
 			if !strings.ContainsRune(s, '%') {
 				s = "%" + s
 			}
@@ -256,5 +263,64 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		}
 	default:
 		fmt.Fprintf(w, format, v)
+	}
+}
+
+// IvyPrint writes to out a version of the value that will recreate it when parsed.
+// Its output depends on the context, unlike that of DebugProgString.
+func IvyPrint(c Context, out io.Writer, val Value, withParens bool) {
+	if withParens {
+		fmt.Fprint(out, "(")
+	}
+	switch val := val.(type) {
+	case Char:
+		fmt.Fprintf(out, "%q", rune(val))
+	case Int:
+		fmt.Fprintf(out, "%s", val.Sprint(c))
+	case BigInt:
+		fmt.Fprintf(out, "%s", val.Sprint(c))
+	case BigRat:
+		fmt.Fprintf(out, "%s", val.Sprint(c))
+	case BigFloat:
+		if val.Sign() == 0 || val.IsInf() {
+			// These have prec 0 and are easy.
+			// They shouldn't appear anyway, but be safe.
+			fmt.Fprintf(out, "%g", val)
+			break
+		}
+		// TODO The actual value might not have the same prec as
+		// the configuration, so we might not get this right
+		// Probably not important but it would be nice to fix it.
+		digits := int(float64(val.Prec()) * 0.301029995664) // 10 log 2.
+		fmt.Fprintf(out, "%.*g", digits+1, val.Float)       // Add another digit to be sure.
+	case Complex:
+		real, imag := val.Components()
+		IvyPrint(c, out, real, false)
+		fmt.Fprintf(out, "j")
+		IvyPrint(c, out, imag, false)
+	case *Vector:
+		if val.Len() == 0 {
+			fmt.Fprint(out, "()")
+			break
+		}
+		if val.AllChars() {
+			fmt.Fprintf(out, "%q", val.Sprint(c))
+			break
+		}
+		for i, v := range val.All() {
+			if i > 0 {
+				fmt.Fprint(out, " ")
+			}
+			IvyPrint(c, out, v, !IsScalarType(c, v))
+		}
+	case *Matrix:
+		IvyPrint(c, out, NewIntVector(val.Shape()...), false)
+		fmt.Fprint(out, " rho ")
+		IvyPrint(c, out, val.Data(), false)
+	default:
+		c.Errorf("internal error: can't save type %T", val)
+	}
+	if withParens {
+		fmt.Fprint(out, ")")
 	}
 }

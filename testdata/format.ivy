@@ -166,3 +166,28 @@
 )format "%.77g"
 float 1<<11000
 	2.1377273016175946639947418801095121966854178364444088402247933779652136564166e+3311
+
+# Ivy-source-style formatting
+"ivy" text ()
+	()
+
+"ivy" text 'a'
+	'a'
+
+"ivy" text '\x10'
+	'\x10'
+
+"ivy" text "abc\n"
+	"abc\n"
+
+# Maximum precision regardless of usual printing format.
+pi
+"ivy" text pi
+	3.14159265359
+	3.1415926535897932384626433832795028841971693993751058209749445923078164062862
+
+"ivy" text 2 2 rho iota 4
+	2 2 rho 1 2 3 4
+
+"ivy" text 2 2 rho box (2 2 rho "abcd")
+	2 2 rho (2 2 rho "abcd") (2 2 rho "abcd") (2 2 rho "abcd") (2 2 rho "abcd")

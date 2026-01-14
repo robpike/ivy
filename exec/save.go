@@ -9,7 +9,6 @@ package exec
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"sort"
 
@@ -82,7 +81,7 @@ func Save(context value.Context, file string) {
 		sorted := sortVars(syms)
 		for _, sym := range sorted {
 			fmt.Fprintf(out, "%s = ", sym.Name())
-			Put(c, out, sym.Value(), false)
+			value.IvyPrint(c, out, sym.Value(), false)
 			fmt.Fprint(out, "\n")
 		}
 	}
@@ -100,59 +99,4 @@ func sortVars(syms map[string]*value.Var) []*value.Var {
 	}
 	sort.Slice(s, func(i, j int) bool { return s[i].Name() < s[j].Name() })
 	return s
-}
-
-// Put writes to out a version of the value that will recreate it when parsed.
-// Its output depends on the context, unlike that of DebugProgString.
-func Put(c value.Context, out io.Writer, val value.Value, withParens bool) {
-	if withParens {
-		fmt.Fprint(out, "(")
-	}
-	switch val := val.(type) {
-	case value.Char:
-		fmt.Fprintf(out, "%q", rune(val))
-	case value.Int:
-		fmt.Fprintf(out, "%s", val.Sprint(c))
-	case value.BigInt:
-		fmt.Fprintf(out, "%s", val.Sprint(c))
-	case value.BigRat:
-		fmt.Fprintf(out, "%s", val.Sprint(c))
-	case value.BigFloat:
-		if val.Sign() == 0 || val.IsInf() {
-			// These have prec 0 and are easy.
-			// They shouldn't appear anyway, but be safe.
-			fmt.Fprintf(out, "%g", val)
-			break
-		}
-		// TODO The actual value might not have the same prec as
-		// the configuration, so we might not get this right
-		// Probably not important but it would be nice to fix it.
-		digits := int(float64(val.Prec()) * 0.301029995664) // 10 log 2.
-		fmt.Fprintf(out, "%.*g", digits+1, val.Float)       // Add another digit to be sure.
-	case value.Complex:
-		real, imag := val.Components()
-		Put(c, out, real, false)
-		fmt.Fprintf(out, "j")
-		Put(c, out, imag, false)
-	case *value.Vector:
-		if val.AllChars() {
-			fmt.Fprintf(out, "%q", val.Sprint(c))
-			break
-		}
-		for i, v := range val.All() {
-			if i > 0 {
-				fmt.Fprint(out, " ")
-			}
-			Put(c, out, v, !value.IsScalarType(c, v))
-		}
-	case *value.Matrix:
-		Put(c, out, value.NewIntVector(val.Shape()...), false)
-		fmt.Fprint(out, " rho ")
-		Put(c, out, val.Data(), false)
-	default:
-		c.Errorf("internal error: can't save type %T", val)
-	}
-	if withParens {
-		fmt.Fprint(out, ")")
-	}
 }

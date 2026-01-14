@@ -445,12 +445,12 @@ Switch:
 			break Switch
 		}
 		name := p.need(scan.Identifier).Text
-		value := p.context.Global(name)
-		if value == nil {
+		v := p.context.Global(name)
+		if v == nil {
 			p.errorf("undefined global variable %q", name)
 		}
 		fmt.Printf("%s = ", name)
-		exec.Put(p.context, conf.Output(), value.Value(), false)
+		value.IvyPrint(p.context, conf.Output(), v.Value(), false)
 		fmt.Print("\n")
 	default:
 		p.errorf(")%s: not recognized", text)

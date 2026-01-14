@@ -185,6 +185,7 @@ Dyadic format         A⍕B   text      Format B into a character matrix accordi
                                       1 gives decimal count, 2 gives width and decimal count,
                                       3 gives width, decimal count, and style (&apos;d&apos;, &apos;e&apos;, &apos;f&apos;, etc.).
                                       &apos;T&apos; text B formats seconds value B as a Unix date
+                                      &apos;ivy&apos; text B formats B as ivy source code to recreate B.
 General transpose     A⍉B   transp    The axes of B are ordered by A
 Combinations          A!B   !         Number of combinations of B taken A at a time
 Less than             A&lt;B   &lt;         Comparison (elementwise): 1 if true, 0 if false
