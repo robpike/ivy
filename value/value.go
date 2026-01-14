@@ -105,7 +105,7 @@ func Parse(c Context, s string) (Value, error) {
 			if denom == 0 {
 				return zero, fmt.Errorf("zero denominator in rational")
 			}
-			return bigRatTwoInt64s(c, int64(v1.(Int)), denom).shrink(), nil
+			return BigRat{big.NewRat(int64(v1.(Int)), denom)}.shrink(), nil
 		}
 		// General mix-em-up.
 		rden := v2.toType("rat", c, bigRatType)
@@ -135,17 +135,10 @@ func bigInt64(x int64) BigInt {
 	return BigInt{big.NewInt(x)}
 }
 
-func bigRatInt64(c Context, x int64) BigRat {
-	return bigRatTwoInt64s(c, x, 1)
+func bigRatInt64(x int64) BigRat {
+	return BigRat{big.NewRat(x, 1)}
 }
 
 func bigFloatInt64(conf *config.Config, x int64) BigFloat {
 	return BigFloat{new(big.Float).SetPrec(conf.FloatPrec()).SetInt64(x)}
-}
-
-func bigRatTwoInt64s(c Context, x, y int64) BigRat {
-	if y == 0 {
-		c.Errorf("zero denominator in rational")
-	}
-	return BigRat{big.NewRat(x, y)}
 }

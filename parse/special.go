@@ -28,6 +28,7 @@ const defaultFile = "save.ivy"
 
 func (p *Parser) need(want ...scan.Type) scan.Token {
 	tok := p.next()
+	p.context.SetPos(p.fileName, tok.Line, tok.Offset)
 	for _, w := range want {
 		if tok.Type == w {
 			return tok
@@ -92,7 +93,7 @@ func truth(x bool) int {
 }
 
 func (p *Parser) special() {
-	p.need(scan.RightParen)
+	p.need(scan.RightParen) // Happily also calls SetPos.
 	conf := p.context.Config()
 	// Save the base and do everything here base 0, which is decimal but
 	// allows hex and octal in C syntax: 0xFF, 072.
@@ -464,7 +465,11 @@ Switch:
 
 // getString returns the value of the string that must be next in the input.
 func (p *Parser) getString() string {
-	return value.ParseString(p.context, p.need(scan.String).Text)
+	str, err := value.ParseString(p.context, p.need(scan.String).Text)
+	if err != nil {
+		p.context.Errorf("%s", err)
+	}
+	return str
 }
 
 // getFile returns the file name on this input line.
@@ -476,7 +481,11 @@ func (p *Parser) getFile(prefix, def string) string {
 	case scan.EOF:
 		return def
 	case scan.String:
-		return value.ParseString(p.context, tok.Text)
+		str, err := value.ParseString(p.context, tok.Text)
+		if err != nil {
+			p.context.Errorf("%s", err)
+		}
+		return str
 	default:
 		// Just grab the rest of the text on the line.
 		// Must drain the scanner first as we are cheating it.

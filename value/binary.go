@@ -102,7 +102,7 @@ func binaryBigIntOp(u Value, op func(*big.Int, *big.Int, *big.Int) *big.Int, v V
 
 func binaryBigRatOp(c Context, u Value, op func(*big.Rat, *big.Rat, *big.Rat) *big.Rat, v Value) Value {
 	i, j := u.(BigRat), v.(BigRat)
-	z := bigRatInt64(c, 0)
+	z := bigRatInt64(0)
 	op(z.Rat, i.Rat, j.Rat)
 	return z.shrink()
 }
@@ -483,7 +483,7 @@ func init() {
 					den := new(big.Int).Set(rat.Denom())
 					bigIntExp(c, num, num, exp)
 					bigIntExp(c, den, den, exp)
-					z := bigRatInt64(c, 0)
+					z := bigRatInt64(0)
 					if positive {
 						z.SetFrac(num, den)
 					} else {

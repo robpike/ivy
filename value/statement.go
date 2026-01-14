@@ -283,10 +283,17 @@ func (s *Statement) element(c Context) Expr {
 		return expr
 	case scan.Identifier:
 		return &VarExpr{
-			Name: tok.Text,
+			file:   s.fileName,
+			line:   tok.Line,
+			offset: tok.Offset,
+			Name:   tok.Text,
 		}
 	case scan.String:
-		return stringToValue(c, ParseString(c, tok.Text))
+		str, err := ParseString(c, tok.Text)
+		if err != nil {
+			s.Errorf("%s", err)
+		}
+		return stringToValue(c, str)
 	case scan.RightParen:
 		var expr Expr = VectorExpr{}
 		if s.peek().Type != scan.LeftParen { // Empty parens are valid expression.

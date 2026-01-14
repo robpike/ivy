@@ -65,15 +65,15 @@ func (c Char) validate(ctx Context) Char {
 // ParseString parses a string. Single quotes and
 // double quotes are both allowed (but must be consistent.)
 // The result must contain only valid Unicode code points.
-func ParseString(c Context, s string) string {
+func ParseString(c Context, s string) (string, error) {
 	str, ok := unquote(s)
 	if !ok {
-		c.Errorf("invalid string syntax")
+		return "", fmt.Errorf("invalid string syntax")
 	}
 	if !utf8.ValidString(str) {
-		c.Errorf("invalid code points in string")
+		return "", fmt.Errorf("invalid code points in string")
 	}
-	return str
+	return str, nil
 }
 
 // unquote is a simplified strconv.Unquote that treats single and double quotes equally.

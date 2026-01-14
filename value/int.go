@@ -160,7 +160,7 @@ func (i Int) toType(op string, c Context, which valueType) Value {
 	case bigIntType:
 		return bigInt64(int64(i))
 	case bigRatType:
-		return bigRatInt64(c, int64(i))
+		return bigRatInt64(int64(i))
 	case bigFloatType:
 		return bigFloatInt64(c.Config(), int64(i))
 	case complexType:

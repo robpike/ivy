@@ -32,7 +32,7 @@ func bigIntWrap(op func(*big.Int, *big.Int) *big.Int) func(Context, *big.Int, *b
 // unaryBigRatOp applies the op to a BigRat.
 func unaryBigRatOp(c Context, op func(*big.Rat, *big.Rat) *big.Rat, v Value) Value {
 	i := v.(BigRat)
-	z := bigRatInt64(c, 0)
+	z := bigRatInt64(0)
 	op(z.Rat, i.Rat)
 	return z.shrink()
 }
@@ -544,7 +544,7 @@ func init() {
 					}
 					positive := i.Sign() >= 0
 					if !positive {
-						j := bigRatInt64(c, 0)
+						j := bigRatInt64(0)
 						j.Abs(i.Rat)
 						i = j
 					}
@@ -590,7 +590,7 @@ func init() {
 					}
 					positive := i.Sign() >= 0
 					if !positive {
-						j := bigRatInt64(c, 0)
+						j := bigRatInt64(0)
 						j.Abs(i.Rat)
 						i = j
 					}

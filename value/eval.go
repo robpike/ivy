@@ -337,11 +337,11 @@ func Reduce(c Context, op string, v Value) Value {
 		return acc
 	case *Matrix:
 		if v.Rank() < 2 {
-			c.Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
+			degenerate(c, v)
 		}
 		stride := v.shape[v.Rank()-1]
 		if stride == 0 {
-			c.Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
+			degenerate(c, v)
 		}
 		shape := v.shape[:v.Rank()-1]
 		data := newVectorEditor(size(c, shape), nil)
@@ -367,6 +367,10 @@ func Reduce(c Context, op string, v Value) Value {
 	panic("not reached")
 }
 
+func degenerate(c Context, m *Matrix) {
+	c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+}
+
 // ReduceFirst computes a reduction such as +/% along
 // the first axis. The slash-percent has been removed.
 func ReduceFirst(c Context, op string, v Value) Value {
@@ -378,14 +382,14 @@ func ReduceFirst(c Context, op string, v Value) Value {
 		return Reduce(c, op, v)
 	}
 	if v.Rank() < 2 {
-		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		degenerate(c, m)
 	}
 	if m.shape[0] == 0 {
-		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		degenerate(c, m)
 	}
 	stride := size(c, m.shape[1:m.Rank()])
 	if stride == 0 {
-		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		degenerate(c, m)
 	}
 	shape := m.shape[1:m.Rank()]
 	data := newVectorEditor(size(c, shape), nil)
@@ -432,11 +436,11 @@ func Scan(c Context, op string, v Value) Value {
 		return values.Publish()
 	case *Matrix:
 		if v.Rank() < 2 {
-			c.Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
+			degenerate(c, v)
 		}
 		stride := v.shape[v.Rank()-1]
 		if stride == 0 {
-			c.Errorf("shape for matrix is degenerate: %s", NewIntVector(v.shape...))
+			degenerate(c, v)
 		}
 		data := newVectorEditor(v.data.Len(), nil)
 		nrows := size(c, v.shape[:len(v.shape)-1])
@@ -474,11 +478,11 @@ func ScanFirst(c Context, op string, v Value) Value {
 		return Scan(c, op, v)
 	}
 	if m.Rank() < 2 {
-		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		degenerate(c, m)
 	}
 	stride := m.shape[len(m.shape)-1]
 	if stride == 0 {
-		c.Errorf("shape for matrix is degenerate: %s", NewIntVector(m.shape...))
+		degenerate(c, m)
 	}
 	// Simple but effective algorithm: Transpose twice. Better than one might
 	// think because transposition is O(size of matrix) and it also lines up

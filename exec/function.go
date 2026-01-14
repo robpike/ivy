@@ -85,7 +85,7 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	// It's known to be an exec.Context.
 	c := context.(*Context)
 	if uint(len(c.Stack)) >= c.config.MaxStack() {
-		context.Errorf("stack overflow calling %q", fn.Name)
+		c.Errorf("stack overflow calling %q", fn.Name)
 	}
 	c.push(fn)
 	value.Assign(context, fn.Left, left, left)
@@ -93,7 +93,7 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
-		context.Errorf("no value returned by %q", fn.Name)
+		c.Errorf("no value returned by %q", fn.Name)
 	}
 	c.pop() // Don't defer, so if we get an error we can print the stack.
 	return v

@@ -71,7 +71,7 @@ func (i BigInt) Sprint(c Context) string {
 	case 16:
 		return fmt.Sprintf("%x", i.Int)
 	}
-	c.Errorf("can't print number in base %d (yet)", conf.OutputBase())
+	c.Errorf("can't print number in base %d", conf.OutputBase())
 	return ""
 }
 

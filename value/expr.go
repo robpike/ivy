@@ -286,10 +286,14 @@ func (x *IndexExpr) Eval(context Context) Value {
 
 // VarExpr identifies a variable to be looked up and evaluated.
 type VarExpr struct {
-	Name string
+	file   string
+	line   int
+	offset int
+	Name   string
 }
 
 func NewVarExpr(name string) *VarExpr {
+
 	return &VarExpr{Name: name}
 }
 
@@ -320,6 +324,7 @@ func (e *VarExpr) Eval(c Context) Value {
 		}
 	}
 	if v == nil {
+		c.SetPos(e.file, e.line, e.offset)
 		c.Errorf("undefined %s variable %q", status, e.Name)
 	}
 	return v

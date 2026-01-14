@@ -379,18 +379,6 @@ func (c *Context) noVar(name string) {
 	c.Errorf("cannot define op %s; it is a variable; use ')clear %[1]s' to clear)", name)
 }
 
-// noOp is the dual of noVar. It also checks for assignment to builtins.
-// It just errors out if there is a conflict.
-func (c *Context) noOp(name string) {
-	if name == "pi" || name == "e" { // Cannot redefine these.
-		c.Errorf("cannot reassign %q", name)
-	}
-	if c.UnaryFn[name] == nil && c.BinaryFn[name] == nil {
-		return
-	}
-	c.Errorf("cannot define variable %s; it is an op", name)
-}
-
 // FlushSavedParses clears all saved parses of ops in this context.
 func (c *Context) FlushSavedParses() {
 	for _, fn := range c.BinaryFn {
