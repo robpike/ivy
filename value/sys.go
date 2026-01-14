@@ -39,6 +39,7 @@ const sysHelp = `
               element is the time zone in which the other values apply:
                 year month day hour minute second seconds-east-of-UTC
 "trace" args: print a stack trace followed by the arguments
+"write" args: print the left argument to the file named by the right
 
 The following commands also have a binary form that sets the value
 to the left argument and returns the previous value:
@@ -57,6 +58,18 @@ To print seconds in Unix date format:
 func vecText(v *Vector) string {
 	s := fmt.Sprint(v) // will print as "(text)"
 	return s[1 : len(s)-1]
+}
+
+func sysString(c Context, v Value) string {
+	vv, ok := v.(*Vector)
+	if !ok {
+		ch, ok := v.(Char) // Single char file name.
+		if !ok {
+			c.Errorf("sys requires string argument; got %s", v)
+		}
+		vv = NewVector(ch)
+	}
+	return vecText(vv)
 }
 
 func sysInt(c Context, arg Value, op string) int {
@@ -129,17 +142,26 @@ func sys(c Context, v Value) Value {
 }
 
 // binarySys implements the "sys" binary operator, which sets the value and returns
-// the previous value
+// the previous value (except for "write", which returns a byte count)
 func binarySys(c Context, u, v Value) Value {
-	// Remember the old value.
-	ret := sys(c, v)
-
-	vv := v.(*Vector)
-	if !vv.AllChars() { // single argument
-		c.Errorf("sys requires string argument")
+	vv := v.(*Vector) // Could be a string or a vector of two strings.
+	verb := ""
+	switch {
+	case vv.AllChars():
+		// Single argument, the verb, no other args
+		verb = vecText(vv)
+	case vv.Len() == 2:
+		verb = sysString(c, vv.At(0))
+		fileName := sysString(c, vv.At(1))
+		if verb == "write" {
+			return sysWrite(c, u, fileName)
+		}
+		fallthrough
+	default:
+		c.Errorf("usage: value sys 'word'")
 	}
-	verb := vecText(vv)
 	if fn, ok := sys2[verb]; ok {
+		ret := sys(c, v) // Remember the old value.
 		fn(c, u)
 		return ret
 	}
@@ -267,13 +289,7 @@ func sysRead(c Context, args []Value) Value {
 	if len(args) != 1 {
 		usage()
 	}
-	v, ok := args[0].(*Vector)
-	if !ok || !v.AllChars() {
-		usage()
-	}
-	file := vecText(v)
-
-	f, err := os.Open(file)
+	f, err := os.Open(sysString(c, args[0]))
 	if err != nil {
 		c.Errorf("%v", err)
 	}
@@ -289,6 +305,24 @@ func sysRead(c Context, args []Value) Value {
 		c.Errorf("%v", err)
 	}
 	return edit.Publish()
+}
+
+func sysWrite(c Context, u Value, fileName string) Value {
+	f, err := os.Create(fileName)
+	if err != nil {
+		c.Errorf("%v", err)
+	}
+	defer f.Close()
+
+	data := []byte(u.Sprint(c))
+	if len(data) > 0 && data[len(data)-1] != '\n' {
+		data = append(data, '\n')
+	}
+	n, err := f.Write(data)
+	if err != nil {
+		c.Errorf("%v", err)
+	}
+	return Int(n)
 }
 
 func sysTrace(c Context, args []Value) Value {
