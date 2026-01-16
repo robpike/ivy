@@ -142,6 +142,7 @@ func (p *Parser) next() scan.Token {
 		p.offset = tok.Offset
 	}
 	if tok.Type == scan.Error {
+		p.context.SetPos(p.fileName, tok.Line, tok.Offset)
 		p.errorf("%s", tok)
 	}
 	return tok
@@ -214,6 +215,7 @@ func (p *Parser) readTokensToNewline() bool {
 		tok := p.scanner.Next()
 		switch tok.Type {
 		case scan.Error:
+			p.context.SetPos(p.fileName, tok.Line, tok.Offset)
 			p.errorf("%s", tok)
 		case scan.Newline:
 			// Need a truly blank line to terminate a multiline function body.
