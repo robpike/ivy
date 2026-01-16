@@ -518,15 +518,6 @@ func (p *Parser) runFromReader(context value.Context, name string, reader io.Rea
 	}
 	defer func() {
 		runDepth--
-		err := recover()
-		if err == nil {
-			return
-		}
-		if err, ok := err.(value.Error); ok {
-			fmt.Fprintf(p.context.Config().ErrOutput(), "%s\n", err)
-			return
-		}
-		panic(err)
 	}()
 	scanner := scan.New(state.New(context), name, bufio.NewReader(reader))
 	parser := NewParser(name, scanner, p.context)
@@ -549,7 +540,7 @@ func (p *Parser) runUntilError(name string) error {
 			return
 		}
 		if err, ok := err.(value.Error); ok {
-			fmt.Fprintf(p.context.Config().ErrOutput(), "%s\n", err)
+			fmt.Fprintf(p.context.Config().ErrOutput(), "%s: %s\n", err.Pos, err)
 			return
 		}
 		panic(err)

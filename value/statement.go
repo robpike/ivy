@@ -124,6 +124,9 @@ func (s *Statement) Parse(c Context) Expr {
 	defer func() { s.c = nil }()
 	s.pos = len(s.tokens)
 	expr := s.parseStatement(c)
+	if s.peek().Type != scan.EOF {
+		s.Errorf("extra %q at beginning of expression", s.peek().Text)
+	}
 	s.parsed = expr
 	return expr
 }
