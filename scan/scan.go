@@ -294,7 +294,14 @@ func lexAny(l *Scanner) stateFn {
 			}
 		}
 		fallthrough
-	case r == '.' || '0' <= r && r <= '9':
+	case r == '.':
+		// Number or operator?
+		d := l.peek()
+		if d < '0' || '9' < d {
+			return l.emit(Operator)
+		}
+		fallthrough
+	case '0' <= r && r <= '9':
 		l.backup()
 		return lexComplex
 	case r == '=':
@@ -397,60 +404,17 @@ func lexIdentifier(l *Scanner) stateFn {
 		l.pos = l.start
 		return lexComplex
 	}
-	// It may be an inner product.
-	if l.peek() == '.' {
-		// TODO: Make this and the companion in lexOpoerator emit three tokens: leftOp "." rightOp.
-		// Inner product. Grab what follows the dot.
-		l.next()
-		// Operator token or identifier?
-		if isAlpha(l.peek()) {
-			for isAlphaNumeric(l.peek()) {
-				l.next()
-			}
-		} else if l.isOperatorToken(l.peek()) {
-			for l.isOperatorToken(l.peek()) {
-				l.next()
-			}
-		} else {
-			return l.errorf("%q not an operator", word)
-		}
-		return l.emit(Operator)
-	}
 	return l.emit(Identifier)
 }
 
-// lexOperator completes scanning an operator. We have already accepted the + or
-// whatever; there may be a reduction or inner or outer product.
+// lexOperator completes scanning an operator.
 func lexOperator(l *Scanner) stateFn {
-	// It might be an inner product or reduction, but only if it is a binary operator.
+	// It might be an outer prod ut.
 	word := l.input[l.start:l.pos]
-	w := word
-	if word == "o" || l.conf.Predefined(w, false, true) || l.conf.UserDefined(w, true) {
-		switch l.peek() {
-		case '.':
-			// Inner or outer product?
-			l.next()               // Accept the '.'.
-			if isDigit(l.peek()) { // Is a number after all, as in 3*.7. Back up.
-				l.backup()
-				return l.emit(Operator) // Up to but not including the period.
-			}
-			r := l.next()
-			switch {
-			case l.isOperatorToken(r):
-			case isAlphaNumeric(r):
-				for isAlphaNumeric(r) {
-					r = l.next()
-				}
-				l.backup()
-				if !l.atTerminator() {
-					return l.errorf("bad character %#U", r)
-				}
-			default:
-				l.backup()
-			}
-		}
+	if word == "o" && l.peek() == '.' { // The outer product operator
+		l.next()
 	}
-	if isIdentifier(l.input[l.start:l.pos]) {
+	if isIdentifier(word) {
 		return l.emit(Identifier)
 	}
 	return l.emit(Operator)

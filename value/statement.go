@@ -38,7 +38,7 @@ type Statement struct {
 	tokens     []scan.Token // Tokens that built this Statement. Locked at creation time.
 	c          Context      // Set only during parse.
 	pos        int          // Token index in pTokens.
-	last       scan.Token   // Last scanned token.
+	last       scan.Token   // Last scanned token, even from peek.
 	inOperator bool         // Part of a function body, for :ret.
 	fileName   string       // Name of input stream.
 	parsed     Expr         // Saved parse, flushed when global state changes.
@@ -393,8 +393,41 @@ func (s *Statement) adjacent(right scan.Token) bool {
 // operator is the object returned by buildOperator. It holds an operator
 // we should be able to finally evaluate, including all decorators.
 type operator struct {
+	rhs      scan.Token // Starting token (after @s), no decorators.
 	str      string
 	isBinary bool
+}
+
+// isProduct looks for an inner or our outer product, and updates op if found.
+func (s *Statement) isProduct(c Context, op *operator) bool {
+	if !s.adjacent(op.rhs) { // Not necessary now, but has always been required in ivy.
+		return false
+	}
+	// Outer product
+	if s.peek().Text == "o." {
+		op.str = s.prev().Text + op.str
+		if !isBinaryOp(c, op.rhs.Text) {
+			s.Errorf("outer product requires binary operator: %s", op.str)
+		}
+		op.isBinary = true
+		return true
+	}
+	// Inner product.
+	if s.peek().Text != "." {
+		return false
+	}
+	dot := s.prev()
+	if !s.adjacent(dot) {
+		s.Errorf("inner product syntax: no operator next to '.'")
+	}
+	lhs := s.prev().Text
+	op.str = lhs + "." + op.str
+	if !isBinaryOp(c, lhs) || !isBinaryOp(c, op.rhs.Text) {
+		s.Errorf("inner product requires binary operators: %s", op.str)
+	}
+	op.isBinary = true
+	return true
+
 }
 
 // buildOperator constructs an operator from the token stream, taking into
@@ -415,6 +448,7 @@ func (s *Statement) buildOperator(c Context) operator {
 	tok = s.prev()
 	offset := tok.Offset
 	op := operator{
+		rhs:      tok,
 		str:      tok.Text + post,
 		isBinary: false,
 	}
@@ -462,43 +496,18 @@ func (s *Statement) buildOperator(c Context) operator {
 			// Just a division.
 			op.isBinary = s.atOperand(c)
 		}
-	case strings.HasPrefix(op.str, "o."):
-		// Outer product.
-		if !isBinaryOp(c, op.str[2:]) {
-			s.Errorf("bad outer product at %q", tok.Text)
+	case tok.Type == scan.Identifier, tok.Type == scan.Operator:
+		if s.isProduct(c, &op) {
+			break
 		}
-		op.isBinary = true
-	case strings.Contains(op.str, "."):
-		// Inner product.
-		dot := strings.IndexByte(op.str, '.')
-		left := op.str[:dot]
-		right := op.str[dot+1:]
-		if !isBinaryOp(c, left) || !isBinaryOp(c, right) {
-			s.Errorf("bad inner product at %q", tok.Text)
-		}
-		op.isBinary = true
-	case tok.Type == scan.Identifier:
 		lhsAt := s.peek().Text == "@" && s.adjacent(tok)
 		switch {
-		case isVariable(c, tok.Text): // Just a variable on the lhs.
+		case tok.Type == scan.Identifier && isVariable(c, tok.Text): // Just a variable on the lhs.
 		case isBinaryOp(c, tok.Text) && (lhsAt || s.atOperand(c)):
 			op.isBinary = true
 		case isUnaryOp(c, tok.Text):
 			op.isBinary = false
 		case isBinaryOp(c, tok.Text):
-			// We have a binary but the syntax needs a unary.
-			s.Errorf("%q is not a unary operator", tok.Text)
-		default:
-			s.Errorf("%q is not an operator", tok.Text)
-		}
-	case tok.Type == scan.Operator:
-		lhsAt := s.peek().Text == "@" && s.adjacent(tok)
-		switch {
-		case BinaryOps[tok.Text] != nil && (lhsAt || s.atOperand(c)):
-			op.isBinary = true
-		case UnaryOps[tok.Text] != nil:
-			op.isBinary = false
-		case BinaryOps[tok.Text] != nil:
 			// We have a binary but the syntax needs a unary.
 			s.Errorf("%q is not a unary operator", tok.Text)
 		default:
