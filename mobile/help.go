@@ -92,6 +92,7 @@ Where             ⍸B    where   Vector of indexes where B is non-zero
 Unique            ∪B    unique  Remove all duplicate elements from B
 Enclose           ⊂B    box     Wrap B in one level of nesting
 Disclose          ⊃B    first   First element of B in ravel order
+                        last    Last element of B in ravel order
 Split             ↓B    split   Create vector of nested elements from matrix B; inverse of mix
 Mix               ↑B    mix     Create matrix from elements of vector B; inverse of split
 Exponential       ⋆B    **      e to the B power
@@ -206,6 +207,8 @@ Bitwise or                  |         Bitwise A or B (integer only)
 Bitwise xor                 ^         Bitwise A exclusive or B (integer only)
 Left shift                  &lt;&lt;        A shifted left B bits (integer only)
 Right Shift                 &gt;&gt;        A shifted right B bits (integer only)
+Left tack             ⊣     left      A (left operand)
+Right tack            ⊢     right     B (right operand)
 Complex construction        j         The complex number A+Bi
 System functions      ⎕     sys       Like unary sys but sets value to A, returns previous
 </pre>

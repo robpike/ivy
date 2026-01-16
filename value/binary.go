@@ -194,6 +194,14 @@ func allEqual(c Context, x *Vector, xlo int, y *Vector, ylo, n int) bool {
 	return true
 }
 
+func left(c Context, left, right Value) Value {
+	return left
+}
+
+func right(c Context, left, right Value) Value {
+	return right
+}
+
 var BinaryOps = make(map[string]BinaryOp)
 
 func init() {
@@ -1662,6 +1670,36 @@ func init() {
 				bigFloatType: union,
 				complexType:  union,
 				vectorType:   union,
+			},
+		},
+
+		{
+			name:      "left",
+			whichType: noPromoteType,
+			fn: [numType]binaryFn{
+				intType:      left,
+				charType:     left,
+				bigIntType:   left,
+				bigRatType:   left,
+				bigFloatType: left,
+				complexType:  left,
+				vectorType:   left,
+				matrixType:   left,
+			},
+		},
+
+		{
+			name:      "right",
+			whichType: noPromoteType,
+			fn: [numType]binaryFn{
+				intType:      right,
+				charType:     right,
+				bigIntType:   right,
+				bigRatType:   right,
+				bigFloatType: right,
+				complexType:  right,
+				vectorType:   right,
+				matrixType:   right,
 			},
 		},
 

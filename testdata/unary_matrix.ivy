@@ -381,6 +381,24 @@ first first box box 3 3 rho iota 9
 	4 5 6
 	7 8 9
 
+last 2 3 rho 8+iota 6
+	14
+
+last 2 2 rho box 3 4 5
+	3 4 5
+
+last box box 3 3 rho iota 9
+	┌     ┐
+	│1 2 3│
+	│4 5 6│
+	│7 8 9│
+	└     ┘
+
+last last box box 3 3 rho iota 9
+	1 2 3
+	4 5 6
+	7 8 9
+
 split 2 3 rho iota 99
 	(1 2 3) (4 5 6)
 

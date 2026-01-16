@@ -1,0 +1,19 @@
+# Copyright 2026 The Go Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# Some operators don't care about the types of their operands.
+
+3 left 4
+	3
+
+'a' left 2 2 rho box 6 7
+	a
+
+
+3 right 4
+	4
+
+'a' right 2 2 rho box 6 7
+	(6 7) (6 7)
+	(6 7) (6 7)
