@@ -120,7 +120,6 @@ Unary operators
 	Hyperbolic arcsine      asinh   arcsinh(B)
 	Hyperbolic arccosine    acosh   arccosh(B)
 	Hyperbolic arctangent   atanh   arctanh(B)
-	Rotation by 90°         j       Multiplication by sqrt(-1)
 	Real part               real    Real component of the value
 	Imaginary part          imag    Imaginary component of the value
 	Phase                   phase   Phase of the value in the complex plane (-π to π)

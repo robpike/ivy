@@ -216,30 +216,6 @@ func init() {
 		},
 
 		{
-			name:        "j",
-			elementwise: true,
-			fn: [numType]unaryFn{
-				intType: func(c Context, v Value) Value {
-					return NewComplex(c, zero, v).shrink()
-				},
-				bigIntType: func(c Context, v Value) Value {
-					return NewComplex(c, zero, v).shrink()
-				},
-				bigRatType: func(c Context, v Value) Value {
-					return NewComplex(c, zero, v).shrink()
-				},
-				bigFloatType: func(c Context, v Value) Value {
-					return NewComplex(c, zero, v).shrink()
-				},
-				complexType: func(c Context, v Value) Value {
-					// Multiply by i.
-					u := v.(Complex)
-					return NewComplex(c, c.EvalUnary("-", u.imag), u.real).shrink()
-				},
-			},
-		},
-
-		{
 			name: "split",
 			fn: [numType]unaryFn{
 				intType:      self,
