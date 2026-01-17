@@ -220,12 +220,14 @@ func (p *Parser) readTokensToNewline() bool {
 		case scan.Newline:
 			// Need a truly blank line to terminate a multiline function body.
 			if !p.inOperator || len(tok.Text) <= 1 || len(p.tokens) > 0 {
+				p.context.SetPos(p.fileName, tok.Line, tok.Offset)
 				return true
 			}
 			continue
 		case scan.EOF:
 			if p.inOperator && len(p.tokens) == 0 {
 				// EOF is also fine for terminating a function.
+				p.context.SetPos(p.fileName, tok.Line, tok.Offset)
 				return true
 			}
 			return len(p.tokens) > 0
@@ -250,6 +252,7 @@ func (p *Parser) statementList() value.StatementList {
 	if fileName == "<stdin>" {
 		fileName = ""
 	}
+	blankLines := 0
 	for {
 		if i >= len(p.tokens) {
 			semicolon := scan.Token{
@@ -259,6 +262,15 @@ func (p *Parser) statementList() value.StatementList {
 				Text:   ";",
 			}
 			if ctrlLevel > 0 && p.readTokensToNewline() {
+				h := p.scanner.History()
+				if len(p.tokens) == 0 && h[len(h)-1] == "" {
+					blankLines++
+					if blankLines > 1 {
+						p.errorf("unterminated statement")
+					}
+				} else {
+					blankLines = 0
+				}
 				// Turn the (elided) newline into a semicolon for simpler parsing.
 				toks = append(toks, semicolon)
 				i = 0
