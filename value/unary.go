@@ -1269,14 +1269,14 @@ func init() {
 				vectorType: func(c Context, v Value) Value {
 					u := v.(*Vector)
 					if u.Len() == 0 {
-						return empty // TODO: If we add prototypes, this is a place it matters.
+						return zero // TODO: If we add prototypes, this is a place it matters.
 					}
 					return u.At(0)
 				},
 				matrixType: func(c Context, v Value) Value {
 					u := v.(*Matrix).data
 					if u.Len() == 0 {
-						return empty // TODO: If we add prototypes, this is a place it matters.
+						return zero // TODO: If we add prototypes, this is a place it matters.
 					}
 					return u.At(0)
 				},
@@ -1296,14 +1296,14 @@ func init() {
 				vectorType: func(c Context, v Value) Value {
 					u := v.(*Vector)
 					if u.Len() == 0 {
-						return empty // TODO: If we add prototypes, this is a place it matters.
+						return zero // TODO: If we add prototypes, this is a place it matters.
 					}
 					return u.At(u.Len() - 1)
 				},
 				matrixType: func(c Context, v Value) Value {
 					u := v.(*Matrix).data
 					if u.Len() == 0 {
-						return empty // TODO: If we add prototypes, this is a place it matters.
+						return zero // TODO: If we add prototypes, this is a place it matters.
 					}
 					return u.At(u.Len() - 1)
 				},

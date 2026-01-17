@@ -24,3 +24,6 @@ echo 24
 )lib vars _test
 	x y z
 
+)lib units
+c
+	299792458 "ms⁻¹"
