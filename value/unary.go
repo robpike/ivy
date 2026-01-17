@@ -405,9 +405,10 @@ func init() {
 			name:        "!",
 			elementwise: true,
 			fn: [numType]unaryFn{
-				intType: func(c Context, v Value) Value {
-					return BigInt{factorial(c, int64(v.(Int)))}.shrink()
-				},
+				intType:      func(c Context, v Value) Value { return factorial(c, v).shrink() },
+				bigRatType:   func(c Context, v Value) Value { return factorial(c, v).shrink() },
+				bigFloatType: func(c Context, v Value) Value { return factorial(c, v).shrink() },
+				complexType:  func(c Context, v Value) Value { return factorial(c, v).shrink() },
 			},
 		},
 

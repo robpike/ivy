@@ -373,6 +373,9 @@ text 3j2
 	-0.402359478109j-1.0172219679
 	-0.402359478109j1.0172219679
 
+!1j1
+	0.65296549642j0.343065839817
+
 
 # Fixed bug: don't use user-defined functions in core calculations.
 op sqrt x = 99

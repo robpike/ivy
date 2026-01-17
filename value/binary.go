@@ -531,13 +531,16 @@ func init() {
 					if a < 0 || b < 0 || a > b {
 						return zero
 					}
-					aFac := factorial(c, a)
-					bFac := factorial(c, b)
-					bMinusAFac := factorial(c, b-a)
+					aFac := intFactorial(c, a)
+					bFac := intFactorial(c, b)
+					bMinusAFac := intFactorial(c, b-a)
 					bFac.Div(bFac, aFac)
 					bFac.Div(bFac, bMinusAFac)
 					return BigInt{bFac}.shrink()
 				},
+				bigRatType:   func(c Context, u, v Value) Value { return binomial(c, u, v).shrink() },
+				bigFloatType: func(c Context, u, v Value) Value { return binomial(c, u, v).shrink() },
+				complexType:  func(c Context, u, v Value) Value { return binomial(c, u, v).shrink() },
 			},
 		},
 

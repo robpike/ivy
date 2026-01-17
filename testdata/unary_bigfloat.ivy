@@ -245,4 +245,20 @@ a = float 1 << 10000
 )prec 128
 )format "%.30g"
 a
-	1.99506311688075838488374216268e+3010 
+	1.99506311688075838488374216268e+3010
+
+!sqrt 2
+	1.25381548064
+
+!-float 1.5
+	-3.54490770181
+
+# Should be exact (well-known identity) but our ! implementation has limited accuracy.
+# Looks good but isn't exact.
+# TODO: Revisit when accuracy improves.
+sqrt pi
+!-0.5
+(10 log (sqrt pi) - !-0.5) < -15
+	1.77245385091
+	1.77245385091
+	1

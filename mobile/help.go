@@ -112,6 +112,7 @@ Execute           ⍎B    ivy     Execute an APL (ivy) expression
 Monadic format    ⍕B    text    A character representation of B
 Monadic transpose ⍉B    transp  Reverse the axes of B
 Factorial         !B    !       Product of integers 1 to B
+                                For non-integers, an approximation of 𝚪(z+1).
 Bitwise not             ^       Bitwise complement of B (integer only)
 Square root       B⋆.5  sqrt    Square root of B.
 Sine                    sin     sin(A); APL uses binary ○ (see below)
@@ -188,7 +189,8 @@ Dyadic format         A⍕B   text      Format B into a character matrix accordi
                                       &apos;T&apos; text B formats seconds value B as a Unix date
                                       &apos;ivy&apos; text B formats B as ivy source code to recreate B.
 General transpose     A⍉B   transp    The axes of B are ordered by A
-Combinations          A!B   !         Number of combinations of B taken A at a time
+Combinations          A!B   !         Number of combinations of B taken A at a time.
+                                      For non-integers, (!V)/(!U)*!V-U.
 Less than             A&lt;B   &lt;         Comparison (elementwise): 1 if true, 0 if false
 Less than or equal    A≤B   &lt;=        Comparison (elementwise): 1 if true, 0 if false
 Equal                 A=B   ==        Comparison (elementwise): 1 if true, 0 if false
