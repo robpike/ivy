@@ -127,7 +127,7 @@ func factorial(c Context, z Value) Value {
 // let's just use what the expert suggests. I believe it is infeasible to expect
 // significantly higher precision without substantially more work.
 func gamma(c Context, z Value) Value {
-	// p vaues can be recomputed using ../testdata/lanczos.
+	// p values can be recomputed using ../testdata/lanczos.
 	p := []float64{
 		1.000000000000000174663,
 		5716.400188274341379136,
