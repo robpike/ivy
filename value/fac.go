@@ -118,7 +118,7 @@ func factorial(c Context, z Value) Value {
 	return gamma(c, c.EvalBinary(z, "+", one))
 }
 
-// gamma returns an approximation to 𝚪(z) using the Lanczos approximation. It's
+// gamma returns an approximation to r using the Lanczos approximation. It's
 // only good for about 10-12 digits. Based on the Python code from
 // [Wikipedia]: https://en.wikipedia.org/wiki/Lanczos_approximation
 // with coefficients c (renamed p here) from Paul Godfrey's work,
@@ -127,6 +127,7 @@ func factorial(c Context, z Value) Value {
 // let's just use what the expert suggests. I believe it is infeasible to expect
 // significantly higher precision without substantially more work.
 func gamma(c Context, z Value) Value {
+	// p vaues can be recomputed using ../testdata/lanczos.
 	p := []float64{
 		1.000000000000000174663,
 		5716.400188274341379136,

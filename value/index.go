@@ -92,6 +92,8 @@ func (ix *indexState) init(c Context, top, left Expr, lvarx *VarExpr, index []Ex
 		ix.lhs = left.Eval(c)
 	}
 	switch lhs := ix.lhs.(type) {
+	case nil:
+		c.Errorf("internal error: cannot index %s (value is undefined)", DebugProgString(left))
 	default:
 		c.Errorf("cannot index %s (%v)", DebugProgString(left), whichType(c, lhs))
 	case *Matrix:

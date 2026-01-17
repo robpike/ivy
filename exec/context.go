@@ -86,7 +86,7 @@ func (c *Context) IsLocal(name string) bool {
 	}
 	for _, v := range c.TopOfStack().Vars {
 		if v.Name() == name {
-			return v.State() != value.Unknown
+			return v.State() == value.LocalVar
 		}
 	}
 	return false
