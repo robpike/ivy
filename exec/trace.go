@@ -25,16 +25,23 @@ func (c *Context) StackTrace() {
 	*nc = *c
 	c = nc
 	n := len(c.Stack)
+	skip := 0
 	if n > max {
-		fmt.Fprintf(c.Config().ErrOutput(), "\t•> stack truncated: %d calls total; showing innermost\n", n)
+		skip = n - max
 		n = max
 	}
 	// We need to print the innermost, then pop it and go around.
 	// But we want the output to be innermost last, so save and reverse.
 	lines := []string{}
-	for range n {
+	for i := range n {
 		if len(c.Stack) == 0 {
 			break
+		}
+		if skip > 0 && i == max/2 {
+			for range skip {
+				c.pop()
+			}
+			lines = append(lines, fmt.Sprintf("\t--- stack too deep; skipping %d frames\n", skip))
 		}
 		f := c.TopOfStack()
 		if !f.Inited {

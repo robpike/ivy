@@ -86,12 +86,10 @@ op (x y) f (z x) = x
 iota box 'buggy'
 	#
 
-# Expect: stack truncated: 100 calls total; showing innermost
-# Expect: •> a (37)
-# Expect local = 36
-# Expect: •> (37 38) b (37)
+# Expect: •> a (0)
+# Expect local = -1
 # ...
-# Expect: •> (48 49) b (48)
+# Expect: --- stack too deep; skipping 75 frames
 # Expect: •> a (49)
 # Expect local = 48
 # Expect: stack overflow calling "b"

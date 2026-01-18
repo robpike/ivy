@@ -60,9 +60,9 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		msg := ""
 		e, ok := err.(value.Error)
 		if ok {
-			msg = fmt.Sprintf("%s: %s", e.Pos, e.Err)
+			msg = fmt.Sprintf("%s: %s\n", e.Pos, e.Err)
 		} else {
-			msg = fmt.Sprintf("%s: %s", e.Pos, err)
+			msg = fmt.Sprintf("%s: %s\n", e.Pos, err)
 			_, ok = err.(big.ErrNaN) // Floating point error from math/big.
 		}
 		if ok {
