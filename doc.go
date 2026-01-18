@@ -183,7 +183,7 @@ Binary operators
 	                                      'ivy' text B formats B as ivy source code to recreate B.
 	General transpose     A⍉B   transp    The axes of B are ordered by A
 	Combinations          A!B   !         Number of combinations of B taken A at a time.
-	                                      For non-integers, (!V)/(!U)*!V-U.
+	                                      For non-integers, (!B)/(!A)*!B-A.
 	Less than             A<B   <         Comparison (elementwise): 1 if true, 0 if false
 	Less than or equal    A≤B   <=        Comparison (elementwise): 1 if true, 0 if false
 	Equal                 A=B   ==        Comparison (elementwise): 1 if true, 0 if false

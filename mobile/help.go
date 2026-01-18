@@ -127,7 +127,6 @@ Hyperbolic tangent      tanh    tanh(B)
 Hyperbolic arcsine      asinh   arcsinh(B)
 Hyperbolic arccosine    acosh   arccosh(B)
 Hyperbolic arctangent   atanh   arctanh(B)
-Rotation by 90°         j       Multiplication by sqrt(-1)
 Real part               real    Real component of the value
 Imaginary part          imag    Imaginary component of the value
 Phase                   phase   Phase of the value in the complex plane (-π to π)
@@ -190,7 +189,7 @@ Dyadic format         A⍕B   text      Format B into a character matrix accordi
                                       &apos;ivy&apos; text B formats B as ivy source code to recreate B.
 General transpose     A⍉B   transp    The axes of B are ordered by A
 Combinations          A!B   !         Number of combinations of B taken A at a time.
-                                      For non-integers, (!V)/(!U)*!V-U.
+                                      For non-integers, (!B)/(!A)*!B-A.
 Less than             A&lt;B   &lt;         Comparison (elementwise): 1 if true, 0 if false
 Less than or equal    A≤B   &lt;=        Comparison (elementwise): 1 if true, 0 if false
 Equal                 A=B   ==        Comparison (elementwise): 1 if true, 0 if false
