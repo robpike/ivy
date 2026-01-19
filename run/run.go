@@ -62,7 +62,7 @@ func Run(p *parse.Parser, context value.Context, interactive bool) (success bool
 		if ok {
 			msg = fmt.Sprintf("%s: %s\n", e.Pos, e.Err)
 		} else {
-			msg = fmt.Sprintf("%s: %s\n", e.Pos, err)
+			msg = fmt.Sprintf("%s: %s\n", context.Pos(), err)
 			_, ok = err.(big.ErrNaN) // Floating point error from math/big.
 		}
 		if ok {
