@@ -34,8 +34,8 @@ type Context struct {
 	// pos records the source position.
 	pos value.Pos
 
-	// Already in a traceback.
-	tracing bool
+	// Used to silence tracing for caught failures.
+	disableTracing bool
 }
 
 // NewContext returns a new execution context: the stack and variables,
@@ -138,18 +138,22 @@ func (c *Context) SetPos(file string, line, offset int) {
 
 // Errorf panics with the formatted string, with type Error.
 func (c *Context) Errorf(format string, args ...interface{}) {
-	if c.tracing {
-		return
-	}
-	c.tracing = true // In case we panic again trying to print the trace.
-	defer func() { c.tracing = false }()
+	disableTracing := c.disableTracing
+	c.disableTracing = true // In case we panic after this point.
+	defer func() { c.disableTracing = false }()
 	err := value.Error{
 		Pos: c.pos,
 		Err: fmt.Sprintf(format, args...),
 	}
-	c.StackTrace()
+	if !disableTracing {
+		c.StackTrace()
+	}
 	c.initStack()
 	panic(err)
+}
+
+func (c *Context) DisableTracing(t bool) {
+	c.disableTracing = t
 }
 
 // Eval evaluates a list of expressions.

@@ -91,6 +91,9 @@ func (ix *indexState) init(c Context, top, left Expr, lvarx *VarExpr, index []Ex
 	} else {
 		ix.lhs = left.Eval(c)
 	}
+	if q, ok := ix.lhs.(QuietValue); ok { // Arises for (x=y)[1], such as (x ok=trap 1 2 3)[1].
+		ix.lhs = q.Value
+	}
 	switch lhs := ix.lhs.(type) {
 	case nil:
 		c.Errorf("internal error: cannot index %s (value is undefined)", DebugProgString(left))

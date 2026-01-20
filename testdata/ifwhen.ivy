@@ -115,3 +115,10 @@ op condprint x =
 condprint 1
 	1
 
+# Test the trap feature; works well with :if.
+# We can catch the error if we want.
+:if (val msg=trap 1 2 3)[1]===(); print msg; :else print val :end
+	1 2 3
+
+:if (val msg=trap 1 / 0 )[1]===(); print msg; :else print val :end
+	:1:21: division by zero

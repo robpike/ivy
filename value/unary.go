@@ -1287,6 +1287,14 @@ func init() {
 		},
 
 		{
+			name:        "trap",
+			elementwise: false,
+			fn:          [numType]unaryFn{
+				// nil for all types; implemented in UnaryExpr.Eval.
+			},
+		},
+
+		{
 			name:        "sys",
 			elementwise: false,
 			fn: [numType]unaryFn{

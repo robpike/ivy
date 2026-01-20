@@ -35,7 +35,31 @@ func (u *UnaryExpr) ProgString() string {
 
 func (u *UnaryExpr) Eval(context Context) Value {
 	context.SetPos(u.file, u.line, u.offset)
+	if u.Op == "trap" && !context.UserDefined(u.Op, false) {
+		return u.trap(context)
+	}
 	return context.EvalUnary(u.Op, u.Right.Eval(context).Inner())
+}
+
+// trap implements the trap operation, which needs to set up
+// before the argument is evaluated. The result is pair, either
+// (value ()) for successful execution or (() "description") for failure.
+func (u *UnaryExpr) trap(context Context) (result Value) {
+	context.DisableTracing(true)
+	defer func() {
+		context.DisableTracing(false)
+		err := recover()
+		if err != nil {
+			var msg string
+			if e, ok := err.(Error); ok {
+				msg = fmt.Sprintf("%s: %s", e.Pos, e.Err)
+			} else {
+				msg = fmt.Sprintf("%s: %s", context.Pos(), err)
+			}
+			result = NewVector(empty, newCharVector(msg))
+		}
+	}()
+	return NewVector(u.Right.Eval(context).Inner(), empty)
 }
 
 type BinaryExpr struct {

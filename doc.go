@@ -85,7 +85,7 @@ Unary operators
 	Unique            ∪B    unique  Remove all duplicate elements from B
 	Enclose           ⊂B    box     Wrap B in one level of nesting
 	Disclose          ⊃B    first   First element of B in ravel order
-	                        last    Last element of B in ravel order
+	N/A                     last    Last element of B in ravel order
 	Split             ↓B    split   Create vector of nested elements from matrix B; inverse of mix
 	Mix               ↑B    mix     Create matrix from elements of vector B; inverse of split
 	Exponential       ⋆B    **      e to the B power
@@ -108,9 +108,9 @@ Unary operators
 	                                For non-integers, an approximation of 𝚪(z+1).
 	Bitwise not             ^       Bitwise complement of B (integer only)
 	Square root       B⋆.5  sqrt    Square root of B.
-	Sine                    sin     sin(A); APL uses binary ○ (see below)
-	Cosine                  cos     cos(A); ditto
-	Tangent                 tan     tan(A); ditto
+	Sine                    sin     sin(B); APL uses binary ○ (see below)
+	Cosine                  cos     cos(B); ditto
+	Tangent                 tan     tan(B); ditto
 	Arcsine                 asin    arcsin(B)
 	Arccosine               acos    arccos(B)
 	Arctangent              atan    arctan(B)
@@ -126,6 +126,10 @@ Unary operators
 	Conjugate         +B    conj    Complex conjugate of the value
 	System functions  ⎕     sys     Argument is a string; run "sys 'help'" for details
 	Print                   print   Print and evaluate to argument; useful for debugging
+	N/A                     trap    Return a 2-vector. The first element is the value of B and
+	                                the second is empty, but if B fails to evaluate due to an
+	                                execution error, the first element is empty and the second
+	                                is a string describing the error.
 
 Binary operators
 

@@ -167,6 +167,9 @@ type Context interface {
 	// StackTrace prints the execution stack.
 	StackTrace()
 
+	// DisableTracing can disable tracing for the "failed" error catcher.
+	DisableTracing(bool)
+
 	// Pos and SetPos handle recording of source position for error reports.
 	Pos() Pos
 	SetPos(file string, line, offset int)
