@@ -657,6 +657,14 @@ j = 1
 j
 	1
 
+# A variable shadowing a predefined up requires a reparse.
+op a x = 3 max 4
+a 3
+max = 2
+a 3
+	4
+	3 2 4
+
 # A calculation used while developing the code for gamma, kept as a
 # test because it triggered an indexing bug. Plus we wanted to save it
 # for posterity.

@@ -73,7 +73,15 @@ func (c *Context) Global(name string) *value.Var {
 func (c *Context) AssignGlobal(name string, val value.Value) {
 	v := c.Globals[name]
 	if v == nil {
+		if c.UserDefined(name, false) || c.UserDefined(name, true) {
+			c.Errorf("cannot define variable %s; it is an op; use ')clear %[1]s' to clear", name)
+		}
 		c.Globals[name] = value.NewVar(name, val, value.GlobalVar)
+		// Must flush if this var would shadow an op, complementary
+		// to what we do when defining a user op.
+		if c.DefinedOp(name) {
+			c.FlushSavedParses()
+		}
 	} else {
 		v.Assign(val)
 	}
@@ -380,7 +388,7 @@ func (c *Context) noVar(name string) {
 		delete(c.Globals, name)
 		return
 	}
-	c.Errorf("cannot define op %s; it is a variable; use ')clear %[1]s' to clear)", name)
+	c.Errorf("cannot define op %s; it is a variable; use ')clear %[1]s' to clear", name)
 }
 
 // FlushSavedParses clears all saved parses of ops in this context.

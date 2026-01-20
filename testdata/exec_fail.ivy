@@ -86,6 +86,16 @@ op (x y) f (z x) = x
 iota box 'buggy'
 	#
 
+# Expect: cannot define variable a; it is an op; use ')clear a' to clear
+op a x = 3
+a = 4
+	#
+
+# Expect: cannot define op a; it is a variable; use ')clear a' to clear
+a = 4
+op a x = 3
+	#
+
 # Expect: •> a (0)
 # Expect local = -1
 # ...
