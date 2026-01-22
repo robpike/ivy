@@ -255,10 +255,9 @@ a
 
 # Should be exact (well-known identity) but our ! implementation has limited accuracy.
 # Looks good but isn't exact.
-# TODO: Revisit when accuracy improves.
 sqrt pi
 !-0.5
-(10 log (sqrt pi) - !-0.5) < -15
+(10 log abs (sqrt pi) - !-0.5) < -59  # 59 digits of accuracy for small values of the argument.
 	1.77245385091
 	1.77245385091
 	1

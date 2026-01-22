@@ -42,12 +42,11 @@ func tanh(c Context, v Value) Value {
 func floatSinh(c Context, x *big.Float) *big.Float {
 	// The Taylor series for sinh(x) is the odd terms of exp(x): x + x³/3! + x⁵/5!...
 
-	conf := c.Config()
-	xN := newF(conf).Set(x)
-	term := newF(conf)
-	n := newF(conf)
-	nFactorial := newF(conf).SetUint64(1)
-	z := newF(conf).SetInt64(0)
+	xN := newFloat(c).Set(x)
+	term := newFloat(c)
+	n := newFloat(c)
+	nFactorial := newFloat(c).SetUint64(1)
+	z := newFloat(c).SetInt64(0)
 
 	for loop := newLoop(c, "sinh", x, 10); ; { // Big exponentials converge slowly.
 		term.Set(xN)
@@ -72,13 +71,12 @@ func floatSinh(c Context, x *big.Float) *big.Float {
 func floatCosh(c Context, x *big.Float) *big.Float {
 	// The Taylor series for cosh(x) is the even terms of exp(x): 1 + x²/2! + x⁴/4!...
 
-	conf := c.Config()
-	xN := newF(conf).Set(x)
+	xN := newFloat(c).Set(x)
 	xN.Mul(xN, x) // x²
-	term := newF(conf)
-	n := newF(conf)
-	nFactorial := newF(conf).SetUint64(2)
-	z := newF(conf).SetInt64(1)
+	term := newFloat(c)
+	n := newFloat(c)
+	nFactorial := newFloat(c).SetUint64(2)
+	z := newFloat(c).SetInt64(1)
 
 	for loop := newLoop(c, "cosh", x, 10); ; { // Big exponentials converge slowly.
 		term.Set(xN)

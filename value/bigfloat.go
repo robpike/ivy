@@ -66,7 +66,7 @@ func (f BigFloat) Sprint(c Context) string {
 		// Up to precision 10000, the result is off by 4 decimal digits.
 		// Add at least 4×ln(10)/ln(2) bits of precision.
 		fprec := addPrec(conf.FloatPrec(), 16)
-		fexp := newFP(fprec).SetInt64(int64(exp))
+		fexp := newFloatPrec(fprec).SetInt64(int64(exp))
 		fexp.Mul(fexp, floatLog2)
 		fexp.Quo(fexp, floatLog10)
 		// We now have a floating-point base 10 exponent.
@@ -74,7 +74,7 @@ func (f BigFloat) Sprint(c Context) string {
 		// The integer part is what we will show.
 		// The 10**(fractional part) will be multiplied back in.
 		iexp, _ := fexp.Int(nil)
-		fraction := fexp.Sub(fexp, newFP(fprec).SetInt(iexp))
+		fraction := fexp.Sub(fexp, newFloatPrec(fprec).SetInt(iexp))
 		// Now compute 10**(fractional part).
 		// Fraction is in base 10. Move it to base e.
 		fraction.Mul(fraction, floatLog10)

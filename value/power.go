@@ -149,10 +149,10 @@ func exponential(c Context, z *big.Float, x *big.Float) *big.Float {
 	}
 
 	n := new(big.Float)
-	t0 := newFP(prec)
-	t1 := newFP(prec)
-	term := newFP(prec).SetUint64(1)
-	sum := newFP(prec).SetUint64(1)
+	t0 := newFloatPrec(prec)
+	t1 := newFloatPrec(prec)
+	term := newFloatPrec(prec).SetUint64(1)
+	sum := newFloatPrec(prec).SetUint64(1)
 
 	// TODO: cannot use loop here since it does not handle the extended precision.
 	// term(n) = term(n-1) × x/n is faster than term(n) = x^n / n! (saves one .Mul)

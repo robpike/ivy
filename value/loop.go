@@ -24,14 +24,13 @@ type loop struct {
 // The last number in terms of iterations per bit, so the caller can
 // ignore the precision setting.
 func newLoop(c Context, name string, x *big.Float, itersPerBit uint) *loop {
-	conf := c.Config()
 	return &loop{
 		name:          name,
 		context:       c,
-		arg:           newF(conf).Set(x),
-		maxIterations: 10 + uint64(itersPerBit*conf.FloatPrec()),
-		prevZ:         newF(conf),
-		delta:         newF(conf),
+		arg:           newFloat(c).Set(x),
+		maxIterations: 10 + uint64(itersPerBit*c.Config().FloatPrec()),
+		prevZ:         newFloat(c),
+		delta:         newFloat(c),
 	}
 }
 

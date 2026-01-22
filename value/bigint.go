@@ -48,7 +48,7 @@ func (i BigInt) Sprint(c Context) string {
 	var maxBits = (uint64(conf.MaxDigits()) * 33222) / 10000 // log 10 / log 2 is 3.32192809489
 	if uint64(bitLen) > maxBits && maxBits != 0 {
 		// Print in floating point.
-		return BigFloat{newF(conf).SetInt(i.Int)}.Sprint(c)
+		return BigFloat{newFloat(c).SetInt(i.Int)}.Sprint(c)
 	}
 	if format != "" {
 		verb, prec, ok := conf.FloatFormat()

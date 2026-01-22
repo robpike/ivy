@@ -268,7 +268,7 @@ Switch:
 			p.Printf("%q\n", conf.Format())
 			break Switch
 		}
-		conf.SetFormat(p.getString())
+		conf.SetFormat(p.getFile(")format", "%.12g"))
 	case "get":
 		p.runFromFile(p.context, p.getFile(")get", defaultFile))
 	case "last":
@@ -426,7 +426,7 @@ Switch:
 			p.Println(conf.TimeZone(), offset)
 			break Switch
 		}
-		err := conf.SetLocation(p.getString())
+		err := conf.SetLocation(p.getFile(")timezone", "XXX"))
 		if err != nil {
 			p.errorf("no such location: %s", err)
 		}

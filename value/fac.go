@@ -105,8 +105,9 @@ func intFactorial(c Context, n int64) *big.Int {
 	return f2
 }
 
-// factorial returns an approximation to !z for any z in the complex plane except
-// negative integers (the poles of the gamma function).
+// factorial returns !z for any z in the complex plane except negative integers
+// (the poles of the gamma function). It is exact for natural numbers, an accurate
+// approximate for all other values.
 func factorial(c Context, z Value) Value {
 	if i, ok := z.(Int); ok {
 		if i < 0 {
@@ -118,64 +119,108 @@ func factorial(c Context, z Value) Value {
 	return gamma(c, c.EvalBinary(z, "+", one))
 }
 
-// gamma returns an approximation to r using the Lanczos approximation. It's
-// only good for about 10-12 digits. Based on the Python code from
-// [Wikipedia]: https://en.wikipedia.org/wiki/Lanczos_approximation
-// with coefficients c (renamed p here) from Paul Godfrey's work,
-// [Implementing the  Gamma Function]: https://www.numericana.com/answer/info/godfrey.htm.
-// I have tried many different constant sets and the answer doesn't change much, so
-// let's just use what the expert suggests. I believe it is infeasible to expect
-// significantly higher precision without substantially more work.
-func gamma(c Context, z Value) Value {
-	// p values can be recomputed using ../testdata/lanczos.
-	p := []float64{
-		1.000000000000000174663,
-		5716.400188274341379136,
-		-14815.30426768413909044,
-		14291.49277657478554025,
-		-6348.160217641458813289,
-		1301.608286058321874105,
-		-108.1767053514369634679,
-		2.605696505611755827729,
-		-0.7423452510201416151527e-2,
-		0.5384136432509564062961e-7,
-		-0.4023533141268236372067e-8,
+var (
+	// The parameters for generating coefficients for our gamma apprximation. See
+	// [The Gamma Function via Interpolation by Matthew F. Causley]: https://arxiv.org/pdf/2104.00697v1
+	// The method is a refinement of Spouge's (1994) approximation for the gamma
+	// function. For most values, the technique allows us to create a
+	// significantly more accurate approximation than Lanczos, which only gets
+	// to about 12 digits. In some parts of the complex plane this code can get
+	// above 50 digits of accuracy. See ../testdata/gamma for details. N is the
+	// number of coefficients. r is chosen as optimizing for best fit at z=6.
+	// That choice is arbitrary. 256 bits of mantissa suffice to hold these
+	// constants, with room.
+	N                = 100
+	r          Value = BigFloat{stringToFloat("r", "126.69", 256)}
+	cInf       Value = BigFloat{stringToFloat("cInf", "2.5066", 256)}
+	gammaCoeff []Value
+)
+
+// initGammaCoeff initializes the gamma coefficents for the modified Spouge
+// approximation. We compute them with 256 bits of precision ~= 78 digits; our
+// implementation with N=100 can only go to about 60 digits at best so there is no
+// point in working harder.
+func initGammaCoeff(c Context) {
+	prevPrec := c.Config().FloatPrec()
+	c.Config().SetFloatPrec(256)
+	gammaCoeff = make([]Value, N)
+	for i := range N {
+		gammaCoeff[i] = cₙ(c, int64(i))
 	}
-	g := Int(len(p) - 2)
+	c.Config().SetFloatPrec(prevPrec)
+}
+
+// cₙ returns the nth constant for the modified Spouge approximation.
+func cₙ(c Context, n int64) Value {
+	// Shorthand for easier expression. We compute in Ivy Values because it's much easier.
+	B := c.EvalBinary
+
+	// In Ivy:
+	//	t = (1 -1)[n&1]/!n
+	//	u = e**r-n
+	//	v = (r-n)**n+.5
+	//	t*u*v
+
+	sign := 1
+	if n&1 == 1 {
+		sign = -1
+	}
+	t := B(Int(sign), "/", BigInt{intFactorial(c, n)})
+	rMinusN := B(r, "-", Int(n))
+	u := exp(c, rMinusN)
+	v := power(c, rMinusN, B(Int(n), "+", BigFloat{floatHalf}))
+	return B(t, "*", B(u, "*", v))
+}
+
+// gamma returns an approximation to the gamma function 𝚪(z) using Causley's
+// refinement to Spouge's approximation. It's good for 15 or more digits, and the
+// parameters have been selected to give very high precision for areas near the
+// origin. For modest integer z the values are almost indistinguishable from an
+// integer (but integers are handled above.) The test in
+// ../testdata/unary_bigfloat.ivy compares the value at -0.5 and shows an accuracy
+// of 59+ digits.
+// See ../testdata/gamma for details.
+func gamma(c Context, z Value) Value {
+	if gammaCoeff == nil {
+		initGammaCoeff(c)
+	}
 
 	// Helpful constants.
 	𝛑 := BigFloat{floatPi}
 	half := BigFloat{floatHalf}
-	sqrt2pi := sqrt(c, c.EvalBinary(NewComplex(c, 𝛑, Int(0)), "*", Int(2)))
+	// Shorthands for easier expression. We compute in Ivy Values because it
+	// handles the mixed types well and performance is not critical.
+	B := c.EvalBinary
+	U := c.EvalUnary
 
-	// Unlike the rest of the numerical functions here, we stay in Ivy value space
-	// as we are mixing integers, floats, and complex numbers freely. It's annoying
-	// to track it all explicitly and we are not concerned about performance.
-
+	// Redirect for values with real(z)<0.5 using the reflection formula: 𝚪(z) = 𝛑/(sin(z𝛑)*𝚪(1-z)).
 	real := z
 	if cm, ok := z.(Complex); ok {
 		real = cm.real
 	}
-	if isTrue(c, "!", c.EvalBinary(real, "<", BigFloat{floatHalf})) {
-		// Redirect using the reflection formula: 𝚪(z) = 𝛑/(sin(z𝛑)*𝚪(1-z)).
-		x := c.EvalBinary(sin(c, c.EvalBinary(𝛑, "*", z)), "*", gamma(c, c.EvalBinary(one, "-", z)))
-		return c.EvalBinary(𝛑, "/", x)
+	if isTrue(c, "!", B(real, "<", half)) {
+		return B(𝛑, "/", B(sin(c, B(z, "*", 𝛑)), "*", gamma(c, B(one, "-", z))))
 	}
-	// z = z-1
-	z = c.EvalBinary(z, "-", one)
-	// x = p[0]
-	var x Value = BigFloat{newFloat(c).SetFloat64(p[0])}
-	for i := 1; i < len(p); i++ {
-		// x += p[i] / (z + i)
-		x = c.EvalBinary(x, "+", c.EvalBinary(BigFloat{newFloat(c).SetFloat64(p[i])}, "/", c.EvalBinary(z, "+", Int(i))))
+
+	// In Ivy as a loop for easy comparison:
+	//  p = (z+r)**z-.5
+	//  q = ** -(z+r)
+	//  sum = cinf
+	//  n = 0
+	//  :while n <= N-1
+	//    sum = sum+c[n]/(z+n)
+	//    n = n+1
+	//  :end
+	//  p*q*sum
+
+	zPlusR := B(z, "+", r)
+	p := power(c, zPlusR, B(z, "-", half))
+	q := exp(c, U("-", zPlusR))
+	sum := cInf
+	for n, cn := range gammaCoeff {
+		sum = B(sum, "+", B(cn, "/", B(z, "+", Int(n))))
 	}
-	// t = z + g + 0.5
-	t := c.EvalBinary(z, "+", c.EvalBinary(g, "+", half))
-	// y = sqrt(2 * pi) * t**(z + 0.5) * exp(-t) * x
-	y := sqrt2pi
-	y = c.EvalBinary(y, "*", power(c, t, c.EvalBinary(z, "+", half)))
-	y = c.EvalBinary(y, "*", c.EvalBinary(exp(c, c.EvalUnary("-", t)), "*", x))
-	return y
+	return B(p, "*", B(q, "*", sum))
 }
 
 // binomial returns the binomial value, written U!V, which in APL notation is (!V)÷(!U)×!V-U.

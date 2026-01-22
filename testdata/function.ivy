@@ -667,7 +667,7 @@ a 3
 
 # A calculation used while developing the code for gamma, kept as a
 # test because it triggered an indexing bug. Plus we wanted to save it
-# for posterity.
+# for posterity. In the end we went to a more accurate approximation.
 )get testdata/lanczos
 	1.000000000000000174663
 	5716.400188274341379136
@@ -680,3 +680,11 @@ a 3
 	-0.007423452510201416151527
 	5.384136432509564062961e-08
 	-4.023533141268236372067e-09
+
+# A related test for gamma using a variant of Spouge's approximation.
+# This runs the code that generates the constants in fac.go and uses
+# them to approximate 𝚪(6). The result here is using the code
+# transliterated into fac.go.
+)get testdata/gamma
+	#
+	39916799.999999999999999999999999999999999999999908337720309466210041813686726577105514

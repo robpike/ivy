@@ -125,7 +125,13 @@ func (s *Statement) Parse(c Context) Expr {
 	s.pos = len(s.tokens)
 	expr := s.parseStatement(c)
 	if s.peek().Type != scan.EOF {
-		s.Errorf("extra %q at beginning of expression", s.peek().Text)
+		switch s.peek().Type {
+		case scan.LeftParen:
+			s.Errorf("unclosed parenthesis")
+		case scan.LeftBrack:
+			s.Errorf("unclosed bracket")
+		}
+		s.Errorf("extra %q at beginning of statement", s.peek().Text)
 	}
 	s.parsed = expr
 	return expr
@@ -136,7 +142,7 @@ func (s *Statement) eofTok() scan.Token {
 		Type:   scan.EOF,
 		Line:   s.last.Line,
 		Offset: s.last.Offset,
-		Text:   "EOF",
+		Text:   "newline",
 	}
 }
 
@@ -232,7 +238,7 @@ func (s *Statement) expr(c Context) Expr {
 				Expr: expr,
 			}
 		default:
-			s.Errorf("expression syntax error")
+			s.Errorf("unexpected token %q", tok.Text) // Catch-all, shouldn't happen.
 		}
 	}
 }
@@ -277,7 +283,7 @@ func (s *Statement) element(c Context) Expr {
 	tok := s.prev()
 	switch tok.Type {
 	default:
-		s.Errorf("expected operand; found %q", tok.Text)
+		s.Errorf("syntax error at %q", tok.Text)
 	case scan.Number:
 		expr, err := Parse(c, tok.Text)
 		if err != nil {
@@ -325,7 +331,7 @@ func (s *Statement) element(c Context) Expr {
 			}
 		}
 		if tok := s.prev(); tok.Type != scan.LeftBrack {
-			s.Errorf("missing left bracket at %q", tok.Text)
+			s.Errorf("missing left bracket")
 		}
 		vars := s.operand(c)
 		i := &IndexExpr{
