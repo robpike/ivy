@@ -1,0 +1,95 @@
+# Code used to create and optimize the coefficients used by the approximate
+# gamma function in ../value/fac.go. Details in this paper:
+#	The Gamma Function via Interpolation by Matthew F. Causley, 2021
+#	https://arxiv.org/pdf/2104.00697v1
+# It is a refinement to Spouge's (1994) approximation; see the Wikipedia page
+#   https://en.wikipedia.org/wiki/Spouge%27s_approximation
+# This approximation requires more constants and more iterations than Lanczos
+# but the iterations are cheaper and it can be tuned to provide much higher
+# precision; as a bonus, the constants are much easier to calculate.
+
+)prec 256
+)format '%.78e' # Get every bit we have from a 256-bit mantissa.
+)origin 0 # This works better as the series starts at 0.
+
+N r = 100 126.69 # for zbar = 6
+
+# For a given N, we can optimize the approximation by finding the value of r
+# that gives maximum accuracy at a particular value of z using this code.
+#
+#	# uses global N
+#	# sets global c r; restore after use.
+#	op bestR (rmin rmax dr zbar) =
+#		ideal = !zbar-1
+#		minErr = 100
+#		_ _ = c r # Use global r and c
+#		r = rmin
+#		:while r < rmax
+#			c = N 1 rho (C@ iota N)
+#			err = (abs ideal - gamma zbar)/ideal
+#			:if err < minErr; minErr = err; best = r; :end
+#			print "%.8g" text r err
+#			r = r + dr
+#		:end
+#		"BEST" best
+#
+#	bestR 126.6 126.7 .01 6
+#
+# Using this process, I ended up with N=100 (larger N gives more accuracy
+# at more expense) and r=126.69. However, there are numbers in Causley's
+# paper that I could not reproduce and this value of r is larger than expected.
+# It is unclear why, but given the high sensitivity to error propagation
+# in the calculation, using 256-bit mantissas may affect on the results.
+# I do not know the properties of Causley's floating point engine, but for the
+# values tested here, these parameters work well.
+# For example, gamma 12 gives
+#	39916799.999999999999999999999999999999999999999908337720309466210041813686726577105514
+# which is good for 48 digits compared to the precise answer, 39916800.
+# (Nonetheless, it would be good to understand the discrepancy in r.)
+
+# Calculate the coefficients cₙ for fac.go. We can print them below.
+# They are easy enough to calculate on the fly (unlike with Lanczos) that
+# we do that in the Go code, but we can print them if we want and
+# in any case we need to calculate them for our tests and optimization.
+op C n =
+	t = (1 -1)[n&1]/!n
+	u = e**r-n
+	v = (r-n)**n+.5
+	t*u*v
+
+c = N 1 rho (C@ iota N)
+
+cinf = 2.5066 # Fixed by the algorithm; see Causley.
+
+# A test implementation of gamma, bit-identical to what's in fac.go.
+# Written as a loop to ease comparison with the paper.
+op gamma z =
+	p = (z+r)**z-.5
+	q = **-(z+r)
+	n = 0
+	sum = cinf
+	:while n <= N-1
+		sum = sum+c[n]/(z+n)
+		n = n+1
+	:end
+	p*q*sum
+
+# format prints the values neatly for easy cut and paste into fac.go.
+op format x =
+	s = text x
+	s[0] == '-': s
+	'+', s
+
+)format '%.78e' # Get every bit we have from a 256-bit mantissa.
+op printC _ =
+	print "C ="
+	i = 0
+	:while N > i
+		print '%q,' text format c[i]
+		i = i+1
+	:end
+
+:if 0; printC 0 :end
+
+)format '%.78f'
+gamma 12
