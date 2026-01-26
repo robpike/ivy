@@ -75,18 +75,19 @@ func parseTwo(c Context, s string) (Value, Value, string, error) {
 	if len(elems) != 2 || elems[0] == "" || elems[1] == "" {
 		c.Errorf("bad %s number syntax: %q", typ, s)
 	}
-	v1, err := Parse(c, elems[0])
+	v1, err := ParseNumber(c, elems[0])
 	if err != nil {
 		return nil, nil, "", err
 	}
-	v2, err := Parse(c, elems[1])
+	v2, err := ParseNumber(c, elems[1])
 	if err != nil {
 		return nil, nil, "", err
 	}
 	return v1, v2, sep, err
 }
 
-func Parse(c Context, s string) (Value, error) {
+// ParseNumber parses a string to create a number.
+func ParseNumber(c Context, s string) (Value, error) {
 	conf := c.Config()
 	// Is it a complex or rational?
 	v1, v2, sep, err := parseTwo(c, s)

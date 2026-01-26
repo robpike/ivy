@@ -4,9 +4,7 @@
 
 package value
 
-import (
-	"math/big"
-)
+import "math/big"
 
 func asin(c Context, v Value) Value {
 	if u, ok := v.(Complex); ok {
@@ -125,7 +123,7 @@ func floatAtan(c Context, x *big.Float) *big.Float {
 	}
 
 	// This is the series for small values |x| <  1.
-	// asin(x) = x - x³/3 + x⁵/5 - x⁷/7 + ...
+	// atan(x) = x - x³/3 + x⁵/5 - x⁷/7 + ...
 	// First term to compute in loop will be x
 
 	n := newFloat(c)

@@ -285,7 +285,7 @@ func (s *Statement) element(c Context) Expr {
 	default:
 		s.Errorf("syntax error at %q", tok.Text)
 	case scan.Number:
-		expr, err := Parse(c, tok.Text)
+		expr, err := ParseNumber(c, tok.Text)
 		if err != nil {
 			s.Errorf("%s", err)
 		}

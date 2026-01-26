@@ -63,7 +63,7 @@ func (p *Parser) nextDecimalNumber64() int64 {
 	ibase, obase := conf.Base()
 	defer conf.SetBase(ibase, obase)
 	conf.SetBase(10, obase)
-	v, err := value.Parse(p.context, p.need(scan.Number).Text)
+	v, err := value.ParseNumber(p.context, p.need(scan.Number).Text)
 	if err != nil {
 		p.errorf("%s", err)
 	}
