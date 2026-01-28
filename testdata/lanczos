@@ -93,8 +93,8 @@ F = size 1 rho  fn@ -1+iota size
 
 # ===================
 
-# And now the final thunderclap: multiply it all together.
-'%.22g' text (D+.*B+.*C)+.*F
+# And now the final thunderclap: multiply it all together and make it a vertical vector.
+'%.22g' text size 1 rho (D+.*B+.*C)+.*F
 
 
 

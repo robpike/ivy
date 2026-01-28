@@ -114,3 +114,24 @@ x +.* y
 	492 534
 	576 618
 	660 702
+
+# Promotion of scalars
+
+2 +.* 1 2 3
+	12
+
+1 2 3 +.* 2
+	12
+
+x=2 3 rho iota 6
+1 +.* x
+	5 7 9
+
+x=2 3 rho iota 6
+x +.* 1
+	6 15
+
+# Corner case we might as well allow.
+() +.* ()
+	#
+

@@ -244,10 +244,18 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 	switch u := u.(type) {
 	case *Vector:
 		v := v.(*Vector)
+		if u.Len() != v.Len() {
+			// Can we promote a scalar to match?
+			if u.Len() == 1 {
+				u = NewVectorSeq(repeat(u.At(0), v.Len()))
+			} else if v.Len() == 1 {
+				v = NewVectorSeq(repeat(v.At(0), u.Len()))
+			}
+		}
 		u.sameLength(c, v)
 		n := u.Len()
 		if n == 0 {
-			c.Errorf("empty inner product")
+			return empty
 		}
 		x := c.EvalBinary(u.At(n-1), right, v.At(n-1))
 		for k := n - 2; k >= 0; k-- {
@@ -261,7 +269,14 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		// The result has shape (-1 drop rho u), (1 drop rho v)
 		v := v.(*Matrix)
 		if u.Rank() < 1 || v.Rank() < 1 || u.shape[len(u.shape)-1] != v.shape[0] {
-			c.Errorf("inner product: mismatched shapes %s and %s", NewIntVector(u.shape...), NewIntVector(v.shape...))
+			// Can we promote a scalar to vector that matches?
+			if u.data.Len() == 1 {
+				u = NewMatrix(c, []int{1, v.shape[1]}, NewVectorSeq(repeat(u.data.At(0), size(c, []int{v.shape[1]}))))
+			} else if v.data.Len() == 1 {
+				v = NewMatrix(c, []int{u.shape[1], 1}, NewVectorSeq(repeat(v.data.At(0), size(c, []int{u.shape[1]}))))
+			} else {
+				c.Errorf("inner product: mismatched shapes %s and %s", NewIntVector(u.shape...), NewIntVector(v.shape...))
+			}
 		}
 		n := v.shape[0]
 		vstride := v.data.Len() / n
@@ -284,6 +299,10 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 		shape := make([]int, rank)
 		copy(shape, u.shape[:len(u.shape)-1])
 		copy(shape[len(u.shape)-1:], v.shape[1:])
+		// Drop to vector if we can.
+		if len(shape) == 2 && (shape[0] == 1 || shape[len(shape)-1] == 1) {
+			return data.Publish()
+		}
 		return NewMatrix(c, shape, data.Publish())
 	}
 	c.Errorf("can't do inner product on %s", whichType(c, u))
