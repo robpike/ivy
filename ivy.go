@@ -6,11 +6,11 @@ package main // import "robpike.io/ivy"
 
 import (
 	"bufio"
-	_ "embed"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"runtime/pprof"
 	"strings"
 
@@ -23,9 +23,6 @@ import (
 	"robpike.io/ivy/state"
 	"robpike.io/ivy/value"
 )
-
-//go:embed version.txt
-var version string
 
 var (
 	execute         = flag.String("e", "", "execute `argument` and quit")
@@ -54,7 +51,11 @@ func main() {
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Print(version)
+		if build, ok := debug.ReadBuildInfo(); ok {
+			fmt.Println(build.Main.Version)
+		} else {
+			fmt.Println("unknown version")
+		}
 		return
 	}
 
