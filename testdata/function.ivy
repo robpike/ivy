@@ -315,6 +315,19 @@ y = 3
 	e
 	pi
 
+# Don't wipe user-defined variables named e or pi when issuing a special command. Issue #266.
+e = 1
+pi = 1
+)clear var e
+e; pi
+	2.71828182846 1
+
+# More for Issue #266.
+e = 1
+)get testdata/empty.txt # Should have no effect.
+e; pi
+	1 3.14159265359
+
 # user-defined used to not be recognized mid-expression unless also binary
 op nop x = x
 +/ nop 1 2 3

@@ -191,7 +191,6 @@ func (p *Parser) Line() (value.StatementList, bool) {
 		return nil, true
 	case scan.RightParen:
 		p.special()
-		p.context.SetConstants()
 		return nil, true
 	case scan.Op:
 		p.functionDefn(start)

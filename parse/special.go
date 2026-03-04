@@ -93,6 +93,7 @@ func truth(x bool) int {
 }
 
 func (p *Parser) special() {
+
 	p.need(scan.RightParen) // Happily also calls SetPos.
 	conf := p.context.Config()
 	// Save the base and do everything here base 0, which is decimal but
@@ -103,6 +104,7 @@ func (p *Parser) special() {
 		conf.SetBase(ibase, obase)
 	}()
 	conf.SetBase(0, 0)
+	updateConsts := false // Need to recompute the constants in some cases.
 Switch:
 	// Permit scan.Number in case we are in a high base (say 52) in which
 	// case text looks numeric.
@@ -191,8 +193,10 @@ Switch:
 			// Delete every name of specified type.
 			if want == "all" {
 				p.context.UndefineAll(true, true, true)
+				updateConsts = true
 			} else {
 				p.context.UndefineAll(want == "unary", want == "binary", want == "var")
+				updateConsts = want == "var"
 			}
 			break
 		}
@@ -207,6 +211,14 @@ Switch:
 				found = p.context.UndefineOp(name, true)
 			case "var":
 				found = p.context.UndefineVar(name)
+				if name == "e" || name == "pi" {
+					e, pi := value.Consts(p.context)
+					if name == "e" {
+						p.context.AssignGlobal("e", e)
+					} else if name == "pi" {
+						p.context.AssignGlobal("pi", pi)
+					}
+				}
 			case "all":
 				found = p.context.UndefineVar(name)
 				found = p.context.UndefineOp(name, false) || found
@@ -404,6 +416,7 @@ Switch:
 			p.errorf("illegal prec %d", prec)
 		}
 		conf.SetFloatPrec(uint(prec))
+		updateConsts = true
 	case "prompt":
 		if p.peek().Type == scan.EOF {
 			p.Printf("%q\n", conf.Prompt())
@@ -461,6 +474,9 @@ Switch:
 	// has been updated.
 	conf.SetBase(ibase, obase)
 	p.need(scan.EOF)
+	if updateConsts {
+		p.context.SetConstants()
+	}
 }
 
 // getString returns the value of the string that must be next in the input.
@@ -487,7 +503,7 @@ func (p *Parser) getFile(prefix, def string) string {
 		}
 		return str
 	default:
-		// Just grab the rest of the text on the line.
+		// Just grab the rest of the text on the line, up to a comment.
 		// Must drain the scanner first as we are cheating it.
 		for p.peek().Type != scan.EOF {
 			p.next()
@@ -495,6 +511,9 @@ func (p *Parser) getFile(prefix, def string) string {
 		h := p.scanner.History()
 		line := strings.TrimSpace(h[len(h)-1])
 		line = strings.TrimPrefix(line, prefix)
+		if i := strings.Index(line, "#"); i >= 0 {
+			line = line[:i]
+		}
 		return strings.TrimSpace(line)
 	}
 }
