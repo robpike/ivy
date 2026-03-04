@@ -66,10 +66,10 @@ func Assign(c Context, left, right Expr, rhs Value) {
 		// Simultaneous assignment requires evaluation of RHS before assignment.
 		rhs, ok := rhs.(*Vector)
 		if !ok {
-			c.Errorf("rhs of assignment to (%s) not a vector", DebugProgString(lhs))
+			c.Errorf("shape mismatch in assignment to %s", DebugProgString(lhs))
 		}
 		if len(lhs) != rhs.Len() {
-			c.Errorf("length mismatch in assignment to (%s)", DebugProgString(lhs))
+			c.Errorf("length mismatch in assignment to %s", DebugProgString(lhs))
 		}
 		for i := rhs.Len() - 1; i >= 0; i-- {
 			Assign(c, lhs[i], nil, rhs.At(i))
