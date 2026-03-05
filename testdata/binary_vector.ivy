@@ -895,3 +895,20 @@ v[+(v=iota 3) in 1 2 3]
 
 (1 2) (3 4) @!== 1 2
 	0 1
+
+# Issue 260: Russ's rule.
+# Must parenthesize the lhs if an assignment names builtins.
+cos = 4 # Simple assignment, works as before.
+cos
+	4
+
+sin x = .2 .3  # Parses as sin (x=.2 .3)
+		0.198669330795 0.295520206661
+
+(sin x) = .2 .3; sin x # sin is now a variable.
+	1/5 3/10
+
+sin = 4
+sin x = .2 .3 # Once a variable, always a variable
+sin x
+	1/5 3/10

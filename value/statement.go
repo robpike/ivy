@@ -59,7 +59,7 @@ func NewStatement(tokens []scan.Token, fileName string, inOperator bool) *Statem
 
 // VarsAndRet returns a list of identifiers (which may or may not be variables;
 // we find out when evaluating) in the body of the statement. It also reports
-// whther the statement has a :ret.
+// whether the statement has a :ret.
 func (s *Statement) VarsAndRet() ([]string, bool) {
 	varNames := make(map[string]bool)
 	hasRet := false
@@ -199,7 +199,7 @@ func (s *Statement) expr(c Context) Expr {
 			return expr
 		case scan.Assign:
 			s.prev() // Eat the =
-			vars := s.operand(c)
+			vars := s.assignable(c)
 			s.checkAssign(c, vars)
 			expr = &BinaryExpr{
 				file:   s.fileName,
@@ -243,6 +243,86 @@ func (s *Statement) expr(c Context) Expr {
 	}
 }
 
+// assignable returns a list of identifiers and index expressions to be used as the
+// lhs of an assignment. We could (and once did) just call s.operand but this routine
+// restricts the results due to a corner case that affects the parse. If the lhs
+// contains operators to be used as variables and there are multiple items of any
+// kind, the list must be parenthesized to signal that any operators remain simple
+// identifiers. Otherwise any operator works as normally. An imperfect
+// solution to a rare problem.
+// APL does not have this issue because its bulitins are not identifiers.
+//
+//	cos = 4 # Simple assignment, works as before.
+//	sin x = .2 .3  # Parses as sin (x=.2 .3)
+//		0.198669330795 0.295520206661
+//	(sin x) = .2 .3; sin x # sin is now a variable.
+//		1/5 3/10
+//
+// assignable
+//
+//	assignableElem [assignableElem ...]
+//	"(" assignableElem ... ")"
+//
+func (s *Statement) assignable(c Context) Expr {
+	parens := false
+	if s.peek().Type == scan.RightParen {
+		s.prev()
+		parens = true
+	}
+	expr, ok := s.assignableElem(c, false)
+	if !ok {
+		s.Errorf("unexpected token on lhs of assignment: %q", s.peek().Text)
+	}
+	slice := []Expr{expr}
+	for {
+		expr, ok = s.assignableElem(c, !parens)
+		if !ok {
+			break
+		}
+		slice = append(slice, expr)
+	}
+	if parens {
+		if s.prev().Type != scan.LeftParen {
+			s.Errorf("missing left paren on lhs of assignment")
+		}
+	}
+	if len(slice) == 1 {
+		return slice[0]
+	}
+	return VectorExpr(reverse(slice))
+}
+
+// assignableElem
+//
+//	identifier
+//	index expression
+//	assignable    - if parenthesized
+//
+func (s *Statement) assignableElem(c Context, stopAtOperator bool) (Expr, bool) {
+	tok := s.peek()
+	switch tok.Type {
+	case scan.Identifier:
+		if stopAtOperator {
+			if isUnaryOp(c, tok.Text) || isBinaryOp(c, tok.Text) {
+				return nil, false
+			}
+		}
+		s.prev()
+		v := &VarExpr{
+			file:   s.fileName,
+			line:   tok.Line,
+			offset: tok.Offset,
+			Name:   tok.Text,
+		}
+		return v, true
+	case scan.RightBrack:
+		return s.element(c), true
+	case scan.RightParen: // The same rules apply if nested.
+		return s.assignable(c), true
+	}
+	return nil, false
+}
+
 // operand
 //
 //	element
@@ -257,12 +337,16 @@ func (s *Statement) operand(c Context) Expr {
 	for s.atOperand(c) {
 		slice = append(slice, s.element(c))
 	}
-	// Reverse the slice. With a lot more code (or an n² in the previous loop)
-	// we could avoid this but the reversal is cheap.
+	return VectorExpr(reverse(slice))
+}
+
+// reverse reverses the slice. With a lot more code (or an n² in the generating loops)
+// we could avoid this but the reversal is cheap.
+func reverse(slice []Expr) []Expr {
 	for i, j := 0, len(slice)-1; i < j; i, j = i+1, j-1 {
 		slice[i], slice[j] = slice[j], slice[i]
 	}
-	return VectorExpr(slice)
+	return slice
 }
 
 // element
@@ -489,9 +573,6 @@ func (s *Statement) buildOperator(c Context) operator {
 					isOp = true
 				}
 			case scan.Identifier:
-				if isVariable(c, tok.Text) { // Just a division.
-					break
-				}
 				// A (unary) reduction/expansion if this is a binary.
 				if isBinaryOp(c, tok.Text) {
 					op.isBinary = false
@@ -565,10 +646,16 @@ func (s *Statement) checkAssign(c Context, e Expr) {
 }
 
 func isBinaryOp(c Context, id string) bool {
+	if isVariable(c, id) {
+		return false
+	}
 	return BinaryOps[id] != nil || c.UserDefined(id, true)
 }
 
 func isUnaryOp(c Context, id string) bool {
+	if isVariable(c, id) {
+		return false
+	}
 	return UnaryOps[id] != nil || c.UserDefined(id, false)
 }
 
@@ -607,9 +694,6 @@ func (s *Statement) atOperand(c Context) bool {
 		return true
 	case scan.Identifier:
 		// Can't be an operator.
-		if isVariable(c, tok.Text) {
-			return true
-		}
 		if isBinaryOp(c, tok.Text) || isUnaryOp(c, tok.Text) {
 			return false
 		}
