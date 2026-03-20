@@ -437,31 +437,34 @@ func (l *Scanner) atTerminator() bool {
 	return false
 }
 
+// Make the code below nicer to read by giving the scanning states names. These
+// booleans permit the scan to continue if the named item terminates the next
+// component.
+const (
+	jAllowed     = true
+	slashAllowed = true
+)
+
+// lexComplex scans a (possibly complex) number. General form is two signed rationals separated by 'j'.
 func lexComplex(l *Scanner) stateFn {
-	ok, fn := acceptNumber(l, true)
+	ok, fn := acceptRational(l, jAllowed)
 	if !ok {
 		return fn
 	}
 	if !l.accept("j") {
 		return l.emit(Number)
 	}
-	ok, _ = acceptNumber(l, true)
+	ok, fn = acceptRational(l, !jAllowed)
 	if !ok {
-		return l.errorf("bad complex number syntax: %s", l.input[l.start:l.pos])
+		return fn
 	}
 	return l.emit(Number)
 }
 
-// acceptNumber scans a number: decimal, octal, hex, float. This
-// isn't a perfect number scanner - for instance it accepts "." and "0x0.2"
-// and "089" - but when it's wrong the input is invalid and the parser (via
-// strconv) will notice. The realPart boolean says whether this might be
-// the first half of a complex number, permitting a 'j' afterwards. If it's
-// false, we've just seen a 'j' and we need another number.
-// It returns the next lex function to run.
-func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
+// acceptRational scans a (possibly signed, possibly rational) number.
+func acceptRational(l *Scanner, jAllowed bool) (bool, stateFn) {
 	// Optional leading sign.
-	if l.accept("+-") && realPart {
+	if l.accept("+-") {
 		// Might not be a number.
 		r := l.peek()
 		// Might be a scan or reduction.
@@ -472,7 +475,7 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 			return false, lexOperator
 		}
 	}
-	if !l.scanNumber(true, realPart) {
+	if !l.scanNumber(jAllowed, slashAllowed) {
 		// We could error out here, but that prevents the )get special
 		// command from handling a dot in a file name, so we return what we
 		// have and let the number syntax checking catch the error
@@ -486,25 +489,30 @@ func acceptNumber(l *Scanner, realPart bool) (bool, stateFn) {
 	// Might be a rational.
 	l.accept("/")
 
-	if realPart {
-		if r := l.peek(); r != '.' && !l.isNumeral(r) {
-			// Oops, not a rational. Back up!
-			l.pos--
-			return true, lexOperator
-		}
+	if r := l.peek(); r != '.' && !l.isNumeral(r) {
+		// Oops, not a rational. Back up!
+		l.pos--
+		return true, lexOperator
 	}
-	// Note: No signs here. 1/-2 is (1 / -2) not (-1/2). This differs from 'j' but feels right;
-	// you don't write 1/-2 for -1/2. The sign should be first.
-	if !l.scanNumber(false, realPart) {
-		return false, l.errorf("bad number syntax: %s", l.input[l.start:l.pos])
+
+	// Note: No leading signs here. 1/-2 is (1 / -2) not (-1/2).
+	// You don't write 1/-2 for -1/2.
+	if !l.scanNumber(jAllowed, !slashAllowed) {
+		// Special case for confusing situation e.g. 1j2/3j4.
+		s := l.input[l.start:l.pos]
+		if strings.Count(s, "j") > 1 {
+			return false, l.errorf("cannot make rational from complex numbers: %s", s)
+		}
+		return false, l.errorf("bad syntax in rational denominator: %s", s)
 	}
 	if l.peek() == '.' {
-		return false, l.errorf("bad number syntax: %s", l.input[l.start:l.pos+1])
+		return false, nil
 	}
 	return true, lexAny
 }
 
-func (l *Scanner) scanNumber(followingSlashOK, followingJOK bool) bool {
+// scanNumber scans a simple number, neither rational nor complex.
+func (l *Scanner) scanNumber(jAllowed, slashAllowed bool) bool {
 	base := l.conf.InputBase()
 	digits := digitsForBase(base)
 	// If base 0, accept octal for 0 or hex for 0x or 0X.
@@ -531,12 +539,14 @@ func (l *Scanner) scanNumber(followingSlashOK, followingJOK bool) bool {
 		l.acceptRun("0123456789")
 	}
 	r := l.peek()
-	if followingSlashOK && r == '/' {
+
+	if slashAllowed && r == '/' {
 		return true
 	}
-	if followingJOK && r == 'j' {
+	if jAllowed && r == 'j' {
 		return true
 	}
+
 	// Next thing mustn't be alphanumeric except possibly an o for outer product (3o.+2) or a complex.
 	if r != 'o' && isAlphaNumeric(r) {
 		l.next()
