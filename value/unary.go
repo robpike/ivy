@@ -165,6 +165,36 @@ func bigFloatRand(c Context, f *big.Float) Value {
 	return BigFloat{x}
 }
 
+func numDen(c Context, v Value) Value {
+	switch v := v.(type) {
+	case Int:
+		return NewVector(v, Int(1))
+	case BigInt:
+		return NewVector(v, Int(1))
+	case BigRat:
+		return NewVector(BigInt{v.Num()}, BigInt{v.Denom()})
+	case BigFloat:
+		r, acc := v.Rat(nil)
+		if acc != 0 {
+			// Should only happen for an Inf.
+			c.Errorf("unexpected inexact rational for float %s", v.Sprint(c))
+		}
+		return NewVector(BigInt{r.Num()}, BigInt{r.Denom()})
+	case Complex:
+		// Can only be useful if at least one of the components is zero.
+		real, imag := v.real, v.imag
+		if isZero(imag) {
+			return numDen(c, real)
+		}
+		if isZero(real) {
+			ri := numDen(c, imag).(*Vector)
+			return NewVector(NewComplex(c, Int(0), ri.At(0)), ri.At(1))
+		}
+	}
+	c.Errorf("numden not implemented for %s", v.Sprint(c))
+	panic("not reached")
+}
+
 func init() {
 	ops := []*unaryOp{
 		{
@@ -462,6 +492,18 @@ func init() {
 				complexType: func(c Context, v Value) Value {
 					return v.(Complex).abs(c).shrink()
 				},
+			},
+		},
+
+		{
+			name:        "numden",
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType:      numDen,
+				bigIntType:   numDen,
+				bigRatType:   numDen,
+				bigFloatType: numDen,
+				complexType:  numDen,
 			},
 		},
 

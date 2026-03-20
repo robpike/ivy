@@ -261,3 +261,18 @@ sqrt pi
 	1.77245385091
 	1.77245385091
 	1
+
+)debug types
+sqrt (3/2)**2  # Demonstrate that it remains a float
+numden sqrt (3/2)**2
+	1
+	value.BigFloat
+	1.5
+	*value.Vector
+	3 2
+
+# All floats are truly rationals underneath, we just don't think of them that way.
+numden sqrt 2
+float //numden sqrt 2
+	81877371507464127617551201542979628307507432471243237061821853600756754782485 57896044618658097711785492504343953926634992332820282019728792003956564819968
+	1.41421356237

@@ -124,6 +124,7 @@ Unary operators
 	Imaginary part          imag    Imaginary component of the value
 	Phase                   phase   Phase of the value in the complex plane (-π to π)
 	Conjugate         +B    conj    Complex conjugate of the value
+	Fractional parts        numden  2-vector of numerator and denomator of B
 	System functions  ⎕     sys     Argument is a string; run "sys 'help'" for details
 	Print                   print   Print and evaluate to argument; useful for debugging
 	N/A                     trap    Return a 2-vector. The first element is the value of B and
