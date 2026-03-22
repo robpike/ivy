@@ -68,7 +68,7 @@ func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Va
 		c.Errorf("stack overflow calling %q", fn.Name)
 	}
 	c.push(fn)
-	value.Assign(context, fn.Right, right, right)
+	value.Assign(context, fn.Name, fn.Right, right, right)
 	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
@@ -88,8 +88,8 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 		c.Errorf("stack overflow calling %q", fn.Name)
 	}
 	c.push(fn)
-	value.Assign(context, fn.Left, left, left)
-	value.Assign(context, fn.Right, right, right)
+	value.Assign(context, fn.Name, fn.Left, left, left)
+	value.Assign(context, fn.Name, fn.Right, right, right)
 	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {

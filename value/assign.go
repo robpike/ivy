@@ -4,6 +4,8 @@
 
 package value
 
+import "fmt"
+
 // Code for assignment, a little intricate as there are many cases and many
 // validity checks.
 
@@ -18,11 +20,11 @@ var scalarShape = []int{1} // The assignment shape vector for a scalar
 
 func assign(context Context, b *BinaryExpr) Value {
 	rhs := b.Right.Eval(context).Inner()
-	Assign(context, b.Left, b.Right, rhs)
+	Assign(context, b.Op, b.Left, b.Right, rhs)
 	return QuietValue{Value: rhs}
 }
 
-func Assign(c Context, left, right Expr, rhs Value) {
+func Assign(c Context, op string, left, right Expr, rhs Value) {
 	// We know the left is a variableExpr or index expression.
 	// Special handling as we must not evaluate the left - it is an l-value.
 	// But we need to process the indexing, if it is an index expression.
@@ -66,15 +68,24 @@ func Assign(c Context, left, right Expr, rhs Value) {
 		// Simultaneous assignment requires evaluation of RHS before assignment.
 		rhs, ok := rhs.(*Vector)
 		if !ok {
-			c.Errorf("shape mismatch in assignment to %s", DebugProgString(lhs))
+			c.Errorf("shape mismatch in %s %s to %s", assignOrBind(op), DebugProgString(rhs), DebugProgString(lhs))
 		}
 		if len(lhs) != rhs.Len() {
-			c.Errorf("length mismatch in assignment to %s", DebugProgString(lhs))
+			c.Errorf("length mismatch %s %s to %s", assignOrBind(op), DebugProgString(rhs), DebugProgString(lhs))
 		}
 		for i := rhs.Len() - 1; i >= 0; i-- {
-			Assign(c, lhs[i], nil, rhs.At(i))
+			Assign(c, op, lhs[i], nil, rhs.At(i))
 		}
 		return
 	}
 	c.Errorf("cannot assign to %s", DebugProgString(left))
+}
+
+// assignOrBind returns an appropriate description for the error, according to
+// whether it is an assignment or the binding of a formal argument.
+func assignOrBind(op string) string {
+	if op == "=" {
+		return "in assignment of"
+	}
+	return fmt.Sprintf("binding arg in call of %q:", op)
 }

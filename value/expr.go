@@ -34,11 +34,12 @@ func (u *UnaryExpr) ProgString() string {
 }
 
 func (u *UnaryExpr) Eval(context Context) Value {
-	context.SetPos(u.file, u.line, u.offset)
 	if u.Op == "trap" && !context.UserDefined(u.Op, false) {
 		return u.trap(context)
 	}
-	return context.EvalUnary(u.Op, u.Right.Eval(context).Inner())
+	expr := u.Right.Eval(context).Inner()
+	context.SetPos(u.file, u.line, u.offset) // after the arguments are eval'ed.
+	return context.EvalUnary(u.Op, expr)
 }
 
 // trap implements the trap operation, which needs to set up
@@ -82,12 +83,12 @@ func (b *BinaryExpr) ProgString() string {
 }
 
 func (b *BinaryExpr) Eval(context Context) Value {
-	context.SetPos(b.file, b.line, b.offset)
 	if b.Op == "=" {
 		return assign(context, b)
 	}
 	rhs := b.Right.Eval(context).Inner()
 	lhs := b.Left.Eval(context)
+	context.SetPos(b.file, b.line, b.offset) // after the arguments are eval'ed.
 	return context.EvalBinary(lhs, b.Op, rhs)
 }
 
