@@ -110,7 +110,6 @@ abc/123 234
 	1 8 1/4 72 2
 
 # Other bases while reading floating-point number format.
-# Yes, you can use 0b or 0o or 0x prefixes, but honor ibase anyway.
 # The base must be 0 or 10 (easy; 0 the default) or 2, 8, or 16.
 
 # First 100 bits of the prime constant (base 2, 1 bit at each prime).

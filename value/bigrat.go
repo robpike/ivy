@@ -23,11 +23,11 @@ func setBigRatFromFloatString(c Context, s string) (br BigRat, err error) {
 	if !strings.ContainsAny(s, ".eEpP") {
 		// Most likely a number like "08".
 		c.Errorf("bad number syntax: %s", s)
-		return BigRat{}, fmt.Errorf("bad number syntax: %q")
+		return BigRat{}, fmt.Errorf("bad number syntax: %q", s)
 	}
 	ibase := 0
 	if c != nil { // Happens during const.go initialization, fixing would create import cycle.
-		ibase, _ = c.Config().Base()
+		ibase = c.Config().InputBase()
 	}
 	if strings.Contains(s, "p") || strings.Contains(s, "P") {
 		ibase = 16 // Force hexadecimal; overrides ibase.
