@@ -136,15 +136,6 @@ func eFormat(verb byte, prec int, sign, str string, exp int) string {
 	return fmt.Sprintf("%s%s%s%s%c%+.2d", sign, str[0:1], period, str[1:], verb, exp)
 }
 
-var manyZeros = "0000000000"
-
-func zeros(prec int) string {
-	for len(manyZeros) < prec {
-		manyZeros += manyZeros
-	}
-	return manyZeros[:prec]
-}
-
 func (i Int) Eval(Context) Value {
 	return i
 }

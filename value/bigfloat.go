@@ -7,6 +7,8 @@ package value
 import (
 	"fmt"
 	"math/big"
+	"strings"
+	"sync"
 )
 
 type BigFloat struct {
@@ -33,20 +35,23 @@ func (f BigFloat) String() string {
 
 func (f BigFloat) Sprint(c Context) string {
 	conf := c.Config()
-	var mant big.Float
-	exp := f.Float.MantExp(&mant)
-	positive := 1
-	if exp < 0 {
-		positive = 0
-		exp = -exp
-	}
-	verb, prec := byte('g'), 12
+	verb, prec := byte('g'), 12 // prec is number of digits after the decimal.
 	format := conf.Format()
 	if format != "" {
 		v, p, ok := conf.FloatFormat()
 		if ok {
 			verb, prec = v, p
 		}
+	}
+	if base := conf.OutputBase(); base != 0 && base != 10 {
+		return nonDecimalBaseFloatString(c, f.Float, base, prec, verb)
+	}
+	var mant big.Float
+	exp := f.Float.MantExp(&mant)
+	positive := 1
+	if exp < 0 {
+		positive = 0
+		exp = -exp
 	}
 	// Printing huge floats can be very slow using
 	// big.Float's native methods; see issue #11068.
@@ -110,6 +115,121 @@ func (f BigFloat) Sprint(c Context) string {
 		}
 	}
 	return f.Float.Text(verb, prec)
+}
+
+var (
+	zs        = ""
+	zerosLock sync.Mutex
+)
+
+// zeros returns a string of n zeros.
+func zeros(n int) string {
+	zerosLock.Lock()
+	defer zerosLock.Unlock()
+	if len(zs) < n {
+		zs = strings.Repeat("0", n+10)
+	}
+	return zs[:n]
+}
+
+var binaryToOctal = map[string]byte{
+	"000": '0',
+	"001": '1',
+	"010": '2',
+	"011": '3',
+	"100": '4',
+	"101": '5',
+	"110": '6',
+	"111": '7',
+}
+
+// nonDecimalBaseFloatString formats a float in a non-decimal base.
+// It always prints with mantissa in [½, 1) or 0, followed by
+// a power of two exponent introduced by a 'p'.
+// TODO: Implement 'f' and 'g' formats.
+func nonDecimalBaseFloatString(c Context, f *big.Float, base, prec int, verb byte) string {
+	switch base {
+	case 2, 8, 16:
+	default:
+		c.Errorf("cannot print floats in base %d", base)
+	}
+	var mant big.Float
+	exp := f.MantExp(&mant)
+	// For now, we ignore the verb except to set the case of the exponent marker.
+	// Also, for these bases we always show the exponent as a power of two;
+	// otherwise there is a lot more work to do.
+	expChar := 'p'
+	if 'A' <= verb && verb <= 'Z' {
+		expChar = 'P'
+	}
+	signChar := '+'
+	switch f.Sign() {
+	case 0:
+		return fmt.Sprintf("+0.%s%c+00", zeros(prec), expChar)
+	case -1:
+		mant.Neg(&mant)
+		signChar = '-'
+	}
+	// Convert mantissa to a hexadecimal 'p' format, which we can then rework
+	// as bits. TODO: Would be much nicer if we MantExp gave is an integer for
+	// the mantissa.
+	str := mant.Text('p', int(c.Config().FloatPrec()))
+	pLoc := strings.IndexByte(str, 'p')
+	if !strings.HasPrefix(str, "0x.") || pLoc < 0 {
+		c.Errorf("internal error formatting float in base %d; %q", base, str)
+	}
+	mStr := str[3:pLoc]
+	var b strings.Builder
+	s := mStr
+	bufSize := 2 * prec // Headroom.
+	// Safety first.
+	if prec < 2 {
+		bufSize = 12
+	}
+	if base == 8 {
+		bufSize *= 3 // Headroom, plus we generate bits first, three per digit.
+	}
+	for i := 0; b.Len() < bufSize; i++ {
+		c := byte(0)
+		if i < len(s) {
+			c = s[i]
+			if c <= '9' {
+				c -= '0'
+			} else {
+				c -= 'a' - 10
+			}
+		}
+		switch base {
+		case 2, 8:
+			// Base 8 needs three at a time. Convert to binary first, fix below.
+			for mask := byte(8); mask > 0; mask >>= 1 {
+				if c&mask != 0 {
+					b.WriteByte('1')
+				} else {
+					b.WriteByte('0')
+				}
+			}
+		case 16:
+			if c <= 9 {
+				b.WriteByte('0' + c)
+			} else {
+				b.WriteByte('a' + c - 10)
+			}
+		}
+	}
+	s = b.String()
+	// Base 8 consumes 3 bits at a time, so the loop above is unsound for octal.
+	// That's why we process it as base 2 above, and then translate here.
+	if base == 8 {
+		b.Reset()
+		for len(s) >= 3 {
+			b.WriteByte(binaryToOctal[s[:3]])
+			s = s[3:]
+		}
+		s = b.String()
+	}
+	mantissa := s[:prec]
+	return fmt.Sprintf("%c0.%s%c%+.2d", signChar, mantissa, expChar, exp)
 }
 
 // inverse returns 1/f

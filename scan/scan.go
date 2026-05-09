@@ -515,20 +515,25 @@ func acceptRational(l *Scanner, jAllowed bool) (bool, stateFn) {
 func (l *Scanner) scanNumber(jAllowed, slashAllowed bool) bool {
 	base := l.conf.InputBase()
 	digits := digitsForBase(base)
-	// If base 0, accept octal for 0 or hex for 0x or 0X.
-	if base == 0 {
-		if l.accept("0") {
-			switch {
-			case l.accept("xX"):
-				digits = digitsForBase(16)
-			case l.accept("oO"):
-				digits = digitsForBase(8)
-			case l.accept("bB"):
-				digits = digitsForBase(2)
-			}
+	// Always accept the base prefixes, but only use them to set
+	// the base if we are in base 0. The parser will reject
+	// them if we are not in base 0, but it gives better error
+	// messages to allow them here.
+	if l.accept("0") {
+		prefixBase := base
+		switch {
+		case l.accept("bB"):
+			prefixBase = 2
+		case l.accept("oO"):
+			prefixBase = 8
+		case l.accept("xX"):
+			prefixBase = 16
 		}
-		// Otherwise leave it decimal (0); strconv.ParseInt will take care of it.
-		// We can't set it to 8 in case it's a leading-0 float like 0.69 or 09e4.
+		// If not base 0 leave the base alone.
+		// Also, we can't set it to 8 for leading 0 in case it's a float like 0.69 or 09e4.
+		if base == 0 {
+			digits = digitsForBase(prefixBase)
+		}
 	}
 	l.acceptRun(digits)
 	if l.accept(".") {

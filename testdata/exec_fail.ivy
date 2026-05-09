@@ -128,3 +128,9 @@ op a x = sys "trace" "hello" ; b x
 a 10
 	hello
 
+# Check that we give a good error message in this case.
+# It used to be just an unhelpful syntax error.
+# Expect: base-determining prefixes allowed only in base 0: "0x1"
+)base 16
+0x1
+	#

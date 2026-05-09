@@ -193,10 +193,28 @@ func exponential(c Context, z *big.Float, x *big.Float) *big.Float {
 	return z.Set(sum)
 }
 
+// TODO: Would be nice to avoid some of the duplication in these power functions.
+
 // integerPower returns x**exp where exp is an int64 of size <= intBits.
 func integerPower(c Context, x *big.Float, exp int64) *big.Float {
 	z := newFloat(c).SetInt64(1)
 	y := newFloat(c).Set(x)
+	// For each loop, we compute xⁿ where n is a power of two.
+	for exp > 0 {
+		if exp&1 == 1 {
+			// This bit contributes. Multiply it into the result.
+			z.Mul(z, y)
+		}
+		y.Mul(y, y)
+		exp >>= 1
+	}
+	return z
+}
+
+// bigIntPower returns x**exp where exp is an int64 of size <= intBits.
+func bigIntPower(c Context, x *big.Int, exp int64) *big.Int {
+	z := big.NewInt(1)
+	y := big.NewInt(1).Set(x)
 	// For each loop, we compute xⁿ where n is a power of two.
 	for exp > 0 {
 		if exp&1 == 1 {

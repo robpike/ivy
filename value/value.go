@@ -89,6 +89,10 @@ func parseTwo(c Context, s string) (Value, Value, string, error) {
 // ParseNumber parses a string to create a number.
 func ParseNumber(c Context, s string) (Value, error) {
 	conf := c.Config()
+	// 0x etc. prefixes are only allowed in base 0.
+	if conf.InputBase() != 0 && hasBasePrefix(s) {
+		return zero, fmt.Errorf("base-determining prefixes allowed only in base 0: %q", s)
+	}
 	// Is it a complex or rational?
 	v1, v2, sep, err := parseTwo(c, s)
 	if err != nil {
@@ -142,4 +146,19 @@ func bigRatInt64(x int64) BigRat {
 
 func bigFloatInt64(conf *config.Config, x int64) BigFloat {
 	return BigFloat{new(big.Float).SetPrec(conf.FloatPrec()).SetInt64(x)}
+}
+
+// hasBasePrefix reports whether the number has a base specifier such as 0x,
+// after an optional sign.
+func hasBasePrefix(s string) bool {
+	if s == "" {
+		return false
+	}
+	if s[0] == '-' || s[0] == '+' {
+		s = s[1:]
+	}
+	if len(s) < 2 || s[0] != '0' {
+		return false
+	}
+	return strings.IndexAny("bBoOxXpP", s[1:2]) >= 0
 }

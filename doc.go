@@ -439,10 +439,14 @@ input.
 	) base 0
 		Set the number base for input and output. The commands ibase and
 		obase control setting of the base for input and output alone,
-		respectively.  Base 0 allows C-style input: decimal, with 037 being
+		respectively. Base 0 allows C-style input: decimal, with 037 being
 		octal, 0b10 being binary and 0x10 being hexadecimal. Bases above
-		16 are disallowed. To output large integers and rationals, base
-		must be one of 0 2 8 10 16. Floats are always printed base 10.
+		16 are disallowed. To output floats, rationals, and large integers,
+		base must be one of 0 2 8 10 16. In base 2, 8, or 16, floats are
+		represented in exponential format with the mantissa in the range
+		[½, 1) (or zero) in the specified base and the exponent a power
+		of two, in decimal and introduced by a 'p' or 'P' character.
+		Other float formats are not supported outside base 0 or 10.
 	) clear name ...
 		Remove the definition of the named user-defined items, or all
 		such items if no name is provided. The scope may be limited to
