@@ -69,10 +69,10 @@ iota 10
 2 ** iota 5
 (1 << iota 100) == 2 ** iota 100
 2 ** -1 + iota 32 # Again, see how the precedence rules work.
-# The take operator removes n items from the beginning of the vector.
+# The take operator returns the first n items from the beginning of the vector.
 3 take iota 10
 -3 take iota 10     # Negative n takes from the end.
-# Drop is the other half: it drops n from the vector.
+# Drop returns the other half: it returns the vector after the first n.
 3 drop iota 10
 -3 drop iota 10     # Negative n drops from the end.
 6 drop 'hello world'
