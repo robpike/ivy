@@ -37,8 +37,9 @@ const _Type_name = "EOFErrorNewlineAssignCharIdentifierLeftBrackLeftParenNumberO
 var _Type_index = [...]uint8{0, 3, 8, 15, 21, 25, 35, 44, 53, 59, 67, 69, 71, 75, 79, 84, 87, 90, 100, 110, 119, 125, 130}
 
 func (i Type) String() string {
-	if i < 0 || i >= Type(len(_Type_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Type_index)-1 {
 		return "Type(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Type_name[_Type_index[i]:_Type_index[i+1]]
+	return _Type_name[_Type_index[idx]:_Type_index[idx+1]]
 }

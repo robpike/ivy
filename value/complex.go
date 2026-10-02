@@ -100,21 +100,21 @@ func (c Complex) shrink() Value {
 // Arithmetic.
 
 func (c Complex) neg(ctx Context) Complex {
-	return NewComplex(ctx, ctx.EvalUnary("-", c.real), ctx.EvalUnary("-", c.imag))
+	return NewComplex(ctx, ctx.EvalUnary(uminus, c.real), ctx.EvalUnary(uminus, c.imag))
 }
 
 func (c Complex) inverse(ctx Context) Complex {
 	if isZero(c.real) && isZero(c.imag) {
 		ctx.Errorf("complex inverse of zero")
 	}
-	denom := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", c.real), "+", ctx.EvalBinary(c.imag, "*", c.imag))
-	r := ctx.EvalBinary(c.real, "/", denom)
-	i := ctx.EvalUnary("-", ctx.EvalBinary(c.imag, "/", denom))
+	denom := ctx.EvalBinary(ctx.EvalBinary(c.real, times, c.real), plus, ctx.EvalBinary(c.imag, times, c.imag))
+	r := ctx.EvalBinary(c.real, divide, denom)
+	i := ctx.EvalUnary(uminus, ctx.EvalBinary(c.imag, divide, denom))
 	return NewComplex(ctx, r, i)
 }
 
 func (c Complex) abs(ctx Context) Value {
-	mag := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", c.real), "+", ctx.EvalBinary(c.imag, "*", c.imag))
+	mag := ctx.EvalBinary(ctx.EvalBinary(c.real, times, c.real), plus, ctx.EvalBinary(c.imag, times, c.imag))
 	return sqrt(ctx, mag)
 }
 
@@ -134,7 +134,7 @@ func (c Complex) phase(ctx Context) Value {
 		}
 		return BigFloat{floatMinusPiBy2}
 	}
-	atan := atan(ctx, ctx.EvalBinary(c.imag, "/", c.real))
+	atan := atan(ctx, ctx.EvalBinary(c.imag, divide, c.real))
 	// Correct the quadrants. We lose sign information in the division.
 	// We want the range to be -π to π. The comments state
 	// the value of atan from above, at 45° within the quadrant.
@@ -142,24 +142,24 @@ func (c Complex) phase(ctx Context) Value {
 	case rPos && iPos: // Upper right, π/4, OK.
 	case rPos && !iPos: // Lower right, -π/4, OK.
 	case !rPos && !iPos: // Lower left, π/4, subtract π.
-		atan = ctx.EvalBinary(atan, "-", BigFloat{newFloat(ctx).Set(floatPi)})
+		atan = ctx.EvalBinary(atan, minus, BigFloat{newFloat(ctx).Set(floatPi)})
 	case !rPos && iPos: // Upper left, -π/4, add π.
-		atan = ctx.EvalBinary(atan, "+", BigFloat{newFloat(ctx).Set(floatPi)})
+		atan = ctx.EvalBinary(atan, plus, BigFloat{newFloat(ctx).Set(floatPi)})
 	}
 	return atan
 }
 
 func (c Complex) add(ctx Context, d Complex) Complex {
-	return NewComplex(ctx, ctx.EvalBinary(c.real, "+", d.real), ctx.EvalBinary(c.imag, "+", d.imag))
+	return NewComplex(ctx, ctx.EvalBinary(c.real, plus, d.real), ctx.EvalBinary(c.imag, plus, d.imag))
 }
 
 func (c Complex) sub(ctx Context, d Complex) Complex {
-	return NewComplex(ctx, ctx.EvalBinary(c.real, "-", d.real), ctx.EvalBinary(c.imag, "-", d.imag))
+	return NewComplex(ctx, ctx.EvalBinary(c.real, minus, d.real), ctx.EvalBinary(c.imag, minus, d.imag))
 }
 
 func (c Complex) mul(ctx Context, d Complex) Complex {
-	r := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", d.real), "-", ctx.EvalBinary(c.imag, "*", d.imag))
-	i := ctx.EvalBinary(ctx.EvalBinary(d.imag, "*", c.real), "+", ctx.EvalBinary(d.real, "*", c.imag))
+	r := ctx.EvalBinary(ctx.EvalBinary(c.real, times, d.real), minus, ctx.EvalBinary(c.imag, times, d.imag))
+	i := ctx.EvalBinary(ctx.EvalBinary(d.imag, times, c.real), plus, ctx.EvalBinary(d.real, times, c.imag))
 	return NewComplex(ctx, r, i)
 }
 
@@ -168,18 +168,18 @@ func (c Complex) div(ctx Context, d Complex) Complex {
 		ctx.Errorf("complex division by zero")
 	}
 	if d.isReal() { // A common case, like dividing by 2.
-		denom := ctx.EvalBinary(d.real, "*", d.real)
-		r := ctx.EvalBinary(c.real, "*", d.real)
-		r = ctx.EvalBinary(r, "/", denom)
-		i := ctx.EvalBinary(c.imag, "*", d.real)
-		i = ctx.EvalBinary(i, "/", denom)
+		denom := ctx.EvalBinary(d.real, times, d.real)
+		r := ctx.EvalBinary(c.real, times, d.real)
+		r = ctx.EvalBinary(r, divide, denom)
+		i := ctx.EvalBinary(c.imag, times, d.real)
+		i = ctx.EvalBinary(i, divide, denom)
 		return NewComplex(ctx, r, i)
 	}
-	denom := ctx.EvalBinary(ctx.EvalBinary(d.real, "*", d.real), "+", ctx.EvalBinary(d.imag, "*", d.imag))
-	r := ctx.EvalBinary(ctx.EvalBinary(c.real, "*", d.real), "+", ctx.EvalBinary(c.imag, "*", d.imag))
-	r = ctx.EvalBinary(r, "/", denom)
-	i := ctx.EvalBinary(ctx.EvalBinary(c.imag, "*", d.real), "-", ctx.EvalBinary(c.real, "*", d.imag))
-	i = ctx.EvalBinary(i, "/", denom)
+	denom := ctx.EvalBinary(ctx.EvalBinary(d.real, times, d.real), plus, ctx.EvalBinary(d.imag, times, d.imag))
+	r := ctx.EvalBinary(ctx.EvalBinary(c.real, times, d.real), plus, ctx.EvalBinary(c.imag, times, d.imag))
+	r = ctx.EvalBinary(r, divide, denom)
+	i := ctx.EvalBinary(ctx.EvalBinary(c.imag, times, d.real), minus, ctx.EvalBinary(c.real, times, d.imag))
+	i = ctx.EvalBinary(i, divide, denom)
 	return NewComplex(ctx, r, i)
 }
 
@@ -191,13 +191,13 @@ func (c Complex) div(ctx Context, d Complex) Complex {
 func (c Complex) floor(ctx Context) Complex {
 	r := c.real
 	i := c.imag
-	b := NewComplex(ctx, ctx.EvalUnary("floor", r), ctx.EvalUnary("floor", i))
-	x := ctx.EvalBinary(r, "mod", one)
-	y := ctx.EvalBinary(i, "mod", one)
-	if isTrue(ctx, "floor", ctx.EvalBinary(one, ">", ctx.EvalBinary(x, "+", y))) {
+	b := NewComplex(ctx, ctx.EvalUnary(ufloor, r), ctx.EvalUnary(ufloor, i))
+	x := ctx.EvalBinary(r, bmod, one)
+	y := ctx.EvalBinary(i, bmod, one)
+	if isTrue(ctx, "floor", ctx.EvalBinary(one, GT, ctx.EvalBinary(x, plus, y))) {
 		return b
 	}
-	if isTrue(ctx, "floor", ctx.EvalBinary(x, ">=", y)) {
+	if isTrue(ctx, "floor", ctx.EvalBinary(x, GEQ, y)) {
 		return b.add(ctx, complexOne)
 	}
 	return b.add(ctx, NewComplex(ctx, zero, one))

@@ -26,7 +26,7 @@ type UnaryExpr struct {
 	file   string // TODO?
 	line   int
 	offset int
-	Op     string
+	Op     Unary
 	Right  Expr
 }
 
@@ -35,7 +35,7 @@ func (u *UnaryExpr) ProgString() string {
 }
 
 func (u *UnaryExpr) Eval(context Context) Value {
-	if u.Op == "trap" && !context.UserDefined(u.Op, false) {
+	if str := u.Op.String(); str == "trap" && !context.UserDefined(str, false) {
 		return u.trap(context)
 	}
 	expr := u.Right.Eval(context).Inner()
@@ -68,7 +68,7 @@ type BinaryExpr struct {
 	file   string // TODO?
 	line   int
 	offset int
-	Op     string
+	Op     Binary
 	Left   Expr
 	Right  Expr
 }
@@ -84,7 +84,7 @@ func (b *BinaryExpr) ProgString() string {
 }
 
 func (b *BinaryExpr) Eval(context Context) Value {
-	if b.Op == "=" {
+	if b.Op.String() == "=" {
 		return assign(context, b)
 	}
 	rhs := b.Right.Eval(context).Inner()
@@ -399,13 +399,13 @@ func debugProgString(b *strings.Builder, e progStringer) {
 	case *VarExpr:
 		b.WriteString(expr.ProgString())
 	case *UnaryExpr:
-		b.WriteString(expr.Op)
+		b.WriteString(expr.Op.String())
 		b.WriteRune(' ')
 		debugProgString(b, expr.Right)
 	case *BinaryExpr:
 		debugProgString(b, expr.Left)
 		b.WriteRune(' ')
-		b.WriteString(expr.Op)
+		b.WriteString(expr.Op.String())
 		b.WriteRune(' ')
 		debugProgString(b, expr.Right)
 	case *IndexExpr:

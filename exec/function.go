@@ -25,8 +25,10 @@ type Function struct {
 	Ibase int
 }
 
+var _ value.Operator = (*Function)(nil)
+
 // Used for debugging. The output is not valid Ivy syntax.
-func (fn *Function) String() string {
+func (fn *Function) ProgString() string {
 	var b strings.Builder
 	b.WriteString("op ")
 	if fn.IsBinary {
@@ -40,6 +42,11 @@ func (fn *Function) String() string {
 	b.WriteString(fn.Source)
 	fmt.Fprintf(&b, "} {Variables: %s} ", fn.Variables)
 	return b.String()
+}
+
+// Needed for the value.Operator interface.
+func (fn *Function) String() string {
+	return fn.Name
 }
 
 func (fn *Function) newFrame() *value.Frame {

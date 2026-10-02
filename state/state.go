@@ -19,10 +19,6 @@ func New(c value.Context) *State {
 	return &State{c}
 }
 
-func (s *State) IsBinaryOp(op string) bool {
-	return value.BinaryOps[op] != nil
-}
-
 func (s *State) InputBase() int {
 	return s.Config().InputBase()
 }
@@ -36,10 +32,10 @@ func (s *State) Output() io.Writer {
 }
 
 func (s *State) Predefined(op string, isUnary, isBinary bool) bool {
-	if isUnary && value.UnaryOps[op] != nil {
+	if isUnary && value.UnaryBuiltins[op] != nil {
 		return true
 	}
-	if isBinary && value.BinaryOps[op] != nil {
+	if isBinary && value.BinaryBuiltins[op] != nil {
 		return true
 	}
 	return false

@@ -1075,13 +1075,13 @@ func (m *Matrix) inverse(c Context) Value {
 					}
 				}
 				// This is the diagonal. We want a one here.
-				scale := c.EvalUnary("/", val) // Invert so we can multiply in loop.
+				scale := c.EvalUnary(urecip, val) // Invert so we can multiply in loop.
 				for i := 0; i < 2*dim; i++ {
 					if i == x {
 						thisRow[i] = one
 						continue
 					}
-					thisRow[i] = c.EvalBinary(thisRow[i], "*", scale)
+					thisRow[i] = c.EvalBinary(thisRow[i], times, scale)
 				}
 				continue
 			}
@@ -1103,13 +1103,13 @@ func (m *Matrix) inverse(c Context) Value {
 			}
 			// Subtract scaled target row to get a zero.
 			row := t[target]
-			ratio := c.EvalBinary(thisRow[x], "/", row[x])
+			ratio := c.EvalBinary(thisRow[x], divide, row[x])
 			for i := 0; i < 2*dim; i++ {
 				if i == x {
 					thisRow[i] = zero
 					continue
 				}
-				thisRow[i] = c.EvalBinary(thisRow[i], "-", c.EvalBinary(ratio, "*", row[i]))
+				thisRow[i] = c.EvalBinary(thisRow[i], minus, c.EvalBinary(ratio, times, row[i]))
 			}
 		}
 	}

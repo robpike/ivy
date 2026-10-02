@@ -6,7 +6,6 @@ package exec // import "robpike.io/ivy/exec"
 
 import (
 	"fmt"
-	"strings"
 
 	"robpike.io/ivy/config"
 	"robpike.io/ivy/value"
@@ -177,51 +176,9 @@ func (c *Context) Eval(exprs []value.Expr) []value.Value {
 }
 
 // EvalUnary evaluates a unary operator, including reductions and scans.
-func (c *Context) EvalUnary(op string, right value.Value) value.Value {
-	if len(op) > 1 {
-		switch op[len(op)-1] {
-		case '/':
-			value.TraceUnary(c, 2, op, right)
-			return value.Reduce(c, op[:len(op)-1], right)
-		case '\\':
-			value.TraceUnary(c, 2, op, right)
-			return value.Scan(c, op[:len(op)-1], right)
-		case '%':
-			if len(op) > 2 {
-				switch op[len(op)-2] {
-				case '/':
-					value.TraceUnary(c, 2, op, right)
-					return value.ReduceFirst(c, op[:len(op)-2], right)
-				case '\\':
-					value.TraceUnary(c, 2, op, right)
-					return value.ScanFirst(c, op[:len(op)-2], right)
-				}
-			}
-		case '@':
-			value.TraceUnary(c, 2, op, right)
-			return value.Each(c, op, right)
-		}
-	}
-	fn, userDefined := c.unary(op)
-	if fn == nil {
-		c.Errorf("unary %q not implemented", op)
-	}
-	if userDefined {
-		value.TraceUnary(c, 1, op, right)
-	}
-	return fn.EvalUnary(c, right)
-}
+func (c *Context) EvalUnary(op value.Unary, right value.Value) value.Value {
+	return op.EvalUnary(c, right)
 
-func (c *Context) unary(op string) (fn value.UnaryOp, userDefined bool) {
-	userFn := c.UnaryFn[op]
-	if userFn != nil {
-		return userFn, true
-	}
-	builtin := value.UnaryOps[op]
-	if builtin != nil {
-		return builtin, false
-	}
-	return nil, false
 }
 
 func (c *Context) UserDefined(op string, isBinary bool) bool {
@@ -232,44 +189,18 @@ func (c *Context) UserDefined(op string, isBinary bool) bool {
 }
 
 // EvalBinary evaluates a binary operator, including products.
-func (c *Context) EvalBinary(left value.Value, op string, right value.Value) value.Value {
+func (c *Context) EvalBinary(left value.Value, op value.Binary, right value.Value) value.Value {
 	// Special handling for the equal and non-equal operators, which must avoid
 	// type conversions involving Char.
-	if op == "==" || op == "!=" {
-		v, ok := value.EvalCharEqual(c, left, op == "==", right)
+	str := op.String()
+	if str == "==" || str == "!=" {
+		v, ok := value.EvalCharEqual(c, left, str == "==", right)
 		if ok {
-			value.TraceBinary(c, 2, left, op, right) // Only trace if we've done it.
+			value.TraceBinary(c, 2, left, str, right) // Only trace if we've done it.
 			return v
 		}
 	}
-	if strings.Trim(op, "@") != op {
-		value.TraceBinary(c, 2, left, op, right)
-		return value.BinaryEach(c, left, op, right)
-	}
-	if strings.Contains(op, ".") {
-		value.TraceBinary(c, 2, left, op, right)
-		return value.Product(c, left, op, right)
-	}
-	fn, userDefined := c.binary(op)
-	if fn == nil {
-		c.Errorf("binary %q not implemented", op)
-	}
-	if userDefined {
-		value.TraceBinary(c, 1, left, op, right)
-	}
-	return fn.EvalBinary(c, left, right)
-}
-
-func (c *Context) binary(op string) (fn value.BinaryOp, userDefined bool) {
-	user := c.BinaryFn[op]
-	if user != nil {
-		return user, true
-	}
-	builtin := value.BinaryOps[op]
-	if builtin != nil {
-		return builtin, false
-	}
-	return nil, false
+	return op.EvalBinary(c, left, right)
 }
 
 // Define installs the function in the Context after a little more error checking.
@@ -369,6 +300,24 @@ func (c *Context) LookupFn(name string, isBinary bool) (int, bool) {
 		return i, true
 	}
 	return 0, false
+}
+
+// NewUserDefinedBinaryOp creates a new operator to call the user-defined binary.
+func (c *Context) NewUserDefinedBinaryOp(op string) value.Binary {
+	fn := c.BinaryFn[op]
+	if fn == nil {
+		c.Errorf("internal error: binary %s not defined", op)
+	}
+	return fn
+}
+
+// NewUserDefinedUnaryOp creates a new operator to call the user-defined unary.
+func (c *Context) NewUserDefinedUnaryOp(op string) value.Unary {
+	fn := c.UnaryFn[op]
+	if fn == nil {
+		c.Errorf("internal error: unary %s not defined", op)
+	}
+	return fn
 }
 
 // noVar guarantees that there is no global variable with that name,

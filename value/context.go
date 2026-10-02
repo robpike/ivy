@@ -21,16 +21,6 @@ func (p Pos) String() string {
 	return fmt.Sprintf("%s:%d:%d", p.File, p.Line, p.Offset)
 }
 
-// UnaryOp is the interface implemented by a simple unary operator.
-type UnaryOp interface {
-	EvalUnary(c Context, right Value) Value
-}
-
-// BinaryOp is the interface implemented by a simple binary operator.
-type BinaryOp interface {
-	EvalBinary(c Context, right, left Value) Value
-}
-
 // A Variable is a name mentioned in a function and records
 // the first action done to the associated variable.
 type Variable struct {
@@ -142,14 +132,20 @@ type Context interface {
 	// creating it if needed.
 	AssignGlobal(name string, value Value)
 
+	// NewUserDefinedBinaryOp creates a new operator to call the user-defined binary.
+	NewUserDefinedBinaryOp(name string) Binary
+
+	// NewUserDefinedUnaryOp creates a new operator to call the user-defined unary.
+	NewUserDefinedUnaryOp(name string) Unary
+
 	// Eval evaluates a list of expressions.
 	Eval(exprs []Expr) []Value
 
 	// EvalUnary evaluates a unary operator.
-	EvalUnary(op string, right Value) Value
+	EvalUnary(op Unary, right Value) Value
 
 	// EvalBinary evaluates a binary operator.
-	EvalBinary(left Value, op string, right Value) Value
+	EvalBinary(left Value, op Binary, right Value) Value
 
 	// UserDefined reports whether the specified op is user-defined.
 	UserDefined(op string, isBinary bool) bool

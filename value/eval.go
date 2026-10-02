@@ -9,7 +9,6 @@ import (
 	"iter"
 	"math/big"
 	"runtime"
-	"strings"
 )
 
 type valueType int
@@ -34,8 +33,8 @@ func (t valueType) String() string {
 
 type unaryFn func(Context, Value) Value
 
-type unaryOp struct {
-	name        string
+type unaryBuiltin struct {
+	op          Unary
 	elementwise bool // whether the operation applies elementwise to vectors and matrices
 	fn          [numType]unaryFn
 }
@@ -54,31 +53,31 @@ func TraceBinary(c Context, level int, u Value, op string, v Value) {
 	}
 }
 
-func (op *unaryOp) EvalUnary(c Context, v Value) Value {
+func (op *unaryBuiltin) EvalUnary(c Context, v Value) Value {
 	which := whichType(c, v)
 	fn := op.fn[which]
 	if fn == nil {
 		if op.elementwise {
 			switch which {
 			case vectorType:
-				return unaryVectorOp(c, op.name, v)
+				return unaryVectorOp(c, op.op, v)
 			case matrixType:
-				return unaryMatrixOp(c, op.name, v)
+				return unaryMatrixOp(c, op.op, v)
 			}
 		}
-		c.Errorf("unary %s not implemented on type %s", op.name, which)
+		c.Errorf("unary %s not implemented on type %s", op.op, which)
 	}
 	if c.Config().Tracing(2) {
-		fmt.Printf("\t%s> %s %s\n", c.TraceIndent(), op.name, v)
+		fmt.Printf("\t%s> %s %s\n", c.TraceIndent(), op.op, v)
 	}
 	return fn(c, v)
 }
 
 type binaryFn func(Context, Value, Value) Value
 
-type binaryOp struct {
-	name        string
-	elementwise bool // whether the operation applies elementwise to vectors and matrices
+type binaryBuiltin struct {
+	Op          Binary // Accessed by exec.EvalBinary.
+	elementwise bool   // whether the operation applies elementwise to vectors and matrices
 	whichType   func(c Context, a, b valueType) (valueType, valueType)
 	fn          [numType]binaryFn
 }
@@ -106,25 +105,25 @@ func whichType(c Context, v Value) valueType {
 	panic("which type")
 }
 
-func (op *binaryOp) EvalBinary(c Context, u, v Value) Value {
+func (op *binaryBuiltin) EvalBinary(c Context, u, v Value) Value {
 	whichU, whichV := op.whichType(c, whichType(c, u), whichType(c, v))
 	conf := c.Config()
-	u = u.toType(op.name, c, whichU)
-	v = v.toType(op.name, c, whichV)
+	u = u.toType(op.Op.String(), c, whichU)
+	v = v.toType(op.Op.String(), c, whichV)
 	fn := op.fn[whichV]
 	if fn == nil {
 		if op.elementwise {
 			switch whichV {
 			case vectorType:
-				return binaryVectorOp(c, u, op.name, v)
+				return binaryVectorOp(c, u, op.Op, v)
 			case matrixType:
-				return binaryMatrixOp(c, u, op.name, v)
+				return binaryMatrixOp(c, u, op.Op, v)
 			}
 		}
-		c.Errorf("binary %s not implemented on type %s", op.name, whichV)
+		c.Errorf("binary %s not implemented on type %s", op.Op, whichV)
 	}
 	if conf.Tracing(2) {
-		fmt.Printf("\t%s> %s %s %s\n", c.TraceIndent(), u, op.name, v)
+		fmt.Printf("\t%s> %s %s %s\n", c.TraceIndent(), u, op.Op, v)
 	}
 	return fn(c, u, v)
 }
@@ -148,40 +147,30 @@ func EvalCharEqual(c Context, u Value, isEqualOp bool, v Value) (Value, bool) {
 	return nil, false
 }
 
-// Product computes a compound product, such as an inner product
-// "+.*" or outer product "o.*". The op is known to contain a
-// period. The operands are all at least vectors, and for inner product
-// they must both be vectors.
-func Product(c Context, u Value, op string, v Value) Value {
-	dot := strings.IndexByte(op, '.')
-	left := op[:dot]
-	right := op[dot+1:]
-	which, _ := atLeastVectorType(c, whichType(c, u), whichType(c, v))
-	u = u.toType(op, c, which)
-	v = v.toType(op, c, which)
-	if left == "o" {
-		return outerProduct(c, u, right, v)
-	}
-	return innerProduct(c, u, left, right, v)
-}
-
 // safeBinary reports whether the binary operator op is safe to parallelize.
-func safeBinary(op string) bool {
-	// ? uses the random number generator,
-	// which maintains global state.
-	return BinaryOps[op] != nil && op != "?"
+func safeBinary(op Binary) bool {
+	if _, ok := op.(BinaryBuiltinOp); !ok {
+		return false
+	}
+	// ? uses the random number generator, which maintains global state.
+	return op.String() != "?"
 }
 
 // safeUnary reports whether the unary operator op is safe to parallelize.
-func safeUnary(op string) bool {
-	// ? uses the random number generator,
-	// which maintains global state.
-	return UnaryOps[op] != nil && op != "?"
+func safeUnary(op Unary) bool {
+	if _, ok := op.(UnaryBuiltinOp); !ok {
+		return false
+	}
+	// ? uses the random number generator, which maintains global state.
+	return op.String() != "?"
 }
 
 // knownAssoc reports whether the binary op is known to be associative.
-func knownAssoc(op string) bool {
-	switch op {
+func knownAssoc(op Binary) bool {
+	if _, ok := op.(BinaryBuiltinOp); !ok {
+		return false
+	}
+	switch op.String() {
 	case "+", "*", "min", "max", "or", "and", "xor", "|", "&", "^":
 		return true
 	}
@@ -240,7 +229,10 @@ func sendRecover(c chan<- any) {
 
 // inner product computes an inner product such as "+.*".
 // u and v are known to be the same type and at least Vectors.
-func innerProduct(c Context, u Value, left, right string, v Value) Value {
+func innerProduct(c Context, u Value, left, right Binary, v Value) Value {
+	which, _ := atLeastVectorType(c, whichType(c, u), whichType(c, v))
+	u = u.toType(left.String(), c, which)
+	v = v.toType(right.String(), c, which)
 	switch u := u.(type) {
 	case *Vector:
 		v := v.(*Vector)
@@ -306,9 +298,12 @@ func innerProduct(c Context, u Value, left, right string, v Value) Value {
 	panic("not reached")
 }
 
-// outer product computes an outer product such as "o.*".
+// outerProduct computes an outer product such as "o.*".
 // u and v are known to be at least Vectors.
-func outerProduct(c Context, u Value, op string, v Value) Value {
+func outerProduct(c Context, u Value, op Binary, v Value) Value {
+	which, _ := atLeastVectorType(c, whichType(c, u), whichType(c, v))
+	u = u.toType(op.String(), c, which)
+	v = v.toType(op.String(), c, which)
 	switch u := u.(type) {
 	case *Vector:
 		v := v.(*Vector)
@@ -336,7 +331,7 @@ func outerProduct(c Context, u Value, op string, v Value) Value {
 }
 
 // Reduce computes a reduction such as +/. The slash has been removed.
-func Reduce(c Context, op string, v Value) Value {
+func Reduce(c Context, op Binary, v Value) Value {
 	// We must be right associative; that is the grammar.
 	// -/1 2 3 == 1-2-3 is 1-(2-3) not (1-2)-3. Answer: 2.
 	switch v := v.(type) {
@@ -389,7 +384,7 @@ func degenerate(c Context, m *Matrix) {
 
 // ReduceFirst computes a reduction such as +/% along
 // the first axis. The slash-percent has been removed.
-func ReduceFirst(c Context, op string, v Value) Value {
+func ReduceFirst(c Context, op Binary, v Value) Value {
 	// We must be right associative; that is the grammar.
 	// -/1 2 3 == 1-2-3 is 1-(2-3) not (1-2)-3. Answer: 2.
 	m, ok := v.(*Matrix)
@@ -428,7 +423,7 @@ func ReduceFirst(c Context, op string, v Value) Value {
 // Scan computes a scan of the op; the \ has been removed.
 // It gives the successive values of reducing op through v.
 // We must be right associative; that is the grammar.
-func Scan(c Context, op string, v Value) Value {
+func Scan(c Context, op Binary, v Value) Value {
 	switch v := v.(type) {
 	case Int, BigInt, BigRat, BigFloat, Complex:
 		return v
@@ -487,7 +482,7 @@ func Scan(c Context, op string, v Value) Value {
 // The backslash-percent has been removed.
 // It gives the successive values of reducing op through v.
 // We must be right associative; that is the grammar.
-func ScanFirst(c Context, op string, v Value) Value {
+func ScanFirst(c Context, op Binary, v Value) Value {
 	m, ok := v.(*Matrix)
 	if !ok {
 		// Same as regular reduce.
@@ -596,38 +591,31 @@ func eachValue(c Context, v Value, dim int) iter.Seq[Value] {
 }
 
 // BinaryEach computes the result of applying op to lv and rv,
-// applying the "each" expansion depending on how many times
-// @ appears on the left and right ends of op.
-func BinaryEach(c Context, lv Value, op string, rv Value) Value {
-	// Count as many @s as possible for the left side.
-	// Must strip at least one if present, but don't have to strip all,
-	// in case we are doing @ of vector of vectors.
-	l := lv.toType(op, c, matrixType).(*Matrix)
-	lmax := len(l.shape)
-	ld := 0
-	for ld < len(op) && ld < lmax && op[ld] == '@' {
-		ld++
+// applying the "each" expansion depending on how many @s
+// decorated the op.
+func BinaryEach(c Context, lv Value, nLeftAts int, op Binary, nRightAts int, rv Value) Value {
+	str := op.String()
+	l := lv.toType(str, c, matrixType).(*Matrix)
+	r := rv.toType(str, c, matrixType).(*Matrix)
+	ld := min(nLeftAts, len(l.shape))
+	rd := min(nRightAts, len(r.shape))
+	if ld == 0 && nLeftAts > 0 {
+		c.Errorf("%s: left side is scalar", str)
 	}
-	if ld == 0 && op[0] == '@' {
-		c.Errorf("%s: left side is scalar", op)
-	}
-	lhs := eachValue(c, lv, ld)
-
-	// Count as many @s as possible for the right side.
-	// Must strip at least one if present, but don't have to strip all,
-	// in case we are doing @ of vector of vectors.
-	r := rv.toType(op, c, matrixType).(*Matrix)
-	rmax := len(r.shape)
-	rd := 0
-	for rd < len(op) && rd < rmax && op[len(op)-1-rd] == '@' {
-		rd++
-	}
-	if rd == 0 && op[len(op)-1] == '@' {
-		c.Errorf("%s: right side is scalar", op)
+	if rd == 0 && nRightAts > 0 {
+		c.Errorf("%s: right side is scalar", str)
 	}
 	rhs := eachValue(c, rv, rd)
+	lhs := eachValue(c, lv, ld)
 
-	innerOp := op[ld : len(op)-rd]
+	nLeft := nLeftAts - ld
+	nRight := nRightAts - rd
+	var innerOp Binary
+	if nLeft+nRight == 0 {
+		innerOp = op
+	} else {
+		innerOp = NewBinaryEachOp(op, nLeft, nRight)
+	}
 	data := newVectorEditor(0, nil)
 
 	for x := range lhs {
@@ -643,24 +631,20 @@ func BinaryEach(c Context, lv Value, op string, rv Value) Value {
 	return NewMatrix(c, shape, data.Publish())
 }
 
-// Each computes the result of running op on each element of v.
-// The trailing @ has been removed.
-func Each(c Context, op string, v Value) Value {
-	m := v.toType(op, c, matrixType).(*Matrix)
-	max := len(m.shape)
-	d := 0
-	for d < len(op) && d < max && op[len(op)-1-d] == '@' {
-		d++
+// UnaryEach computes the result of running op on each element of v.
+func UnaryEach(c Context, op Unary, numAts int, v Value) Value {
+	m := v.toType(op.String(), c, matrixType).(*Matrix)
+	d := min(len(m.shape), numAts)
+	var innerOp Unary
+	if numAts-d <= 0 {
+		innerOp = op
+	} else {
+		innerOp = NewUnaryEachOp(op, numAts-d)
 	}
-	if d == 0 {
-		c.Errorf("%s: arg is scalar", op)
-	}
-
 	data := newVectorEditor(0, nil)
 	for x := range eachValue(c, v, d) {
-		data.Append(c.EvalUnary(op[:len(op)-d], x))
+		data.Append(c.EvalUnary(innerOp, x))
 	}
-
 	if d == 1 {
 		return data.Publish()
 	}
@@ -668,7 +652,7 @@ func Each(c Context, op string, v Value) Value {
 }
 
 // unaryVectorOp applies op elementwise to i.
-func unaryVectorOp(c Context, op string, i Value) Value {
+func unaryVectorOp(c Context, op Unary, i Value) Value {
 	u := i.(*Vector)
 	n := newVectorEditor(u.Len(), nil)
 	pfor(safeUnary(op), 1, n.Len(), func(lo, hi int) {
@@ -680,7 +664,7 @@ func unaryVectorOp(c Context, op string, i Value) Value {
 }
 
 // unaryMatrixOp applies op elementwise to i.
-func unaryMatrixOp(c Context, op string, i Value) Value {
+func unaryMatrixOp(c Context, op Unary, i Value) Value {
 	u := i.(*Matrix)
 	n := newVectorEditor(u.data.Len(), nil)
 	pfor(safeUnary(op), 1, n.Len(), func(lo, hi int) {
@@ -692,7 +676,7 @@ func unaryMatrixOp(c Context, op string, i Value) Value {
 }
 
 // binaryVectorOp applies op elementwise to i and j.
-func binaryVectorOp(c Context, i Value, op string, j Value) Value {
+func binaryVectorOp(c Context, i Value, op Binary, j Value) Value {
 	u, v := i.(*Vector), j.(*Vector)
 	if u.Len() == 1 {
 		n := newVectorEditor(v.Len(), nil)
@@ -723,7 +707,7 @@ func binaryVectorOp(c Context, i Value, op string, j Value) Value {
 }
 
 // binaryMatrixOp applies op elementwise to i and j.
-func binaryMatrixOp(c Context, i Value, op string, j Value) Value {
+func binaryMatrixOp(c Context, i Value, op Binary, j Value) Value {
 	u, v := i.(*Matrix), j.(*Matrix)
 	shape := u.shape
 	var n *vectorEditor
@@ -908,7 +892,7 @@ func isTrue(c Context, fnName string, v Value) bool {
 
 // sgn is a wrapper for calling "sgn v".
 func sgn(c Context, v Value) int {
-	return int(c.EvalUnary("sgn", v).(Int))
+	return int(c.EvalUnary(usgn, v).(Int))
 }
 
 // inverse returns 1/v for any scalar value, errors otherwise.

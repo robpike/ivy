@@ -575,18 +575,18 @@ func (v *Vector) inverse(c Context) Value {
 			c.Errorf("inverse of vector with non-scalar element")
 		}
 		if cmplx, ok := x.(Complex); ok {
-			conj.Set(i, NewComplex(c, cmplx.real, c.EvalUnary("-", cmplx.imag)).shrink())
+			conj.Set(i, NewComplex(c, cmplx.real, c.EvalUnary(uminus, cmplx.imag)).shrink())
 		}
 	}
 	mag := Value(zero)
 	for i, x := range v.All() {
-		mag = c.EvalBinary(mag, "+", c.EvalBinary(x, "*", conj.At(i)))
+		mag = c.EvalBinary(mag, plus, c.EvalBinary(x, times, conj.At(i)))
 	}
 	if isZero(mag) {
 		c.Errorf("inverse of zero vector")
 	}
 	for i, x := range conj.All() {
-		conj.Set(i, c.EvalBinary(x, "/", mag))
+		conj.Set(i, c.EvalBinary(x, divide, mag))
 	}
 	return conj.Publish()
 }

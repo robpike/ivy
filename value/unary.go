@@ -135,7 +135,7 @@ func newCharVector(s string) Value {
 // Implemented in package run, handled as a func to avoid a dependency loop.
 var IvyEval func(context Context, s string) Value
 
-var UnaryOps = make(map[string]UnaryOp)
+var UnaryBuiltins = make(map[string]*unaryBuiltin)
 
 func printValue(c Context, v Value) Value {
 	fmt.Fprintln(c.Config().Output(), v.Sprint(c))
@@ -196,9 +196,9 @@ func numDen(c Context, v Value) Value {
 }
 
 func init() {
-	ops := []*unaryOp{
+	ops := []*unaryBuiltin{
 		{
-			name:        "?",
+			op:          UOP("?"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -221,7 +221,7 @@ func init() {
 		},
 
 		{
-			name:        "rand",
+			op:          UOP("rand"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -246,7 +246,7 @@ func init() {
 		},
 
 		{
-			name: "split",
+			op: UOP("split"),
 			fn: [numType]unaryFn{
 				intType:      self,
 				bigIntType:   self,
@@ -261,7 +261,7 @@ func init() {
 		},
 
 		{
-			name: "mix",
+			op: UOP("mix"),
 			fn: [numType]unaryFn{
 				intType:      self,
 				bigIntType:   self,
@@ -280,7 +280,7 @@ func init() {
 		},
 
 		{
-			name: "+",
+			op: UOP("+"),
 			fn: [numType]unaryFn{
 				intType:      self,
 				bigIntType:   self,
@@ -293,7 +293,7 @@ func init() {
 		},
 
 		{
-			name:        "-",
+			op:          UOP("-"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -315,7 +315,7 @@ func init() {
 		},
 
 		{
-			name:        "/",
+			op:          UOP("/"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -337,7 +337,7 @@ func init() {
 		},
 
 		{
-			name:        "inv",
+			op:          UOP("inv"),
 			elementwise: false,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -365,7 +365,7 @@ func init() {
 		},
 
 		{
-			name:        "sgn",
+			op:          UOP("sgn"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -393,7 +393,7 @@ func init() {
 			},
 		},
 		{
-			name:        "conj",
+			op:          UOP("conj"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      self,
@@ -402,13 +402,13 @@ func init() {
 				bigFloatType: self,
 				complexType: func(c Context, v Value) Value {
 					u := v.(Complex)
-					return NewComplex(c, u.real, c.EvalUnary("-", u.imag)).shrink().shrink()
+					return NewComplex(c, u.real, c.EvalUnary(uminus, u.imag)).shrink().shrink()
 				},
 			},
 		},
 
 		{
-			name:        "!",
+			op:          UOP("!"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return factorial(c, v).shrink() },
@@ -419,7 +419,7 @@ func init() {
 		},
 
 		{
-			name:        "^",
+			op:          UOP("^"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -433,7 +433,7 @@ func init() {
 		},
 
 		{
-			name:        "not",
+			op:          UOP("not"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -470,7 +470,7 @@ func init() {
 		},
 
 		{
-			name:        "abs",
+			op:          UOP("abs"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
@@ -496,7 +496,7 @@ func init() {
 		},
 
 		{
-			name:        "numden",
+			op:          UOP("numden"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      numDen,
@@ -508,7 +508,7 @@ func init() {
 		},
 
 		{
-			name:        "real",
+			op:          UOP("real"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      self,
@@ -522,7 +522,7 @@ func init() {
 		},
 
 		{
-			name:        "imag",
+			op:          UOP("imag"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      returnZero,
@@ -536,7 +536,7 @@ func init() {
 		},
 
 		{
-			name:        "phase",
+			op:          UOP("phase"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      realPhase,
@@ -550,7 +550,7 @@ func init() {
 		},
 
 		{
-			name:        "floor",
+			op:          UOP("floor"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:    func(c Context, v Value) Value { return v },
@@ -596,7 +596,7 @@ func init() {
 		},
 
 		{
-			name:        "ceil",
+			op:          UOP("ceil"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:    func(c Context, v Value) Value { return v },
@@ -643,7 +643,7 @@ func init() {
 		},
 
 		{
-			name: "iota",
+			op: UOP("iota"),
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
 					return newIota(c, c.Config().Origin(), int(v.(Int)))
@@ -692,7 +692,7 @@ func init() {
 		},
 
 		{
-			name: "rho",
+			op: UOP("rho"),
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
 					return empty
@@ -722,7 +722,7 @@ func init() {
 		},
 
 		{
-			name: "count",
+			op: UOP("count"),
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
 					return one
@@ -756,7 +756,7 @@ func init() {
 		},
 
 		{
-			name: "where",
+			op: UOP("where"),
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
 					return empty
@@ -817,7 +817,7 @@ func init() {
 			},
 		},
 		{
-			name: "flatten",
+			op: UOP("flatten"),
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value {
 					return oneElemVector(v)
@@ -841,13 +841,13 @@ func init() {
 					return NewVectorSeq(flatten(v.(*Vector)))
 				},
 				matrixType: func(c Context, v Value) Value {
-					return c.EvalUnary("flatten", v.(*Matrix).data)
+					return c.EvalUnary(UOP("flatten"), v.(*Matrix).data)
 				},
 			},
 		},
 
 		{
-			name: "print",
+			op: UOP("print"),
 			fn: [numType]unaryFn{
 				intType:      printValue,
 				charType:     printValue,
@@ -860,7 +860,7 @@ func init() {
 		},
 
 		{
-			name: ",",
+			op: UOP(","),
 			fn: [numType]unaryFn{
 				intType:      vectorSelf,
 				charType:     vectorSelf,
@@ -876,7 +876,7 @@ func init() {
 		},
 
 		{
-			name: "up",
+			op: UOP("up"),
 			fn: [numType]unaryFn{
 				intType:      self,
 				charType:     self,
@@ -893,7 +893,7 @@ func init() {
 		},
 
 		{
-			name: "down",
+			op: UOP("down"),
 			fn: [numType]unaryFn{
 				intType:      self,
 				charType:     self,
@@ -910,7 +910,7 @@ func init() {
 		},
 
 		{
-			name: "rot",
+			op: UOP("rot"),
 			fn: [numType]unaryFn{
 				intType:      self,
 				charType:     self,
@@ -945,7 +945,7 @@ func init() {
 		},
 
 		{
-			name: "flip",
+			op: UOP("flip"),
 			fn: [numType]unaryFn{
 				intType:      self,
 				charType:     self,
@@ -984,7 +984,7 @@ func init() {
 		},
 
 		{
-			name: "transp",
+			op: UOP("transp"),
 			fn: [numType]unaryFn{
 				intType:      self,
 				charType:     self,
@@ -1004,7 +1004,7 @@ func init() {
 		},
 
 		{
-			name:        "log",
+			op:          UOP("log"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return logn(c, v) },
@@ -1016,7 +1016,7 @@ func init() {
 		},
 
 		{
-			name:        "cos",
+			op:          UOP("cos"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return cos(c, v) },
@@ -1028,7 +1028,7 @@ func init() {
 		},
 
 		{
-			name:        "sin",
+			op:          UOP("sin"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return sin(c, v) },
@@ -1040,7 +1040,7 @@ func init() {
 		},
 
 		{
-			name:        "tan",
+			op:          UOP("tan"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return tan(c, v) },
@@ -1052,7 +1052,7 @@ func init() {
 		},
 
 		{
-			name:        "asin",
+			op:          UOP("asin"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return asin(c, v) },
@@ -1064,7 +1064,7 @@ func init() {
 		},
 
 		{
-			name:        "acos",
+			op:          UOP("acos"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return acos(c, v) },
@@ -1076,7 +1076,7 @@ func init() {
 		},
 
 		{
-			name:        "atan",
+			op:          UOP("atan"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return atan(c, v) },
@@ -1088,7 +1088,7 @@ func init() {
 		},
 
 		{
-			name:        "**",
+			op:          UOP("**"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return exp(c, v) },
@@ -1100,7 +1100,7 @@ func init() {
 		},
 
 		{
-			name:        "sinh",
+			op:          UOP("sinh"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return sinh(c, v) },
@@ -1112,7 +1112,7 @@ func init() {
 		},
 
 		{
-			name:        "cosh",
+			op:          UOP("cosh"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return cosh(c, v) },
@@ -1124,7 +1124,7 @@ func init() {
 		},
 
 		{
-			name:        "asinh",
+			op:          UOP("asinh"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return asinh(c, v) },
@@ -1136,7 +1136,7 @@ func init() {
 		},
 
 		{
-			name:        "acosh",
+			op:          UOP("acosh"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return acosh(c, v) },
@@ -1148,7 +1148,7 @@ func init() {
 		},
 
 		{
-			name:        "atanh",
+			op:          UOP("atanh"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return atanh(c, v) },
@@ -1160,7 +1160,7 @@ func init() {
 		},
 
 		{
-			name:        "tanh",
+			op:          UOP("tanh"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return tanh(c, v) },
@@ -1172,7 +1172,7 @@ func init() {
 		},
 
 		{
-			name:        "sqrt",
+			op:          UOP("sqrt"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      func(c Context, v Value) Value { return sqrt(c, v) },
@@ -1184,7 +1184,7 @@ func init() {
 		},
 
 		{
-			name:        "char",
+			op:          UOP("char"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType: func(c Context, v Value) Value { return Char(v.(Int)).validate(c) },
@@ -1192,7 +1192,7 @@ func init() {
 		},
 
 		{
-			name:        "code",
+			op:          UOP("code"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				charType: func(c Context, v Value) Value { return Int(v.(Char)) },
@@ -1200,7 +1200,7 @@ func init() {
 		},
 
 		{
-			name: "text",
+			op: UOP("text"),
 			fn: [numType]unaryFn{
 				charType:     func(c Context, v Value) Value { return text(c, v) },
 				intType:      func(c Context, v Value) Value { return text(c, v) },
@@ -1214,7 +1214,7 @@ func init() {
 		},
 
 		{
-			name: "ivy",
+			op: UOP("ivy"),
 			fn: [numType]unaryFn{
 				charType: func(c Context, v Value) Value {
 					char := v.(Char)
@@ -1231,7 +1231,7 @@ func init() {
 		},
 
 		{
-			name:        "float",
+			op:          UOP("float"),
 			elementwise: true,
 			fn: [numType]unaryFn{
 				intType:      floatValueSelf,
@@ -1246,7 +1246,7 @@ func init() {
 		},
 
 		{
-			name:        "unique",
+			op:          UOP("unique"),
 			elementwise: false,
 			fn: [numType]unaryFn{
 				intType:      unique,
@@ -1260,7 +1260,7 @@ func init() {
 		},
 
 		{
-			name:        "box",
+			op:          UOP("box"),
 			elementwise: false,
 			fn: [numType]unaryFn{
 				intType:      box,
@@ -1275,7 +1275,7 @@ func init() {
 		},
 
 		{
-			name:        "first",
+			op:          UOP("first"),
 			elementwise: false,
 			fn: [numType]unaryFn{
 				intType:      self,
@@ -1302,7 +1302,7 @@ func init() {
 		},
 
 		{
-			name:        "last",
+			op:          UOP("last"),
 			elementwise: false,
 			fn: [numType]unaryFn{
 				intType:      self,
@@ -1329,7 +1329,7 @@ func init() {
 		},
 
 		{
-			name:        "trap",
+			op:          UOP("trap"),
 			elementwise: false,
 			fn:          [numType]unaryFn{
 				// nil for all types; implemented in UnaryExpr.Eval.
@@ -1337,7 +1337,7 @@ func init() {
 		},
 
 		{
-			name:        "sys",
+			op:          UOP("sys"),
 			elementwise: false,
 			fn: [numType]unaryFn{
 				vectorType: sys, // Expect a vector of chars.
@@ -1346,6 +1346,6 @@ func init() {
 	}
 
 	for _, op := range ops {
-		UnaryOps[op.name] = op
+		UnaryBuiltins[op.op.String()] = op
 	}
 }

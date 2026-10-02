@@ -291,10 +291,10 @@ func OrderedCompare(c Context, u, v Value) int {
 
 // sgn2 returns the signum of a-b.
 func sgn2(c Context, a, b Value) int {
-	if c.EvalBinary(a, "<", b) == one {
+	if c.EvalBinary(a, LT, b) == one {
 		return -1
 	}
-	if c.EvalBinary(a, "==", b) == one {
+	if c.EvalBinary(a, EQ, b) == one {
 		return 0
 	}
 	return 1

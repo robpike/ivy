@@ -40,7 +40,7 @@ func logBaseU(c Context, u, v Value) Value {
 			return log
 		}
 	}
-	return c.EvalBinary(logn(c, v), "/", logn(c, u))
+	return c.EvalBinary(logn(c, v), divide, logn(c, u))
 }
 
 // intLog returns the integer portion of the log base b of v, if it's exact.

@@ -202,12 +202,12 @@ func right(c Context, left, right Value) Value {
 	return right
 }
 
-var BinaryOps = make(map[string]BinaryOp)
+var BinaryBuiltins = make(map[string]*binaryBuiltin)
 
 func init() {
-	var ops = []*binaryOp{
+	var ops = []*binaryBuiltin{
 		{
-			name:        "j",
+			Op:          BOP("j"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -227,7 +227,7 @@ func init() {
 		},
 
 		{
-			name:        "+",
+			Op:          BOP("+"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -260,7 +260,7 @@ func init() {
 		},
 
 		{
-			name:        "-",
+			Op:          BOP("-"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -290,7 +290,7 @@ func init() {
 		},
 
 		{
-			name:        "*",
+			Op:          BOP("*"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -322,7 +322,7 @@ func init() {
 		},
 
 		{ // Rational division.
-			name:        "/",
+			Op:          BOP("/"),
 			elementwise: true,
 			whichType:   rationalType, // Use BigRats to avoid the analysis here.
 			fn: [numType]binaryFn{
@@ -342,7 +342,7 @@ func init() {
 		},
 
 		{
-			name:        "idiv", // Go integer division.
+			Op:          BOP("idiv"), // Go integer division.
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -365,7 +365,7 @@ func init() {
 		},
 
 		{
-			name:        "imod",
+			Op:          BOP("imod"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -388,7 +388,7 @@ func init() {
 		},
 
 		{ // Matrix division and vector projection.
-			name:        "mdiv",
+			Op:          BOP("mdiv"),
 			elementwise: false,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -403,18 +403,18 @@ func init() {
 							c.Errorf("non-real element in vector mdiv")
 						}
 					}
-					num := innerProduct(c, uu, "+", "*", vv)
-					den := innerProduct(c, vv, "+", "*", vv)
-					return c.EvalBinary(num, "/", den)
+					num := innerProduct(c, uu, plus, times, vv)
+					den := innerProduct(c, vv, plus, times, vv)
+					return c.EvalBinary(num, divide, den)
 				},
 				matrixType: func(c Context, u, v Value) Value {
-					return innerProduct(c, v.(*Matrix).inverse(c), "+", "*", u)
+					return innerProduct(c, v.(*Matrix).inverse(c), plus, times, u)
 				},
 			},
 		},
 
 		{ // Euclidean integer division.
-			name:        "div",
+			Op:          BOP("div"),
 			elementwise: true,
 			whichType:   divType, // Use BigInts to avoid the analysis here.
 			fn: [numType]binaryFn{
@@ -431,7 +431,7 @@ func init() {
 		},
 
 		{ // Euclidean integer modulus, generalized.
-			name:        "mod",
+			Op:          BOP("mod"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -443,7 +443,7 @@ func init() {
 		},
 
 		{
-			name:        "**",
+			Op:          BOP("**"),
 			elementwise: true,
 			whichType:   divType,
 			fn: [numType]binaryFn{
@@ -459,7 +459,7 @@ func init() {
 							// Need the absolute value.
 							v = BigInt{big.NewInt(0).Neg(v.(BigInt).Int)}
 						}
-						return c.EvalUnary("/", binaryBigIntOp(u, bigIntExpOp(c), v))
+						return c.EvalUnary(urecip, binaryBigIntOp(u, bigIntExpOp(c), v))
 					}
 					x := u.(BigInt).Int
 					if x.Cmp(bigIntOne.Int) == 0 || x.Sign() == 0 {
@@ -479,11 +479,11 @@ func init() {
 							c.Errorf("negative exponent of zero")
 						}
 						positive = false
-						rexp = c.EvalUnary("-", v).toType("**", c, bigRatType).(BigRat)
+						rexp = c.EvalUnary(uminus, v).toType("**", c, bigRatType).(BigRat)
 					}
 					if !rexp.IsInt() {
 						// Lift to float.
-						return c.EvalBinary(floatSelf(c, u), "**", floatSelf(c, v))
+						return c.EvalBinary(floatSelf(c, u), pow, floatSelf(c, v))
 					}
 					exp := rexp.Num()
 					rat := u.(BigRat)
@@ -505,7 +505,7 @@ func init() {
 		},
 
 		{
-			name:        "log",
+			Op:          BOP("log"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -518,7 +518,7 @@ func init() {
 		},
 
 		{
-			name:        "!",
+			Op:          BOP("!"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -545,7 +545,7 @@ func init() {
 		},
 
 		{
-			name:        "&",
+			Op:          BOP("&"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -567,7 +567,7 @@ func init() {
 		},
 
 		{
-			name:        "|",
+			Op:          BOP("|"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -589,7 +589,7 @@ func init() {
 		},
 
 		{
-			name:        "^",
+			Op:          BOP("^"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -611,7 +611,7 @@ func init() {
 		},
 
 		{
-			name:        "<<",
+			Op:          BOP("<<"),
 			elementwise: true,
 			whichType:   divType, // Shifts are like exp: let BigInt do the work.
 			fn: [numType]binaryFn{
@@ -626,7 +626,7 @@ func init() {
 		},
 
 		{
-			name:        ">>",
+			Op:          BOP(">>"),
 			elementwise: true,
 			whichType:   divType, // Shifts are like exp: let BigInt do the work.
 			fn: [numType]binaryFn{
@@ -641,7 +641,7 @@ func init() {
 		},
 
 		{
-			name:        "==",
+			Op:          BOP("=="),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -665,16 +665,16 @@ func init() {
 				},
 				complexType: func(c Context, u, v Value) Value {
 					i, j := u.(Complex), v.(Complex)
-					if c.EvalBinary(i.real, "==", j.real) == zero {
+					if c.EvalBinary(i.real, EQ, j.real) == zero {
 						return zero
 					}
-					return c.EvalBinary(i.imag, "==", j.imag)
+					return c.EvalBinary(i.imag, EQ, j.imag)
 				},
 			},
 		},
 
 		{
-			name:        "!=",
+			Op:          BOP("!="),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -698,16 +698,16 @@ func init() {
 				},
 				complexType: func(c Context, u, v Value) Value {
 					i, j := u.(Complex), v.(Complex)
-					if c.EvalBinary(i.real, "!=", j.real) == one {
+					if c.EvalBinary(i.real, NE, j.real) == one {
 						return one
 					}
-					return c.EvalBinary(i.imag, "!=", j.imag)
+					return c.EvalBinary(i.imag, NE, j.imag)
 				},
 			},
 		},
 
 		{
-			name:        "<",
+			Op:          BOP("<"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -733,7 +733,7 @@ func init() {
 		},
 
 		{
-			name:        "<=",
+			Op:          BOP("<="),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -759,7 +759,7 @@ func init() {
 		},
 
 		{
-			name:        ">",
+			Op:          BOP(">"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -785,7 +785,7 @@ func init() {
 		},
 
 		{
-			name:        ">=",
+			Op:          BOP(">="),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -811,7 +811,7 @@ func init() {
 		},
 
 		{
-			name:        "and",
+			Op:          BOP("and"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -837,7 +837,7 @@ func init() {
 		},
 
 		{
-			name:        "or",
+			Op:          BOP("or"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -863,7 +863,7 @@ func init() {
 		},
 
 		{
-			name:        "xor",
+			Op:          BOP("xor"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -889,7 +889,7 @@ func init() {
 		},
 
 		{
-			name:        "nand",
+			Op:          BOP("nand"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -915,7 +915,7 @@ func init() {
 		},
 
 		{
-			name:        "nor",
+			Op:          BOP("nor"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -941,7 +941,7 @@ func init() {
 		},
 
 		{
-			name:        "?",
+			Op:          BOP("?"),
 			elementwise: false,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -1006,7 +1006,7 @@ func init() {
 		},
 
 		{
-			name:      "decode",
+			Op:        BOP("decode"),
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1034,8 +1034,8 @@ func init() {
 							n = B.Len()
 						}
 						for i := n - 1; i >= 0; i-- {
-							result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", get(B, i)))
-							prod = c.EvalBinary(prod, "*", get(A, i))
+							result = c.EvalBinary(result, plus, c.EvalBinary(prod, times, get(B, i)))
+							prod = c.EvalBinary(prod, times, get(A, i))
 						}
 						return result
 					}
@@ -1067,8 +1067,8 @@ func init() {
 								if B.shape[0] > 1 {
 									bj += i * elems.Len()
 								}
-								result = c.EvalBinary(result, "+", c.EvalBinary(prod, "*", B.data.At(bj)))
-								prod = c.EvalBinary(prod, "*", get(A, i))
+								result = c.EvalBinary(result, plus, c.EvalBinary(prod, times, B.data.At(bj)))
+								prod = c.EvalBinary(prod, times, get(A, i))
 							}
 							elems.Set(j, result)
 						}
@@ -1082,7 +1082,7 @@ func init() {
 		},
 
 		{
-			name:      "encode",
+			Op:        BOP("encode"),
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1166,7 +1166,7 @@ func init() {
 		},
 
 		{
-			name: "in",
+			Op: BOP("in"),
 			// A in B: Membership: 0 or 1 according to which elements of A present in B.
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
@@ -1185,7 +1185,7 @@ func init() {
 		},
 
 		{
-			name:      "iota",
+			Op:        BOP("iota"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1253,7 +1253,7 @@ func init() {
 		},
 
 		{
-			name:        "min",
+			Op:          BOP("min"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -1294,7 +1294,7 @@ func init() {
 		},
 
 		{
-			name:        "max",
+			Op:          BOP("max"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -1335,7 +1335,7 @@ func init() {
 		},
 
 		{
-			name:      "rho",
+			Op:        BOP("rho"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1353,7 +1353,7 @@ func init() {
 		},
 
 		{
-			name:      ",",
+			Op:        BOP(","),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1366,7 +1366,7 @@ func init() {
 		},
 
 		{
-			name:      ",%",
+			Op:        BOP(",%"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1380,7 +1380,7 @@ func init() {
 		},
 
 		{
-			name:      "take",
+			Op:        BOP("take"),
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1420,7 +1420,7 @@ func init() {
 		},
 
 		{
-			name:      "drop",
+			Op:        BOP("drop"),
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1453,7 +1453,7 @@ func init() {
 		},
 
 		{
-			name:      "rot",
+			Op:        BOP("rot"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1474,7 +1474,7 @@ func init() {
 		},
 
 		{
-			name:      "flip",
+			Op:        BOP("flip"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1495,7 +1495,7 @@ func init() {
 		},
 
 		{
-			name:      "fill",
+			Op:        BOP("fill"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1558,7 +1558,7 @@ func init() {
 		},
 
 		{
-			name:      "sel",
+			Op:        BOP("sel"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1580,7 +1580,7 @@ func init() {
 		},
 
 		{
-			name:      "part",
+			Op:        BOP("part"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1593,7 +1593,7 @@ func init() {
 		},
 
 		{
-			name:      "transp",
+			Op:        BOP("transp"),
 			whichType: vectorAndMatrixType,
 			fn: [numType]binaryFn{
 				matrixType: func(c Context, u, v Value) Value {
@@ -1607,7 +1607,7 @@ func init() {
 		},
 
 		{
-			name:      "sys",
+			Op:        BOP("sys"),
 			whichType: onlyVectorType,
 			fn: [numType]binaryFn{
 				vectorType: binarySys,
@@ -1616,7 +1616,7 @@ func init() {
 
 		// Special cases that mix types, so don't promote them.
 		{
-			name:      "===",
+			Op:        BOP("==="),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      equal,
@@ -1631,7 +1631,7 @@ func init() {
 		},
 
 		{
-			name:      "!==",
+			Op:        BOP("!=="),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      notEqual,
@@ -1646,7 +1646,7 @@ func init() {
 		},
 
 		{
-			name:      "intersect",
+			Op:        BOP("intersect"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      intersect,
@@ -1660,7 +1660,7 @@ func init() {
 		},
 
 		{
-			name:      "union",
+			Op:        BOP("union"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      union,
@@ -1674,7 +1674,7 @@ func init() {
 		},
 
 		{
-			name:      "left",
+			Op:        BOP("left"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      left,
@@ -1689,7 +1689,7 @@ func init() {
 		},
 
 		{
-			name:      "right",
+			Op:        BOP("right"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      right,
@@ -1704,7 +1704,7 @@ func init() {
 		},
 
 		{
-			name:      "text",
+			Op:        BOP("text"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      fmtText,
@@ -1720,6 +1720,6 @@ func init() {
 	}
 
 	for _, op := range ops {
-		BinaryOps[op.name] = op
+		BinaryBuiltins[op.Op.String()] = op
 	}
 }

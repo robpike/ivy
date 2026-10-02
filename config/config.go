@@ -24,7 +24,6 @@ import (
 // to be used by those packages if needed.
 type State interface {
 	// These just echo the methods of Config.
-	IsBinaryOp(op string) bool
 	InputBase() int
 	Debug(string) int
 	Output() io.Writer

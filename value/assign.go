@@ -20,11 +20,12 @@ var scalarShape = []int{1} // The assignment shape vector for a scalar
 
 func assign(context Context, b *BinaryExpr) Value {
 	rhs := b.Right.Eval(context).Inner()
-	Assign(context, b.Op, b.Left, b.Right, rhs)
+	Assign(context, b.Op.String(), b.Left, b.Right, rhs)
 	return QuietValue{Value: rhs}
 }
 
-func Assign(c Context, op string, left, right Expr, rhs Value) {
+// Assign does the actual assignment. The opText argument is just for error messages.
+func Assign(c Context, opText string, left, right Expr, rhs Value) {
 	// We know the left is a variableExpr or index expression.
 	// Special handling as we must not evaluate the left - it is an l-value.
 	// But we need to process the indexing, if it is an index expression.
@@ -68,13 +69,13 @@ func Assign(c Context, op string, left, right Expr, rhs Value) {
 		// Simultaneous assignment requires evaluation of RHS before assignment.
 		rhs, ok := rhs.(*Vector)
 		if !ok {
-			c.Errorf("shape mismatch in %s %s to %s", assignOrBind(op), DebugProgString(rhs), DebugProgString(lhs))
+			c.Errorf("shape mismatch in %s %s to %s", assignOrBind(opText), DebugProgString(rhs), DebugProgString(lhs))
 		}
 		if len(lhs) != rhs.Len() {
-			c.Errorf("length mismatch %s %s to %s", assignOrBind(op), DebugProgString(rhs), DebugProgString(lhs))
+			c.Errorf("length mismatch %s %s to %s", assignOrBind(opText), DebugProgString(rhs), DebugProgString(lhs))
 		}
 		for i := rhs.Len() - 1; i >= 0; i-- {
-			Assign(c, op, lhs[i], nil, rhs.At(i))
+			Assign(c, opText, lhs[i], nil, rhs.At(i))
 		}
 		return
 	}
@@ -83,9 +84,9 @@ func Assign(c Context, op string, left, right Expr, rhs Value) {
 
 // assignOrBind returns an appropriate description for the error, according to
 // whether it is an assignment or the binding of a formal argument.
-func assignOrBind(op string) string {
-	if op == "=" {
+func assignOrBind(opText string) string {
+	if opText == "=" {
 		return "in assignment of"
 	}
-	return fmt.Sprintf("binding arg in call of %q:", op)
+	return fmt.Sprintf("binding arg in call of %q:", opText)
 }

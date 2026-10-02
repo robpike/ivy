@@ -157,7 +157,7 @@ func vars(path string, data []byte) string {
 			if s, ok := expr.(*value.Statement); ok {
 				expr = s.Parse(context)
 			}
-			if assign, ok := expr.(*value.BinaryExpr); ok && assign.Op == "=" {
+			if assign, ok := expr.(*value.BinaryExpr); ok && assign.Op.String() == "=" {
 				vars = append(vars, varsOf(assign.Left)...)
 			}
 		}

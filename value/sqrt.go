@@ -16,7 +16,7 @@ func sqrt(c Context, v Value) Value {
 		v = u.real
 	}
 	if isNegative(v) {
-		return NewComplex(c, zero, evalFloatFunc(c, c.EvalUnary("-", v), floatSqrt))
+		return NewComplex(c, zero, evalFloatFunc(c, c.EvalUnary(uminus, v), floatSqrt))
 	}
 	return evalFloatFunc(c, v, floatSqrt)
 }

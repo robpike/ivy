@@ -33,12 +33,12 @@ import (
 //
 // Earlier versions of ivy parsed immediately, which caused a number of minor but
 // niggling issues, including not being able to use j as a variable.
-//
 type Statement struct {
 	tokens     []scan.Token // Tokens that built this Statement. Locked at creation time.
 	c          Context      // Set only during parse.
 	pos        int          // Token index in pTokens.
 	last       scan.Token   // Last scanned token, even from peek.
+	opStart    int          // offset of start of operator.
 	inOperator bool         // Part of a function body, for :ret.
 	fileName   string       // Name of input stream.
 	parsed     Expr         // Saved parse, flushed when global state changes.
@@ -166,11 +166,10 @@ func (s *Statement) prev() scan.Token {
 	return tok
 }
 
-//
 // statement
+//
 //	expr
 //	expr ":" expr
-//
 func (s *Statement) parseStatement(c Context) Expr {
 	expr := s.expr(c)
 	if expr != nil && s.peek().Type == scan.Colon {
@@ -189,7 +188,6 @@ func (s *Statement) parseStatement(c Context) Expr {
 //	operand
 //	unaryOp expr
 //	operand binaryOp expr
-//
 func (s *Statement) expr(c Context) Expr {
 	expr := s.operand(c)
 	for {
@@ -206,18 +204,18 @@ func (s *Statement) expr(c Context) Expr {
 				line:   tok.Line,
 				offset: tok.Offset,
 				Left:   vars,
-				Op:     tok.Text,
+				Op:     BinaryBuiltinOp(tok.Text),
 				Right:  expr,
 			}
 		case scan.Operator, scan.Identifier:
-			op := s.buildOperator(c)
-			if op.isBinary {
+			op, isBinary := s.parseOperator(c)
+			if isBinary {
 				expr = &BinaryExpr{
 					file:   s.fileName,
 					line:   tok.Line,
 					offset: tok.Offset,
 					Left:   s.operand(c),
-					Op:     op.str,
+					Op:     op.(Binary),
 					Right:  expr,
 				}
 			} else {
@@ -225,7 +223,7 @@ func (s *Statement) expr(c Context) Expr {
 					file:   s.fileName,
 					line:   tok.Line,
 					offset: tok.Offset,
-					Op:     op.str,
+					Op:     op.(Unary),
 					Right:  expr,
 				}
 			}
@@ -262,7 +260,6 @@ func (s *Statement) expr(c Context) Expr {
 //
 //	assignableElem [assignableElem ...]
 //	"(" assignableElem ... ")"
-//
 func (s *Statement) assignable(c Context) Expr {
 	parens := false
 	if s.peek().Type == scan.RightParen {
@@ -297,7 +294,6 @@ func (s *Statement) assignable(c Context) Expr {
 //	identifier
 //	index expression
 //	assignable    - if parenthesized
-//
 func (s *Statement) assignableElem(c Context, stopAtOperator bool) (Expr, bool) {
 	tok := s.peek()
 	switch tok.Type {
@@ -327,7 +323,6 @@ func (s *Statement) assignableElem(c Context, stopAtOperator bool) (Expr, bool) 
 //
 //	element
 //	element [element...]
-//
 func (s *Statement) operand(c Context) Expr {
 	expr := s.element(c)
 	if !s.atOperand(c) {
@@ -362,7 +357,6 @@ func reverse(slice []Expr) []Expr {
 //	statementList: [";"] statement [";" statement [";"]]...
 //
 //	Newlines are converted to semicolons in Parser.statementList.
-//
 func (s *Statement) element(c Context) Expr {
 	tok := s.prev()
 	switch tok.Type {
@@ -483,136 +477,163 @@ func (s *Statement) adjacent(right scan.Token) bool {
 	return left.Offset+len(left.Text) == right.Offset
 }
 
-// operator is the object returned by buildOperator. It holds an operator
-// we should be able to finally evaluate, including all decorators.
-type operator struct {
-	rhs      scan.Token // Starting token (after @s), no decorators.
-	str      string
-	isBinary bool
+// parseSimpleOperator parses an operator with no decorations: no @s, not a reduce or scan, not a product.
+func (s *Statement) parseSimpleOperator(c Context, tok scan.Token) (op Operator, isBinary bool) {
+	lhsAt := s.peek().Text == "@" && s.adjacent(tok)
+	canParseBinary := (lhsAt || s.atOperand(c))
+	switch {
+	case tok.Type == scan.Identifier && isVariable(c, tok.Text): // TODO: Can this happen? (Residue of old code.)
+		c.Errorf("can't do var %s yet")
+	case c.UserDefined(tok.Text, true) && canParseBinary:
+		s.opStart = tok.Offset
+		return c.NewUserDefinedBinaryOp(tok.Text), true
+	case c.UserDefined(tok.Text, false):
+		s.opStart = tok.Offset
+		return c.NewUserDefinedUnaryOp(tok.Text), false
+	case BinaryBuiltins[tok.Text] != nil && canParseBinary:
+		s.opStart = tok.Offset
+		return BinaryBuiltinOp(tok.Text), true
+	case UnaryBuiltins[tok.Text] != nil:
+		s.opStart = tok.Offset
+		return UnaryBuiltinOp(tok.Text), false
+	case isBinaryOp(c, tok.Text):
+		// We have a binary but the syntax needs a unary.
+		s.Errorf("%q is not a unary operator", tok.Text)
+	}
+	s.Errorf("%q is not an operator", tok.Text)
+	panic("not reached")
 }
 
-// isProduct looks for an inner or our outer product, and updates op if found.
-func (s *Statement) isProduct(c Context, op *operator) bool {
-	if !s.adjacent(op.rhs) { // Not necessary now, but has always been required in ivy.
-		return false
+// parseBinaryOperator is like parseSimpleOperator but demands the operator be binary.
+func (s *Statement) parseBinaryOperator(c Context, tok scan.Token) Operator {
+	switch {
+	case tok.Type == scan.Identifier && isVariable(c, tok.Text): // TODO: Can this happen? (Residue of old code.)
+		c.Errorf("parseBinaryOperator can't do var %s yet")
+	case c.UserDefined(tok.Text, true):
+		s.opStart = tok.Offset
+		return c.NewUserDefinedBinaryOp(tok.Text)
+	case BinaryBuiltins[tok.Text] != nil:
+		s.opStart = tok.Offset
+		return BinaryBuiltinOp(tok.Text)
 	}
-	// Outer product
-	if s.peek().Text == "o." {
-		op.str = s.prev().Text + op.str
-		if !isBinaryOp(c, op.rhs.Text) {
-			s.Errorf("outer product requires binary operator: %s", op.str)
+	s.Errorf("%q is not a binary operator", tok.Text)
+	panic("not reached")
+}
+
+// parseReduceOrScan parses a reduce (op/) or scan (op\). The axisIndicator is either empty
+// (the default) or "%" if the reduce/scan operates on the first axis.
+func (s *Statement) parseReduceOrScan(c Context, tok scan.Token, axisIndicator string) (op Operator, isBinary bool) {
+	slash := tok
+	text := slash.Text + axisIndicator
+	if s.adjacent(tok) { // Reduction syntax requires operator abut the slash.
+		tok = s.peek()
+		switch tok.Type {
+		case scan.EOF, scan.LeftParen:
+			// Likely a unary inverse.
+			break
+		case scan.Identifier:
+			if isVariable(c, tok.Text) {
+				break
+			}
+			if c.UserDefined(tok.Text, true) {
+				op := c.NewUserDefinedBinaryOp(s.prev().Text)
+				s.opStart = tok.Offset
+				return NewReduceOp(op, text), false
+			}
+			fallthrough
+		case scan.Operator:
+			// A reduction if this is a binary operator.
+			if BinaryBuiltins[tok.Text] != nil {
+				op := BinaryBuiltinOp(s.prev().Text)
+				s.opStart = tok.Offset
+				return NewReduceOp(op, text), false
+			}
 		}
-		op.isBinary = true
-		return true
 	}
-	// Inner product.
-	if s.peek().Text != "." {
-		return false
+	// Not a reduction, just a simple operator whose existence will be checked during eval.
+	if s.atOperand(c) {
+		s.opStart = slash.Offset
+		return BinaryBuiltinOp(text), true
 	}
-	dot := s.prev()
-	if !s.adjacent(dot) {
-		s.Errorf("inner product syntax: no operator next to '.'")
-	}
-	lhs := s.prev().Text
-	op.str = lhs + "." + op.str
-	if !isBinaryOp(c, lhs) || !isBinaryOp(c, op.rhs.Text) {
-		s.Errorf("inner product requires binary operators: %s", op.str)
-	}
-	op.isBinary = true
-	return true
+	s.opStart = slash.Offset
+	return UnaryBuiltinOp(text), false
 
 }
 
-// buildOperator constructs an operator from the token stream, taking into
-// account @ iteration, reductions and scans, and the arity of operators.
-// The result depends on the current execution state and in general cannot
-// be done by the scanner.
-// It's a monster with many things to consider. It's also in delicate
-// balance with the scanner.
-func (s *Statement) buildOperator(c Context) operator {
-	post := ""
-	tok := s.peek()
-	for ; tok.Text == "@"; tok = s.peek() {
-		post += s.prev().Text
-		if !s.adjacent(tok) {
-			s.Errorf("%q not attached to operator", post)
-		}
+// parseProduct parses an inner or outer product.
+func (s *Statement) parseProduct(c Context, marker string, tok scan.Token) (op Operator, isBinary bool) {
+	right := s.parseBinaryOperator(c, tok)
+	if marker == "o." {
+		return NewOuterOp(right.(Binary)), true
 	}
 	tok = s.prev()
-	offset := tok.Offset
-	op := operator{
-		rhs:      tok,
-		str:      tok.Text + post,
-		isBinary: false,
+	left := s.parseBinaryOperator(c, tok)
+	return NewInnerOp(left.(Binary), right.(Binary)), true
+}
+
+// numAts counts the number of abutting @ signs at the location.
+func (s *Statement) numAts() int {
+	if s.peek().Text != "@" {
+		return 0
 	}
+	n := 1
+	offset := s.prev().Offset
+	for s.peek().Text == "@" && s.peek().Offset == offset-1 {
+		offset = s.prev().Offset
+		n++
+	}
+	return n
+}
+
+// parseOperator parses the general form of an operator and reports
+// whether it is a binary.
+func (s *Statement) parseOperator(c Context) (op Operator, isBinary bool) {
+	numTrailingAts := s.numAts()
+	tok := s.prev()
+	axisIndicator := ""
 	switch {
 	case tok.Text == "%":
 		peek := s.peek()
-		if peek.Text != "/" && peek.Text != "\\" || !s.adjacent(tok) { // ",%" comes as a unit; it's binary.
+		if peek.Text != "/" && peek.Text != "\\" || !s.adjacent(tok) { // % must abut the / or \.
 			break
 		}
 		tok = s.prev()
-		op.str = tok.Text + op.str
+		axisIndicator = "%"
 		fallthrough
 	case tok.Text == "/", tok.Text == "\\":
-		// Might be a reduction or expansion.
-		isOp := false
+		op, isBinary = s.parseReduceOrScan(c, tok, axisIndicator)
+	default:
+		// Is it a product?
 		if s.adjacent(tok) {
-			tok = s.peek()
-			switch tok.Type {
-			case scan.EOF, scan.LeftParen: // TODO MORE?
-				// Out of room, must be unary inverse.
-				op.isBinary = false
-				isOp = true
-			case scan.Operator:
-				// A reduction if this is a binary operator.
-				if BinaryOps[tok.Text] != nil {
-					op.isBinary = false
-					s.prev()
-					op.str = tok.Text + op.str
-					isOp = true
-				}
-			case scan.Identifier:
-				// A (unary) reduction/expansion if this is a binary.
-				if isBinaryOp(c, tok.Text) {
-					op.isBinary = false
-					s.prev()
-					op.str = tok.Text + op.str
-					isOp = true
-				}
+			marker := s.peek().Text
+			if marker == "." || marker == "o." {
+				op, isBinary = s.parseProduct(c, s.prev().Text, tok)
 			}
 		}
-		if !isOp {
-			// Just a division.
-			op.isBinary = s.atOperand(c)
-		}
-	case tok.Type == scan.Identifier, tok.Type == scan.Operator:
-		if s.isProduct(c, &op) {
-			break
-		}
-		lhsAt := s.peek().Text == "@" && s.adjacent(tok)
-		switch {
-		case tok.Type == scan.Identifier && isVariable(c, tok.Text): // Just a variable on the lhs.
-		case isBinaryOp(c, tok.Text) && (lhsAt || s.atOperand(c)):
-			op.isBinary = true
-		case isUnaryOp(c, tok.Text):
-			op.isBinary = false
-		case isBinaryOp(c, tok.Text):
-			// We have a binary but the syntax needs a unary.
-			s.Errorf("%q is not a unary operator", tok.Text)
-		default:
-			s.Errorf("%q is not an operator", tok.Text)
+	}
+	if op == nil {
+		op, isBinary = s.parseSimpleOperator(c, tok)
+	}
+	numLeadingAts := 0
+	// Special check to get started because the @ must be adjacent to the start of the operator.
+	// (We don't have the actual operator token any more.)
+	for s.peek().Text == "@" && s.peek().Offset == s.opStart-1 {
+		numLeadingAts = s.numAts()
+	}
+	// Wrap the op as an Each if @s are present.
+	if numLeadingAts+numTrailingAts > 0 {
+		if !isBinary {
+			if numLeadingAts > 0 {
+				c.Errorf("illegal %q on unary %s", "@", op)
+			}
+			if numTrailingAts != 0 {
+				op = NewUnaryEachOp(op.(Unary), numTrailingAts)
+			}
+		} else {
+			op = NewBinaryEachOp(op.(Binary), numLeadingAts, numTrailingAts)
 		}
 	}
-	peekTok := s.peek()
-	if peekTok.Text == "@" && peekTok.Offset == offset-1 { // Don't attach non-adjacent @s.
-		pre := ""
-		for s.peek().Text == "@" {
-			pre += s.prev().Text
-		}
-		op.str = pre + op.str
-	}
-	return op
+	return op, isBinary
 }
 
 // checkAssign checks that e is an assignable value.
@@ -649,14 +670,14 @@ func isBinaryOp(c Context, id string) bool {
 	if isVariable(c, id) {
 		return false
 	}
-	return BinaryOps[id] != nil || c.UserDefined(id, true)
+	return BinaryBuiltins[id] != nil || c.UserDefined(id, true)
 }
 
 func isUnaryOp(c Context, id string) bool {
 	if isVariable(c, id) {
 		return false
 	}
-	return UnaryOps[id] != nil || c.UserDefined(id, false)
+	return UnaryBuiltins[id] != nil || c.UserDefined(id, false)
 }
 
 func isVariable(c Context, id string) bool {

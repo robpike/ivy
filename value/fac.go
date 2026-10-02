@@ -116,7 +116,7 @@ func factorial(c Context, z Value) Value {
 		return BigInt{intFactorial(c, int64(i))}.shrink()
 	}
 	// z! = 𝚪(z+1))
-	return gamma(c, c.EvalBinary(z, "+", one))
+	return gamma(c, c.EvalBinary(z, plus, one))
 }
 
 var (
@@ -165,11 +165,11 @@ func cₙ(c Context, n int64) Value {
 	if n&1 == 1 {
 		sign = -1
 	}
-	t := B(Int(sign), "/", BigInt{intFactorial(c, n)})
-	rMinusN := B(r, "-", Int(n))
+	t := B(Int(sign), divide, BigInt{intFactorial(c, n)})
+	rMinusN := B(r, minus, Int(n))
 	u := exp(c, rMinusN)
-	v := power(c, rMinusN, B(Int(n), "+", BigFloat{floatHalf}))
-	return B(t, "*", B(u, "*", v))
+	v := power(c, rMinusN, B(Int(n), plus, BigFloat{floatHalf}))
+	return B(t, times, B(u, times, v))
 }
 
 // gamma returns an approximation to the gamma function 𝚪(z) using Causley's
@@ -198,8 +198,8 @@ func gamma(c Context, z Value) Value {
 	if cm, ok := z.(Complex); ok {
 		real = cm.real
 	}
-	if isTrue(c, "!", B(real, "<", half)) {
-		return B(𝛑, "/", B(sin(c, B(z, "*", 𝛑)), "*", gamma(c, B(one, "-", z))))
+	if isTrue(c, "!", B(real, LT, half)) {
+		return B(𝛑, divide, B(sin(c, B(z, times, 𝛑)), times, gamma(c, B(one, minus, z))))
 	}
 
 	// In Ivy as a loop for easy comparison:
@@ -213,14 +213,14 @@ func gamma(c Context, z Value) Value {
 	//  :end
 	//  p*q*sum
 
-	zPlusR := B(z, "+", r)
-	p := power(c, zPlusR, B(z, "-", half))
-	q := exp(c, U("-", zPlusR))
+	zPlusR := B(z, plus, r)
+	p := power(c, zPlusR, B(z, minus, half))
+	q := exp(c, U(uminus, zPlusR))
 	sum := cInf
 	for n, cn := range gammaCoeff {
-		sum = B(sum, "+", B(cn, "/", B(z, "+", Int(n))))
+		sum = B(sum, plus, B(cn, divide, B(z, plus, Int(n))))
 	}
-	return B(p, "*", B(q, "*", sum))
+	return B(p, times, B(q, times, sum))
 }
 
 // binomial returns the binomial value, written U!V, which in APL notation is (!V)÷(!U)×!V-U.
@@ -228,10 +228,10 @@ func gamma(c Context, z Value) Value {
 func binomial(c Context, u, v Value) Value {
 	vFac := factorial(c, v)
 	uFac := factorial(c, u)
-	vMinusUFac := factorial(c, c.EvalBinary(v, "-", u))
-	t := c.EvalBinary(uFac, "*", vMinusUFac)
+	vMinusUFac := factorial(c, c.EvalBinary(v, minus, u))
+	t := c.EvalBinary(uFac, times, vMinusUFac)
 	if isZero(t) {
 		c.Errorf("zero in binomial")
 	}
-	return c.EvalBinary(vFac, "/", t)
+	return c.EvalBinary(vFac, divide, t)
 }
