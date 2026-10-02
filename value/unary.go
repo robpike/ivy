@@ -347,10 +347,10 @@ func init() {
 					return v.(BigInt).inverse(c)
 				},
 				bigRatType: func(c Context, v Value) Value {
-					return v.(BigRat).inverse(c)
+					return v.(BigRat).inverse(c).shrink()
 				},
 				bigFloatType: func(c Context, v Value) Value {
-					return v.(BigFloat).inverse(c)
+					return v.(BigFloat).inverse(c).shrink()
 				},
 				complexType: func(c Context, v Value) Value {
 					return v.(Complex).inverse(c).shrink()

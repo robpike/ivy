@@ -26,6 +26,10 @@ sqrt 2
 	-0.7071067811865475
 
 )format "%.16g"
+inv sqrt 2
+	0.7071067811865475
+
+)format "%.16g"
 **log e
 	2.718281828459045
 
@@ -203,8 +207,8 @@ first sqrt 2
 
 # Random numbers
 )seed 0
-rand 3
-	1.01291904422
+rand sqrt 2
+	0.47749461664
 
 # High precision, not float64s.
 )seed 0

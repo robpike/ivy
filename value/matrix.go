@@ -671,55 +671,6 @@ func (x *Matrix) catenateFirst(c Context, y *Matrix) *Matrix {
 	return NewMatrix(c, shape, data.Publish())
 }
 
-// sel returns the selection of m according to v.
-// The selection applies to the final axis.
-func (m *Matrix) sel(c Context, v *Vector) *Matrix {
-	// All lhs values must be small integers.
-	if !v.AllInts() {
-		c.Errorf("sel: left operand must be small integers")
-	}
-
-	var count int64
-	for _, x := range v.All() {
-		x := x.(Int)
-		if x < 0 {
-			count -= int64(x)
-		} else {
-			count += int64(x)
-		}
-	}
-	if v.Len() != 1 && v.Len() != m.shape[len(m.shape)-1] {
-		c.Errorf("sel: bad length %d for shape %s", v.Len(), NewIntVector(m.shape...))
-	}
-	if v.Len() == 1 {
-		count *= int64(m.shape[len(m.shape)-1])
-	}
-
-	shape := slices.Clone(m.shape)
-	shape[len(shape)-1] = int(count)
-
-	for _, dim := range shape[:len(shape)-1] {
-		count *= int64(dim)
-	}
-	if count > 1e8 {
-		c.Errorf("sel: result too large: %d elements", count)
-	}
-
-	result := newVectorEditor(0, nil)
-	for i, y := range m.data.All() {
-		c := v.At(i % v.Len()).(Int)
-		if c < 0 {
-			c = -c
-			y = zero
-		}
-		for ; c > 0; c-- {
-			result.Append(y)
-		}
-	}
-
-	return NewMatrix(c, shape, result.Publish())
-}
-
 // take returns v take m.
 func (m *Matrix) take(c Context, v *Vector) *Matrix {
 	if !v.AllInts() {

@@ -104,12 +104,13 @@ func (s StatementList) ProgString() string {
 }
 
 func (s StatementList) Eval(context Context) Value {
+	context.Errorf("cannot happen: evaluation of statementList outside of evalStatementList")
 	v, _ := evalStatementList(context, "expression list", empty, s)
 	return v
 }
 
 // ColonExpr is a conditional executor: expression ":" expression. It shortcuts
-// execution of an StatementList.
+// execution of a StatementList.
 type ColonExpr struct {
 	Cond  Expr
 	Value Expr
@@ -118,6 +119,7 @@ type ColonExpr struct {
 func (c *ColonExpr) ProgString() string { return c.Cond.ProgString() + " : " + c.Value.ProgString() }
 
 func (c *ColonExpr) Eval(context Context) Value {
+	context.Errorf("cannot happen: evaluation of colon expression outside of evalStatementList")
 	v := Value(empty)
 	if isTrue(context, ":", c.Cond.Eval(context)) {
 		if c.Value != nil {
