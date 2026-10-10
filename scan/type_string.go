@@ -16,25 +16,27 @@ func _() {
 	_ = x[Identifier-5]
 	_ = x[LeftBrack-6]
 	_ = x[LeftParen-7]
-	_ = x[Number-8]
-	_ = x[Operator-9]
-	_ = x[Op-10]
-	_ = x[If-11]
-	_ = x[Else-12]
-	_ = x[Elif-13]
-	_ = x[While-14]
-	_ = x[End-15]
-	_ = x[Ret-16]
-	_ = x[RightBrack-17]
-	_ = x[RightParen-18]
-	_ = x[Semicolon-19]
-	_ = x[String-20]
-	_ = x[Colon-21]
+	_ = x[LeftBrace-8]
+	_ = x[Number-9]
+	_ = x[Operator-10]
+	_ = x[Op-11]
+	_ = x[If-12]
+	_ = x[Else-13]
+	_ = x[Elif-14]
+	_ = x[While-15]
+	_ = x[End-16]
+	_ = x[Ret-17]
+	_ = x[RightBrack-18]
+	_ = x[RightParen-19]
+	_ = x[RightBrace-20]
+	_ = x[Semicolon-21]
+	_ = x[String-22]
+	_ = x[Colon-23]
 }
 
-const _Type_name = "EOFErrorNewlineAssignCharIdentifierLeftBrackLeftParenNumberOperatorOpIfElseElifWhileEndRetRightBrackRightParenSemicolonStringColon"
+const _Type_name = "EOFErrorNewlineAssignCharIdentifierLeftBrackLeftParenLeftBraceNumberOperatorOpIfElseElifWhileEndRetRightBrackRightParenRightBraceSemicolonStringColon"
 
-var _Type_index = [...]uint8{0, 3, 8, 15, 21, 25, 35, 44, 53, 59, 67, 69, 71, 75, 79, 84, 87, 90, 100, 110, 119, 125, 130}
+var _Type_index = [...]uint8{0, 3, 8, 15, 21, 25, 35, 44, 53, 62, 68, 76, 78, 80, 84, 88, 93, 96, 99, 109, 119, 129, 138, 144, 149}
 
 func (i Type) String() string {
 	idx := int(i) - 0

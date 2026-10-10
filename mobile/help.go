@@ -398,6 +398,40 @@ save 9; save 3
 total last
 result: 12 3
 </pre>
+<h3 id="hdr-Operator_values">Operator values</h3>
+<p>Operators of any kind can be passed as values and stored in variables.
+To avoid their evaluation, depending on adjacent expressions, they
+may need to be parenthesized. They are printed in parentheses.
+<pre>x = sqrt
+x
+x 4
+result:
+	(sqrt)
+	2
+
+op f table n = transp 2 n rho (iota n), f@ iota n
+(!) table 5
+result:
+	1   1
+	2   2
+	3   6
+	4  24
+	5 120
+</pre>
+<h3 id="hdr-Nonce_operators">Nonce operators</h3>
+<p>Operators may be defined in-line; these are called anonymous or
+nonce operators. Their declaration syntax is similar to that of
+regular operators, but with the keyword &quot;op&quot; in place of the name,
+and enclosed in braces. Also, they must not span newlines.
+<p>A unary nonce op has no formal arguments left of the &quot;op&quot;.
+<pre>{op a = a**1.5} 1 2 3 4 5
+result: 1 2.82842712475 5.19615242271 8 11.1803398875
+</pre>
+<p>A binary nonce op has formal arguments on either side.
+<pre>joinBackwards = {(a b (c d)) op ((e f) g) = g f e d c b a}
+(1 2 (3 4)) joinBackwards ((5 6) 7)
+result: 7 6 5 4 3 2 1
+</pre>
 <h3 id="hdr-Special_commands">Special commands</h3>
 <p>Ivy accepts a number of special commands, introduced by a right
 parenthesis at the beginning of the line. Most report the current

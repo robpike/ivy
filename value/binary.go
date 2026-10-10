@@ -207,7 +207,7 @@ var BinaryBuiltins = make(map[string]*binaryBuiltin)
 func init() {
 	var ops = []*binaryBuiltin{
 		{
-			Op:          BOP("j"),
+			Op:          BinaryBuiltinOp("j"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -227,7 +227,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("+"),
+			Op:          BinaryBuiltinOp("+"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -260,7 +260,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("-"),
+			Op:          BinaryBuiltinOp("-"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -290,7 +290,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("*"),
+			Op:          BinaryBuiltinOp("*"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -322,7 +322,7 @@ func init() {
 		},
 
 		{ // Rational division.
-			Op:          BOP("/"),
+			Op:          BinaryBuiltinOp("/"),
 			elementwise: true,
 			whichType:   rationalType, // Use BigRats to avoid the analysis here.
 			fn: [numType]binaryFn{
@@ -342,7 +342,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("idiv"), // Go integer division.
+			Op:          BinaryBuiltinOp("idiv"), // Go integer division.
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -365,7 +365,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("imod"),
+			Op:          BinaryBuiltinOp("imod"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -388,7 +388,7 @@ func init() {
 		},
 
 		{ // Matrix division and vector projection.
-			Op:          BOP("mdiv"),
+			Op:          BinaryBuiltinOp("mdiv"),
 			elementwise: false,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -414,7 +414,7 @@ func init() {
 		},
 
 		{ // Euclidean integer division.
-			Op:          BOP("div"),
+			Op:          BinaryBuiltinOp("div"),
 			elementwise: true,
 			whichType:   divType, // Use BigInts to avoid the analysis here.
 			fn: [numType]binaryFn{
@@ -431,7 +431,7 @@ func init() {
 		},
 
 		{ // Euclidean integer modulus, generalized.
-			Op:          BOP("mod"),
+			Op:          BinaryBuiltinOp("mod"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -443,7 +443,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("**"),
+			Op:          BinaryBuiltinOp("**"),
 			elementwise: true,
 			whichType:   divType,
 			fn: [numType]binaryFn{
@@ -505,7 +505,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("log"),
+			Op:          BinaryBuiltinOp("log"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -518,7 +518,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("!"),
+			Op:          BinaryBuiltinOp("!"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -545,7 +545,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("&"),
+			Op:          BinaryBuiltinOp("&"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -567,7 +567,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("|"),
+			Op:          BinaryBuiltinOp("|"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -589,7 +589,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("^"),
+			Op:          BinaryBuiltinOp("^"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -611,7 +611,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("<<"),
+			Op:          BinaryBuiltinOp("<<"),
 			elementwise: true,
 			whichType:   divType, // Shifts are like exp: let BigInt do the work.
 			fn: [numType]binaryFn{
@@ -626,7 +626,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP(">>"),
+			Op:          BinaryBuiltinOp(">>"),
 			elementwise: true,
 			whichType:   divType, // Shifts are like exp: let BigInt do the work.
 			fn: [numType]binaryFn{
@@ -641,7 +641,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("=="),
+			Op:          BinaryBuiltinOp("=="),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -670,11 +670,12 @@ func init() {
 					}
 					return c.EvalBinary(i.imag, EQ, j.imag)
 				},
+				operatorType: equal,
 			},
 		},
 
 		{
-			Op:          BOP("!="),
+			Op:          BinaryBuiltinOp("!="),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -703,11 +704,12 @@ func init() {
 					}
 					return c.EvalBinary(i.imag, NE, j.imag)
 				},
+				operatorType: notEqual,
 			},
 		},
 
 		{
-			Op:          BOP("<"),
+			Op:          BinaryBuiltinOp("<"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -729,11 +731,14 @@ func init() {
 					i, j := u.(BigFloat), v.(BigFloat)
 					return toInt(i.Cmp(j.Float) < 0)
 				},
+				operatorType: func(c Context, u, v Value) Value {
+					return toInt(OrderedCompare(c, u, v) < 0)
+				},
 			},
 		},
 
 		{
-			Op:          BOP("<="),
+			Op:          BinaryBuiltinOp("<="),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -755,11 +760,14 @@ func init() {
 					i, j := u.(BigFloat), v.(BigFloat)
 					return toInt(i.Cmp(j.Float) <= 0)
 				},
+				operatorType: func(c Context, u, v Value) Value {
+					return toInt(OrderedCompare(c, u, v) <= 0)
+				},
 			},
 		},
 
 		{
-			Op:          BOP(">"),
+			Op:          BinaryBuiltinOp(">"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -781,11 +789,14 @@ func init() {
 					i, j := u.(BigFloat), v.(BigFloat)
 					return toInt(i.Cmp(j.Float) > 0)
 				},
+				operatorType: func(c Context, u, v Value) Value {
+					return toInt(OrderedCompare(c, u, v) > 0)
+				},
 			},
 		},
 
 		{
-			Op:          BOP(">="),
+			Op:          BinaryBuiltinOp(">="),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -807,11 +818,14 @@ func init() {
 					i, j := u.(BigFloat), v.(BigFloat)
 					return toInt(i.Cmp(j.Float) >= 0)
 				},
+				operatorType: func(c Context, u, v Value) Value {
+					return toInt(OrderedCompare(c, u, v) >= 0)
+				},
 			},
 		},
 
 		{
-			Op:          BOP("and"),
+			Op:          BinaryBuiltinOp("and"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -837,7 +851,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("or"),
+			Op:          BinaryBuiltinOp("or"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -863,7 +877,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("xor"),
+			Op:          BinaryBuiltinOp("xor"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -889,7 +903,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("nand"),
+			Op:          BinaryBuiltinOp("nand"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -915,7 +929,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("nor"),
+			Op:          BinaryBuiltinOp("nor"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -941,7 +955,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("?"),
+			Op:          BinaryBuiltinOp("?"),
 			elementwise: false,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -1006,7 +1020,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("decode"),
+			Op:        BinaryBuiltinOp("decode"),
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1082,7 +1096,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("encode"),
+			Op:        BinaryBuiltinOp("encode"),
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1166,7 +1180,7 @@ func init() {
 		},
 
 		{
-			Op: BOP("in"),
+			Op: BinaryBuiltinOp("in"),
 			// A in B: Membership: 0 or 1 according to which elements of A present in B.
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
@@ -1185,7 +1199,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("iota"),
+			Op:        BinaryBuiltinOp("iota"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1253,7 +1267,7 @@ func init() {
 		},
 
 		{
-			Op:          BOP("min"),
+			Op:          BinaryBuiltinOp("min"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -1290,11 +1304,17 @@ func init() {
 					}
 					return j.shrink()
 				},
+				operatorType: func(c Context, u, v Value) Value {
+					if OrderedCompare(c, u, v) < 0 {
+						return u
+					}
+					return v
+				},
 			},
 		},
 
 		{
-			Op:          BOP("max"),
+			Op:          BinaryBuiltinOp("max"),
 			elementwise: true,
 			whichType:   binaryArithType,
 			fn: [numType]binaryFn{
@@ -1331,11 +1351,17 @@ func init() {
 					}
 					return j.shrink()
 				},
+				operatorType: func(c Context, u, v Value) Value {
+					if OrderedCompare(c, u, v) > 0 {
+						return u
+					}
+					return v
+				},
 			},
 		},
 
 		{
-			Op:        BOP("rho"),
+			Op:        BinaryBuiltinOp("rho"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1353,7 +1379,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP(","),
+			Op:        BinaryBuiltinOp(","),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1366,7 +1392,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP(",%"),
+			Op:        BinaryBuiltinOp(",%"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1380,7 +1406,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("take"),
+			Op:        BinaryBuiltinOp("take"),
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1420,7 +1446,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("drop"),
+			Op:        BinaryBuiltinOp("drop"),
 			whichType: vectorAndAtLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1453,7 +1479,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("rot"),
+			Op:        BinaryBuiltinOp("rot"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1474,7 +1500,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("flip"),
+			Op:        BinaryBuiltinOp("flip"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1495,7 +1521,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("fill"),
+			Op:        BinaryBuiltinOp("fill"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1558,7 +1584,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("sel"),
+			Op:        BinaryBuiltinOp("sel"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1580,7 +1606,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("part"),
+			Op:        BinaryBuiltinOp("part"),
 			whichType: atLeastVectorType,
 			fn: [numType]binaryFn{
 				vectorType: func(c Context, u, v Value) Value {
@@ -1593,7 +1619,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("transp"),
+			Op:        BinaryBuiltinOp("transp"),
 			whichType: vectorAndMatrixType,
 			fn: [numType]binaryFn{
 				matrixType: func(c Context, u, v Value) Value {
@@ -1607,7 +1633,7 @@ func init() {
 		},
 
 		{
-			Op:        BOP("sys"),
+			Op:        BinaryBuiltinOp("sys"),
 			whichType: onlyVectorType,
 			fn: [numType]binaryFn{
 				vectorType: binarySys,
@@ -1616,7 +1642,7 @@ func init() {
 
 		// Special cases that mix types, so don't promote them.
 		{
-			Op:        BOP("==="),
+			Op:        BinaryBuiltinOp("==="),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      equal,
@@ -1625,13 +1651,14 @@ func init() {
 				bigRatType:   equal,
 				bigFloatType: equal,
 				complexType:  equal,
+				operatorType: equal,
 				vectorType:   equal,
 				matrixType:   equal,
 			},
 		},
 
 		{
-			Op:        BOP("!=="),
+			Op:        BinaryBuiltinOp("!=="),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      notEqual,
@@ -1640,13 +1667,14 @@ func init() {
 				bigRatType:   notEqual,
 				bigFloatType: notEqual,
 				complexType:  notEqual,
+				operatorType: notEqual,
 				vectorType:   notEqual,
 				matrixType:   notEqual,
 			},
 		},
 
 		{
-			Op:        BOP("intersect"),
+			Op:        BinaryBuiltinOp("intersect"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      intersect,
@@ -1655,12 +1683,13 @@ func init() {
 				bigRatType:   intersect,
 				bigFloatType: intersect,
 				complexType:  intersect,
+				operatorType: intersect,
 				vectorType:   intersect,
 			},
 		},
 
 		{
-			Op:        BOP("union"),
+			Op:        BinaryBuiltinOp("union"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      union,
@@ -1669,12 +1698,13 @@ func init() {
 				bigRatType:   union,
 				bigFloatType: union,
 				complexType:  union,
+				operatorType: union,
 				vectorType:   union,
 			},
 		},
 
 		{
-			Op:        BOP("left"),
+			Op:        BinaryBuiltinOp("left"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      left,
@@ -1683,13 +1713,14 @@ func init() {
 				bigRatType:   left,
 				bigFloatType: left,
 				complexType:  left,
+				operatorType: left,
 				vectorType:   left,
 				matrixType:   left,
 			},
 		},
 
 		{
-			Op:        BOP("right"),
+			Op:        BinaryBuiltinOp("right"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      right,
@@ -1698,13 +1729,14 @@ func init() {
 				bigRatType:   right,
 				bigFloatType: right,
 				complexType:  right,
+				operatorType: right,
 				vectorType:   right,
 				matrixType:   right,
 			},
 		},
 
 		{
-			Op:        BOP("text"),
+			Op:        BinaryBuiltinOp("text"),
 			whichType: noPromoteType,
 			fn: [numType]binaryFn{
 				intType:      fmtText,
@@ -1712,6 +1744,7 @@ func init() {
 				bigIntType:   fmtText,
 				bigRatType:   fmtText,
 				bigFloatType: fmtText,
+				operatorType: fmtText,
 				complexType:  fmtText,
 				vectorType:   fmtText,
 				matrixType:   fmtText,

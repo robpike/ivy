@@ -126,6 +126,8 @@ Switch:
 			constant  = "# Pre-defined constants"
 			char      = "# Character data"
 			operators = "# User-defined operators"
+			opvals    = "# Operator values"
+			nonce     = "# Nonce operators"
 			special   = "# Special commands"
 			end       = "$$EOF$$"
 		)
@@ -148,6 +150,10 @@ Switch:
 			p.printHelpBlock(char, operators)
 		case "op", "ops", "operator", "operators":
 			p.printHelpBlock(operators, special)
+		case "opval", "opvals":
+			p.printHelpBlock(opvals, special)
+		case "nonce":
+			p.printHelpBlock(nonce, special)
 		case "special":
 			p.printHelpBlock(special, end)
 		case "about":
@@ -462,7 +468,7 @@ Switch:
 		if v == nil {
 			p.errorf("undefined global variable %q", name)
 		}
-		fmt.Printf("%s = ", name)
+		p.Printf("%s = ", name)
 		value.IvyPrint(p.context, conf.Output(), v.Value(), false)
 		fmt.Print("\n")
 	default:

@@ -138,6 +138,9 @@ type Context interface {
 	// NewUserDefinedUnaryOp creates a new operator to call the user-defined unary.
 	NewUserDefinedUnaryOp(name string) Unary
 
+	// NewNonceOp creates a new user-defined nonce operator.
+	NewNonceOp(isBinary bool, left, right Expr, body StatementList, source string) Operator
+
 	// Eval evaluates a list of expressions.
 	Eval(exprs []Expr) []Value
 

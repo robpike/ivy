@@ -252,6 +252,10 @@ Characters:
 	)help char
 User-defined ops:
 	)help ops
+Operator values:
+	)help opvals
+Nonce operators:
+	)help nonce
 Special commands:
 	)help special
 Search docs:

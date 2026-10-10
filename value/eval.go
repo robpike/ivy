@@ -14,7 +14,8 @@ import (
 type valueType int
 
 const (
-	intType valueType = iota
+	operatorType valueType = iota
+	intType
 	charType
 	bigIntType
 	bigRatType
@@ -25,7 +26,7 @@ const (
 	numType
 )
 
-var typeName = [...]string{"int", "char", "big int", "rational", "float", "complex", "vector", "matrix"}
+var typeName = [...]string{"operator", "int", "char", "big int", "rational", "float", "complex", "vector", "matrix"}
 
 func (t valueType) String() string {
 	return typeName[t]
@@ -96,6 +97,8 @@ func whichType(c Context, v Value) valueType {
 		return bigFloatType
 	case Complex:
 		return complexType
+	case *OpExpr:
+		return operatorType
 	case *Vector:
 		return vectorType
 	case *Matrix:

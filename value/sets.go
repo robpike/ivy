@@ -181,7 +181,8 @@ func notEqual(c Context, u, v Value) Value {
 // works for sorting sets.
 //
 // Thus we amend the usual orderings:
-// - Char is below all other types
+// _ Operators are below all other types.
+// - Char is below all other types except Operator.
 // - All other scalars are compared directly, except...
 // - ...Complex is above all other scalars, unless on the real line: 1j0 == 1.
 // - Vector is above all other types except...
@@ -192,13 +193,22 @@ func notEqual(c Context, u, v Value) Value {
 //   - Vector and Matrix are ordered first by number of elements,
 //     then in lexical order of elements.
 //
-// These are unusual rules, but they are provide a unique ordering of elements
-// sufficient for set membership. // Exported for testing, which is done by the
-// parent directory to avoid a dependency cycle.
+// These are unusual rules, but they provide a unique ordering of elements
+// sufficient for set membership.
+//
+// Exported for testing, which is done by the parent directory to avoid a
+// dependency cycle.
 func OrderedCompare(c Context, u, v Value) int {
 	uType := whichType(c, u)
 	vType := whichType(c, v)
 	if uType != vType {
+		// If either is an Operator, that orders below all others.
+		if uType == operatorType {
+			return -1
+		}
+		if vType == operatorType {
+			return 1
+		}
 		// If either is a Char, that orders below all others.
 		if uType == charType {
 			return -1
@@ -257,6 +267,19 @@ func OrderedCompare(c Context, u, v Value) int {
 			return s
 		}
 		return OrderedCompare(c, uu.imag, vv.imag)
+	case operatorType:
+		// Compare their string representations. Is there a better way?
+		// Use ProgString because it is canonical; it will ignore spaces etc.
+		us := u.(Operator).ProgString()
+		vs := v.(Operator).ProgString()
+		switch {
+		case us == vs:
+			return 0
+		case us < vs:
+			return -1
+		default:
+			return 1
+		}
 	case vectorType:
 		uu := u.(*Vector)
 		vv := v.(*Vector)

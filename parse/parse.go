@@ -179,7 +179,6 @@ func (p *Parser) source(start, end int) string {
 //	) special command '\n'
 //	op function definition
 //	statementList '\n'
-//
 func (p *Parser) Line() (value.StatementList, bool) {
 	start := len(p.scanner.History()) // Remember this location before any leading comments.
 	if !p.readTokensToNewline() {
@@ -240,11 +239,11 @@ func (p *Parser) readTokensToNewline() bool {
 // statementList:
 //
 //	statement [';' statementList]...
-//
 func (p *Parser) statementList() value.StatementList {
 	toks := []scan.Token{}
 	list := value.StatementList{}
 	brackLevel := 0
+	braceLevel := 0
 	ctrlLevel := 0
 	i := 0
 	fileName := p.fileName
@@ -279,8 +278,8 @@ func (p *Parser) statementList() value.StatementList {
 		}
 		tok := p.tokens[i]
 		i++
-		if tok.Type == scan.EOF || (brackLevel == 0 && ctrlLevel == 0 && tok.Type == scan.Semicolon) {
-			list = append(list, value.NewStatement(toks, fileName, p.inOperator))
+		if tok.Type == scan.EOF || (brackLevel+braceLevel+ctrlLevel == 0 && tok.Type == scan.Semicolon) {
+			list = append(list, value.NewStatement(toks, p.scanner.History(), fileName, p.inOperator))
 			toks = nil
 			continue
 		}
@@ -292,12 +291,16 @@ func (p *Parser) statementList() value.StatementList {
 			ctrlLevel--
 		case scan.LeftBrack:
 			brackLevel++
+		case scan.LeftBrace:
+			braceLevel++
 		case scan.RightBrack:
 			brackLevel--
+		case scan.RightBrace:
+			braceLevel--
 		}
 	}
 	if len(toks) > 0 {
-		list = append(list, value.NewStatement(toks, fileName, p.inOperator))
+		list = append(list, value.NewStatement(toks, p.scanner.History(), fileName, p.inOperator))
 	}
 	return list
 }

@@ -97,8 +97,11 @@ type StatementList []Expr
 
 func (s StatementList) ProgString() string {
 	var b strings.Builder
-	for _, expr := range s {
-		fmt.Fprintln(&b, expr.ProgString())
+	for i, expr := range s {
+		fmt.Fprint(&b, expr.ProgString())
+		if i < len(s)-1 {
+			fmt.Fprint(&b, "\n")
+		}
 	}
 	return b.String()
 }
@@ -321,7 +324,6 @@ type VarExpr struct {
 }
 
 func NewVarExpr(name string) *VarExpr {
-
 	return &VarExpr{Name: name}
 }
 
@@ -495,6 +497,7 @@ func FlushState(expr Expr) {
 	case BigFloat:
 	case Complex:
 	case *Vector:
+	case *OpExpr:
 	case *Matrix:
 	default:
 		fmt.Printf("unknown %T in FlushState", e)

@@ -32,7 +32,7 @@ func fmtText(c Context, u, v Value) Value {
 		IvyPrint(c, &b, v, false)
 	} else {
 		switch val := v.(type) {
-		case Int, BigInt, BigRat, BigFloat, Char:
+		case Int, BigInt, BigRat, BigFloat, Char, *OpExpr:
 			formatOne(c, &b, format, verb, val)
 		case Complex:
 			formatOne(c, &b, format, verb, val.real)
@@ -159,6 +159,7 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		}
 		return
 	}
+	fail := func() { c.Errorf("cannot format %s with verb %q", v, verb) }
 	switch verb {
 	case 'T': // Time.
 		// Maintain flags etc. but turn T into s.
@@ -186,6 +187,8 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 			fmt.Fprintf(w, format, i)
 		case Complex:
 			c.Errorf("%%%c not implemented for complex: %v", verb, val)
+		default:
+			fail()
 		}
 		return
 	case 's', 'q':
@@ -203,8 +206,12 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 		case BigFloat:
 			i, _ := val.Int64()
 			fmt.Fprintf(w, format, string(int32(i)))
+		case Operator:
+			fmt.Fprintf(w, format, val.String())
 		case Complex:
 			c.Errorf("%%%c not implemented for complex: %v", verb, val)
+		default:
+			fail()
 		}
 		return
 	case 'b', 'd', 'o', 'O', 'x', 'X':
@@ -237,6 +244,8 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 			formatOne(c, w, format, verb, val.real)
 			fmt.Fprint(w, "j")
 			formatOne(c, w, format, verb, val.imag)
+		default:
+			fail()
 		}
 		return
 	case 'e', 'E', 'f', 'F', 'g', 'G':
@@ -260,6 +269,8 @@ func formatOne(c Context, w io.Writer, format string, verb byte, v Value) {
 			formatOne(c, w, format, verb, val.real)
 			fmt.Fprint(w, "j")
 			formatOne(c, w, format, verb, val.imag)
+		default:
+			fail()
 		}
 	default:
 		fmt.Fprintf(w, format, v)
@@ -298,6 +309,8 @@ func IvyPrint(c Context, out io.Writer, val Value, withParens bool) {
 		IvyPrint(c, out, real, false)
 		fmt.Fprintf(out, "j")
 		IvyPrint(c, out, imag, false)
+	case *OpExpr:
+		fmt.Fprint(out, val.ProgString())
 	case *Vector:
 		if val.Len() == 0 {
 			fmt.Fprint(out, "()")

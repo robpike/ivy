@@ -44,6 +44,9 @@
 -/iota 10
 	-5
 
+//3 3  # Was broken.
+	1
+
 # Exponentiation is a good test for the order of operation.
 **/3 3 rho 0.5 * iota 9
 	1/2 50535.164327 3.65459038547e+278

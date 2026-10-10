@@ -5,7 +5,6 @@
 package parse
 
 import (
-	"fmt"
 	"strings"
 
 	"robpike.io/ivy/exec"
@@ -19,9 +18,9 @@ import (
 //	"op" arg name arg '=' body <eol>
 //
 // body:
+//
 //	statementList
 //	'\n' (statementList '\n')+ '\n' # For multiline definition, ending with blank line.
-//
 func (p *Parser) functionDefn(start int) {
 	p.context.SetPos(p.fileName, p.lineNum, p.offset)
 	p.inOperator = true
@@ -69,12 +68,12 @@ func (p *Parser) functionDefn(start int) {
 		fn.IsBinary = true
 		fn.Left = args[0]
 		fn.Right = args[2]
-		walkVars(fn.Left, declare)
-		walkVars(fn.Right, declare)
+		exec.WalkVars(p.context, fn.Left, declare)
+		exec.WalkVars(p.context, fn.Right, declare)
 		installMap = p.context.BinaryFn
 	} else {
 		fn.Right = args[1]
-		walkVars(fn.Right, declare)
+		exec.WalkVars(p.context, fn.Right, declare)
 		installMap = p.context.UnaryFn
 	}
 
@@ -123,7 +122,7 @@ func (p *Parser) functionDefn(start int) {
 	fn.Source = p.source(start, len(history))
 	// Remember the base so we can parse the source text again after a save.
 	fn.Ibase, _ = p.context.Config().Base()
-	funcVars(p.context, varNames, fn)
+	exec.FuncVars(p.context, varNames, fn)
 	// Have we added a new operator? If so, must flush saved parses because they
 	// may now parse differently.
 	if installMap[fn.Name] == nil {
@@ -156,45 +155,4 @@ func (p *Parser) funcArg() value.Expr {
 	}
 	p.next()
 	return v
-}
-
-// funcVars collects the list of identifiers in the body. We don't now yet whether
-// they are variables, or whether they are local or global; that happens at
-// execution. See value.VarState, value.Assign and value.VarExpr.Eval for details.
-// A function that wants to guarantee a variable is global can do a throwaway read,
-// as in
-//
-//	_ = x # global x
-//	x = 1
-//
-// It also marks whether we have a :ret (see value.EvalFunctionBody).
-func funcVars(c value.Context, varNames map[string]bool, fn *exec.Function) {
-	// We know the body is an StatementList of Statements.
-	for _, s := range fn.Body {
-		s := s.(*value.Statement)
-		vars, hasRet := s.VarsAndRet()
-		if hasRet {
-			fn.HasRet = true
-		}
-		for _, name := range vars {
-			varNames[name] = true
-		}
-	}
-	for name := range varNames {
-		fn.Variables = append(fn.Variables, name)
-	}
-	return
-}
-
-func walkVars(expr value.Expr, f func(*value.VarExpr)) {
-	switch e := expr.(type) {
-	case *value.VarExpr:
-		f(e)
-	case value.VectorExpr:
-		for i := len(e) - 1; i >= 0; i-- {
-			walkVars(e[i], f)
-		}
-	default:
-		fmt.Printf("unknown %T in variable list\n", e)
-	}
 }

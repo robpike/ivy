@@ -37,6 +37,7 @@ const (
 	Identifier // alphanumeric identifier
 	LeftBrack  // '['
 	LeftParen  // '('
+	LeftBrace  // '{'
 	Number     // number
 	Operator   // known operator
 	Op         // "op", operator definition keyword
@@ -48,6 +49,7 @@ const (
 	Ret        // ":ret", function return keyword
 	RightBrack // ']'
 	RightParen // ')'
+	RightBrace // '}'
 	Semicolon  // ';'
 	String     // quoted string (includes quotes)
 	Colon      // ':'
@@ -96,6 +98,7 @@ func (l *Scanner) loadLine() {
 	for {
 		c, err := l.r.ReadByte()
 		if err != nil {
+			l.history = append(l.history, string(l.buf[:len(l.buf)]))
 			l.done = true
 			break
 		}
@@ -320,16 +323,20 @@ func lexAny(l *Scanner) stateFn {
 	case isAlphaNumeric(r):
 		l.backup()
 		return lexIdentifier
+	case r == ']':
+		return l.emit(RightBrack)
 	case r == '[':
 		return l.emit(LeftBrack)
 	case r == ':':
 		return lexColon(l)
-	case r == ']':
-		return l.emit(RightBrack)
 	case r == '(':
 		return l.emit(LeftParen)
 	case r == ')':
 		return l.emit(RightParen)
+	case r == '}':
+		return l.emit(RightBrace)
+	case r == '{':
+		return l.emit(LeftBrace)
 	case r <= unicode.MaxASCII && unicode.IsPrint(r):
 		return l.emit(Char)
 	default:

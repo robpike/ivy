@@ -422,6 +422,46 @@ it first, insert an unused read.
 	total last
 	result: 12 3
 
+# Operator values
+
+Operators of any kind can be passed as values and stored in variables.
+To avoid their evaluation, depending on adjacent expressions, they
+may need to be parenthesized. They are printed in parentheses.
+
+	x = sqrt
+	x
+	x 4
+	result:
+		(sqrt)
+		2
+
+	op f table n = transp 2 n rho (iota n), f@ iota n
+	(!) table 5
+	result:
+		1   1
+		2   2
+		3   6
+		4  24
+		5 120
+
+# Nonce operators
+
+Operators may be defined in-line; these are called anonymous or
+nonce operators. Their declaration syntax is similar to that of
+regular operators, but with the keyword "op" in place of the name,
+and enclosed in braces. Also, they must not span newlines.
+
+A unary nonce op has no formal arguments left of the "op".
+
+	{op a = a**1.5} 1 2 3 4 5
+	result: 1 2.82842712475 5.19615242271 8 11.1803398875
+
+A binary nonce op has formal arguments on either side.
+
+	joinBackwards = {(a b (c d)) op ((e f) g) = g f e d c b a}
+	(1 2 (3 4)) joinBackwards ((5 6) 7)
+	result: 7 6 5 4 3 2 1
+
 # Special commands
 
 Ivy accepts a number of special commands, introduced by a right

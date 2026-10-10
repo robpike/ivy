@@ -25,6 +25,11 @@ func init() {
 }
 
 var (
+	op0 = value.NewOpExpr(value.UnaryBuiltinOp("*"), value.BinaryBuiltinOp("*")) // String order.
+	op1 = value.NewOpExpr(value.UnaryBuiltinOp("+"), value.BinaryBuiltinOp("+"))
+	op2 = value.NewOpExpr(value.UnaryBuiltinOp("-"), value.BinaryBuiltinOp("-"))
+	op3 = value.NewOpExpr(value.UnaryBuiltinOp("/"), value.BinaryBuiltinOp("/"))
+
 	int0 = value.Int(0)
 	int1 = value.Int(1)
 	int2 = value.Int(2)
@@ -79,6 +84,17 @@ func newMatrixData(data ...int) *value.Vector {
 func TestOrderedCompare(t *testing.T) {
 	var tests = []orderTest{
 		// Same types.
+		// OP
+		{op1, op1, 0},
+		{op1, op2, -1},
+		{op1, op3, -1},
+		{op2, op1, 1},
+		{op2, op2, 0},
+		{op2, op3, -1},
+		{op3, op1, 1},
+		{op3, op2, 1},
+		{op3, op3, 0},
+
 		// Int
 		{int1, int1, 0},
 		{int1, int2, -1},
@@ -152,77 +168,85 @@ func TestOrderedCompare(t *testing.T) {
 		{complex2j2, complex2j1, 1},
 		{complex2j2, complex2j2, 0},
 
-		// Int less than every possible scalar type.
+		// Int less than every possible numeric scalar type.
 		{int0, bigInt1, -1},
 		{int0, bigRat1o1, -1},
 		{int0, bigFloat1p0, -1},
 		{int0, complex1j0, -1},
 
-		// Int equal to every possible scalar type.
+		// Int equal to every possible numeric scalar type.
 		{int1, bigInt1, 0},
 		{int1, bigRat1o1, 0},
 		{int1, bigFloat1p0, 0},
 		{int1, complex1j0, 0},
 
-		// Int greater than every possible scalar type.
+		// Int greater than every possible numeric scalar type.
 		{int2, bigInt1, 1},
 		{int2, bigRat1o1, 1},
 		{int2, bigFloat1p0, 1},
 		{int2, complex1j0, 1},
 
-		// BigInt less than every possible scalar type.
+		// BigInt less than every possible numeric scalar type.
 		{bigInt0, int1, -1},
 		{bigInt0, bigRat1o1, -1},
 		{bigInt0, bigFloat1p0, -1},
 		{bigInt0, complex1j0, -1},
 
-		// BigInt equal to every possible scalar type.
+		// BigInt equal to every possible numeric scalar type.
 		{bigInt1, int1, 0},
 		{bigInt1, bigRat1o1, 0},
 		{bigInt1, bigFloat1p0, 0},
 		{bigInt1, complex1j0, 0},
 
-		// BigInt greater than every possible scalar type.
+		// BigInt greater than every possible numeric scalar type.
 		{bigInt2, int1, 1},
 		{bigInt2, bigRat1o1, 1},
 		{bigInt2, bigFloat1p0, 1},
 		{bigInt2, complex1j0, 1},
 
-		// BigRat less than every possible scalar type.
+		// BigRat less than every possible numeric scalar type.
 		{bigRat0o1, int1, -1},
 		{bigRat0o1, bigInt1, -1},
 		{bigRat0o1, bigFloat1p0, -1},
 		{bigRat0o1, complex1j0, -1},
 
-		// BigRat equal to every possible scalar type.
+		// BigRat equal to every possible numeric scalar type.
 		{bigRat1o1, int1, 0},
 		{bigRat1o1, bigInt1, 0},
 		{bigRat1o1, bigFloat1p0, 0},
 		{bigRat1o1, complex1j0, 0},
 
-		// BigRat greater than every possible scalar type.
+		// BigRat greater than every possible numeric scalar type.
 		{bigRat2o1, int1, 1},
 		{bigRat2o1, bigInt1, 1},
 		{bigRat2o1, bigFloat1p0, 1},
 		{bigRat2o1, complex1j0, 1},
 
-		// BigFloat less than every possible scalar type.
+		// BigFloat less than every possible numeric scalar type.
 		{bigFloat0p0, int1, -1},
 		{bigFloat0p0, bigInt1, -1},
 		{bigFloat0p0, bigFloat1p0, -1},
 		{bigFloat0p0, complex1j0, -1},
 
-		// BigFloat equal to every possible scalar type.
+		// BigFloat equal to every possible numeric scalar type.
 		{bigFloat1p0, int1, 0},
 		{bigFloat1p0, bigInt1, 0},
 		{bigFloat1p0, bigFloat1p0, 0},
 		{bigFloat1p0, complex1j0, 0},
 
-		// BigFloat greater than every possible scalar type.
+		// BigFloat greater than every possible numeric scalar type.
 		{bigFloat2p0, int1, 1},
 		{bigFloat2p0, bigInt1, 1},
 		{bigFloat2p0, bigFloat1p0, 1},
 		{bigFloat2p0, complex1j0, 1},
+
+		// Operator less than every type.
+		{op1, int1, -1},
+		{op1, bigInt1, -1},
+		{op1, bigRat1o1, -1},
+		{op1, bigFloat1p0, -1},
+		{op1, complex1j0, -1},
+		{op1, char1, -1},
 
 		// Special cases involving char and complex.
 
