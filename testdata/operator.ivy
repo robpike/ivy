@@ -92,6 +92,15 @@ add = addsubmuldiv 1; 3 add 2
 	3 (+) 2
 	5
 
+# Make sure name binding happens at eval.
+fn = sqrt
+x = {op a=fn a}
+x 3
+fn = !
+x 3
+	1.73205080757
+	6
+
 # ops returning an operator that embeds a local name won't work.
 # (That is, there are no closures (yet).) Here is a clunky example
 # showing a workaround, an op that returns a unary-only variant

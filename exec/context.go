@@ -70,6 +70,10 @@ func (c *Context) Global(name string) *value.Var {
 
 // AssignGlobal assigns to the named global variable, creating it if needed.
 func (c *Context) AssignGlobal(name string, val value.Value) {
+	// If the value is an OpExpr, it's like declaring an op. Need to flush state.
+	if _, ok := val.(*value.OpExpr); ok {
+		c.FlushSavedParses()
+	}
 	v := c.Globals[name]
 	if v == nil {
 		if c.UserDefined(name, false) || c.UserDefined(name, true) {
@@ -347,5 +351,11 @@ func (c *Context) FlushSavedParses() {
 	}
 	for _, fn := range c.UnaryFn {
 		value.FlushState(fn.Body)
+	}
+	// Some can be stored in variables.
+	for _, v := range c.Globals {
+		if opExpr, ok := v.Value().(*value.OpExpr); ok {
+			opExpr.Flush()
+		}
 	}
 }

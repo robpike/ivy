@@ -258,6 +258,10 @@ func NewUnaryNonceOp(c Context, right Expr, body StatementList, source string) *
 	}
 }
 
+func (o *UnaryNonceOp) flush() {
+	FlushState(o.body)
+}
+
 func (o *UnaryNonceOp) String() string { return o.str }
 
 func (o *UnaryNonceOp) ProgString() string {
@@ -286,6 +290,10 @@ func NewBinaryNonceOp(c Context, left, right Expr, body StatementList, source st
 		right: right,
 		body:  body,
 	}
+}
+
+func (o *BinaryNonceOp) flush() {
+	FlushState(o.body)
 }
 
 func (o *BinaryNonceOp) String() string { return o.str }
@@ -322,6 +330,24 @@ func (o *OpExpr) Unpack() (Unary, Binary) {
 	return o.unary, o.binary
 }
 
+func (o *OpExpr) Flush() {
+	opFlush(o.unary)
+	opFlush(o.binary)
+}
+
+func opFlush(op Operator) {
+	if op == nil {
+		return
+	}
+	switch nonce := op.(type) {
+	case *UnaryNonceOp:
+		nonce.flush()
+	case *BinaryNonceOp:
+		nonce.flush()
+	default:
+		// Anything to do?
+	}
+}
 func (o *OpExpr) ProgString() string {
 	var op Operator = o.binary
 	if op == nil {
