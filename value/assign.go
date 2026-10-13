@@ -67,15 +67,15 @@ func Assign(c Context, opText string, left, right Expr, rhs Value) {
 		}
 	case VectorExpr:
 		// Simultaneous assignment requires evaluation of RHS before assignment.
-		rhs, ok := rhs.(*Vector)
+		vrhs, ok := rhs.(*Vector)
 		if !ok {
 			c.Errorf("shape mismatch in %s %s to %s", assignOrBind(opText), DebugProgString(rhs), DebugProgString(lhs))
 		}
-		if len(lhs) != rhs.Len() {
+		if len(lhs) != vrhs.Len() {
 			c.Errorf("length mismatch %s %s to %s", assignOrBind(opText), DebugProgString(rhs), DebugProgString(lhs))
 		}
-		for i := rhs.Len() - 1; i >= 0; i-- {
-			Assign(c, opText, lhs[i], nil, rhs.At(i))
+		for i := vrhs.Len() - 1; i >= 0; i-- {
+			Assign(c, opText, lhs[i], nil, vrhs.At(i))
 		}
 		return
 	}

@@ -424,12 +424,19 @@ func debugProgString(b *strings.Builder, e progStringer) {
 			}
 		}
 		b.WriteRune(']')
+	case *OpExpr:
+		b.WriteString(expr.ProgString()) // TODO - should we add Sprint to OpExprs?
 	case *Vector:
 		if expr.AllChars() {
 			fmt.Fprintf(b, "%q", expr.Sprint(debugContext))
 		} else {
 			b.WriteString(expr.Sprint(debugContext))
 		}
+	case *Matrix:
+		for _, d := range expr.shape {
+			fmt.Fprintf(b, "%d ", d)
+		}
+		fmt.Fprintf(b, "rho %s", expr.data.Sprint(debugContext))
 	case VectorExpr:
 		if len(expr) == 1 {
 			debugProgString(b, expr[0])
