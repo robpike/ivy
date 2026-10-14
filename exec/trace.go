@@ -68,6 +68,10 @@ func (c *Context) StackTrace() {
 				}
 			}
 		}
+		// Show any initializers; can only happen for OpExpr.
+		for _, val := range f.Initializers {
+			frame += fmt.Sprintf("\t\t%s = %s\n", val.Name(), c.tracePrint(val.Value()))
+		}
 		lines = append(lines, frame)
 		c.pop()
 	}

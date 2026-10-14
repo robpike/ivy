@@ -270,16 +270,43 @@ func OrderedCompare(c Context, u, v Value) int {
 	case operatorType:
 		// Compare their string representations. Is there a better way?
 		// Use ProgString because it is canonical; it will ignore spaces etc.
-		us := u.(Operator).ProgString()
-		vs := v.(Operator).ProgString()
-		switch {
-		case us == vs:
+		uo := u.(*OpExpr)
+		vo := v.(*OpExpr)
+		// Compare unary, then binary.
+		wasUnary := false
+		wasBinary := false
+		if uo.unary != nil && vo.unary != nil {
+			cmp := sgn2String(uo.unary.ProgString(), vo.unary.ProgString())
+			if cmp != 0 {
+				return cmp
+			}
+			cmp = sgn2Initializers(uo.unary, vo.unary)
+			if cmp != 0 {
+				return cmp
+			}
+			wasUnary = true
+		}
+		if uo.binary != nil && vo.binary != nil {
+			cmp := sgn2String(uo.binary.ProgString(), vo.binary.ProgString())
+			if cmp != 0 {
+				return cmp
+			}
+			cmp = sgn2Initializers(uo.binary, vo.binary)
+			if cmp != 0 {
+				return cmp
+			}
+			wasBinary = true
+		}
+		if wasUnary || wasBinary { // We compared one or both and found equality.
 			return 0
-		case us < vs:
+		}
+		if uo.unary == nil {
 			return -1
-		default:
+		}
+		if uo.binary == nil {
 			return 1
 		}
+		return 0
 	case vectorType:
 		uu := u.(*Vector)
 		vv := v.(*Vector)
@@ -332,4 +359,27 @@ func sgn2Int(a, b int) int {
 		return 0
 	}
 	return 1
+}
+
+// sgn2String returns the signum of a-b.
+func sgn2String(a, b string) int {
+	if a < b {
+		return -1
+	}
+	if a == b {
+		return 0
+	}
+	return 1
+}
+
+// sgn2Initializers returns the signum of a-b of the ops' initializers.
+func sgn2Initializers(a, b Operator) int {
+	var ai, bi string
+	if a, ok := a.(initialized); ok {
+		ai = a.InitString()
+	}
+	if b, ok := b.(initialized); ok {
+		bi = b.InitString()
+	}
+	return sgn2String(ai, bi)
 }

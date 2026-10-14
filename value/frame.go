@@ -13,14 +13,15 @@ import (
 // Used to print helpful error tracebacks. May one day hold the
 // local variables themselves.
 type Frame struct {
-	Op       string
-	IsBinary bool
-	Left     Expr
-	Right    Expr
-	Locals   []Variable
-	Globals  []Variable
-	Inited   bool // Until set, tracebacks will not attempt to evaluate this frame.
-	Vars     Symtab
+	Op           string
+	IsBinary     bool
+	Left         Expr
+	Right        Expr
+	Locals       []Variable
+	Globals      []Variable
+	Inited       bool // Until set, tracebacks will not attempt to evaluate this frame.
+	Vars         Symtab
+	Initializers []*Var
 }
 
 // Symtab is a symbol table, a slice of variables.

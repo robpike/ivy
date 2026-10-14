@@ -79,7 +79,7 @@ func (s *Statement) VarsAndRet() ([]string, bool) {
 }
 
 func (s *Statement) ProgString() string {
-	// Not a great solution, but this is only needed for debugging.
+	// Not a great solution, but this is only needed for debugging and hidden operations.
 	str := "("
 	for i, t := range s.tokens {
 		if i > 0 {
@@ -544,6 +544,7 @@ func (s *Statement) parseProduct(c Context, marker string, tok scan.Token) (bina
 	if right == nil {
 		s.Errorf("%s not a binary operator", right)
 	}
+	s.notProduct(right)
 	if marker == "o." {
 		return NewOuterOp(right.(Binary))
 	}
@@ -552,7 +553,21 @@ func (s *Statement) parseProduct(c Context, marker string, tok scan.Token) (bina
 	if left == nil {
 		s.Errorf("%s not a binary operator", left)
 	}
+	s.notProduct(left)
 	return NewInnerOp(left, right)
+}
+
+func (s *Statement) notProduct(o Operator) {
+	bad := false
+	if _, ok := o.(*InnerOp); ok {
+		bad = true
+	}
+	if _, ok := o.(*OuterOp); ok {
+		bad = true
+	}
+	if bad {
+		s.Errorf("cannot build product operator of product operator: %s", o)
+	}
 }
 
 // parseNonceOp parses an in-line operator definition. The argument token is the right brace.
@@ -566,7 +581,8 @@ func (s *Statement) parseNonceOp(c Context, tok scan.Token) (unary Unary, binary
 	startPos := -1
 	endPos := s.pos + 1 // Right of closing brace.
 	endOffset := tok.Offset
-	for nesting, i := 1, s.pos-1; i >= 0; i-- {
+	nesting := 1
+	for i := s.pos - 1; i >= 0 && nesting > 0; i-- {
 		switch s.tokens[i].Type {
 		case scan.EOF, scan.Newline:
 			s.Errorf("missing left brace")
@@ -580,11 +596,10 @@ func (s *Statement) parseNonceOp(c Context, tok scan.Token) (unary Unary, binary
 			nesting--
 			if nesting == 0 {
 				startPos = i
-				break
 			}
 		}
 	}
-	if startPos < 0 {
+	if nesting != 0 {
 		s.Errorf("missing left brace in nonce operator declaration")
 	}
 	if !foundOp {
@@ -628,7 +643,25 @@ func (s *Statement) parseNonceOp(c Context, tok scan.Token) (unary Unary, binary
 	source := s.history[len(s.history)-1][s.opStart-1 : endOffset]
 	body := s.nonceStatementList(c, tokens[eqPos+1:len(tokens)-1])
 	if isBinary {
-		return nil, NewBinaryNonceOp(c, left, right, body, source)
+		// Might be the right side of a product.
+		binary := Binary(NewBinaryNonceOp(c, left, right, body, source))
+		// May be abutting a "." or "o.". Can't use adjacent because we don't want to eat the period yet.
+		marker := s.peek()
+		if marker.Offset+len(marker.Text) == tokens[0].Offset && (marker.Text == "." || marker.Text == "o.") {
+			s.notProduct(binary)
+			s.prev()
+			if marker.Text == "o." {
+				binary = NewOuterOp(binary)
+			} else {
+				leftUnary, leftBinary := s.parseUndecoratedOperator(c, s.prev(), false)
+				if leftBinary == nil {
+					s.Errorf("%s is not a binary op for inner product", leftUnary)
+				}
+				s.notProduct(leftBinary)
+				binary = NewInnerOp(leftBinary, binary)
+			}
+		}
+		return nil, binary
 	}
 	return NewUnaryNonceOp(c, right, body, source), nil
 }
@@ -766,55 +799,6 @@ func (s *Statement) parseOperator(c Context, tok scan.Token) (unary Unary, binar
 		}
 	}
 	return unary, binary
-}
-
-// parseOperator parses the general form of an operator and reports
-// whether it is a binary.
-func (s *Statement) XXparseOperator(c Context, canParseBinary bool) (op Operator, isBinary bool) {
-	panic("NO")
-	/*
-		numTrailingAts := s.numAts()
-		tok := s.prev()
-		axisIndicator := ""
-		if tok.Text == "%" { // Might be a scan.
-			peek := s.peek()
-			if s.adjacent(tok) && (peek.Text == "/" || peek.Text == "\\") { // % must abut to form a reduce.
-				tok = s.prev()
-				axisIndicator = "%"
-			}
-		}
-		if s.adjacent(tok) { // Could be a compound operator.
-			marker := s.peek().Text
-			if axisIndicator == "" && (marker == "." || marker == "o.") {
-				op, isBinary = s.parseProduct(c, s.prev().Text, tok)
-			} else if tok.Text == "/" || tok.Text == "\\" {
-				op, isBinary = s.parseReduceOrScan(c, tok, axisIndicator, canParseBinary)
-			}
-		}
-		if op == nil {
-			op, isBinary = s.parseUndecoratedOperator(c, tok, canParseBinary)
-		}
-		numLeadingAts := 0
-		// Special check to get started because the @ must be adjacent to the start of the operator.
-		// (We don't have the actual operator token any more.)
-		for s.peek().Text == "@" && s.peek().Offset == s.opStart-1 {
-			numLeadingAts = s.numAts()
-		}
-		// Wrap the op as an Each if @s are present.
-		if numLeadingAts+numTrailingAts > 0 {
-			if !isBinary {
-				if numLeadingAts > 0 {
-					c.Errorf("illegal %q on unary %s", "@", op)
-				}
-				if numTrailingAts != 0 {
-					op = NewUnaryEachOp(op.(Unary), numTrailingAts)
-				}
-			} else {
-				op = NewBinaryEachOp(op.(Binary), numLeadingAts, numTrailingAts)
-			}
-		}
-		return op, isBinary
-	*/
 }
 
 // checkAssign checks that e is an assignable value.

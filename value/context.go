@@ -141,6 +141,11 @@ type Context interface {
 	// NewNonceOp creates a new user-defined nonce operator.
 	NewNonceOp(isBinary bool, left, right Expr, body StatementList, source string) Operator
 
+	// BindInitializers binds the named variables and their values so they
+	// can be initialized at the start of fn's execution. The operator is
+	// always an exec.Function.
+	BindInitializers(fn Operator, vars []*Var)
+
 	// Eval evaluates a list of expressions.
 	Eval(exprs []Expr) []Value
 

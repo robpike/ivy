@@ -147,6 +147,17 @@ func (c *Context) SetPos(file string, line, offset int) {
 	}
 }
 
+// BindInitializers binds the named variables and their values so they can
+// be initialized at the start of op's execution. It's trivial but putting it in the
+// Context interface avoids a dependency cycle.
+func (c *Context) BindInitializers(op value.Operator, vars []*value.Var) {
+	fn, ok := op.(*Function)
+	if !ok {
+		c.Errorf("internal error: binding to non-function")
+	}
+	fn.initializers = vars
+}
+
 // Errorf panics with the formatted string, with type Error.
 func (c *Context) Errorf(format string, args ...interface{}) {
 	disableTracing := c.disableTracing

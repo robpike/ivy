@@ -6,36 +6,33 @@
 
 # Operators as expressions.
 +
-	(+)
+	+
 
 +.*
-	(+.*)
+	+.*
 
 o./
-	(o./)
+	o./
 
 @+.max@@
-	(@+.max@@)
+	@+.max@@
 
 
 (+)  # Can parenthesize
-	(+)
+	+
 
 
-# Parentheses required if op has argument(s) and want an operator expression.
+# Parentheses required if op has argument(s) and want an operator expression,
+# that is, we want to delay execution of the op.
 3 + 2
 3 (+) 2
 	5
-	3 (+) 2
+	3 + 2
 
 # Can be stored in variables.
 add = +
 3 add 5
 	8
-
-# To delay evaluation, parenthesize so the operator has no operands.
-3 (+) 2
-	3 (+) 2
 
 # These oparators could be unary or binary; the parser disambiguates.
 RHO = rho
@@ -55,13 +52,13 @@ apply addsubmuldiv 1
 apply addsubmuldiv 2
 apply addsubmuldiv 3
 apply addsubmuldiv 4
-	apply (+)
+	apply +
 	6 8
-	apply (-)
+	apply -
 	-2 -2
-	apply (*)
+	apply *
 	8 15
-	apply (/)
+	apply /
 	1/2 3/5
 
 # Nonce operators are in-line anonymous ops delimited by braces.
@@ -83,13 +80,36 @@ reverse = {(a b (c d)) op ((e f) g) = g f e d c b a}
 {op a=sqrt {op a=-a} a} -16
 	4
 
+# Can build products.
+x= 2 2 rho iota 4
+x +.* x
+x {a op b=a+b}.* x
+x +.{a op b=a*b} x
+x {a op b=a+b}.{a op b=a*b} x
+	 7 10
+	15 22
+	 7 10
+	15 22
+	 7 10
+	15 22
+	 7 10
+	15 22
+
+
+2 3  o.+ 4 5
+2 3 o.{a op b=a+b} 4 5
+	6 7
+	7 8
+	6 7
+	7 8
+
 # An operator returned by an op will usually need to be stored
 # in a variable before it can be used.
 # 3 (addsubmuldiv 1) 2 won't evaluate the operator.
 op addsubmuldiv x = ((+) (-) (*) (/))[x]
 3 (addsubmuldiv 1) 2
 add = addsubmuldiv 1; 3 add 2
-	3 (+) 2
+	3 + 2
 	5
 
 # Make sure name binding happens at eval.
@@ -100,6 +120,18 @@ fn = !
 x 3
 	1.73205080757
 	6
+
+# Ditto, but for local variables, that is, the returned op binds any variables it needs.
+op apply fn = {op a = fn a}
+x = apply sqrt
+x 4
+y = apply !
+y 5
+x 4
+	2
+	120
+	2
+
 
 # ops returning an operator that embeds a local name won't work.
 # (That is, there are no closures (yet).) Here is a clunky example
@@ -151,54 +183,54 @@ where +
 	#
 
 flatten +
-	(+)
+	+
 
 print +
-	(+)
+	+
 
 ,+
-	(+)
+	+
 
 rot +
-	(+)
+	+
 
 flip +
-	(+)
+	+
 
 transp +
-	(+)
+	+
 
 text +
-	(+)
+	+
 
 box +
-	(+)
+	+
 
 first +
-	(+)
+	+
 
 last +
-	(+)
+	+
 
 split +
-	(+)
+	+
 
 mix +
-	(+)
+	+
 
 # Binary operators with trivial result.
 
 (+) left (-)
-	(+)
+	+
 
 (+) right (-)
-	(-)
+	-
 
 'v' text (+)
-	(+)
+	+
 
 'operator is %q' text +
-	operator is "(+)"
+	operator is "+"
 
 # Operations involving comparison work on operators.
 # Comparison is lexical.
@@ -227,11 +259,20 @@ mix +
 (+) >=@ (+) (-)
 	1 0
 
+(@@+) == (@@+) +
+	1 0
+
+({op a=a+1}) == +
+	0
+
+({op a=a+1}) == ({op a=a+1}) ({op a=a+2})
+	1 0
+
 (+) max -
-	(-)
+	-
 
 (+) min -
-	(+)
+	+
 
 up (+) (-) (*) (/)
 	3 1 2 4
@@ -245,7 +286,32 @@ down (+) (-) (*) (/)
 # Sets
 
 (+) union (+) (-)
-	 (+) (-)
+	 + -
 
 (+) intersect (+) (-)
-	 (+)
+	 +
+
+# Tricky corner cases for comparisons.
+
+# Different only in initializers.
+op apply fn = {op a = fn a}
+x=apply sqrt
+y=apply +
+(x) (y) == (x) (x)
+	1 0
+
+# Different only in spaces, not different in fact.
+x={op a =      3}
+y={op a = 3}
+(x) (y) == (x) (x)
+	1 1
+
+# Different only in variable names. They differ, but it's not a
+# likely problem in practice because a body that doesn't use
+# the variables is nearly pointless.
+x={op b = 3}
+y={op a = 3}
+(x) (y) == (x) (x)
+	1 0
+
+

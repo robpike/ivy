@@ -426,13 +426,13 @@ it first, insert an unused read.
 
 Operators of any kind can be passed as values and stored in variables.
 To avoid their evaluation, depending on adjacent expressions, they
-may need to be parenthesized. They are printed in parentheses.
+may need to be parenthesized.
 
 	x = sqrt
 	x
 	x 4
 	result:
-		(sqrt)
+		sqrt
 		2
 
 	op f table n = transp 2 n rho (iota n), f@ iota n

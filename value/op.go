@@ -15,6 +15,10 @@ type Operator interface {
 	ProgString() string
 }
 
+type initialized interface {
+	InitString() string
+}
+
 // Unary represents an operator with one argument.
 type Unary interface {
 	Operator
@@ -206,7 +210,7 @@ func NewUnaryEachOp(op Unary, numAts int) *UnaryEachOp {
 
 func (o *UnaryEachOp) String() string { return o.str }
 
-func (o *UnaryEachOp) ProgString() string { return o.ProgString() + ats(o.numAts) }
+func (o *UnaryEachOp) ProgString() string { return o.op.ProgString() + ats(o.numAts) }
 
 func (o *UnaryEachOp) EvalUnary(c Context, right Value) Value {
 	TraceUnary(c, 2, o.String(), right)
@@ -233,7 +237,7 @@ func NewBinaryEachOp(op Binary, nLeftAts, nRightAts int) *BinaryEachOp {
 func (o *BinaryEachOp) String() string { return o.str }
 
 func (o *BinaryEachOp) ProgString() string {
-	return ats(o.nLeftAts) + o.ProgString() + ats(o.nRightAts)
+	return ats(o.nLeftAts) + o.op.ProgString() + ats(o.nRightAts)
 }
 
 func (o *BinaryEachOp) EvalBinary(c Context, left, right Value) Value {
@@ -243,10 +247,12 @@ func (o *BinaryEachOp) EvalBinary(c Context, left, right Value) Value {
 
 // UnaryNonceOp represents an in-line unary operator construct.
 type UnaryNonceOp struct {
-	str   string
-	right Expr
-	body  StatementList
-	op    Unary
+	str          string
+	op           Unary
+	right        Expr
+	body         StatementList
+	initializers []*Var
+	initString   string
 }
 
 func NewUnaryNonceOp(c Context, right Expr, body StatementList, source string) *UnaryNonceOp {
@@ -268,6 +274,47 @@ func (o *UnaryNonceOp) ProgString() string {
 	return fmt.Sprintf("{op %s = %s}", o.right.ProgString(), o.body.ProgString())
 }
 
+func (o *UnaryNonceOp) Initializers() []*Var {
+	return o.initializers
+}
+
+func (o *UnaryNonceOp) bindInitializers(c Context, locals map[string]Value) {
+	if len(locals) == 0 {
+		return
+	}
+	o.initializers = toVarSlice(locals)
+	o.initString = toString(locals)
+	c.BindInitializers(o.op, o.initializers)
+}
+
+func (o *UnaryNonceOp) InitString() string {
+	return o.initString
+}
+
+// toVarSlices creates a slice of *Var from a map of names and values.
+func toVarSlice(locals map[string]Value) (slice []*Var) {
+	for name, val := range locals {
+		slice = append(slice, NewVar(name, val, LocalVar))
+	}
+	return slice
+}
+
+// toString creates a string representation of the initializers.
+// If the value is a string, it is printed as $1324 to avoid
+// accidentally adding a value that could alias an assignment.
+func toString(locals map[string]Value) string {
+	var b strings.Builder
+	for name, val := range locals {
+		fmt.Fprintf(&b, "%s=", name)
+		if vec, ok := val.(*Vector); ok && vec.AllChars() {
+			fmt.Fprintf(&b, "$%x;", vec)
+		} else {
+			fmt.Fprintf(&b, "%s;", val.ProgString())
+		}
+	}
+	return b.String()
+}
+
 func (o *UnaryNonceOp) EvalUnary(c Context, right Value) Value {
 	TraceUnary(c, 2, o.String(), right)
 	return o.op.EvalUnary(c, right)
@@ -275,11 +322,13 @@ func (o *UnaryNonceOp) EvalUnary(c Context, right Value) Value {
 
 // BinaryNonceOp represents an in-line unary operator construct.
 type BinaryNonceOp struct {
-	str   string
-	op    Binary
-	left  Expr
-	right Expr
-	body  StatementList
+	str          string
+	op           Binary
+	left         Expr
+	right        Expr
+	body         StatementList
+	initializers []*Var
+	initString   string
 }
 
 func NewBinaryNonceOp(c Context, left, right Expr, body StatementList, source string) *BinaryNonceOp {
@@ -300,6 +349,23 @@ func (o *BinaryNonceOp) String() string { return o.str }
 
 func (o *BinaryNonceOp) ProgString() string {
 	return fmt.Sprintf("{%s op %s = %s}", o.left.ProgString(), o.right.ProgString(), o.body.ProgString())
+}
+
+func (o *BinaryNonceOp) Initializers() []*Var {
+	return o.initializers
+}
+
+func (o *BinaryNonceOp) bindInitializers(c Context, locals map[string]Value) {
+	if len(locals) == 0 {
+		return
+	}
+	o.initializers = toVarSlice(locals)
+	o.initString = toString(locals)
+	c.BindInitializers(o.op, o.initializers)
+}
+
+func (o *BinaryNonceOp) InitString() string {
+	return o.initString
 }
 
 func (o *BinaryNonceOp) EvalBinary(c Context, left, right Value) Value {
@@ -353,14 +419,7 @@ func (o *OpExpr) ProgString() string {
 	if op == nil {
 		op = o.unary
 	}
-	switch op.(type) {
-	case *UnaryNonceOp, *BinaryNonceOp:
-		return op.ProgString()
-	case *OpExpr:
-		return op.ProgString()
-	}
-	// Wrapping a builtin or name op; add parens.
-	return "(" + op.String() + ")"
+	return op.ProgString()
 }
 
 func (o *OpExpr) Eval(c Context) Value {
@@ -372,14 +431,7 @@ func (o *OpExpr) String() string {
 	if op == nil {
 		op = o.unary
 	}
-	switch op.(type) {
-	case *UnaryNonceOp, *BinaryNonceOp:
-		return op.String()
-	case *OpExpr:
-		return op.String()
-	}
-	// Wrapping a builtin or name op; add parens.
-	return "(" + op.String() + ")"
+	return op.String()
 }
 
 func (o *OpExpr) Sprint(c Context) string {
@@ -425,4 +477,53 @@ func HasOpExprs(v Expr) bool {
 		}
 	}
 	return false
+}
+
+// localsUsed winnows the set of variables to those mentioned in
+// the statement list.
+func localsUsed(s StatementList, vars []*Var) map[string]Value {
+	bindings := map[string]Value{}
+	for _, expr := range s {
+		if stmt, ok := expr.(*Statement); ok {
+			names, _ := stmt.VarsAndRet()
+			for _, name := range names {
+				for _, v := range vars {
+					// Should always be a local but check.
+					if v.Name() == name && v.State() == LocalVar {
+						if val := v.Value(); val != nil {
+							bindings[name] = val
+						}
+						break
+					}
+				}
+			}
+		}
+	}
+	return bindings
+}
+
+// bindLocals sets initializers for the operator, if it is a NonceOp,
+// to remember the value of any locals mentioned in the body.
+func bindLocals(c Context, v Operator, locals []*Var) {
+	switch o := v.(type) {
+	case *UnaryNonceOp:
+		o.bindInitializers(c, localsUsed(o.body, locals))
+	case *BinaryNonceOp:
+		o.bindInitializers(c, localsUsed(o.body, locals))
+	}
+}
+
+// BindOpExprLocals checks if there are OpExprs in v that mention local variables.
+// If so, they are attached to the op as intializers so their value is availabe at
+// execution. The variables are known to be local to the current Function.
+func BindOpExprLocals(c Context, v Expr, locals []*Var) {
+	switch v := v.(type) {
+	case *OpExpr:
+		bindLocals(c, v.unary, locals)
+		bindLocals(c, v.binary, locals)
+	case VectorExpr:
+		for _, e := range v {
+			BindOpExprLocals(c, e, locals)
+		}
+	}
 }

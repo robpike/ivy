@@ -25,6 +25,7 @@ func init() {
 }
 
 var (
+	// testdata/operator.ivy has more detailed tests. This is just the basics.
 	op0 = value.NewOpExpr(value.UnaryBuiltinOp("*"), value.BinaryBuiltinOp("*")) // String order.
 	op1 = value.NewOpExpr(value.UnaryBuiltinOp("+"), value.BinaryBuiltinOp("+"))
 	op2 = value.NewOpExpr(value.UnaryBuiltinOp("-"), value.BinaryBuiltinOp("-"))

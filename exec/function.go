@@ -13,14 +13,15 @@ import (
 
 // Function represents a unary or binary user-defined operator.
 type Function struct {
-	IsBinary  bool
-	Name      string
-	Left      value.Expr
-	Right     value.Expr
-	Body      value.StatementList
-	Variables []string // Names mentioned in the body that could be vars.
-	Source    string
-	HasRet    bool
+	IsBinary     bool
+	Name         string
+	Left         value.Expr
+	Right        value.Expr
+	Body         value.StatementList
+	Variables    []string // Names mentioned in the body that could be vars.
+	Source       string
+	HasRet       bool
+	initializers []*value.Var // For OpExprs only, variables to set before execution.
 	// At time of definition; needed to parse saved source correctly.
 	Ibase int
 }
@@ -51,12 +52,13 @@ func (fn *Function) String() string {
 
 func (fn *Function) newFrame() *value.Frame {
 	frame := &value.Frame{
-		Op:       fn.Name,
-		IsBinary: fn.IsBinary,
-		Left:     fn.Left,
-		Right:    fn.Right,
-		Inited:   false,
-		Vars:     value.Symtab{},
+		Op:           fn.Name,
+		IsBinary:     fn.IsBinary,
+		Left:         fn.Left,
+		Right:        fn.Right,
+		Inited:       false,
+		Vars:         value.Symtab{},
+		Initializers: fn.initializers,
 	}
 	frame.Vars = make([]*value.Var, len(fn.Variables))
 	for i, id := range fn.Variables {
@@ -78,11 +80,17 @@ func (fn *Function) EvalUnary(context value.Context, right value.Value) value.Va
 	if value.HasOpExprs(right) {
 		value.FlushState(fn.Body)
 	}
+	for _, val := range fn.initializers {
+		value.Assign(context, fn.Name, value.NewVarExpr(val.Name()), nil, val.Value())
+	}
 	value.Assign(context, fn.Name, fn.Right, right, right)
 	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
 		c.Errorf("no value returned by %q", fn.Name)
+	}
+	if value.HasOpExprs(v) {
+		value.BindOpExprLocals(c, v, c.TopOfStack().Vars)
 	}
 	c.pop() // Don't defer, so if we get an error we can print the stack.
 	return v
@@ -101,12 +109,18 @@ func (fn *Function) EvalBinary(context value.Context, left, right value.Value) v
 	if value.HasOpExprs(left) || value.HasOpExprs(right) {
 		value.FlushState(fn.Body)
 	}
+	for _, val := range fn.initializers {
+		value.Assign(context, fn.Name, value.NewVarExpr(val.Name()), nil, val.Value())
+	}
 	value.Assign(context, fn.Name, fn.Left, left, left)
 	value.Assign(context, fn.Name, fn.Right, right, right)
 	c.TopOfStack().Inited = true
 	v := value.EvalFunctionBody(c, fn.Name, fn.Body, fn.HasRet)
 	if v == nil {
 		c.Errorf("no value returned by %q", fn.Name)
+	}
+	if value.HasOpExprs(v) {
+		value.BindOpExprLocals(c, v, c.TopOfStack().Vars)
 	}
 	c.pop() // Don't defer, so if we get an error we can print the stack.
 	return v
