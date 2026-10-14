@@ -89,7 +89,7 @@ func shiftCount(c Context, x Value) uint {
 			return shiftCount(c, reduced)
 		}
 	}
-	c.Errorf("illegal shift count type %T", x)
+	c.Errorf("illegal shift count type %s", TypeOf(x))
 	panic("not reached")
 }
 
@@ -178,7 +178,7 @@ func toBool(c Context, t Value) bool {
 	case Complex:
 		return !isZero(t.real) || !isZero(t.imag)
 	}
-	c.Errorf("cannot convert %T to bool", t)
+	c.Errorf("cannot convert %s to bool", TypeOf(t))
 	panic("not reached")
 }
 

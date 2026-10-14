@@ -270,9 +270,9 @@ sqrt pi
 sqrt (3/2)**2  # Demonstrate that it remains a float
 numden sqrt (3/2)**2
 	1
-	value.BigFloat
+	float
 	1.5
-	*value.Vector
+	vector
 	3 2
 
 # All floats are truly rationals underneath, we just don't think of them that way.

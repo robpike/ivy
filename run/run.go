@@ -144,7 +144,7 @@ func printValues(c value.Context, writer io.Writer, values []value.Value) bool {
 			if i > 0 {
 				fmt.Fprint(writer, ",")
 			}
-			fmt.Fprintf(writer, "%T", v)
+			fmt.Fprintf(writer, "%s", value.TypeOf(v))
 		}
 		fmt.Fprintln(writer)
 	}

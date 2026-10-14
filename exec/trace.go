@@ -117,7 +117,7 @@ func (c *Context) tracePrint(val value.Value) string {
 	case nil:
 		return "" // No parens.
 	default:
-		s = fmt.Sprintf("%T %s", v, v.Sprint(c))
+		s = fmt.Sprintf("%s %s", value.TypeOf(v), v.Sprint(c))
 	case value.Int, value.BigInt, value.BigRat, value.BigFloat, value.Complex:
 		s = short(v.Sprint(c))
 	case value.Char:
@@ -151,12 +151,12 @@ func (c *Context) ArgPrint(arg value.Expr) string {
 	switch a := arg.(type) {
 	case nil:
 		return "" // No parens.
-	default:
-		s = fmt.Sprintf("%T %s", a, value.DebugProgString(a))
 	case *value.VarExpr, value.VectorExpr:
 		if v := a.Eval(c); v != nil {
 			s = c.tracePrint(v)
 		}
+	default:
+		s = fmt.Sprintf("%T %s", a, value.DebugProgString(a))
 	}
 	return parens(s, true)
 }

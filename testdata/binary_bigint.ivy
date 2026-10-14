@@ -479,13 +479,13 @@ _-64          # but not exactly 64.
 
 	1.58496250072 3 3.58496250072 31.6438561898 64
 	1
-	value.BigFloat
+	float
 	1.58496250072
-	value.BigFloat
+	float
 	31.6438561898
-	value.Int
+	int
 	64
-	value.BigFloat
+	float
 	64
-	value.BigFloat
+	float
 	7.82086548783e-20

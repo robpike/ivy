@@ -24,9 +24,10 @@ const (
 	vectorType
 	matrixType
 	numType
+	unknownType = numType
 )
 
-var typeName = [...]string{"operator", "int", "char", "big int", "rational", "float", "complex", "vector", "matrix"}
+var typeName = [...]string{"operator", "int", "char", "big int", "rational", "float", "complex", "vector", "matrix", "unknown"}
 
 func (t valueType) String() string {
 	return typeName[t]
@@ -83,7 +84,12 @@ type binaryBuiltin struct {
 	fn          [numType]binaryFn
 }
 
-func whichType(c Context, v Value) valueType {
+// TypeOf returns a string identifying the type of the value.
+func TypeOf(v Value) string {
+	return typeOf(v).String()
+}
+
+func typeOf(v Value) valueType {
 	switch v.Inner().(type) {
 	case Int:
 		return intType
@@ -103,9 +109,17 @@ func whichType(c Context, v Value) valueType {
 		return vectorType
 	case *Matrix:
 		return matrixType
+	default:
+		return unknownType
 	}
-	c.Errorf("internal error: unknown type %T in whichType", v)
-	panic("which type")
+}
+
+func whichType(c Context, v Value) valueType {
+	t := typeOf(v)
+	if t == unknownType {
+		c.Errorf("internal error: unknown type %T in whichType", v)
+	}
+	return t
 }
 
 func (op *binaryBuiltin) EvalBinary(c Context, u, v Value) Value {

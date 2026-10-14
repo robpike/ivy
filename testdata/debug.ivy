@@ -79,36 +79,42 @@ op a base b = ((ceil b log a) rho b) encode a
 )debug types
 23
 	1
-	value.Int
+	int
 	23
 
 )debug types
 'c'
 	1
-	value.Char
+	char
 	c
 
 )debug types
 1 2 3
 	1
-	*value.Vector
+	vector
 	1 2 3
 
 )debug types
 sqrt 2
 	1
-	value.BigFloat
+	float
 	1.41421356237
 
 )debug types
 1.41421356237
 	1
-	value.BigRat
+	rational
 	141421356237/100000000000
 
 )debug types
 2 3 rho iota 6
 	1
-	*value.Matrix
+	matrix
 	1 2 3
 	4 5 6
+
+)debug types
+sqrt
+	1
+	operator
+	sqrt
