@@ -212,10 +212,10 @@ op max n = 3
 )info {a op b = 1}
 	binary nonce operator
 
-# TODO? The builtin is hidden.
 max = {op a = a}
 )info (max)
 	unary nonce operator
+	binary builtin operator
 
 op var unary fn = {op a = fn a+var}
 unaryPlus = 7 unary +

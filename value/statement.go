@@ -480,9 +480,10 @@ func (s *Statement) parseUndecoratedOperator(c Context, tok scan.Token, inOpExpr
 	v := variable(c, tok)
 	if v != nil {
 		if opExpr, ok := v.Value().(*OpExpr); ok {
-			return opExpr.Unpack()
+			unary, binary = opExpr.Unpack()
+		} else {
+			s.Errorf("%s is not an operator", tok.Text)
 		}
-		s.Errorf("%s is not an operator", tok.Text)
 	}
 	if c.UserDefined(tok.Text, true) {
 		binary = c.NewUserDefinedBinaryOp(tok.Text)
