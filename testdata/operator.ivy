@@ -21,7 +21,6 @@ o./
 (+)  # Can parenthesize
 	+
 
-
 # Parentheses required if op has argument(s) and want an operator expression,
 # that is, we want to delay execution of the op.
 3 + 2
@@ -36,8 +35,8 @@ add = +
 
 # These oparators could be unary or binary; the parser disambiguates.
 RHO = rho
-2 3 rho 1 2 3 4 5 6
-rho _
+2 3 RHO 1 2 3 4 5 6
+RHO _
 	1 2 3
 	4 5 6
 	2 3
@@ -95,7 +94,6 @@ x {a op b=a+b}.{a op b=a*b} x
 	 7 10
 	15 22
 
-
 2 3  o.+ 4 5
 2 3 o.{a op b=a+b} 4 5
 	6 7
@@ -131,20 +129,6 @@ x 4
 	2
 	120
 	2
-
-
-# ops returning an operator that embeds a local name won't work.
-# (That is, there are no closures (yet).) Here is a clunky example
-# showing a workaround, an op that returns a unary-only variant
-# of its arg. The invocation of the ivy operator provides a level
-# of evaluation
-# to flatten the expression.
-op unary fn = ivy '{op a=',fn,' a}'
-unaryIota = unary 'iota'
-unaryIota
-unaryIota 5
-	{op a=iota a}
-	1 2 3 4 5
 
 # From issue 264, a motivating example.
 op f table n = transp 2 n rho (iota n), f@ iota n
