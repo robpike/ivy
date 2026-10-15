@@ -345,6 +345,26 @@ func (v *Vector) AllChars() bool {
 	return true
 }
 
+// ElementTypes returns a string reporting which element types are within, for the
+// Info special command.
+func (v *Vector) ElementTypes(c Context) string {
+	found := map[valueType]bool{}
+	for _, e := range v.All() {
+		found[whichType(c, e)] = true
+	}
+	// Iterate in type order for reproduciblity.
+	s := ""
+	for typ := range numType {
+		if found[typ] {
+			if s != "" {
+				s += ", "
+			}
+			s += typ.String()
+		}
+	}
+	return s
+}
+
 // allScalars reports whether all the elements are scalar.
 func (v *Vector) allScalars(c Context) bool {
 	for _, x := range v.All() {

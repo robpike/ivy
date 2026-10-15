@@ -477,6 +477,10 @@ input.
 	Read input from the named file, which need not be quoted;
 	return to interactive execution afterwards. If no file is specified,
 	read from &quot;save.ivy&quot;. (Unimplemented on mobile.)
+) info _
+	Print metadata, such as type information, about the argument
+	expressions. If no expressions are given, the value of the
+	global variable _ is examined.
 ) last 1
 	Print the last few lines of user input, default 1 line, ignoring
 	any trailing empty lines.

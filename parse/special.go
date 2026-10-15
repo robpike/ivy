@@ -289,6 +289,23 @@ Switch:
 		conf.SetFormat(p.getFile(")format", "%.12g"))
 	case "get":
 		p.runFromFile(p.context, p.getFile(")get", defaultFile))
+	case "info":
+		name := ")info"
+		line := p.restOfLine(name)
+		if line == "" {
+			line = "_"
+		}
+		scanner := scan.New(state.New(p.context), name, strings.NewReader(line))
+		parser := NewParser(name, scanner, p.context)
+		exprs, ok := parser.Line()
+		if !ok {
+			p.errorf("invalid expression")
+		}
+		for _, expr := range exprs {
+			for _, line := range exec.Info(p.context, expr.Eval(p.context)) {
+				p.Printf("\t%s\n", line)
+			}
+		}
 	case "last":
 		history := p.scanner.History()
 		end := len(history) - 1 // -1 to suppress ')last'.
@@ -522,6 +539,19 @@ func (p *Parser) getFile(prefix, def string) string {
 		}
 		return strings.TrimSpace(line)
 	}
+}
+
+func (p *Parser) restOfLine(prefix string) string {
+	for p.peek().Type != scan.EOF {
+		p.next()
+	}
+	h := p.scanner.History()
+	line := strings.TrimSpace(h[len(h)-1])
+	line = strings.TrimPrefix(line, prefix)
+	if i := strings.Index(line, "#"); i >= 0 {
+		line = line[:i]
+	}
+	return strings.TrimSpace(line)
 }
 
 var runDepth = 0

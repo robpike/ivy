@@ -6,6 +6,7 @@ package value
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -92,17 +93,17 @@ var (
 // ReduceOp represents a reduction or scan.
 type ReduceOp struct {
 	str       string
-	op        Binary
-	isScan    bool
-	firstAxis bool // If true, the operator iterates on the first axis; default is the last.
+	Op        Binary
+	IsScan    bool
+	FirstAxis bool // If true, the operator iterates on the first axis; default is the last.
 }
 
 func NewReduceOp(op Binary, decorator string) *ReduceOp {
 	return &ReduceOp{
 		str:       op.String() + decorator,
-		op:        op,
-		isScan:    strings.HasPrefix(decorator, "\\"),
-		firstAxis: strings.HasSuffix(decorator, "%"),
+		Op:        op,
+		IsScan:    strings.HasPrefix(decorator, "\\"),
+		FirstAxis: strings.HasSuffix(decorator, "%"),
 	}
 }
 
@@ -110,77 +111,77 @@ func (o *ReduceOp) String() string { return o.str }
 
 func (o *ReduceOp) ProgString() string {
 	slash := "/"
-	if o.isScan {
+	if o.IsScan {
 		slash = "\\"
 	}
-	if o.firstAxis {
+	if o.FirstAxis {
 		slash += "%"
 	}
-	return fmt.Sprintf("%s%s", o.op.ProgString(), slash)
+	return fmt.Sprintf("%s%s", o.Op.ProgString(), slash)
 }
 
 func (o *ReduceOp) EvalUnary(c Context, right Value) Value {
 	TraceUnary(c, 2, o.String(), right)
-	if o.isScan {
-		if o.firstAxis {
-			return ScanFirst(c, o.op, right)
+	if o.IsScan {
+		if o.FirstAxis {
+			return ScanFirst(c, o.Op, right)
 		}
-		return Scan(c, o.op, right)
+		return Scan(c, o.Op, right)
 	}
-	if o.firstAxis {
-		return ReduceFirst(c, o.op, right)
+	if o.FirstAxis {
+		return ReduceFirst(c, o.Op, right)
 	}
-	return Reduce(c, o.op, right)
+	return Reduce(c, o.Op, right)
 }
 
 // OuterOp represents an outer product.
 type OuterOp struct {
 	str string
-	op  Binary
+	Op  Binary
 }
 
 func NewOuterOp(op Binary) *OuterOp {
 	return &OuterOp{
 		str: "o." + op.String(),
-		op:  op,
+		Op:  op,
 	}
 }
 
 func (o *OuterOp) String() string { return o.str }
 
 func (o *OuterOp) ProgString() string {
-	return "o." + o.op.ProgString()
+	return "o." + o.Op.ProgString()
 }
 
 func (o *OuterOp) EvalBinary(c Context, left, right Value) Value {
 	TraceBinary(c, 2, left, o.String(), right)
-	return outerProduct(c, left, o.op, right)
+	return outerProduct(c, left, o.Op, right)
 }
 
 // InnerOp represents an inner product.
 type InnerOp struct {
 	str     string
-	leftOp  Binary
-	rightOp Binary
+	LeftOp  Binary
+	RightOp Binary
 }
 
 func NewInnerOp(leftOp, rightOp Binary) *InnerOp {
 	return &InnerOp{
 		str:     leftOp.String() + "." + rightOp.String(),
-		leftOp:  leftOp,
-		rightOp: rightOp,
+		LeftOp:  leftOp,
+		RightOp: rightOp,
 	}
 }
 
 func (o *InnerOp) String() string { return o.str }
 
 func (o *InnerOp) ProgString() string {
-	return o.leftOp.ProgString() + "." + o.rightOp.ProgString()
+	return o.LeftOp.ProgString() + "." + o.RightOp.ProgString()
 }
 
 func (o *InnerOp) EvalBinary(c Context, left, right Value) Value {
 	TraceBinary(c, 2, left, o.String(), right)
-	return innerProduct(c, left, o.leftOp, o.rightOp, right)
+	return innerProduct(c, left, o.LeftOp, o.RightOp, right)
 }
 
 // atString and ats are used to avoid an allocation when building strings for Each ops.
@@ -196,53 +197,53 @@ func ats(n int) string {
 // UnaryEachOp represents a unary operator with trailing @s.
 type UnaryEachOp struct {
 	str    string
-	op     Unary
-	numAts int
+	Op     Unary
+	NumAts int
 }
 
 func NewUnaryEachOp(op Unary, numAts int) *UnaryEachOp {
 	return &UnaryEachOp{
 		str:    op.String() + ats(numAts),
-		op:     op,
-		numAts: numAts,
+		Op:     op,
+		NumAts: numAts,
 	}
 }
 
 func (o *UnaryEachOp) String() string { return o.str }
 
-func (o *UnaryEachOp) ProgString() string { return o.op.ProgString() + ats(o.numAts) }
+func (o *UnaryEachOp) ProgString() string { return o.Op.ProgString() + ats(o.NumAts) }
 
 func (o *UnaryEachOp) EvalUnary(c Context, right Value) Value {
 	TraceUnary(c, 2, o.String(), right)
-	return UnaryEach(c, o.op, o.numAts, right)
+	return UnaryEach(c, o.Op, o.NumAts, right)
 }
 
 // BinaryEachOp represents a binary operator with leading and/or trailing @s.
 type BinaryEachOp struct {
-	str       string
-	op        Binary
-	nLeftAts  int
-	nRightAts int
+	str      string
+	Op       Binary
+	LeftAts  int
+	RightAts int
 }
 
 func NewBinaryEachOp(op Binary, nLeftAts, nRightAts int) *BinaryEachOp {
 	return &BinaryEachOp{
-		str:       ats(nLeftAts) + op.String() + ats(nRightAts),
-		op:        op,
-		nLeftAts:  nLeftAts,
-		nRightAts: nRightAts,
+		str:      ats(nLeftAts) + op.String() + ats(nRightAts),
+		Op:       op,
+		LeftAts:  nLeftAts,
+		RightAts: nRightAts,
 	}
 }
 
 func (o *BinaryEachOp) String() string { return o.str }
 
 func (o *BinaryEachOp) ProgString() string {
-	return ats(o.nLeftAts) + o.op.ProgString() + ats(o.nRightAts)
+	return ats(o.LeftAts) + o.Op.ProgString() + ats(o.RightAts)
 }
 
 func (o *BinaryEachOp) EvalBinary(c Context, left, right Value) Value {
 	TraceBinary(c, 2, left, o.String(), right)
-	return BinaryEach(c, left, o.nLeftAts, o.op, o.nRightAts, right)
+	return BinaryEach(c, left, o.LeftAts, o.Op, o.RightAts, right)
 }
 
 // UnaryNonceOp represents an in-line unary operator construct.
@@ -291,10 +292,15 @@ func (o *UnaryNonceOp) InitString() string {
 	return o.initString
 }
 
-// toVarSlices creates a slice of *Var from a map of names and values.
+// toVarSlices creates a sorted slice of *Var from a map of names and values.
 func toVarSlice(locals map[string]Value) (slice []*Var) {
-	for name, val := range locals {
-		slice = append(slice, NewVar(name, val, LocalVar))
+	names := []string{}
+	for name := range locals {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		slice = append(slice, NewVar(name, locals[name], LocalVar))
 	}
 	return slice
 }

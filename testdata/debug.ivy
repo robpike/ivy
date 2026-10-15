@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-# Debug printing.
+# Debug printing including the )info special command.
 
 )debug parse
 23
@@ -118,3 +118,113 @@ sqrt
 	1
 	operator
 	sqrt
+
+# Info
+
+)info 1
+	int
+
+)info 'a'
+	char
+
+)info 1e13
+	big int
+
+)info 1/3
+	rational
+
+)info pi
+	float
+
+)info 3j2
+	complex
+
+)info 1 2 pi
+	int, float vector of length 3
+
+)info 2 4 rho 1 2 pi
+	int, float matrix of rank 2, size 8, dimension [2 4]
+
+)info sqrt
+	unary builtin operator
+
+)info max
+	binary builtin operator
+
+)info +
+	unary builtin operator
+	binary builtin operator
+
+op foo a = 3
+)info foo
+	unary user-defined operator
+
+op foo a = 3
+op a foo b = 3
+)info foo
+	unary user-defined operator
+	binary user-defined operator
+
+op max n = 3
+)info max
+	unary user-defined operator
+	binary builtin operator
+
+)info +.*
+	binary inner product operator of:
+		binary builtin operator
+	and
+		binary builtin operator
+
+)info o.*
+	binary outer product operator of:
+		binary builtin operator
+
+)info +/
+	unary reduce operator of:
+		binary builtin operator
+
+)info +/%
+	unary reduce operator on first axis of:
+		binary builtin operator
+
+)info +\
+	unary scan operator of:
+		binary builtin operator
+
+)info +\%
+	unary scan operator on first axis of:
+		binary builtin operator
+
+)info +@@
+	unary each operator (2 iterations) of:
+		unary builtin operator
+	binary each operator (2 right iterations) of:
+		binary builtin operator
+
+)info @@+@
+	binary each operator (2 left iterations) (1 right iterations) of:
+		binary builtin operator
+
+)info {op a = 1}
+	unary nonce operator
+
+)info {a op b = 1}
+	binary nonce operator
+
+# TODO? The builtin is hidden.
+max = {op a = a}
+)info (max)
+	unary nonce operator
+
+op var unary fn = {op a = fn a+var}
+unaryPlus = 7 unary +
+)info unaryPlus
+	unary nonce operator
+	initializers:
+		fn = +
+			unary builtin operator
+			binary builtin operator
+		var = (7)
+			int
+

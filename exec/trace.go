@@ -194,13 +194,13 @@ func namesIn(e value.Expr) []string {
 	return nil
 }
 
-var indent = "| "
+var traceIndentation = "| "
 
 // TraceIndent returns an indentation marker showing the depth of the stack.
 func (c *Context) TraceIndent() string {
 	n := 2 * len(c.Stack)
-	if len(indent) < n {
-		indent = strings.Repeat("| ", n+10)
+	if len(traceIndentation) < n {
+		traceIndentation = strings.Repeat("| ", n+10)
 	}
-	return indent[:n]
+	return traceIndentation[:n]
 }

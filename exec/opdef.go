@@ -6,7 +6,7 @@ package exec
 
 // OpDef is just a record of an op's name and arg count.
 // It is held in execContext.defs to control writing the
-// ops out in the right order during save. See comment above.
+// ops out in the right order during save.
 type OpDef struct {
 	Name     string
 	IsBinary bool
