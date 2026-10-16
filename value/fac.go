@@ -10,7 +10,7 @@ import "math/big"
 // for integers. From Peter Luschny, https://oeis.org/A000142/a000142.pdf.
 
 // primeGen returns a function that generates primes from 2...n on successive calls.
-// Used in the factorization in the swing function. (TODO: Might be fun to make available.)
+// Used in the factorization in the swing function.
 func primeGen(n int) func() int {
 	marked := make([]bool, n+1) // Starts at 0 for indexing simplicity.
 	i := 2
@@ -28,20 +28,33 @@ func primeGen(n int) func() int {
 	}
 }
 
+// primesTo returns a slice of all the primes from 2 up to and including max (if it's prime).
+func primesTo(max int) []int {
+	nextPrime := primeGen(max)
+	// A good estimate of the number of primes below max. There are 9592 primes below 10K,
+	// so dividing by 10 gives us headroom yet saves a lot of memory.
+	// The estimate is worse for smaller values but they are cheaper to allocate. We might
+	// reallocate once or twice with this estimate, but not punitively.
+	primes := make([]int, 0, max/10)
+	for range max {
+		prime := nextPrime()
+		if prime == 0 {
+			break
+		}
+		primes = append(primes, prime)
+	}
+	return primes
+}
+
 // swing calculates the "swinging factorial" function of n,
 // which is n!/⌊n/2⌋!².
 // Swinging factorial table for reference.
 //
 //	n  0 1 2 3 4  5  6   7  8   9  10   11
 //	n𝜎 1 1 2 6 6 30 20 140 70 630 252 2772
-func swing(n int) *big.Int {
-	nextPrime := primeGen(n)
+func swing(n int, primes []int) *big.Int {
 	factors := make([]int, 0, 100)
-	for {
-		prime := nextPrime()
-		if prime == 0 {
-			break
-		}
+	for _, prime := range primes {
 		q := n
 		p := 1
 		for q != 0 {
@@ -89,20 +102,26 @@ func product(doPar bool, f []int) *big.Int {
 	return r
 }
 
+// intFactorialWithPrimes is the core of intFactorial. It should never
+// be called with n <= 0.
+func intFactorialWithPrimes(c Context, n int64, primes []int) *big.Int {
+	if n < 2 {
+		return big.NewInt(1)
+	}
+	s := swing(int(n), primes)
+	f2 := intFactorial(c, n/2)
+	f2.Mul(f2, f2)
+	f2.Mul(f2, s)
+	return f2
+}
+
 // intFactorial returns factorial of natural n using a "swinging
 // factorial" for roughly 2x speedup.
 func intFactorial(c Context, n int64) *big.Int {
 	if n < 0 {
 		c.Errorf("factorial of negative number: %d", n)
 	}
-	if n < 2 {
-		return big.NewInt(1)
-	}
-	s := swing(int(n))
-	f2 := intFactorial(c, n/2)
-	f2.Mul(f2, f2)
-	f2.Mul(f2, s)
-	return f2
+	return intFactorialWithPrimes(c, n, primesTo(int(n)))
 }
 
 // factorial returns !z for any z in the complex plane except negative integers
@@ -120,7 +139,7 @@ func factorial(c Context, z Value) Value {
 }
 
 var (
-	// The parameters for generating coefficients for our gamma apprximation. See
+	// The parameters for generating coefficients for our gamma approximation. See
 	// [The Gamma Function via Interpolation by Matthew F. Causley]: https://arxiv.org/pdf/2104.00697v1
 	// The method is a refinement of Spouge's (1994) approximation for the gamma
 	// function. For most values, the technique allows us to create a

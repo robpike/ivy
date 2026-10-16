@@ -531,9 +531,10 @@ func init() {
 					if a < 0 || b < 0 || a > b {
 						return zero
 					}
-					aFac := intFactorial(c, a)
-					bFac := intFactorial(c, b)
-					bMinusAFac := intFactorial(c, b-a)
+					primes := primesTo(int(max(a, b)))
+					aFac := intFactorialWithPrimes(c, a, primes)
+					bFac := intFactorialWithPrimes(c, b, primes)
+					bMinusAFac := intFactorialWithPrimes(c, b-a, primes)
 					bFac.Div(bFac, aFac)
 					bFac.Div(bFac, bMinusAFac)
 					return BigInt{bFac}.shrink()

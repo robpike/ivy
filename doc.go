@@ -125,6 +125,7 @@ Unary operators
 	Phase                   phase   Phase of the value in the complex plane (-π to π)
 	Conjugate         +B    conj    Complex conjugate of the value
 	Fractional parts        numden  2-vector of numerator and denomator of B
+	Prime numbers           primes  vector of primes up to B
 	System functions  ⎕     sys     Argument is a string; run "sys 'help'" for details
 	Print                   print   Print and evaluate to argument; useful for debugging
 	N/A                     trap    Return a 2-vector. The first element is the value of B and
@@ -313,7 +314,8 @@ Example: multiline operator definition (binary):
 	iota 3 sum 4
 	result: 1 2 3 4 5 6 7
 
-Example: primes less than N (unary):
+Example: primes less than N (a slower, user-defined variant of
+the primes unary builtin):
 
 	op primes N = (not T in T o.* T) sel T = 1 drop iota N
 	primes 50

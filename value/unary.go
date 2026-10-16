@@ -510,6 +510,21 @@ func init() {
 		},
 
 		{
+			op:          UnaryBuiltinOp("primes"),
+			elementwise: true,
+			fn: [numType]unaryFn{
+				intType: func(c Context, v Value) Value {
+					p := primesTo(int(v.(Int)))
+					ps := make([]Value, len(p))
+					for i, prime := range p {
+						ps[i] = Int(prime)
+					}
+					return NewVector(ps...)
+				},
+			},
+		},
+
+		{
 			op:          UnaryBuiltinOp("real"),
 			elementwise: true,
 			fn: [numType]unaryFn{
